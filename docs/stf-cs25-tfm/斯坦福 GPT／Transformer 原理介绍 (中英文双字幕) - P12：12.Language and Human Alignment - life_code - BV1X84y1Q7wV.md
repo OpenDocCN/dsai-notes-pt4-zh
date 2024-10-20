@@ -1,0 +1,1007 @@
+# 斯坦福 GPT／Transformer 原理介绍 (中英文双字幕) - P12：12.Language and Human Alignment - life_code - BV1X84y1Q7wV
+
+![](img/b473ddacf8908cc92f68d174d1de8757_0.png)
+
+![](img/b473ddacf8908cc92f68d174d1de8757_1.png)
+
+It's my pleasure to welcome Jan from OpenEI he leads the alignment team there and who was previously a researcher at Deep Mind as well。
+
+ holds a PhD in reinforcement learning theory， has been thinking about the alignment problem for over 10 years and today he'll be giving a very interesting talk so hope you guys enjoyed。
+
+Yeah， thanks a lot for the intro and thanks a lot for having me。😊。
+
+I'm very excited you talk about this stuff I'm also super happy to keep it interactive if you have questions at any point。
+
+ please interrupt me。😊，啊。Yeah， I want to start out with。
+
+A few very basic observations on kind of what I think is going on。And。So the first one is。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_3.png)
+
+TmiI is joining the game。So hemiI has a lot of different factors。
+
+They aren't all joined at the same time， but rather they join one by one。
+
+And not all the their players are like vary a lot in how good they are and right now a lot of the players that have drawn so far。
+
+I'm really that smart and usually can do it only a very narrow set of tasks。诶。😊，But。
+
+One thing that we've kind of observedd this that over time， you know。
+
+ we're seeing strong and strong players joint。And this is kind of where we are now。
+
+And then in general。We expect that Himmiai has some incredibly strong playerss。
+
+So those will be playerss that are able to think so much better than humans。
+
+ so much faster and so much more cheaply。And。These haven't joined yet。And so。对。
+
+Have like anchor fund that we have， if you think， for example， about chattP。😊，ChatTBT can already be。
+
+Any human as like knowing more facts or speaking more languages。
+
+And it can write about 50 voice per second。And can do so about 100 times cheaper than humans could at the minimum wage。
+
+And so。You know， there's。The CheBT also has some really important limitations and there's a lot of things they can't do。
+
+But it is kind of。An indicator of， you know， some of the players that maybe we be joining in the future。
+
+And so it seemed like and in the long run。TmiI will have all the advantages over team humans。But。
+
+And there is one， there's an important caveat， which is。
+
+There's one important advantageage that Kim Kim has。
+
+ which is team Human gets to pick which players from teammi I join and win。
+
+And so this is kind of like an advantage that should we should really be leaning into when we're thinking about what to do and when we're thinking about。
+
+ you know， this game that we're playing with CMI and that we'll be playing with TI。Oh。
+
+So I think two of the main objectives of what we as team humans should do is like first。
+
+We should try to recruit。Pes from地I to client进。And so this is kind of what I would broadly follow on。
+
+And this is kind of like the problem that I'm with。And then there is also other objectives。
+
+ so another objective that I think is going to be really important is you want to write the rules of the game so that team human doesn't live。
+
+And right now， King human kind of has the ball and we get to write the rules so we should write the rules that you know。
+
+Makes sense and。那个。Still play this game in the future。And so in this talk。
+
+ I won't really talk about the second point at all。
+
+ and I will talk about the first point because that's why I know that's not where time。诶。😊。
+
+K to phrase it differently or to make it kind of like more。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_5.png)
+
+Practical， like one way I'm thinking about alignment is like you want to build AI systems that follow human intent。
+
+And， you know。Follow human preferences that do we want them to。And so a bunch of the things。
+
+ basically I'll talk about two main things， the first part is going to be work that we've done in the past。
+
+😊，And have like， whichs roughly。Is in the bucket of like we are trying to figure out how we can make。
+
+The models that we have today as aligned as we can and we're just kind of trying we're going to try hard to do this and we'll see how far we can。
+
+And then the second bucket is。The things that we have to do next。
+
+The stuff that we haven't done yet that we think are going to be really important。
+
+And I want to kind of like lay out why I think they can be。对。Now， I said， you know。
+
+ I I'm like trying to make this more clear or like more broken down what alignment means。
+
+ so a not like here。Because now the big is like what does it mean to follow human attack？
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_7.png)
+
+Theres like two main categories of intent that we care about is。I would say if it enhance to you。
+
+ you know， like I give the assistant instruction or if you want to be my assistant。
+
+ it should be my assistant， I should follow the instruction。
+
+But then there's also all these other intents that don't say when I'm usually， you know。
+
+ talking to a system or a human， they ultimately really care about。
+
+ like you know it shouldn't literally always do what I say but thing that I mean and it shouldn't make up stuff and it shouldn't you do harmful things and it should ask follow up questions when it's not sure what I mean and so on and so on。
+
+And so。These are all kind of like things they're often just likely difficult to like just not precisely specify or like。
+
+And。You know， what does I agree？But it is still things that we want to get they do and that we have to figure out how to。
+
+ you know， get into it。And so kind of like the main technique that we're using today。😊，For this。
+
+ is what we call important feedback， so that was used to train script GP and chat GBT。
+
+ which has a tune like main in occupied this park。诶。
+
+The the basic system is very simple and it's also like a super general technique that appliess to most of this。
+
+AI models and modalities and settings。But in this case。
+
+ we'll be using manage quality and so off two steps。
+
+There is actually not a step of like chain limitations so I'm going to start with the things。
+
+First that is you want to train one model from Comp。So you have on passed in this case。
+
+ now explain when not。Or you know， help me with my trans。Whatever it is。
+
+ and then the model does a bunch of things and then you made which one is like close to the thing that you intended the model。
+
+And so you have a bigger set of preferences than you train your reward model and the reward model basically just learn to predict which one would you prefer。
+
+Book。Everything okay I would say like just spend more in front of the camera as soon possible。
+
+ but I think that looks good。😊，Sorry about that。Maybe let's turn it a little bit。O对。没有。Okay。
+
+ so now we have this through our model that captures kind our preferences and what we care about and what we intend for the model to do。
+
+And then the second step is now you optimize your reward model with the input。😊，And so not setting。
+
+ you know， like model tries a whole bunch of different things and then what model have tells it which one would the assisted things is probably more like the thing that。
+
+没有。They will depend on the letter， different label of。
+
+They also might be inconsistencies and you can give these examples of like in preferences。😊。
+
+But those haven't really been a problem in。And so far， you know， like our flights often don't agree。
+
+ but the model average overall thes have。😊，下。不 yeah， so。
+
+This is like the basic technique is conceptual like quite simple。
+
+ you can make it even simpler if you had， you know。
+
+ if you didn't translate into one model and you label instead like everyR that。😊。
+
+But it would be a lot less data efficient and so you can turn your one on to think up。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_9.png)
+
+对的。对。So how will it work so this is kind of like one of the main thoughts from the in sheet paper and this is the one I like showing because。
+
+It really blew my mind and it still does。What do we see here？On the X axis。
+
+ you see this is from the GP3 model series and you see this is like different three different size of models over two orders of magnitude。
+
+😊，And then the y axis is how well does the level score on human preference？😊。
+
+So if you show a bunch of samples to humans， how likely are they to prefer one over the other？
+
+And then what we see is that even like the largest G3 model。😊。
+
+Is this preferred to the smallest instruct G variant and so the 100x smaller instruct model？😊，And if。
+
+Actually preferred。Over the much larger。接屏我晒接屏电话。And that's kind of wild。Sorry。
+
+ let me just finish my talk。 So why。我也这是没写就没退过去。It basically shows that it would like to be on the line of COD that making them whole more made them so much more useful than was getting out。
+
+😊，Or fine nice worse nobody want to use it。 And can you guys hear me we make all these fancy alignment techniques that don't get adopted。
+
+ And so what we were。Like originally in like the first version we that saw these regressions and then what here is labeled PPO PX is kind of like a very end where we mix in free training data into the fine tuning and that mitigated a bunch of the regressions that we saw。
+
+嗯。😊，Yeah， and I just had to put a follow up to that。How would important。
+
+It's like fidelity of fine team that you。You guys you collect data from humans right what if you were to use some pretrainmigrant model to score you know or something like that yeah and you could do that and there have been like other papers on that like I thought they wrote this paper on constitutional AI that was trying to like exactly do that。
+
+in terms of well there's certain things that the language model will be able to automatically rank and some things it won because you know。
+
+ it won't know your exact preferences or it won't know exactly what like what we wanted to do and so you know whenever the language model does something。
+
+That we just prefer we actually we have to give it another data point right or in other words。
+
+ you know， if you're aligning with humans， you somehow have to put humans into the loop so that you know otherwise。
+
+How does the model know what it's supposed to do？Lots of more questions， I don't know who was Chris。
+
+😊，Yeah， how many you mean approximately like what's how many orders of magnitude of like submitted preferences do you need to achieve these yes。
+
+ I'm going to get to that in a second sure。question， I think some。Yeah。😊，So why you an experiment？
+
+We haven。We haven't actually carefully compared across our algorithms。
+
+ and it could very well be that a different neural algorithm would be better。😊，That was connect life。
+
+I know PVO was invented open the eye， so that's why we used it。
+
+It's not not really a good reason other than that， it works also pretty well。Yes。eCompisons。
+
+ this is better than this other thing。So usually we have people compare between like three to six different responses from usually different models。
+
+Okay。Yeah。😊，So is PPO and the reward mode currently used in chat GT in production and it's so like do you use any of the human feedback like you know you can regenerate responses and stuff like that to help。
+
+As a reward function as well， how do you mean to regenerate like there's a button onT where you can say about regenerate responses or do you use any implicit feedback basically in human use I don't know what the current state is for that I expect people will try to use it。
+
+ but you knowGBT hasn't been out that long。Yeah， so I'm curious about this graphic like it seems like 100 x as you mentioned increasing parameters doesn't give you that much more like fidelity there qualitatively you have been tracked this for a while。
+
+ can you tell right off the bat if you're like interacting with the 1 billion like a model or the like 100 billion model like auring pseudoturing test but parameter size like I give you a black box can you tell me how many parameters it has？
+
+😊，Probably not very precisely。But I think the big counter question is like do I get to write the prompt so if you just draw random prompts from whatever people put in the opening at playground。
+
+ which is what we use points for our TPT， then I probably need quite a few to tell the difference but if I get to write the prompt I can probably do it in one or to at least like if the task is like tell the difference between this and this。
+
+Yeah。I want to can I just do two more slides and maybe your questions get answered and then。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_11.png)
+
+so this was the question about training costs so this is another thing that kind of really blew my mind is like compared to pre training it is incredibly cheap so if you look at like the amount of labs that it takes to train GB to eat and then you compare it with like how much does fine tuning and the R withs pre training makes and everything。
+
+😊，like the most expensive instructorB version is like less than 2% of the pre training computers。😊。
+
+And if you want to train an even bigger model， it's going to be more expensive and you could still use the same like fine unique step to make it more aligned。
+
+And of course， I think the important thing to note also here is like we haven't fixed all the problems。
+
+ there's like important limitations and so I wouldn't say that this is like you know the last version and we wouldn't try to figure out how to spend more compute and more human data in the future。
+
+😊。
+
+![](img/b473ddacf8908cc92f68d174d1de8757_13.png)
+
+But all in all， it was surprisingly effective。
+
+![](img/b473ddacf8908cc92f68d174d1de8757_15.png)
+
+Okay， there were more questions。😊，My questions Yeah， I just wanted to ask what the PTx。
+
+Mixing pre training data into the IO F tune， just like mixing gradients。Y quick one。
+
+ what's the number of parameters for this graph so you fixed a number of branches for this so this is the full size GP3 version。
+
+ so this is the 175 billion model。So。O questionss， no， okay。
+
+ there's also some questions on Zoom great Okay sure， so the busman is。Okay， sure。
+
+ so the first question is how would you deal with all edge breaking in the limit。
+
+ example preferences are a good proxy for values。But optimizing for them is terized to incentiv device perception。
+
+Yes， I'll get to that。😊，Sure。Sure that the next question so that is like you want to automatic alignment research what happens if you need conceptual vi which other people are experts to5 Okay。
+
+ that would be I get a take at the end as well sure let's see sorry。Yeah。
+
+ I guess like one question is like， how would fun feeling directly on human feedback compared to fan power？
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_17.png)
+
+m fine tuning like supervised fan tuning。But it's more like if you directly use the human picker data。
+
+Yeah， I'm also not sure whether it be。U so I mean so one baseline I'm showing here is like what if you just take human demonstrations in the sense that。
+
+ you know， we have a bunch of tasks， we just ask humans to do them。
+
+ record what they did and then train the model to imitate that and here it's like just very basic behavioral cloning just using the same loss to use and retraining。
+
+And then， you know， it is noticeably better than the H shot hunted version。
+
+ but it's still not as good as at all。And so that's why we like using our and basically。Conceptually。
+
+ there's two problems with the imitating humans approach one is。
+
+Humans are better at some things than the model is and they're worse at other things and so at the things that the model is worth。
+
+ you try to imitate something that you can't do。And on the things where the model is better。
+
+ you're making the model worse because you're forcing it to do the thing in the way that the human would。
+
+What。And so。With our all you with our other Jeff， you're kind of letting the model do whatever it wants to。
+
+ and it can just figure out like the best way for it to do things。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_19.png)
+
+It's also another important advantage， and I'm going to get to that but briefly want to talk about Cha GBT。
+
+😊，So one thing I kind of think of CaGBT is like the upgrade to instructGBT it's kind of like the next step at making the models more aligned and more useful to humans。
+
+And some things that's like， you know， I think chapter does better is kind of like using dialogue as the universal interface right you can talk to it directly。
+
+ you can ask follow up questions， you can ask it to you know refine the answer and all of these things that makes it a lot easier to deal with。
+
+It's better at refusing harmful tasks， but it's also there's still important limitations right like the biggest one is like the model of hallucates a lot。
+
+ it makes up facts when you know， for whatever task you give it and that you know is makes it quite unreliable it's also still sensitive to prompting which kind of shows that。
+
+😊，You know， it still has important misalignment。That we need to fix。Like really。
+
+ if a model was like model should really like。Do the task to best of its ability no matter how you're prompted to do that。
+
+嗯。😊。
+
+![](img/b473ddacf8908cc92f68d174d1de8757_21.png)
+
+But yeah， one important principle that I think。Is really useful for or that like our that Jeff leans on a lot is that evaluation is easier than generation。
+
+😊，So if we ask humans to compare and rank different responses， the model gave。嗯。😊，It is。
+
+Easier to tell the difference between different variants of what the model did than is to do the task itself。
+
+Or in other words， you know， you can do the comparisons on tasks。
+
+ you could still like spot good behavior on tasks that you might not be able to do well yourself。
+
+And so if you're giving this kind of like feedback。That lets， you know。
+
+ the system should do better than you actually could。
+
+And I think that's a very general principle that holds in lots of domains。
+
+ so kind of like you're probably most familiar yes， you know the P versus NP and everyone。
+
+ you know we don't actually know whether they're different but in practice it seems like NP tasks they're just much harder。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_23.png)
+
+Um， it also applies to lots of other settings， like a lot of professional sports or esports just wouldn't be fun to watch if he couldn't tell he was winning。
+
+More easily than you could actually compete on a professional level。
+
+it applies to a lot of consumer products， you can like look at two smartphones and tell which one you like more without that is like also deeper than just looking at like the specs。
+
+That it is actually very high to pull this to my phone。It also applies to academic research。
+
+ you know， it's much easier to view a paper and say what all the things that are bad about it。
+
+Thenhan it is to write a good paper yourself。It applies to， I don't know when you。嗯。Yeah。
+
+ basically there's lots of domains where the applies。 and so I think this is like a very。😊。
+
+This principle is like very useful when we want to like align AI systems on tasks that we might not be able to do ourselves well。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_25.png)
+
+Okay。Okay， so having said that。I like Jeff has some really important limitation and I think that's going to make it。
+
+Really difficult to use ourHf to scale alignment。
+
+![](img/b473ddacf8908cc92f68d174d1de8757_27.png)
+
+嗯。😊，Let me explain this with a diagram， so basically on the X axis。That's plot like the AI progress。
+
+And on the Y axis， how difficult different tasks are。And then as we have more AI progress。
+
+ kind of like the tasks that AI， the difficulty of tasks that AI can do goes up。And like。
+
+One of the fundamental problems is that the level of tasks that humans can reliably evaluate doesn't go up because humans don't get better with AI progress。
+
+And so。I think we're like somewhere here。But the problem is once you cross this line。
+
+ you don't really know。😡，What like whether your model is actually doing the right thing because you can't reliably evaluate anymore and so that's kind of like the point where RLHF training will start to break down and what we probably see is kind of what the question before I allud it to is like well now the systems are optimized for whatever feedback we give them and so they will try to tell us what we want to hear rather all the things that they know to be true and you know they might learn how to deceive us because you know that makes it easier。
+
+Justis score high on preference。And so kind of like。
+
+The basic idea that we want to leverage is related to the principle I just mentioned。
+
+ which is evaluation student easier and generation， so for example。
+
+ if you have a large language model writing a codeb like an entire codeb there's just no way humans would be able to find all the bugs and all the flaws in the codeb or you know the codebase could have like a Trojan in there and you might not be able to tell。
+
+ because it is so hard and that's why we see so much buggy code out there。
+
+But if you're asked your language model to find bugs and point them out to you。Once you've， you know。
+
+ once you've seen the bug， it's so much easier for you to say， oh yeah， this was a bug， you know。
+
+ please fix it。And so now you've taken the task of footbase down to。
+
+ I just have to evaluate whether that was the bug according to the spec I had in mind。
+
+And so the general principle that we are excited about here is like we want to。😊。
+
+He leverage AI assistance for human evaluation。And so the hope is that we together。
+
+ if you pair up humans with AI， you actually get a line that looks more like this where。
+
+ you know like humans together with the AI can evaluate much more than they could by on their own。😊。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_29.png)
+
+嗯。😊，And so。To make this concrete there's like two different ways you could do that or there's many different ways you could do that too i'm going to highlight it' like first you can write ask AI to write a critique this is a project we did last year and in this case there was a simple summarization task and we train a language model to kind of like just say。
+
+😊，Things that are wrong with the summary。Um and。
+
+![](img/b473ddacf8908cc92f68d174d1de8757_31.png)
+
+There's other things you could do， for example， you could give people chat GPT and ask them okay。
+
+ use chatGT to help you evaluate and then you could ask for a critique or you could ask for a lot of other things you could ask for an explanation。
+
+ you can ask for fact checking or quote or you know whatever the model like chatGBT can actually reliably help you with。
+
+And so。The idea would be that， you know， like using YaI assistance， you can kind of get。
+
+All the smart city I have。And leverage that in order to figure out how you should evaluate what this system is doing and like whether it's aligned with your preferences or whether it's trying to receive you。
+
+And。The big problem with this is how do we know whether it's working？
+
+One of the kind of like difficulties is that。By assumption we're kind of dealing with a hard task where it's difficult to evaluate and we also want the task to be real because we don to。
+
+ you know we don' to want to solve some high tasks that doesn't matter。And so。It becomes different。
+
+ so you need like a hard task that is real， but also if you don't if you have those you usually don't have ground too so you don't know which was the right answer and how do you know whether assistance is working or it's biasing everyone to say the same thing。
+
+And so。There's a simple technique that we use in the critique。To do this。
+
+Where we're like that we call targeted perturbations and so what you do is you have a bunch of prompts。
+
+ so this could be like whatever people type into chat UT。And then you。
+
+Kind of like take the response that you have and you say like this is their correct response it doesn't actually have to be correct but let's just assume it is and now you're asking a human to introduce some kind of subtle flaw that is hurt like easy to miss but is an important flaw and know what you have is you have this peer data set of like a good response and a bad response and you know which one is good and bad because you made it worse。
+
+And so， you know。in a way， that gives you grant。And so what you now can do is you can。😊。
+
+Take like randomly select one either the correct or the flawed response and then show it to either a human or a human with assistance。
+
+ and then they have to say whether it was the corrector the flawed one or like how good the response is。
+
+😊，嗯。And。😊，In this setting， we can kind of like。Figure like just try a lot of different AI assistance or your scalable oversight techniques and then say。
+
+You know， like is this？Actually helping humans find the flaws that we planted more lively than not。
+
+And if it is， then you know， like you're actually really helping。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_33.png)
+
+And so we did this in the critiques paper， so this is training the language models to write critiques and for summaries and what we can show is that when were assisting humans with critiques at the evaluation。
+
+ they actually find 50% more flaws than it did without and so this is kind of like real signs of life that you can already use the models that we can have today。
+
+To help humans evaluate and like find problems they would have missed otherwise。And of course。
+
+ we still have to do this。Like on a much harder task and like with。
+
+Or like a real task in a sense and we also want to have like。Bigger effect size。
+
+ but I think it's just like。
+
+![](img/b473ddacf8908cc92f68d174d1de8757_35.png)
+
+It shows that there's promise of these techniques already working。And so in the long run。😊。
+
+Um what I think we want to get to is we kind of want to leverage EI for all the cognitive labor that goes into evaluating whatever our E systems are doing。
+
+And this could be， you know， like readingating everything that's relevant or fact checking or doing calculations or like writing code or any of these things。
+
+ and then humans should focus on like their preference input like the things figuring out what they actually care about and what they want。
+
+😊，The model to do。And。嗯。😊，And this way， you can kind of like leverage。You know。
+
+ like the abilities that， you know， the AI players will bring to the table and the things that they will be better at than us eventually。
+
+And then。Kind of like use them to help communicate the thing that we actually care about and you know。
+
+ the things that we actually want them to do。And yeah， that's it。😊，But yeah。
+
+ those are like the main slides， I'm happy to take more questions。Yes。
+
+I was wondering about this hallucination of responses Have you ever tried to consider some notion of uncertainty in the access but' sampling or something like this have value variance between the responses and somehow value。
+
+Yeah这。So ensembling is difficult because either you're like training in a fine training ensemble from the same pretrain model and so you don't get that much barrier in you ensemble or you have pretraining a bunch of different models and now you're spending a lot of money on pretraining。
+
+One thing， I mean。It seems like it should be a solvable problem to just。
+
+C the model to say it's uncertain when it's actually uncertain。
+
+And there's been a bunch of research in that direction but。
+
+I think right now it's still like we're not really in a good shape。Smart stuff to do。She。Yeah。
+
+ do you think we may run into a kind of signals and noise ratio problem when it comes to AI suggested critiques to AI answers because Im sure like when AI is trying to point out potential problems with text。
+
+ humans are more likely to support more problems， but what if it's noing problems that humans wouldn't have necessarily had a problem to begin with Yeah。
+
+ so we did try to control for that a little bit by like having humans rate the severity of the laws and whether they would have noticed them otherwise。
+
+ they can still see a significant effect。but also like I mean a lot of the time the model is net picking and then those are like not the interesting cases yeah also if you like look at the example I showed I think is from the blog post like a lot of the keys are just actually quite garbage and one of the like。
+
+😊，Things that makes it easy for critiques is。It's okay the most of them are garbage because the human can just beat them and discard them and it kind of like。
+
+More， you know， helps the evaluatedval know where to focus on or like。
+
+Notice like think of something they would have missed otherwise。So it's more like。
+
+ you know the critiques help you brainstorm how you should evaluate or something。
+
+ but if you're kind of like using an assistant， you probably want more reliability than like filling most of the answers to why。
+
+😊，Yeah。Yes， how do we ensure that the evaluation metrics we are using in your recursive word modeling approach like detect deception like left turn or something don't have like major discontinuities。
+
+Yeah， I think。Well， it depends a lot what kind of community you're talking about right？If。You know。
+
+ you get overnight like and model letters that say  a thousand0 inches larger on like number of parameters or like equivalently better。
+
+I can like。Create quite a step up， and that's makes it quite difficult to。
+
+Do this kind of be evaluation？嗯。😊，So in that sense。
+
+ I think it's going to be very important to like scale up BI more continuously and like do more incremental steps。
+
+Having said that， I think。The basic picture with the request from reward modeling is。
+
+That you're training the systems to help you evaluate， you know。
+
+Systems to train from or find you from the same system right and so if you can figure out how to get。
+
+Like finding them in the way that they mention everything that is actually useful and relevant。
+
+ then it would still be able to。Evaluate systems， even though they're much smarter than anything you could have evaluated before。
+
+Maybe let me even make that more concrete because there's I think a way that you could measure that or like one way we've tried it was using what we call the discriminated critique gap。
+
+So to measure that， you're training two different or you fine training two different models from the sametrain model。
+
+One is a discriminator just says like。Is this the flawed response or the correct response or more correct response？
+
+And the other one is a critique model that tells you what the flaw was。
+
+And now you can measure how often did the discriminator get it correctly and the discriminator is just like pure gradient descent。
+
+ it doesn't have to want to tell you anything， you're just basically hooking into the model through presentations and trying to like get all the relevant latent insight it has to this prediction task and then on the other side other hand you have this critique model or this general assistance model and you're measuring how often does the assistant actually help me point to the right flaw。
+
+And then if you compare these two scores， you can like look at the gap between them。Hence。
+
+ sorry discriminated critique gap。And then if the gap is large。
+
+ then the model knows a lot about the tasks it's not telling you， and so that would be very worrying。
+
+And the gap is small then。You know， there's much。Isumably there's like fewer things that the model is like not telling you。
+
+ but I guess there's like lots of value in like ensuring this this approach is like robust and like contest testing it on learn from。
+
+That's right。That's why we want to test it on current modelss。Yeah。Yes， I don't know who was first。
+
+ I think someone in the back。😊，I。So I wanted to ask about like maybe first the NX slide where like there was like human strong was like。
+
+And so， you know， I've been helping notice like part of that also is like communicating what you want the AI to do。
+
+ right， not just like evaluating， but like communicating。Perhaps like， I would like you to do this。
+
+ And maybe， or maybe I that。 And so like at least like in my personal experience using the chat。
+
+ like there are some things that could do that。It's crazy。 for instance， And I was like， no。
+
+ like how did that come。Or， you know， if you can ask about like click。
+
+ there' are like different things right Or I'm like， okay， like， what can I ask for and like。
+
+ what point is that。One thing that I thought was a bit concerning with just this idea that like。
+
+ you know， people don't always communicate their preferences like。Honestly， we're like。
+
+Like there could be like like coordinated efforts， right。
+
+ like like instill rewards for like specific capabilities。 you know。
+
+ like coordinated effort to do such a thing。 one idea。
+
+ like I had this was like I tried to ask if that has like some idea of like Wi for itself' I didn't know how to use it at first。
+
+ So I just thought like maybe user。 There didn't seem to be one。 But like I was hoping there was one。
+
+ there was one for like G3， right Like I think fman a little I was hoping And so my question is like。
+
+UmHow how do you like make that sort of like thing safe right like have you like recognize coordinateordin efforts to like you know like specifically reward certain kinds of behavior maybe like some group on decides that they would like toum yeah。
+
+ you know give it some capability so this is a you know like yeah this is a really good question and like in a way。
+
+I mean， the first obvious thing that you shouldn't do is like you shouldn't just like literally train on the data that people give who like using the interface and we've kind of like seen other examples of what happens we do that if you think of like Microsoft T or something that can go pretty wrong。
+
+ the other thing is， I mean right now what we're doing is like we're hiring a bunch of people and then ask them to rate different model responses。
+
+But also now the question becomes like， you know， who will be hiring and like what's their background。
+
+ what they're trying to do and so。And in particular。
+
+ like the thing I think we're doing quite poorly right now is like actually。
+
+Like importing like a diverse and representative set of human preferences and more just like you know whoever we end up we can hire and so I kind of wish there was also this like。
+
+More targeted research on like how we should do that and how that could be done well and some of it is also like you know better placed outside of like big tech companies because if you are like tech companies always have an incentive to like you know。
+
+Yes。Import human preferences in the way that maybe is not like the thing that we actually humanity would do under flex or thing and so I think it's a really big important question like data contaminations like the dual problem to this like do you think obvious yeah I mean like is that something people might can anyone can poison in free training way just put something on the internet？
+
+And it's， you know， something that we have to be very mindful of。Yes， I don't know。
+
+Considering that we're currently training these models should also work our these things。
+
+Hofully getting closer to preferences at this point。As human practices change。
+
+ as we've seen like past， like just。is there something。They should keeping up that's like。Yeah。
+
+ I mean， the most obvious thing is its like the model knowledge base is kind of like the pre training cutoff date like somebody。
+
+ you know， whatever data you went into pretrain， it doesn't know about like a lot of things that happened after that。
+
+U in terms of updating kind of like human preferences or the， you know。
+
+ like the comparisons that go into the robot model。
+
+ you just collect more data and retrain and the functioning run is like comparatively cheap so you can you know do that again。
+
+I think what gets harder is that you know like。As you have deployed the model and people started using it for all kinds of。
+
+ you know， tasks that they want to build their company around like they。Um。
+
+ if you update and you change the model， then they also have to do a bunch of work into like adopting that prompt to whatever they have they're doing。
+
+And so it doesn't come as with zero cost。Yes sorry you so I't know of' seeing human performance but one of the the advantage of G3 is that it has this immense corpus of the invasive the entire internet if you want to specialize in a specific domain like chemistry or material materialial science or something in particular to know generate new contacts。
+
+对。己知嘅但咧嚟。To use less data， it' still where fast we should be。
+
+You mean like less data on like the chemical domaination thing yeah you may just have research papers over the last 30 years or something yeah and you can throw it into pretraining right and then the model knows about it but can the model really learn effectively without so much data？
+
+Or cant be somehow adapt the abstract concept behind GP3？Or that's okay。Yeah。
+
+ I mean that's kind of the general idea with what you intend to do with fine training and to some extent we've seen it like generalizing this way。
+
+ for example， instructorstructBT was trained almost entirely on English。Language。
+
+ feedback and demonstrations。And it works in other languages and so that's kind of wild and so similarly you know you could train the model with people who don't know anything about chemistry and then you know it learns to follow instructions and it will do so like on the topic of chemistry and this fine can be very sample efficient like with 100 data points you can actually make a meaningful change in the model behavior。
+
+So it can be quite effective。I that pick someone hasn't asked， yes。Regarding。Response generation。
+
+ do you or how much ever effort do you put on our emphasis and training on different expression style。
+
+ So what I've noticed from activity that it always gives you back very structured to scientifically structured answers。
+
+ Do you consider any training if。It turns you like a scientific the scientific East Church should answer or rather an asterisk。
+
+嗯。Yeah。I mean， the tricky thing is ideally the model should give you the kind of answer that you want to have right and some people prefer more scientific or technical answer。
+
+ some people might prefer a more generic answer。And。Me mean right now。
+
+ like chat GT doesn't have like， you know， a way for you to set like your specific preferences and that's something that。
+
+ you know would be really exciting to have。But also， I think。
+
+The kind of sta probably that you've observed are is in fact like probably a product of our labeler pool。
+
+And so a lot of the chatB key workers were like more， you know like。
+
+I think more like computer scienceency and like more there was like more data generated by programmers。
+
+Compared to instruct GT， which was more like generalist labelers。And。And yeah。
+
+ there's like different， it's like kind of it changes also the style。So there is no specific。
+
+To distinguish that。Yeah， I mean。We should make a distinguished effort it should give you like the style that you want。
+
+ right？嗯。Yes。So one of the things that Im thing about is how。Is get a quick actually。In的I。
+
+Your generation or coming generation and so go back to。The AI progress。对。Human level， yeah。
+
+ let humans get evaluated， what I'm sorry to think about is like。
+
+Over great I have you as Ive showed like my 10 year old cousin how your cha routine just to mess around with and that green line is a lot over。
+
+U and furthermore， if SA this becomes part of their educational experience。
+
+ it's going to be much better I ever perceive it to be more difficult for them to discriminate even simpler tasks。
+
+And so I are thinking about it。How that might disrupt or make this alignment a little bit more difficult in the long run as you have people who are more rotate。
+
+ for instance， what Jack sorry Jack QBC says as like a given truth anyway。I was just wondering what？
+
+I mean， there's a real risk of overlying on a tech that is immature and that is not ready for。
+
+ you know。You just believing like please don't believe everything the model sets right but also I think one thing。
+
+😊，That I'm hopeful for is that like， you know， your cousin will end up like figuring out how to do this where like。
+
+ you know， they grew up with。You know， like all of these AI tools that are getting better and learning how to actually leverage them。
+
+😊，Productively， right， and like it's kind of like。You know。
+
+ 20 years ago or something when you were like you like using Google search much earlier than everyone else。
+
+ you're probably going to get better at like using that as a tool for everything you want to do。嗯。
+
+Yeah。I think you headed your hand up for a while。The slide where tasks in。呃 chat test。Model tasks。嗯。
+
+哦，喂，对， last one。Yeah， so right now， it seems like you guys are。
+
+Using humans as biological sensors to the real world to like physical ground truth。And。
+
+Using language as like a compressed interface to that ground truth。
+
+ are you guys also looking at using？Accessor technology directly with your models to get a more truthful answer of。
+
+ you know。Yeah， I mean， it depends on what that sensor could be right like I guess like one of the most straightforward things is you could ask the model to browse and then it can like fact check its own answers and it can you know like。
+
+😊，Import external knowledge that I didn't remember。And。😊，诶。Yeah， I think that would be quite useful。
+
+ I think thatll be quite useful for assisting human evaluation。😊，诶。Whats that going work？
+
+And you can look at WebGbT， which you know， is a published work on using the model for browsing。嗯。
+
+I think so one thing that makes it harder when you're using this like external sensors or if you。
+
+Letting the model interact more directly with the real world is that it raises more safety questions。
+
+ right？If you let your language model make arbitrary API calls。
+
+ then you have to be a lot more careful with which calls thisilla to make and which is it not。
+
+And if you。As a poster， if you just like you're reviewing everything the model says。
+
+ then you can decide which ones you want to make。嗯。😊，So yeah， it's an open problem。Okay。
+
+ one more question。I think you didn't。这。About the reasoning abilities of these asological language models。
+
+ I've seen like different people talk about how is only like a fixed amount from two per token while like humans。
+
+ they have system one and system two where we could like just speak quickly versus actually do some reasoning and think through things that was more effort。
+
+And then I've see in other words to try to like kind of use the force it to a chain of problems or the chain of like reasoning or like let' things step by step and stuff do think that stuff is sufficient to really get reasoning thats the level what we want or will require real big fine tuning or architectural changes。
+
+I don't know。I'm also the wrong person to ask， I'm mostly not trying to。
+
+Get the models to have new capabilities and more like you know， getting them to play on team human。
+
+Oh， do we want to do the online questions？呃，是嗯。有。I also makes sense but my question。
+
+So what you think is the is it a role for often adults in from like especially if you have like human like you don't teach ats。
+
+ it's hard to more to human。So you think like this recipe be even more often hour。All。Yeah。
+
+ quite possibly。嗯。😊，I mean yeah as you point out right like there is a lot of conversational data and if you can use it that that would be it should be useful I think broadly can categorize this kind of thing as like let's make the R algorithm better and like ourL feedback and I think that's valuable and that should help us like make the same prechain models like more aligned according to the human preferences that we collected。
+
+嗯。😊，But also you would still run into the all the limitations that ourLF has right I think there's a fine API for G3 I don't think it offers our role right now but supervised fine training so you could do like。
+
+😊，You can like this so best of them and do this kind of exp iteration or all questions so the first question is could you more clearly describe the full training process by child G example starting with the text Dancy 001 and X or programming data by steps of higher left？
+
+😊，Sorry I didn't I didn't catch that start with texting 001 and then so how much images of data need you getting use and there are how many steps of part of that pitch kind of thing。
+
+😊。
+
+![](img/b473ddacf8908cc92f68d174d1de8757_37.png)
+
+And。I think the exact numbers are not public， it's basically similar to instruct GBT and for the instructGBT numbers。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_39.png)
+
+And we had。I think around 50，000 comparisons。And probably like 10。
+
+000 demonstrations or like maybe tens of thousands， I don't remember the exact number。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_41.png)
+
+so I had like this other slide with yeah， it was like about 20。
+
+000 hours of human feedback what I calculated right。
+
+ I mean the big question is like how do you make how do you ensure quality？😊。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_43.png)
+
+嗯。😊，But any case need sometimes flip on let and click that I'll give anything something。
+
+But it's the whole problem， right like that assume you really have the one model that you trust。Okay。
+
+Sure， so the next question I think council of before was you want to automate a land research search for f conceptual issuess which are difficult for experts to verify part。
+
+I mean。The kind of like ambition of that plan is to train a model that can do this kind of conceptual research。
+
+And you know， you know， you can picture is it like a language model that like， you know。
+
+ writes an alignment research paper that we you know， like we read and then we're like， oh。
+
+ this is a really cool idea， we should try this。😊，And I think。You know。
+
+ going back to evaluation is's easier in generation。
+
+ I think it also applies to alignment research and like I think at the very least like I find it much easier to evaluate you know。
+
+ alignment research than I find it to like produce it。And so。
+
+While there might be conceptual breakthroughs that we need that we couldn't even evaluate right now because theyre just like。
+
+ you know， if we saw them， we'd be like， what is this？And this is kind of like。
+
+Like this is like the reason why we want to de scalpal oversight， right， because you know， like if。
+
+ you know， the language model produces this really brilliant insight and we can't even recognize it at the time。
+
+Um， we should be able to have an easier time recognizing it if we use DI assistance and if we leverage like our best AI models。
+
+😊，To like figure out whether or not that was a good idea what is the weaknesses and what are the strengths and like you know what kind of experiments should we run to know whether this is a good idea and so。
+
+Yeah， I think basically。You know， the story of just using ourHF to train a model to do good alignment research。
+
+You have the obvious pitfalls， which is， you know， the model might write like an alignment proposal that kind of looks good to us。
+
+ but is actually， you know， not a good proposal and it creates AI that is misaligned with humans。😊。
+
+And and so in order to distinguish the two which might be really hard， maybe it's not， but you know。
+
+ I think we should expect it to be really hard and then leveraging EI assistance to evaluate that seems like a really。
+
+Promising plan So about AI that that will be the skills。I mean， that was my whole point。
+
+ it's not sufficient。かち。But do you think like do you need like something more or you want got open strategy that you think like if you can like get a lot of feedback data will that be sufficient to get very generations or do you see more in that I' mistake I mean the journalists or like I think the。
+
+😊，Basically the vast majority of the model's capabilities and like all the cool things you see it do come from pretraining and now it's from the fine tu stage the reason why people sometimes attribute to the fine tu stage is that you didn't see it in the pretrainin model and the reason I think the reason that we didn't see it in the pretrainin model is because the pre model was so misalign it was not trying to help you and was not trying to show you all the things it can do and instead it just regurgent takes a bunch of random web textext。
+
+😊，And that's not what you're looking for。And so。Yeah。
+
+ I think that what our basically has been doing is like unlocking capabilities that we're already a model。
+
+And making those available for human to use。And some ways like。You know。
+
+ alignment research is very dual use in the sense that， you know， a。
+
+ if you have really good alignment techniques， you can use it to align with whatever values you want。
+
+ including values that， you know， we wouldn't particularly endorse。And B。It also。
+
+Like if you're doing alignment right， it will always look a little bit like you made the AI system more capable because before it was wasn't really trying that hard to help you and now you've made it more aligned so you know you actually see these capabilities you already had。
+
+Sure。Let's see。Yeah this follows a question before how do we deal with outlooklet that's written so this was like reference sort of but pro values but optimizing for them to size to incentivize deception so how do we contrary？
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_45.png)
+
+Yeah， so that was what I was talking about here， right？😊。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_47.png)
+
+This is like the whole problem that we have where。What humans can evaluate is constant and so we won't be able to evaluate like sophisticated attempts at deceiving us and that's why we want to do scalable supervision so that we empower humans to spot these attempts at deception。
+
+Yes。到。How will your plan for contract in surveillance stand up to our and use distinction shifts and avoid really changing because of other care assistance。
+
+Yes， so。I think these are real worries and。To some extent we kind of like have to test empirically like how。
+
+How difficult and how severe they actually are and I think so my personal stance right now is something like I think。
+
+Trying to get the outer alignment signal really right is going to be like 90% of the effort。
+
+And once we have that， then a lot of the other things might also fall into place， so for example。
+
+ I mean it kind of depends on which story of in misalignment you're worried about。
+
+ but you know one story is you kind of training your system and it learns how to do。
+
+ItGs basically a bunch of inner optimizes， kind of like meta reinforcement learning。😊，So for example。
+
+ like GPT3 can do like in context learning and that's like a kind of you know， learned optimizer。
+
+And so now you're like doing our A Jeff training or whatever like alignment training you have。
+
+ and you're like the the then optimizers learn to do the thing that you want on the division。
+
+But now if you have a distributional shift and this distributional shift could be autoed。
+
+ meaning like the model is causing it itself。🎼And now you're going out of the distribution。
+
+ all these inner optimizeizers， like try to optimize for something else。And。One way you can like。And。
+
+ you know， like how much that would actually happen in practice kind of actually。
+
+ but one kind of like more important question is like。
+
+If you have a really reliable outer alignment signal and you have this like general training signal that you trust。
+
+ you can also use that， you know， on the new distribution to train the system to be more。
+
+Or like to get optimizes in a row， basically。And so then you've reduced like the inner alignment problems to like how do you deal with a distributional shift and how do you like construct an outer alignment signal that you trust？
+
+And those are problems that we have to deal with anyways。嗯。But yeah。
+
+ I don't know how it's actually going to shake out， but。There's some important open questions。嗯，是这个。
+
+So regarding thoughts。A line thats one be kind of。Problems that accounting discussion。
+
+SeeThere's not much interest it seems in like explaining how to come these other judgments or that's wondering there's been much interest in AI toward decomppoing these models is like explaining why this even second straight arbitarily and that's definitely a truth around it were shows but as to why it' making these。
+
+How lot of judgments， have you all been able to interterrogate more？I mean， I think。
+
+Where we are right now is like pretty dis， satisfactory。I mean。
+
+ you can ask the model why I gave a certain response。
+
+ but you don't know whether it's answereding truthfully。And you can also， I mean。
+
+ another thing you can do is yeah you can give the model of's response and ask it to find out flaws。
+
+ which is what we did in the C's paper。嗯。😊，But， you know， I think that like。I mean。
+
+ there's one version where you try to make that better。
+
+ but then the question is like what is your going to a signal？
+
+I think a like better angle of the attack is probably interpretability。Where， you know。
+
+ like you figure out how to look inside the model and then。はです。
+
+And that's what I was passionate about that the level of the research at interpret built yeah。
+
+ is like it seems that that's been really to do for you largering smell different and have such a high space。
+
+Your current thinking is moving towards black that phrase like reducing the missionality of that representation and something that needs。
+
+Yeah， I mean， we are working on that problem， but I don't think we have anything that I'd like to show right now and so。
+
+U。It seems generally not to be a very easy problem， but you know。
+
+'m I'm hopeful that we can do some things， I think in general。
+
+The problem of interpretability or like using interpretability for alignment is kind of tricky because。
+
+I suspect it's going to be neither it's going to be not sufficient and it might not be necessary。
+
+ so any amount of interpretability you can leverage would be useful because it's another tool in your toolbox of like detecting deception or like knowing you know what you said like how why the model gave a certain answer or made a certain decision。
+
+And。😊，S。You know， it is。Kind of unclear if you really get really good at interpretability。
+
+ how you then leverage that。For alignment， like presumably you could look in the model and just like throw all the models out that you can find in misalignment in。
+
+ but then aren't you just selecting for models that have misalignments that are really hard to find with your inability tools。
+
+True， just going all of touch because really my aspect about that as kind of stand practice in ethic in general is that you have to put an explanation on Yeah and I guess in my question like。
+
+ why why would you take the。ませ。Yes， so why would it not been necessary？Again。
+
+ this is kind of like an open question， but。Basically。
+
+ what stance you could take is that at the end of the day。
+
+ what really is going to matter is the decisions that the model actually takes and not the reasons why it took them。
+
+And so if you can get to the point where you're confident that all the things the model actually does are aligned with what you want。
+
+Then does it still matter what the model thinks internally？
+
+I don't knowYeah that's that's what were trying to do right like we're trying to make like a really really good evaluation signal and then you can select for。
+
+ you know， you can train the model to do the things that you wanted to do because you can always evaluate。
+
+Btter than the model can do stuff。Yes。Yeah， I'll probably have much thats a question。嗯，他个。
+
+Much good but yeah thanks so much for the great lecture Very interesting I might actually not much I might just do like a live I want just like application thing Yeah sure the end of the。
+
+😊，I lost， sorry， so how do think this thing。😊，All we a around of once。
+
+
+
+![](img/b473ddacf8908cc92f68d174d1de8757_49.png)
+
+![](img/b473ddacf8908cc92f68d174d1de8757_50.png)
