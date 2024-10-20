@@ -1,0 +1,975 @@
+# 斯坦福 GPT／Transformer 原理介绍 (中英文双字幕) - P3：3.Transformers in VisionTackling problems in Computer Vision - life_code - BV1X84y1Q7wV
+
+![](img/83f0bde19a507ae0c355af3acd90a0b3_0.png)
+
+Today I'm going to talk to you about vision transformers since this is all about transformers。
+
+ specifically their application for visual representation learning。
+
+ but before we jump into transformers I'm going to spend like 10 or 15 minutes giving you a lot of context on all of this and the specific thoughtss on the vision part of things because I think a majority of what you have seen and will see will be about language。
+
+
+
+![](img/83f0bde19a507ae0c355af3acd90a0b3_2.png)
+
+Right， so let's get started， my goal and that of my cross collaborators is to find general visual representation and you're going to soon see what that means。
+
+And why or what can we do if we imagine we have a general visual representation。
+
+ the hope is that with this we can kickstart all kinds of tasks that require visual input that means most tasks that you do when you have your eyes open basically。
+
+Because if you have good understanding of what you see。
+
+ then you can much quicker understand what's going on and what you should do。嗯。
+
+And eventually I have now a little kid since the year and so I really want that when he's grown up that there is like some kind of robot。
+
+ it doesn't need to be nice and pretty like in movies or just maybe an arm or whatever that my kid could teach or my parents who cannot program can teach to do some boring task that they really don't want to do and I believe one component of this is a good visual representation that generalizes to understanding the word visually everywhere it's not all that's required but it's one part and the part that I'm trying to push。
+
+So this is for context and motivation on working on general visual representation and one good example of a general visual representation is the humans。
+
+And I'm going to show you what I mean by that。 So here is a task that I give you。
+
+ there is three classes， class A， B and C， and I give you five images of each class， okay。😊。
+
+
+
+![](img/83f0bde19a507ae0c355af3acd90a0b3_4.png)
+
+And here I give you a new image。And I'm sure that by now you all know which class it is。
+
+ I'm not gonna ask because I don't actually see you if I was in the room I would do the raised hands。
+
+ but I'm sure you know it's class A now， okay this is fine we have seen millions of flowers in our lives hopefully but there is other kinds of pictures like this satellite images that you don't see much in your life some people may have never seen it some sometimes like when you fly or maybe on TV or in the Internet or so but it's red or rare。
+
+ but still same story， three classes Class A BC five images of each and I show you a new image。
+
+ this might be a little bit less trivial than the flower。
+
+ but I think I've spent enough time talking that by now most of you should know that this is class B shows this is basketball court right？
+
+嗯。Alright now even more abstract， you don't see this in real life all right。
+
+ but still I give you images of class A and B just two to make it a bit easier here because you need to use your brain a little bit more and I show you this in your image and now I should do a little bit of smart talk to let you think and like you see that there is like s boxes and whatnot and by now I hope that most of you know that this is class A why because there is three objects in class A and class B is always what is it five objects no matter what they are what they look like。
+
+Okay， I think by now you more or less understand what I mean when I mean a good visual representation。
+
+ general visual representation right， some some I don't know how to call it in your brain in your eyes such that you can quickly see something new and understand what's going on with just a few examples。
+
+
+
+![](img/83f0bde19a507ae0c355af3acd90a0b3_6.png)
+
+And then generalize from that。Right， and that's the goal， then the next step， if we have the goal。
+
+ how do we measure progress towards it？And this is a paper we did a few years ago with my collaborators。
+
+ which we call the visualual task adaptation benchmark。
+
+ it's kind of formalization of the little game that we just played。
+
+So it's a benchmark and there is some component that you or anybody who participated in benchmark does。
+
+ which is creating a model with some data， we don't really care what data what model and how whatnot。
+
+Just your home with the mother。Then we come with this landscape of all possible visual tasks that kind of makes sense。
+
+😊，Wwhich is a vague statement and we sample some tasks from that and this is kind of the task that you have just seen they were actually taken out of this task adaptation benchmark and we have for a first step made 19 such tasks where we try to cover broad types of visual tasks not just classes of natural images like these dogs and cats things but also of very specialized images like satellite image also nonclass task that involve counting like the one I showed you before right but that can be expressed in this simple classification API but that logically require some more thinking。
+
+😊，Some things like distance， we have something with cars and with distance of the closest car and things like that。
+
+It should cover a broad range of variation and then。
+
+With the model that you came and to this benchmark。
+
+ you can do some adaptation step on each of the data sets。 one after another。
+
+ while at the same time doesn't really matter。 but then you should have， as a result， a model that。
+
+Of this data set， which is very smart it just has seen a few examples for each class that then performs where there。
+
+ and then we just take the average score across all of these tasks and this is what we call the VTAP task and this is how for now we judge how good of a general visual representation does your model and adaptation algorithm have？
+
+And now just for some neuralcl， this preparation we have words that we often use pretraining。
+
+ sometimes we call it the upstream like upstream data， upstream training， something。
+
+ so I may use this word interchangeably with pretraining and then there is the second part which we usually call transfer and then sometimes we say downstream。
+
+And the adaptation for our in principle is whatever you want。
+
+ but for our work we almost always just use very simple fine tuning without any birdss and whistle because it it's simple and works well in general we try to do things as simple as possible that still work well and so sometimes I even just say like fine tuning when fine tuning that means moving from this pretrainning through the transfer。
+
+😊，All right， so so far for the setting， so far so good。
+
+Good then the question is how do we get there and we spend a lot of time thinking about this and trying different things and this is also roughly the outline of all that I have available to talk about which doesn't mean we're going to cover everything。
+
+😊，So I'm not going to go like to the outline exactly。
+
+ but you will see this again and again and as you see vision transformer。
+
+ your transformer only comes a little bit later， there's some stuff before that。😊。
+
+So this one just really quickly because it doesn't matter for this course。
+
+ is that we spend some time trying self supervised pre training。
+
+ which is very popular in language and envision only recently years become popular。
+
+It doesn't work that way like you don't need to understand these bars。
+
+ but basically higher is better and here just look at the blue ones， that's the VA score。
+
+For this few short beat up and self supervised learning performs like this bar we tried multiple methods and multiple models and so on it was a proper good benchmark。
+
+ but it was a couple of years ago。Then we move on to semi supervised trainings。
+
+ so a few labeled examples and the ton of unlabeled examples that's this next blue up。
+
+ do you actually see the mouse cursor， sorry？We don't see the mouse curor。 Maybe I need to do some。
+
+canYeah。Yeah， so then semis that blue bar which is a lot higher than this other blue bar。
+
+ so what this means to us is that by adding a few labeled examples we are able to get much better or much more general visual representation。
+
+😊，Then I'm not going to spend more time on this and how exactly and so on。
+
+ but I'm going to move to the next one which was for us kind of a breakthrough when we figured out that if we just stayed up fully supervised pretraining。
+
+ then we get really much better representations than everything we've seen before and here I want to briefly spend some time on that one because it's the precursor to using vision or transform us in vision。
+
+😊，So the it is simple that there are tons of images on the internet and that's always what you hear is motivation for selfupvised or unsupervised learning right。
+
+ but actually where these images come from there's almost always some extra information like surrounding the image on the web or if you collect it otherwise there's some extra information there that you could use as some weak source of information or some weak label right？
+
+😊，Then it happens that in Google there's some team that actually does this for production。
+
+ and they have collected already a large data set with some pipeline that from the surrounding signals somewhat automatically。
+
+ but very noisily annotates the images。And we wanted to figure out how far can we go when we scale up preaching？
+
+Then long story short， you need a couple ingredients。 One is patience。 I really like this plot。
+
+ This is one of the curves of just pretraining on large data with large models Okay doesnt the details don't really matter。
+
+ The just is that if I zoom into this little box， I see this here and this is the metric for the training like the performance in upstream that I see after spending8 GPU weeks of compute。
+
+ What does GPU week mean it means8 GPUus for a week or。Sorry。
+
+ one GPU for eight weeks or 8 GPUs for one week or 16 GPUs for half week and so on right。
+
+ but this looks reasonable person would say， yeah there's no progress for a week on8 GPUs This is flat I'm gonna to stop and try something else but we are not reasonable So if keep're going and this is what the exact same spot looks like after8 GPU month of training and you can clearly see that things are progressing right So it may not always be obvious and you need patience。
+
+The second thing is that you actually need to scale up everything so this was work done with resnets not yet with transformers as you see a lot of renet models here the X axis is the number of images available in vision there is this imagenet dataset which is a very common super common data set for 320 which has 1。
+
+3 million images there's another one which has 10 times more images that's still public and then there is one subset from this internal group that has 300 million labeled images。
+
+So the Y axis is a measure of accuracy on some tasks， and we tried many， they all look similar。
+
+And the dots are differently sized resonnet the blue dot is the standard resonate 50 that everybody uses if this one you train on more data it looks promising at first。
+
+ but if you go to even more data it looks like okay this doesn't really seem that useful and this is what most people have been doing for a long time and a lot of people even in Google were like yeah I tried this internal checkpoint on this kinds of data it doesn't really have that much。
+
+However， what we found out and in hindsight is kind of obvious is that you actually need to scale not just the data。
+
+ but also the model here this blue dot is a gigantic resonnet that is slow as hell。
+
+ but when you scale this up together with the data you keep getting benefit with adding more data。
+
+And then if you do these two things， scale up everything and be patient， be patient could also be。
+
+Quite scale up your patients。嗯。Then you get a lot of benefits。
+
+ So here there is a few shot transfer learning。 what I showed you before and on the X axis is size of the model on the Y axis is the accuracy on one of these tasks。
+
+ but again others with similar and these three different curves are pretrained with different data set sizes。
+
+ the green one being the standard one， you don't really see benefit or small benefit from going with larger models The blue one is 10 times larger。
+
+ you start seeing some slope upwards， but really only with this giant data。
+
+ you start like getting better and better and better at least few shot transfer learning when you pretrain on more data with larger and larger models。
+
+😊，second benefit that we did not anticipate really at all。
+
+ but then found out is that these models are super robust when you scale everything up This object net。
+
+ it's a data set that' specifically designed to measure robustness and it shows things in crazy like a chair in a bathtub and things like that and you should recognize it as chair And here the pink dots are basically how existing models and exact is again how large is the model and pink dot is existing ones from the literature and then these lines same color coding is what we found out。
+
+ And again you see this large data and then going to large model just gives you amazing benefits on like in this case out of a distribution robust。
+
+😊，Okay so this was like amazing scale up everything be patient and get huge benefit sorry Lucas sorry for interrupting you。
+
+ but there is a question from a student in the class right。😊。
+
+Do you want to unmute yourself and ask it yourself？
+
+Yeah I can I can ask my question can people hear me maybe there's a a one right once I can we just step away real quick yeah so the question that I want to know is what work has been done characterizing the parameters after pretrain finishes like the reason why I'm motivating this question is。
+
+It seems like we do this tremendous amount of pre training。
+
+ but it seems like we might be able to significantly reduce that if we just have smarter initialization schemes。
+
+Yeah， you know， I've been thinking this for a long time actually also。
+
+ and they've come to conclude that I think not。😊，I think there is like two parts One is what I like to call handwa V the numers of the weights。
+
+ you know that everything is in a nice range such that it can have nice input output functions and so on and that your optimizer can do steps that you know make reasonable change to the input output function but not too large and so on I think that is part of it and that you can get through good in it or good normalizations and whatnot but then I also think there is I do think that these models memorize a lot and then。
+
+😊，Personally， I believe， but I don't know of evidence。 or so that these models do more kind of。
+
+ you know。Remembering similarity to things they've seen in training and then as you grow things up they have more memory and they have seen more things so they should be better on more newer things because there's more similar things they have seen and this I don't think you can like just create one shot from initialization。
+
+But I don't have immediate points or to a paper at the top of my head now to answer your questionly。
+
+ thank you。I think we also have more questions or has posted on the chat and is raising his hand maybe in this audio you want to ask your question please？
+
+Yeah， for sure if I can go ahead so I just said a quick clarification on this chart right here。
+
+ the chart number three， the bit L and bit N and bitS are they the same model architecture。
+
+ but just trained on different data set so the bitS is trained on the 1。
+
+3 million all the way to the 300 million image data set for bit L。
+
+Yes and no the architecture is here on the x axis so within one vertical slice these are the same architecture and then the different points are random restarts because when you do future learning there is a lot of variance in which few examples do you see and then again these next vertical slice is the same model and so on and as you go to the right the model gets larger and so you can see that for this little data going to larger model doesn't really help you much for freetraining and only for this giant data air means the giant data not necessarily giant model in this case。
+
+😊，Right， it makes a lot of sense， thank you， okay。Do you have a question of I say you're raising your hand as well？
+
+喂个人你好咯。He yeah， thanks。What is the intuition for the upstream performance and figure one spiking so suddenly at？
+
+I guess or3 points in training Yeah right yeah Yeah yeah again like round 1。
+
+ like I don't know that just seems like an a looking training curve like yeah what's the intuition behind that Yeah this is old school computer vision thing or I a few years ago is this when the learning rate changes and computer vision it used to be very common to have the learning rate in kind of staircase pattern so it's constant for a while and then you stopped you divide the learning rate by 10 usually boom smaller and then you continue and this gives you this huge jump nowadays people don't use this much anymore and this work was like three years ago I think or two or few years ago I don't remember it was very common back then and nowadays people use more continuously changing learning rate schedule and then you don't really have this sudden change anymore but if you would overlay it would be like more continuously but going roughly the same and then in language I think most people or many people use。
+
+😊，They're just linearly decreasinging learning rate schedule where also you don't see this effect because learning rate continuously decreases。
+
+Yes， sounds good， thanks。And then this is what because you ask for about this this dotted line。
+
+ actually here if you're like here okay you could say okay， but this is excessive， right。
+
+ maybe it does really seem almost flat， maybe you could have started the leakK earlier and earlier and earlier and then you would get the same but much quicker and this one shows what would happen then and you do land at much worse place in the end than with the patient。
+
+😊，Okay， yeah， yeah， that makes sense thanks。Was there more question or I continue。
+
+What do you have your answer because I need to mention， I don't see what I just seem as like。Yeah。
+
+ it's fine， we can coordinate that Lucas。Hi， yeah， so I just want to make sure that I'm like on the same page。
+
+ so basically what you're trying to do is multitask learning with convolutional neural network slash LSTF right that's kind of like resnet。
+
+But you're doing multitask learning， correct， You know。
+
+ where does the multitaask come from or where does it。
+
+Because like initially like you showed like different I okay so there is two phases The first one is the pre training and this pretraining I didn't mention it yeah I just said I don't care what you do in the pretrain just pretrain somehow and giving me the model and then I test it on multiple tasks independently and I tested on multiple task means like transfer it to that task which in our case means fine unit just on the task and see how well it does and so on but it could mean other things like later we moved to just learning linear linear regression on top of the embeddings for each task and now doing the pretraining what you do is just regular supervised learning but just scaling everything up and regular supervised learning is just。
+
+😊，Well， not multitask， but multila in the sense that an image could have a couple labels or not。
+
+ but it usually doesn't have a this minority got it thanks。Yeah。
+
+ just have a quick follow up about the question rather than like the discussion ratherin started about this its like imization or it's more memorizing the data in a pretraining dataset set。
+
+ So I know in the language side there's a quite interesting phenomenon that you can pretrain on a synthetic language that it doesn't have any semantic meaning。
+
+ but it only have structural like know paired premises or things like that。
+
+ And that actually it gives you almost the same boost in your downstream transfer as a normal pretraining。
+
+ So I wonder if say like so this means like for language right the structure seems makes a lot of contribution which can be replaced by utilization。
+
+ but I don't know if it's an image is a different case。
+
+ maybe have people done maybe some synthetic pretraining dataset set for image there was a paper I forgot the name and the authors。
+
+ but it creates completely synthetic image。and like not even rendering of some realistic things but just completely patterns。
+
+ waves and shapes and so on and uses that for pretrain and then shows that they get almost the same performance as imate quickly they actually do this with vision transformers but。
+
+Yeah， they never go further or it's not here。 You know。
+
+ they kind of that you can almost get to this point here。
+
+Then it's not clear how much further can you go away this。 And I think probably not much further。
+
+But it's just me guessing they're not much firm， I don't have evidence for it。
+
+So I have one question and then we can continue the talk said that we think like a large vision models are like learning some sort of similarity the data set their train on so do you think like they are like beaving like protopical networks in a sense。
+
+They are we having like what networks so like prototypical networks essentially like when you like doing fact few short learning。
+
+ you just say like I'm going to learn a network I can learn the metric space。😊，Probably not exactly。
+
+ but close each。嗯。I mean， I cannot really say because this is just some intuitive guess that I have。
+
+ That's what they do， but nobody really knows what the models they read。😊，嘢啊。I mean。
+
+ we do get much work when we do something like prototypical networks for the future learning with these pretrain models。
+
+ we do get much worse performance than when we do fine tu so there is a bit more to it there。
+
+ however I don't know。What is this more？Okay， thanks。All right， let's continue。Okay， yeah， so。Right。
+
+ and I didn't mention， but like on INe which is the top benchmark in computer vision with this work with the big transfer。
+
+ we finally were able to increase the score after there was like a long period of a couple years of no improvement but many attachments that you see the grade say the yay。
+
+ awesome pretraining scaling up everything and leveraging the data and then okay let's not care about that。
+
+😊，Yeah， that's okay this is just a little aside that if we are in the setting that I mentioned of pretraining on huge amounts of data and then testing on many other tasks。
+
+ you should of course be careful that you don't have images from the other tasks in your pretraining data right otherwise you have seen and training and then you're not really generalizing and you just pulling yourself with good scores and this is a real danger when we get huge amounts of data because like im that images can totally be in huge amounts of data right So we actually use the internal pipeline。
+
+ there is really good at finding duplicates and also new duplicates like when they are shifted。
+
+ rotated squeezed color change a bit whatnot it still find it and we use this to completely remove all images from the test dataset sets that we test on later and we actually found that a lot of classic just vision data sets have clear duplicates between the training and validation set between the training set of。
+
+😊，ImagineNe and CFR10 and00 test sets and so on。 so near duplicates are quite widespread problem envision vision and this slide is just to say hey。
+
+ there are problems but in all that we present we actually took care that in duplicate training as best as we can we don't have near duplicates。
+
+嗯。Right now back to being like hey， we figured out large data。
+
+ a larger model and then things get really good and that's how we got to transformers basically in computer vision。
+
+ everything was convolutional networks for many years and basically there was nothing LTMM is scheme however in language we saw transformation recently right that everything used to be LSTM everywhere。
+
+ LSTM was king and then came the transformer and in the case when there is a lot of data available suddenly transformer work much better than LSTM or little data that was still not the case exactly。
+
+😊，So what we then thought is that okay， so we are now in this where we have tos of data and do we see benefit from it。
+
+ can we see even more benefit if we try also out the transform architecture and vision。
+
+And that's basically what we did to be third there were a few other attempts that try not transformer In before that I don't want to detail too much here because I don't want to like point fingers too much but they were are not really using transformers for learning everything from the data it was always like get something out of a reson at first like object detection proposals or highle feature maps or things like that and then stick a little transformer on top。
+
+ but we wanted to go like all the way just transformer everything。
+
+And so we came up with the simplest and more natural， I believe。
+
+ way of applying transformers to vision， which is you take the image。
+
+ you cut it in two pieces and that's it like a puzzle， tech ta patches。
+
+And that's it Each of these patches， you take it and you project it into your embedding space。
+
+ which is the input to the transformer embedding space is just abstract space of let's say。
+
+ 768 dimensions， for example， how do you embed it， you just take the pixel values and put the linear projection projection layer on top them take all the pixels。
+
+😊，Platten the vector matrix multiply into whatever size you want and use the same matrix for other patches。
+
+and here we just went the simplest ever with non overlapping patches and everything you can and the people later did go on and like say。
+
+ hey， this is almost a convolution， let's make proper convolution， let's make stack of them whatnot。
+
+But this is our for nature， this is just the simplest way to do it first。😊。
+
+Then we have these embedded patches and we treat them exactly literally like the were the tokens in language and then give them to exactly the bird transformer from language folks and just like in language we add this class token or I think a language is like end of sentence token or something and we add the positiondding embeddings to the tokens that can be learned。
+
+And then we feed all of these to a transformer encoder。
+
+ which has MLP head which reads out this class token and then maps it to softm layer for classification。
+
+ for example。And that's it That is the vision transformer。
+
+ so it's literally you take bird transformer， but instead of words or sentence tokens pe in pictures transform this into tokens and that's it。
+
+😊，And then just same story is before scale everything up compute， data set， model size， patience。
+
+ everything and see what happens， is this good or not。
+
+That was the question and now we can see a plot here this is similar plot as before the gray area is actually what were all of the bit dots before and now the bubbles are vision transformers of different sizes and the bubble is kind of the size of the model I'll do it's a bit hard to say exactly and what you can see first is that with little data imagenet is the 1。
+
+3 million images it works worse than resonates。😊，So if we would not believe in this idea and just try this very。
+
+ Okay， this is a crap idea。 and13 million images seems not that later。
+
+Then the10 times larger data states started laying in the same ballpark as a resonnet and when we go to much larger data with a much larger transformer then we actually start outperforming this reson and we outperform it just by little。
+
+ but this resonnet was really hard to get and is extremely clumsy and slow and big so we were very excited by this。
+
+Now we did more controlled studies and everything and one of them is like using subset of this same data set and there's lots of curvebs。
+
+ but basically just look at the dark gray one and the light blue one these are roughly similarly fast and clumsy or easy to use or difficult to use a bit which is a resonnet variant and with the vision transformer and what you can see vision transformer when we have little in quotes little data is really bad compared to resonance but as we start having a lot of data actually it starts outperforming the resonnet and this is very promising because I think everything that looks huge and a lot and so on now in five or 10 years。
+
+ it's maybe regular like 10 years ago Ied this one seemed to be huge and massive amount of data normal anymore。
+
+😊，So we should look to the future and this looks promising for the future。
+
+Then back to the same benchmark， that was another lit jump。Yeah， we have some questions。Yep。😊。
+
+There is also this section about me。😊，So， it's。In that order。
+
+ if you want to unmute yourself and ask the questions。Sure， yeah。
+
+ and I think Deval already answered part of the question。
+
+ but I was wondering in the input to these transform when you're chunking up the image into little puzzle pieces and then fighting them。
+
+ does the order of feeding these patches in matter， like if you switch the order。
+
+ does the prediction maybe change？Yeah， that's a good question。
+
+ And I actually have a slide on something like this， but not exactly。 let me jump there。
+
+ So first of all， if the order is consistent during training， right。
+
+ and you don't shuffle the order again for each new image。
+
+ then it's literally the exact same you get the same curve saying everything because we don't encode the order anyway。
+
+ If you start randomizing the order all the time during training。
+
+ then performance gets quite a lot worse。 and let me show you why is the slide was on my plan to present anyways。
+
+ then if you ask about let's jump here， these are this is a visualization of the position embeddings。
+
+😊，What does it mean so in this case we had 14 by 14 patches that we cut the image in。
+
+ so it means we have also 14 by 14 position embeddings although we just see them as one round sequence of what is it 00。
+
+50 something， or I don't know，140 something。And now each of these pictures shows the position embedding which corresponds to this location how similar is it to all the other position embedding so let's look at this one for example。
+
+ yellow means a perfectly similar like exactly the same and blue means opposite in terms of coine similarity so this position embedding is most similar to itself which is the pixel here and then the neighboring pixels is how similar is it to the position embeddings that correspond originally to the neighboring patch and we do see a very clear pattern that each position embedding is very similar to the embedding from its surrounding patches and we didn't implement any of this right we just had this position embeddings at randomly initialized variables and they are learned as freely as the rest of the parameters of the model but they learn to recover this notion of what are my neighbor patches even though we don't give this information anywhere at any time besides the raw image data in the task to please class。
+
+ですま。诶。So that's pretty cool I think， but it also means that if you take the trained model now and give in patches in a completely differently shuffled order。
+
+ it's going to perform poorly because these learned position and beings not make sense anymore。😊。
+
+We did try also to implement like position embeddings which encode the location as hard coded by us and other fancy position embeddings like relative ones。
+
+ but basically none of that really outperformed is freely learned and then the freely learned is simple you just random in it let it learn as part of SGD and that's it and so we go with that and just doing that。
+
+we have one more question from。Hey， yeah， I was wondering to read it yeah， this slide。
+
+ I think something that's really interesting is we're talking about scaling up the data and scaling up the model of the thought as well。
+
+But it seems like you're reaching an passing show right when you keep doing this thing。
+
+So I'm curious if you have any thoughts on that like is that or these points just look like that or is there kind of a best you can sort of do where we keep yeah whatever pretrain of like the data or the parameters you're actually not going to get Yeah I have another slide but much further in the talk about that where I would like to not jump on it if you don't mind and then maybe in 10 15 minutes we will be there。
+
+Sounds great， thanks。Yeah， but maybe to be a bit optimistic。
+
+ it does seem like the transformers have a better slope here in the end and the resonates plateau earlier。
+
+😊，Sorry， Lucas， I didn't mean did not mean to interrupt Are there any questions before we proceed Yeah。
+
+ can I ask my question real quick Sorry about that So what I'm curious to know is how does this VIT compare to if you equi a convnet。
+
+ So for example， Resnet。With an attention mechanism。
+
+Like how much of this is due to the structure of a transformer and the particular way it operates versus just the benefit of attention a vanilla conf does not have access to。
+
+Yeah， so this is many， this has been tried many times before。
+
+ And the first time that I know of was actually from I mis pronounce's name。
+
+ but I mean there the inventor of Resnet and some of his colleagues。
+
+ they called it non blocker networks。 This was way I think even before the transform paper。
+
+ if I remember correctly and they basically inserted as blocks at various locations in the resonnet and then they showed improvement。
+
+ but it was like。Tinny improvements that。 It was a cool block and a simple paper。
+
+ but it was not really worth it。 And it people usually place the attention。
+
+ I you can imagine if you place the attention just on the pixels and don't do this patch cutting。
+
+ this is way too expensive computation， Right， right， If you have 2 to 4 by 2 to 4 pixels。
+
+ that's like。Yeah I cannot do this in my head， I don't know 40000 or so maybe pixels attending to 40。
+
+000 others that doesn't work so people just do it in the very high and very final layers of the resnet like where it's maybe 7 by7 and then they add a bit of sprinkle a bit of attention there。
+
+ but then you don't really get much benefit of skating because it's essentially still a resnet。
+
+And there is in resonancesates， there is this block called Sic S that has been getting really or has gotten really popular and improves the resnet quite a bit。
+
+ and that is also kind of a form of attention， but like nicely tailored to images。
+
+I'm not doing it's arguable。But yeah， it has been tried many times before。
+
+ but it just it doesn't show or it hasn't been shown to have this scaling benefit as much as the。
+
+So I think I'm missing something critical here， which is you just contract or it's computationally difficult。
+
+But eventuallyally， you're at a low level in the resnet。
+
+But why is it any different than doing an attention layer in division vision transformer？
+
+Because we cut the patches first， so we have maybe 14 by 14 patches， which is not that much。Okay。
+
+But I'm confused， like。You could imagine not at a high level and not at a high layer in the resonnet。
+
+ but at a relatively true layer after you've applied like one or two convolutional filters。
+
+Convolutional layers， excuse me， then you have something size to the patches。
+
+That's still 50 by 50 of the early layers， and that's but 50 by 50 is significantly less than not like 400 by 400 or 100。
+
+But it's still 2，500 tokens attending to 2500 tokens， which yeah I mean， it's a lot。
+
+ but it's not comparable。I don't know。 Okay， cool Thank you。 Yeah， I mean， it could be tried。 Okay。
+
+ maybe another answer to your question is then we're slowly getting to this my next slide after the set of questions where we do try something almost like what you said have a very small part of the resnet and then stick transformer on top of it but like the full transformer encoder on top of it and not just sprinkle a few attention layers and then continue at columns and so on and this is this process and we call them hybrid but that's almost literally what you said actually like a few early layers from the resnet and with different varying amount and then stick the whole transform encoder。
+
+😊，And this。Seem to work well too， especially for the when you exactly in this case is amount of compute so for the little compute it seems to work well。
+
+ but then the scaling behavior of the pure renet is a little better so we focused on that I think we later tried also hybrid further to the right and it was a bit lower but it was after the paper so it's not on this plot which I just put out of the paper but you can already see the trend here。
+
+嗯。Yeah， so if you don't scale all the way up， then this is a totally reasonable thing to do have a little bit of resnet and then the encoder from Transer。
+
+Do you wantan to ask your question。Yeah， I was just wondering about basically。
+
+ there's like like a short section of the paper about like fine tuning and like higher resolution。
+
+ And in that case， right， like the pretrain like position and embedding， Sorry or like skewed right。
+
+ And then it's basically says that you guys are like interpoolating。
+
+ Can you like talk on that like a little bit， like how do you interpolate what's going on。 Yeah。
+
+ actually， when when I check the slides earlier today， I was like， oh。
+
+ it would be good to have a slide on that And we don't have an nice visualization in the paper either。
+
+ because it's a bit difficult to explain， but this is the best starting。Poin it have。
+
+ So if you want to increase the resolution of the image means and you keep the patch size fixed。
+
+ it means you have more patches suddenly right， And then as you say。
+
+ the fashion embeddings like how what do you even use as a position embeddings。
+
+ right and basically you can see here that we see that they learn a very regular structure， right。
+
+ we don't really know what is the structure of these position embeddings that I。
+
+ We just see the similarity to each other and that it is very regular。
+
+And so this gave us the intuition that we may be able to just take them。Kind of imaging these boxes。
+
+ they slide apart and new boxes appear between them and they are just the interpolation of the surrounding ones。
+
+And that's basically what we do with the position and beddings。
+
+We create new ones where they are missing ones because we need more and by interpoolating the surrounding or more precisely we basically see them as a picture in this case。
+
+ 14 by 14 with 700 something channels or whatever is the dimensionality and then we basically resize this like you would resize the picture by near interpolation。
+
+And that way we will get more in new position em that we don't understand where they are。
+
+ but they follow the same pattern as the learned ones just at a higher resolution， basically。点过去。
+
+Yeah， that's a good question。So when no you creating the。As input right now you're doing aject。
+
+Recently first。Has there been work to do that way， has everything weird good there right very close to each other？
+
+Yeah， there were quite a few words。 They tried varying ugly things。
+
+ One that I especially liked recently。 It's called early convolutions help transformers C better or is something like that。
+
+ And they basically say， okay， instead of this linear projection。
+
+ instead of this one big linear projection。 we replace it by a stack of three by three convolution with a straight2。
+
+ And then they have also non nonlinearities between a normalization between them。
+
+ But such that's the overall stride is the same as the patch the dispatyifying。
+
+ So the outcome will then be the same dimensionality as after this patch cutting and then projecting。
+
+ And then they showed that。😊，Supposedly it makes it a bit easier to optimize in the sense that more optimized settings are good settings。
+
+In many scenarios， it performs the same。But like more robustly to get there。
+
+And they also show some scenarios where this performs much better， like for example。
+
+ when pretraining on， actually when they pretrain on more data， that seems to perform even better。嗯。
+
+I havent played a bit with it and tried to reproduce it， I don't have it fully reproduce it。
+
+ but I don't see as much benefit as in the paper yet。
+
+ but that's not to say that the paper is wrong just left I didn't get there yet。
+
+That is one example of them， there are other papers that do stuff。
+
+ but this one I found especially interesting because it's simple。Thank you。All right。
+
+ continue we don't have more questions。Alright， then let's see。 Yeah。
+
+ I have like three more interesting details from the paper and then。
+
+Depending on if you want more discussion or more content， I have more content。
+
+ like also the question about， does it satur it here or not？嗯。Alright。
+
+ so another interesting thing that we had in the paper， but it is buried in the appendix。
+
+ And then follow up papers from others have been written on this by now， actually， is like。
+
+ how should we scale these transformers right in the the high level shape of the transformer。
+
+ There's lots of settings that you could choose And we actually tried many of them。
+
+ So we started with the like reasonable medium size transformer is built in the middle。
+
+ And then we varied things one by one， Such that， we always double the compute。 So， for example。
+
+ this pink line。 If we go to the right at this point increases the width。😊。
+
+Such that we double the compute X axis easy is a compute。
+
+Relative to this starting point and we have all of these different settings， there's the width。
+
+ which is the how wide is are the vectors with which cell function is done。
+
+ which is for the base model 768 and then most larger or smaller。There is like me， as you see。
+
+ scaling this does not seem promising， so we didn't scale that much。
+
+Then there's other things like the width of the multilayer perceptron in or some people call it the one by one convolution in these attentions and this seems to scale a bit nicer this orange part I actually wonder where it went to the left I don't remember I don't know if it's hidden somewhere or if you just didn't scale it down but any risk then another thing to scale which does not exist in the transformers from text is the patch size as you make the patch smaller you get more and more tokens out of an image and thus more and more compute capacity。
+
+This is the green one， which also seems to scale nicely。 Then the depth is an interesting one。
+
+ is yellow one。 And this is the number of encoder blocks。 as we scale， it first seems like wow。
+
+ this is the thing you want to scale， but then it does seem to plateau and it scales really badly if you decrease the depth。
+
+😊，So that's not a good thing to decrease。 However， the width seems to be a good thing to decrease if you want to go through smaller models and then the blue is just scaling everything together such that the compute is kept like everything by roughly the same amount。
+
+ that seems to scale nicely as well as the rest。 And these is relatively simple or at least conceptually。
+
+ So we like this。 So we went to that whenever we scale up or down the models。😊，嗯。
+
+This I want I really like is the inference speed， because if you have the image size of 2 to4 pixels。
+
+ it actually means you have 2 to 4 by 2 to4 pixels， right。
+
+ So if you have let's then you patchify it with 16 by 16 patch， for example， patch size。
+
+ then you have。😊，14 by 14 patches。 So that's the sequence length is actually 150， right and then。
+
+On top of the sequence length， you have the self attention operation， which is square again。
+
+ So overall with the image with respect to image size。
+
+ the self attention operation is to the fourth power what zip called quatic。
+
+ So that is really bad like everybody who sees all of something to the fourth is like what the hell are you doing this is never gonna。
+
+ So we checked what does it look like in practice with the image sizes that we operate in and this is what we see here And the way A axis is the how fast it goes basically how fast it does inference and on the X axises is verying the input size。
+
+😊，And this。Or this means it doesn't look so bad yet。Basically。
+
+ when you go here to the 512 to the real la， then you see that the transformers actually start going down a lot more than the renets。
+
+But in this reasonable image size， let's call it very typical。
+
+ it doesn't seem so bad in practice yet， so we're not getting hit by the evil big old yet。
+
+But as we go larger， it will likely be a problem and there have been a lot of follow up works trying to make that better。
+
+Right。Then。对对对。This is the last one from the original it paper this is looking at the input quotes receptive field size。
+
+ so in the self attention operation how far ago do heads typically attempt？And here on the X axis。
+
+ we see the layer in the network to the right is more towards the output。
+
+ the classes and to the left is more towards the input the patches。😊。
+
+And the y axis is how far on average across， I think the whole validation set。
+
+ does the self attention look and does look means that the peak of the cell attention or the max。
+
+ how far is it weigh， something like that。😊，嗯。And each dog is a different head because we can use multi head self attention right and so what this shows is that in the early layers actually you have some heads that go look far。
+
+ but also a lot of heads that look very nearby them so locally and as we go deeper in the model we only are left with heads that on average look further。
+
+😊，So。Is just some kind of analysis there is not immediately action to take about this。
+
+ but it iss interesting to see that earlier layers。
+
+ they learn a mixture of looking to a local neighborhood and looking globally and later layers only look globally anymore。
+
+😊，Right。So this is about the original vision transformers。嗯。
+
+No I don't know how long we want me to continue speaking or discussing I have a couple options that I can talk about which is one project that was furthers scalingating ups and this one also has the answer to the I can also jump straight to the answer if you don't want to hear the rest but to the question of like' how does it continue to the right are we satparating There is another project about how to train vision transformers when you don't have massive amounts of data can you still do it。
+
+ is it reasonable or is it maybe just unreasonable to do。This one is maybe too unrelated。
+
+ Let's not talk about this。 And the last one is like I talk all about these benefits of a really large model when you pret them on lotss of data。
+
+ Okay， that's nice thats how we get a good model but then actually using a model that is massive is not fun at all Like it doesn't fit on your GP you need like multiple GPUus to even use it So people are not happy to use it and usually still go back to small each models。
+
+ even though you know like larger model should be better。 what can we do about it。😊，嗯。
+
+That's another project we had， she's about this。So。
+
+I would say it's up to you guys what you prefer to do， or if you have plenty of question。
+
+ we can continue with the questions now because I think now the original one hour would be overr。
+
+Right。So I think one suggestion was like we can continue the talk and we would also be recording it so people that can like just like go and see it if they missed or something so we could do that。
+
+Yeah， the other thing is two people have their hands raised so we can。Okay questionsions for us。
+
+After you guys。And fight hide the way。So you guys want to ask your questions？Yeah。
+
+ I just had a pretty basic question， so if an object lies on the border between the patches。
+
+ does that impact the model's performance in any way？Yeah， I mean， that's not a basic question。
+
+ It's a good question。There is a mix of answers so one is we didn't specifically go and test this It would be an interesting thing to test in a very controlled way with some of the trained models that's for sure The other thing is that。
+
+When you have massive data set like 300 million images it's an insane amount I used to try to conceptualize how much is image net 1 million images and I think I did the math is like if you go to an image and look at all of the images each image for a couple of seconds you were sitting there for a month or something like that don't remember。
+
+ but 300 million is just insanely massive and then on top of that we do actually use random augmentations like random crop out of the image。
+
+So I would say it's the default that you see objects that don't fall on a patch during the training already and if you look at here basically this is the standard model like how the patches are when we have 14 by 14 they look roughly this size also。
+
+Then an object is usually scattered across many patches actually。
+
+ because objects in typical images are relatively large right people don't take a picture where the object of interest is super tiny in the corner so that's the default that you see during pretraining and so I believe that the model just learns to do that much better actually。
+
+Then the other answer to the question is like， okay。
+
+ maybe if you did some nicer thing than this very crude patch cutting， like for example。
+
+ this con stack of convolutions that I mentioned， maybe this is even better could be。Thank you。Yeah。
+
+ so you mentioned that。Or transformers， or at least you mentioned in the paper that。
+
+They laugh like local caity and like。あ。I was just thinking， are these sort of？Property。嗯嗯。系。
+
+And it's especially when you're in the。Why is it that？你个不说。嗯哼。😊，嗯。The audio was not that good。
+
+ but I believe I understood the question is that we say that transformer lack locality bias or prior or whatever。
+
+ and why is this even something that we want， right？
+
+Wouldn't we want our models to know about locality if they are about pictures in the first place yes and no。
+
+ so this that's why I give the context in the beginning this is all about what happens when you scaling things up。
+
+And。Specifically， what。In ideal word， at least in our mind， we want gigantic amounts of data。
+
+ and we believe that it will just keep growing as the years go by and there will be more and more data just generally there。
+
+ And then we want the model to have as little of。Our thinking built in。
+
+ because what we may think that is good to solve the task may actually not be best to solve the task。
+
+ You know， maybe like a analogy would be like， what was it alphago that made some moves that experts would say this is crazy。
+
+ This is a silly move， But it actually then was much better。 And in a similar way。
+
+ we want to encode as little as possible into the model。
+
+ such that if we just throw massive amounts of data and the difficult task at it。
+
+ that it might find things that are even better that we didn't think of before。😊。
+
+This is our approach because we believe that like as I mentioned， I think already。
+
+ what seems massive and excessive now will be the norm in five years or so。
+
+ so that's where we want to go and look what's the direction however。
+
+ if you want to like just get something working now and don't have massive amounts of data and don't want to use pretrain model for some reason which。
+
+Always use a pre model， but if you don't want to， then it makes utter sense to believe in some of your prior intuition and knowledge of what should probably help the model like locality。
+
+😊，嗯。I hope this answered your question。The suppose this is a PowerPot。Or sort of point we about。
+
+Thank。W mean like any vision task， like isn't that sort of。Like I don't know。
+
+ maybe I'm not seeing late。Thatly why we do not want food and that。
+
+You may be elaboraterating on that， but why is it that we don' want？
+
+Like locality or what translation that。Well， ideally。
+
+ we want the model that is powerful enough to learn about this concept itself if it is useful to solve the task。
+
+ if it's not useful to solve the task then。If we hard code it in。
+
+ there is no way for the model not to do this， right？嗯。That is ideally the outcome in a similar way。
+
+ also， that in language， you know， it seemed to be nonsense to not encode the from left to right direction of text。
+
+ like in R S。 But then comes transformer and just doesn't。
+
+And works much better if you throw a lot of data at it。
+
+ and it recovers that plus less some more or a more flexible variant of it or something like that that is even better for survey task。
+
+So basically， the human being that。We are not as smart to design the thing。
+
+The model in the way that will be best for the task。
+
+ let's rather give it all the flexibility and all the data it needs to figure out what is the best way of solvinging the task。
+
+I really there is a philosophy of approaching it。 I'm not saying this is the only true way， right。
+
+Okay， so we have around seven minutes left before the scheduled end of the talk。And Lucas。
+
+ we want to be mindful of your time as well because it's it is evening where you are so。
+
+One thing we could do is you could I don't see any more questions right now so you could actually sort of go over the last few bits maybe skipping through the details and just talking about the final results I going do these two on the high level and those two that are still very very tied to transformers and answer some question that happened before like the first question was like okay are we saturating yes or no and。
+
+Here， no。This was the bit on this benchmark from the original transforming paper。
+
+ but then it's like these transformers when we use them。
+
+ which just notice they have really nice scaling properties and they seem actually to be easier to scale up。
+
+Without paying massive compute as much as resonancesonates just from gut feelinging from us having experience with both。
+
+ And so we went and look what happens if we scale vision transformer just as far up as we possibly can and we spent quite a lot of our blood into making this happen one part of it is scaling the data set so we went back to this Google internal team that this 300 million data set is just one out of many that they work with and we asked around and they basically had the 3 billion like 10 types largerggger data set that we could also like play around with so they go and scale up the data set and。
+
+This just showing， yes， just scaling up the data set and switching it gives you benefits。
+
+ But that's not all of it。Then the next thing is we needed to figure out how to use less memory on device like on view or TPU。
+
+ because already previously with this score， we fitted the model as much as we could with。
+
+ So we did a lot of clicks that I will skip for now and are able to scale much larger。 This is like。
+
+😊，This plot shows the size of the modern in the different shape characters that I mentioned before。
+
+ like the weight of the MIP on X axises， the surf at width on the Y axises。
+
+ and then the different plots are different layers for the depth。😊。
+
+These books are how large a transformer we did in the original paper。
+
+ and then boom one step further and two steps further。
+
+ this is just super massive transformer we did in this scalingating。
+
+Paper and with all of our tricks how much larger we could go a little larger。
+
+Then yeah some learning rate stuff but it is really cool。
+
+ I recommend people to look at square root learning rate schedule。
+
+ which is cool and often just mentioned as a side note。嗯。It's also cool。
+
+ but I'm going to skip it for the interest。And basically in interest of time and basically we scale it up a lot and of course again。
+
+ we get always this in Inet number a bit higher， This is actually plus 2% than what we had before。
+
+ which is very significant in this high percentage range there。
+
+But also what's very interesting is the fu shot again by just keep scaling up everything。
+
+ we get super large boosting fu shot again this is imagegenenet top one accuracy and for example。
+
+ it' just 10 images per imnet class。😊，Which means 10000 images totaltter because thousand classes。
+
+ We get this big of a drop。 We get 85% of one accuracy， which is what。
+
+What is what you typically get when using the full data set basically。So do。
+
+again up makes actually few short work significantly better。 And then I'm going to skip on this。
+
+ Well， this actually has an interesting message。 This is three times the same story。
+
+ but measured in a slightly different way， which is that if you make the model larger。
+
+ it actually needs to see fewer images to get to a similarar score like this blue line is a tiny vision transformer and the base vision transformer in a large one。
+
+ and the way X is the error。 so lower is better。 And actually you need to see still we're talking in millions of images And here it's1 hundred0 million images。
+
+ but still you need to see a lot fewer images with the larger models。
+
+ doesnt mean a lot less compute right because the model is larger and the slower。😊。
+
+But that's interesting。And then there's some scaling laws that are popular in language and we I pink maybe for the first time in discriminative image learning show that yeah。
+
+ they appear to be here too。And。Then， right， then we want to。
+
+ So I had the order of the slide mixed up in my head。 So I'm a bit surprised。
+
+ But then another thread was that besides further scaling up the model。
+
+ we want to to push even further into this direction of。😊。
+
+Less hand engineering of things into the model architecture。
+
+ And then with the vision transformer transformer in general。
+
+ what is the obviously most hand engineered part of it is the ser entrancet。
+
+ So it right what can we do something like more generic than that and less smart than that' basically and we ended up by replacing it essentially with just multilay perceptron that。
+
+ however。Has a little bit of structure， but much less than self attention that they it give the structure or the say here fine and we're coming back to this plot where the question was。
+
+ are't we saturating now this plot is slightly different we again have this bit resonate here in black and the full green line is the transformer and the other color also the full lines our division transformer right is this exactly same numbers as from before However。
+
+ now we also threw in this mix mixer architecture， which we believe is even more flexible and less hand linear data transformer and as you see with less data it's even worse。
+
+🎼However， with much more data， it may be surpassing the transferer or it may be random noise。
+
+Not clear at this point， right， because it's the only point where this happens。
+
+So we need to go further， so we use this 3 billion data set， for example， from the previous paper。
+
+That I mentioned here and try to extend these lines to the right to see what happens we don't extend many of them because these are very expensive experiments that require a ton of patients。
+
+ but we extend it two most interesting and it seems that it continues and that first of all。
+
+ yes the vision transformer keeps。Increasing， we don't have such experiment with the resonnet because it doesn't look promising enough to pay the cost of doing it。
+
+But it also seems that the mixer， what we believe is even more flexible architecture actually is consistently above the transformal。
+
+ which is good news。😊，And yeah， it is good news。 So were now right at the。
+
+Time when I should stop right or open to more questions again。Yeah。
+
+ I guess as a question and I ask a follow up on the scaling that you shown earlier it's really just my question I'm curious how this model size compares to model sizes worked or like the natural language like especially when flow from like smaller models to much bigger models whatever they comparable at all in terms of model size and if not like why do you think。
+
+What the models for these two house Yeah actually a colleague of mine has a slide which I hate but he loves it's the model number of parameters in NLP and in vision and the question is how do you measure your model side if you just measure a number of parameters then these vision models are much smallerer however。
+
+😊，The language models， number of parameters， like a huge chunk of it is in the dictionary。
+
+ for example， which for us just doesn't exist， its linear bedding。
+
+ which is trivial number of parameters。 So in terms of number of parameters， it's much smaller。
+
+ My personal opinion is number of parameters doesn't mean that much。
+
+Then the other way that you could measure is maybe in terms of compute。
+
+ like how much floating point operations does it do on one data point？And in terms of this。
+
+ it's in the same ballpark， however， last time I checked， which is quite a few months ago。
+
+ the largest language model was still like four times more or five times more division vision model。
+
+ I believe。😊，Yeah， so that's the two ways of measuring model size。
+
+ I don't think either of the ways is the one way to measure model size and I think it's actually an interesting research topic like how to properly measure and like order models in terms of capacity is not clear you know why the vision is or sorry the vision is much smaller。
+
+I think it's just there is less interest in it and so less resources spent on it basically like in Google there are many more。
+
+ many， many more groups doing research with language than with vision and I think we are one of the few groups that have access to a lot of resource and are interested in scaling up things in vision so much whereas in language it seems there are a lot of groups that are doing that。
+
+😊，I think that's the main reason， actually， It's not that we don't want to go beyond that or。
+
+Like if we can， we would go even more。Ason， thank you。
+
+Right so we are actually over time at this point， so anyone who has to leave please feel free to do so I think before we do that。
+
+ Lucas， thank you so much for joining。From all the way from。
+
+Across the ocean and we know it it's in the evening。
+
+ so thank you for taking the free time to come and talk to us here。Yeah， thanks for an invitation。
+
+ I always like to talk about the work。😊。
+
+![](img/83f0bde19a507ae0c355af3acd90a0b3_8.png)
