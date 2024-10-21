@@ -1,48 +1,66 @@
 - en: 斯坦福 GPT／Transformer 原理介绍 (中英文双字幕) - P5：5.Mixture of Experts (MoE) paradigm and
     the Switch Transformer - life_code - BV1X84y1Q7wV
+  id: totrans-0
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 斯坦福 GPT／Transformer 原理介绍 (中英文双字幕) - P5：5.专家混合（MoE）范式和开关变压器 - life_code - BV1X84y1Q7wV
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_0.png)'
+  id: totrans-1
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_0.png)'
 - en: Today， Erwin and I are going to be giving a talk on scaling transformers through
     sparsity and the kind of sparsity we're to be talking about today is the kind
     where。you know each input can get you know， either a different set of weights
     or have a different amount of computation applied to it。
+  id: totrans-2
   prefs: []
   type: TYPE_NORMAL
+  zh: 今天，埃尔温和我将进行一场关于通过稀疏性扩展变压器的演讲，我们今天要讨论的稀疏性是指，每个输入可以获得不同的权重集或应用不同的计算量。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_2.png)'
+  id: totrans-3
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_2.png)'
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_3.png)'
+  id: totrans-4
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_3.png)'
 - en: Orren you want to start it off？Y。So I guess the overall motivation for this
     line of work is that。You know， the community has kind of realized that scale is
     perhaps one of the most important access to to focus on for obtaining strong performance
     and there's almost like this sort of ongoing arms race right now with different
     labs and different institutions。
+  id: totrans-5
   prefs: []
   type: TYPE_NORMAL
+  zh: 奥伦，你想先开始吗？是的，我想这项工作的整体动机是，社区意识到规模可能是获得强大性能的最重要途径之一，目前不同实验室和机构之间几乎存在一种持续的军备竞赛。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_5.png)'
+  id: totrans-6
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_5.png)'
 - en: Sort of competing for training the largest models。And so maybe these dates back
     from early 2020 with a paper from Open AI called Scing Gs for No languageage Model。Where
     they find that model performance。Follows the predictable our law。Scas sort of
     as a power with model size。In terms of either compute， also just you know， parameters。And
     so this scaling law kind of generalizes over multiple orderss of magnitude and
     that gives us the confidence that if we are to train very large models。
+  id: totrans-7
   prefs: []
   type: TYPE_NORMAL
+  zh: 各种实验室之间争相训练最大的模型。这可能可以追溯到2020年初，OpenAI的一篇名为“Scing Gs for No languageage Model”的论文，其中发现模型性能遵循可预测的缩放法则，随着模型大小呈幂级数增长，无论是计算还是参数。因此，这种缩放法则在多个数量级上进行了概括，给了我们信心，如果我们训练非常大的模型。
 - en: we can expect solid performance just by extrapolating these scaling laws。So
     in that paper。they also。Find the interesting。Observation that。Basically， larger
     models are more simple efficient。And so， you know， if you have a fixed compute
     budget。You can sort of。You know。you can predict what what is the size， what is
     the optimal model size or fixed compute budget。
+  id: totrans-8
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们可以通过推断这些缩放法则来预期稳定的性能。因此在那篇论文中，他们也发现了有趣的观察，即基本上，较大的模型更简单有效。所以，如果你有固定的计算预算，你可以预测最佳模型的大小。
 - en: And the overall observation is that。You know， you rather train very large models
     for less steps than train smaller models for more training steps。And so these
     models are scaled。You know， through。Basically， the paper focuses on dense models，
@@ -50,54 +68,73 @@
     and so sparsity is a new dimension that you can use to scale architectures。You
     know， N DC sort of the。The focus of the talk。And so the spaity we we're mentioning
     here is basically。
+  id: totrans-9
   prefs: []
   type: TYPE_NORMAL
+  zh: 总体观察是，你宁愿训练非常大的模型少量步骤，也不愿训练较小的模型更多步骤。这些模型的缩放是通过基本上增加模型维度来实现的。他们并没有考虑稀疏性，而稀疏性是你可以用来扩展架构的新维度。N
+    DC算是演讲的重点。这里提到的稀疏性基本上是。
 - en: you will have。Spa spaly activated weights based on the network inputs。So every
     input will go to a roughly similar amount of computation。but will be applied different
     weights。And so this dates back to 1991 with。Paper called adaptive Mis of local
     exports。And was recently revisited by Noam Shaesar and colleagues at Google Brain。
+  id: totrans-10
   prefs: []
   type: TYPE_NORMAL
+  zh: 你将会有基于网络输入的激活权重。因此，每个输入将经历大致相同的计算量，但将应用不同的权重。这可以追溯到1991年，论文称为自适应局部专家的混合，最近被诺姆·沙泽和谷歌大脑的同事们重新审视。
 - en: With LSTMs where they're replaced sort of the fit forward。Networks and LSTMs
     with mixture of exp。And so the way this works there roughly is that。You will have
     multiple experts in implementing you know。a small network or in that case， I think
     just a。D matrix multiplication。And so you have an additional getting network shown
     in green here that outputs probably distribution over。
+  id: totrans-11
   prefs: []
   type: TYPE_NORMAL
+  zh: '在LSTM中，它们将前馈网络和LSTM替换为专家混合。因此，这里的工作原理大致是你将有多个专家来实现，嗯，一个小网络，或者在这种情况下，我认为只是一个D矩阵乘法。因此，你还有一个附加的获取网络，在这里以绿色显示，它输出概率分布。  '
 - en: Experts that each talking should be sent to。So this priority distribution is
     computed as a softm。and once you have it， you select a few experts。So the are
     different strategies。maybe we'll talk about it later， and the output is simply
     sort of the way to make sure of all selected export outputs。So that they've been
     pretty successful in。Primarily in translation， but there was some， you know。
+  id: totrans-12
   prefs: []
   type: TYPE_NORMAL
+  zh: 每个专家应当发送信息的优先级分配。因此，这个优先级分配被计算为一个软分布。一旦你得到了它，你就可以选择几个专家。因此有不同的策略。也许我们稍后会讨论这些，而输出就是确保所有选择的专家输出的方式。因此它们在这方面取得了相当大的成功。主要是在翻译方面，但还有一些，嗯。
 - en: You know， some complexities that Hindu broader use in NLP。And so the switch
     transformer paper。Addresses some of those and will be discussing how to。you know
     how to fix training abilities or reduce communication costs and and reduce model
     complexity。![](img/cfb06f02d43700aca0402fcc8c4854ad_7.png)
+  id: totrans-13
   prefs: []
   type: TYPE_NORMAL
+  zh: 你知道，一些复杂性在于Hindu更广泛地使用于NLP。因此，**切换变压器**论文解决了其中的一些问题，并将讨论如何，嗯，如何提高训练能力或降低通信成本，并减少模型复杂性。![](img/cfb06f02d43700aca0402fcc8c4854ad_7.png)
 - en: Alright， do right， you wantan to go。![](img/cfb06f02d43700aca0402fcc8c4854ad_9.png)
+  id: totrans-14
   prefs: []
   type: TYPE_NORMAL
+  zh: 好吧，没错，你想去。![](img/cfb06f02d43700aca0402fcc8c4854ad_9.png)
 - en: Yeah， so yeah。So one kind of approach that we're going to have first spaarsity
     is the switch transformer。which is kind of like a simplified mixture of expert
     variant， along with some other improved。you know， training and fine tuning techniques
     that allow it to， you know。![](img/cfb06f02d43700aca0402fcc8c4854ad_11.png)
+  id: totrans-15
   prefs: []
   type: TYPE_NORMAL
+  zh: 嗯，是的。所以我们首先要介绍的一种方法是**切换变压器**，这有点像简化版的专家混合变体，结合了一些其他改进的训练和微调技术，这使得它能够，嗯。![](img/cfb06f02d43700aca0402fcc8c4854ad_11.png)
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_12.png)'
+  id: totrans-16
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_12.png)'
 - en: Be stably trained and also perform better when finding done a lot of downstream
     tasks。And so yeah。so the switch transformer kind of model works as the following。so
     you have some transformer model that has， you know self attention and feed forward
     layers and the idea is that we replace maybe one every two or one every four feed
     forward layers with a switch transformer layer。So you can see on the left is like
     one kind of layer block which is selfatten then addized then a fee forward layer。
+  id: totrans-17
   prefs: []
   type: TYPE_NORMAL
+  zh: 要稳定训练，并且在完成大量下游任务时表现更好。因此，是的，**切换变压器**模型的工作方式如下。你有一些变压器模型，具有自注意力和前馈层，想法是我们将每两个或每四个前馈层中的一个替换为切换变压器层。因此，你可以看到左侧是一种层块，它是自注意力，然后是加法，再然后是前馈层。
 - en: then abnormalize and in this case， we're replacing the normal feed forward layer
     with like switch layer and we can see an illustration of this on the right so
     on the right we can see that the layer has two inputs one is the token more。the
@@ -108,56 +145,75 @@
     going to the expert number two out of the four experts and then the right token
     is actually having the most probability on the first feed forward weight which
     is like the first expert。
+  id: totrans-18
   prefs: []
   type: TYPE_NORMAL
+  zh: 然后进行反归一化，在这种情况下，我们用切换层替代正常的前馈层，我们可以在右侧看到这个的示意图，所以在右侧我们可以看到该层有两个输入，一个是标记更多，另一个是标记参数，我们可以看到这些嵌入表示将被发送到一个路由器，这正是它在专家混合中的工作方式，因此路由器基本上只是获得所有专家的分布，在这种情况下我们可以看到最高的概率是给四个专家中的第二个专家，然后右侧的标记实际上在第一个前馈权重上具有最高的概率，这就像是第一个专家。
 - en: So yeah we can see here that like what we're going to do is in the switch transformer
     which is very simple is just send it to the highest probability expert and so
     here we can see where the adaptive computation lies where we'll have four sets
     of weights there's some shared weights and computation across all tokens。
+  id: totrans-19
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我们可以看到，在Switch Transformer中，我们要做的很简单，就是将其发送给最高概率的专家。我们可以看到自适应计算在这里的位置，我们会有四组权重，在所有token之间共享某些权重和计算。
 - en: for example， the self attention layer is computed exactly the same for the more
     token and for the parameters token。But in the sparse switch layer， we can see
     that like actually the inputs are while having the same amount of floating point
     operations applied to them。
+  id: totrans-20
   prefs: []
   type: TYPE_NORMAL
+  zh: 例如，自注意力层对于更多token和参数token的计算是完全相同的。但是在稀疏Switch层中，我们可以看到输入的浮点运算量是相同的。
 - en: actually have different weight matrices。![](img/cfb06f02d43700aca0402fcc8c4854ad_14.png)
+  id: totrans-21
   prefs: []
   type: TYPE_NORMAL
+  zh: 实际上，具有不同的权重矩阵。![](img/cfb06f02d43700aca0402fcc8c4854ad_14.png)
 - en: Next slide。Yeah， so that's the kind of high level idea with switch transformformer
     is that， you know。instead of sending a token to multiple different experts。which
     can also increase the communication costs， as I'll go into a little bit later。it
     also just like significantly kind of simplifies the algorithm by just only sending
     it to one expert。
+  id: totrans-22
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一张幻灯片。这就是Switch Transformer的高层次想法：与将token发送给多个不同的专家相比，这样可以增加通信成本，我稍后会进一步讨论。仅将其发送给一个专家就显著简化了算法。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_16.png)'
+  id: totrans-23
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_16.png)'
 - en: So for the improved training methodology， we focused on three different things
     to help improve the training of sparse models。The first was selected precision，
     which like allows these sparse models to be trained in lower precision formats。which
     is incredibly important Most of the models we train。we really don't want to be
     using F 32 because it's just slower to compute and also when you're communicating
     tenss across different processes and stuff。
+  id: totrans-24
   prefs: []
   type: TYPE_NORMAL
+  zh: 针对改进的训练方法，我们专注于三个不同的方面，以帮助提升稀疏模型的训练。第一个是选定精度，这样可以让这些稀疏模型以较低精度格式进行训练。这一点非常重要，因为我们训练的大多数模型其实并不希望使用F
+    32，因为计算速度较慢，而且在不同进程间传输时也会有很多问题。
 - en: its is twice as slow just because there's twice as many things。Also。we have
     some initialization tricks and some training tricks as well for allowing them
     to be trained more stably。especially as the models grow in size， which is like
     a new initialization method along with like a change to the learning rate schedule。And
     third， since that our models have so many more parameters。
+  id: totrans-25
   prefs: []
   type: TYPE_NORMAL
+  zh: 由于数量翻倍，其速度是之前的两倍。此外，我们还有一些初始化技巧和训练技巧，可以让它们更稳定地训练，尤其是随着模型规模的增大，采用了一种新的初始化方法和学习率调度的变化。第三，由于我们的模型有更多的参数。
 - en: we do notice like definitely different overfiing dynamics。especially once we
     finet these models that have been pretrained on all of the internet on these small
     tasks with maybe only 50 to 100。000 examples that they can be much more prone
     to overfitting so we also look at some custom you regularization to help prevent
     some of the overfitting that we observe。And finally， we also talk about this differentiable
     load balancing technique we make。
+  id: totrans-26
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们确实注意到过拟合动态有明显不同。尤其是在对这些在互联网上预训练过的小任务进行微调时，可能只有50到100,000个示例，这使得它们更容易过拟合，因此我们还考虑了一些自定义正则化，以帮助防止观察到的过拟合。最后，我们还讨论了我们所做的可微分负载均衡技术。
 - en: Which kind of allows you know each expert to roughly get the same amount of
     tokens。Because you know this is very important， especially given that we you know
     want the stuff to be efficient on hardware。we want roughly each expert to have
@@ -165,8 +221,10 @@
     an additional like load balancing loss along with our cross entrytropy loss that
     we're training with。Next slide Okay so here I'm going to go into selected precision。
     So yeah again。
+  id: totrans-27
   prefs: []
   type: TYPE_NORMAL
+  zh: 这让每个专家大致获得相同数量的token非常重要，特别是考虑到我们希望在硬件上高效运作。我们希望每个专家接收到的token数量相似，因此我们在交叉熵损失中添加了一个额外的负载均衡损失。下一张幻灯片，所以我将深入讲解选定精度。
 - en: so like when we're training large models， it's really important that we should
     be able to train them in lower precision formats。So instead of each you know weight
     being an activation being 32 bits we want to shrink it down to 16 bits and we
@@ -177,8 +235,12 @@
     frequently encountered and so one key thing that we found is that basically you
     need to be casting a part of the computation in float 32 for these models to be
     able to be trained stably。
+  id: totrans-28
   prefs: []
   type: TYPE_NORMAL
+  zh: 因此，当我们训练大型模型时，能够以较低精度格式进行训练非常重要。因此，我们希望将每个权重的激活从 32 位缩小到 16 位，我们使用 B float 16
+    表示法。我们发现，这些模型不稳定，尤其是稀疏模型在训练 1020000 步时，损失会发散，这是我们经常遇到的情况。因此，我们发现的一个关键点是，基本上需要将一部分计算转换为
+    float 32，以便这些模型能够稳定训练。
 - en: And the key component that we found that you need to cast is the like router
     computation and essentially you know we can go into the technical details a little
     bit more later。but basically anytime that there's like these exponentiation functions。it's
@@ -186,23 +248,30 @@
     errors that can then drastically change the output of some kind of exponentiation
     function So for example。like if you have an exponentiation function and you change
     it by 0。1 or 02 or 0。3。
+  id: totrans-29
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们发现的关键组件是路由计算，基本上我们稍后可以更深入地探讨技术细节。但基本上，每当存在这些指数运算函数时，拥有更高的精度非常重要，因为舍入误差会极大改变某种指数运算的输出。例如，如果你有一个指数函数，将其改变
+    0.1、0.2 或 0.3。
 - en: this can drastically change the output of like exponentiating it。especially
     depending on how large the input is。So yeah。so this was like a very important
     thing and it basically doesn't change the compute at all and allows the models
     to just be significantly more stable。Next slide。So the second thing we looked
     at is also the initialization scale。
+  id: totrans-30
   prefs: []
   type: TYPE_NORMAL
+  zh: 这可能会极大改变像指数运算的输出，尤其是根据输入的大小而异。所以，是的，这是一件非常重要的事情，基本上不会改变计算，让模型更加稳定。下一张幻灯片。
 - en: so like the standard way that we were initializing these models we found to
     also just make the models much more prone to being unstable and or just performing
     worse so one thing that we did that we found was very effective was to just simply
     make the initialization scale much smaller and when we did this we found that
     you know the quality just like drastically improved it was like a very simple
     fix。
+  id: totrans-31
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们发现，标准的初始化方式使模型更容易不稳定或表现更差。因此，我们采取的一个非常有效的方法是将初始化规模缩小，当我们这样做时，发现质量显著提高，这真是一个非常简单的修复。
 - en: Next slide。And the third thing I mentioned where since we notice that these
     models are much more prone to overfitting。since they just have significantly more
     parameters。Is that we also use much more dropout for the expert layers only so
@@ -211,27 +280,37 @@
     most effective on these four different fine tuning tasks was just to really significantly
     increase the dropout rate inside the expert layers and we found that this was
     pretty effective for combating the overfitting。
+  id: totrans-32
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一张幻灯片。第三件事是，由于我们注意到这些模型更容易过拟合，因为它们有显著更多的参数。我们也仅在专家层使用了更多的 dropout，这里可以看到我们有
+    T5 基础模型，这是一个稠密模型。然后我们在此基础上有多个不同的开关变体，我们发现对这四个不同的微调任务最有效的方式是显著增加专家层内的 dropout 率，我们发现这对于对抗过拟合非常有效。
 - en: slide we have a question Oh also about the students Yeah okay， let me take a
     look。Do you want to go ahead I can ask is just in reference to that previous table
     where you you have throughput and precision it just seems surprising to me that
     you could match this 1390 number。
+  id: totrans-33
   prefs: []
   type: TYPE_NORMAL
+  zh: 幻灯片上有个问题，哦，还有关于学生的。好的，让我看看。你想继续吗？我可以问一下，参考之前的表格，你提到的吞吐量和精度让我感到惊讶，似乎能匹配这个 1390
+    的数字。
 - en: We using selective precision， it seems like I would expect it to be like something
     in between。Yeah。so it essentially comes down to the fact that like there's maybe
     a little bit of noise sample bit the speed and the only part we're casting is
     the router。
+  id: totrans-34
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们使用选择性精度，似乎我会预期它是介于某种状态之间。是的，所以这基本上归结为这样一个事实：可能会有一点噪声样本，但速度是唯一我们正在计算的部分就是路由器。
 - en: which is you know， maybe like it is such a insignificant portion of the computation
     and there's zero communication there that it's essentially like a free operation
     in the network so whether you cast it to B flow 16 or flow 32 it doesn't actually
     impact the speed at all within the precision that we can actually measure the
     speed。
+  id: totrans-35
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是一个，也许是计算中的一个微不足道的部分，而且没有任何通信，因此在网络中本质上就像是一个免费操作。所以无论你将其转化为B流16还是流32，其实在我们能实际测量的速度精度范围内，根本不会影响速度。
 - en: And also， these architectures only use fast layer when when every fall layers。And
     so。Yeah。essentially the flood 32 parties is kind of very negligible in the entire
     architecture。It's like for example， I think like off the top of my head it's like140th
@@ -239,8 +318,10 @@
     multiply in like a dense raylude dense layer or something。so it's a very， very
     small part and yeah we're not using them very frequently like Erwin mentioned
     as well。
+  id: totrans-36
   prefs: []
   type: TYPE_NORMAL
+  zh: 而且，这些架构只有在每个下层都使用快速层时才会生效。所以，嗯，基本上，洪泛32个参与者在整个架构中是相当微不足道的。举个例子，我觉得就我所想，进行第一次像稠密层那样的权重矩阵乘法所需的计算量大约是140倍。因此，这是一个非常、非常小的部分，而且是的，我们不会像Erwin提到的那样频繁使用它们。
 - en: Got it， okay， thanks。Yeah， and then， you know， just like a quick point in this。like
     I won't into some of the technical details， but yeah， we definitely， you know。since
     we're training these things on hardware we really like I think a big part of the
@@ -250,72 +331,93 @@
     amount of tokens going to each of the different experts and I think the this isn't
     that sensitive to the load balancing formulation like we tried a few things a
     lot of them worked。
+  id: totrans-37
   prefs: []
   type: TYPE_NORMAL
+  zh: 明白了，好的，谢谢。是的，然后，嗯，简单说一下这一点。我不会进入一些技术细节，但我们确实，知道。因为我们在硬件上训练这些东西，我觉得混合X范式的一个重要部分是这些东西的设计使得它能高效映射到硬件。所以我们希望进行稠密矩阵乘法。为了使这一切顺利进行，我们还希望能够让每个不同的专家接收到大致相等数量的令牌，我认为这对于负载均衡的公式并不是很敏感，我们尝试了几种方法，很多都有效。
 - en: but yeah essentially you definitely want some kind of load balancing loss added
     on when using sparsity Yeah next slide。嗯。Yeah， Erwin， go ahead。Yes， so。So the
     frameworks， the library we use rely on static shapes for。Okay。So we so X L A。So
     the compiler for tensorflow and machine offlow expects static shapes for tensors。However，
     the computations in switch transformers are dynamic because。You know， because
     of the router。
+  id: totrans-38
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是，是的，基本上在使用稀疏性时，你确实希望添加某种负载均衡损失。是的，下一个幻灯片。嗯，好的，Erwin，请继续。是的，所以，框架，我们使用的库依赖于静态形状。好的，所以我们有XLA，TensorFlow的编译器和机器流预期张量的静态形状。然而，Switch
+    Transformers中的计算是动态的，因为，你知道，因路由器。
 - en: right， like different inputs will be routed to different experts。And so， we
     need to。Specify ahead of time。how many tokens will be sent to each checkbook。And
     so we will introduce this expat capacity hyperpy。To specify that。And that's going
     to be a static number， which says how many tokens each export can process。
+  id: totrans-39
   prefs: []
   type: TYPE_NORMAL
+  zh: 对，不同的输入会被路由到不同的专家。所以，我们需要提前指定将有多少令牌发送到每个检查点。因此，我们将引入这个专家容量超参数，以指定这一点。这将是一个静态数字，表示每个专家可以处理多少令牌。
 - en: And so in practice， we instead parameterize this by having a quantity called
     the capacity factor。So we have an example here。So， you know， so the bottom row
     is。Okay。so is a bunch of tokens on one device， and then you need to sort of route
     those tokens to multiple devices or multiple expertss。So if too many tokenins
     are routed to a single exp stop。Some tokens will be dropped because。
+  id: totrans-40
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以在实践中，我们通过引入一个叫做容量因子的量来进行参数化。这里有一个例子。底行是，一堆令牌在一个设备上，然后你需要将这些令牌路由到多个设备或多个专家。如果太多令牌被路由到一个单一的专家停止，一些令牌会被丢弃。
 - en: as we said， like export having a fixed capacity。So that's the example on the
     left where the capacity factor is one。and that basically means that the total。It
     does no， like extra buffer。For writing tokens。So instead of that， we can use a
     capacity factor that's larger than one。 so on the right。you have an example with
     a 1。5。So that means that now each expert has like sort of three slots that can
     process three tokens。
+  id: totrans-41
   prefs: []
   type: TYPE_NORMAL
+  zh: 正如我们所说，像是导出有一个固定的容量。因此左侧的例子中，容量因子为1。这基本上意味着总容量。没有像额外的缓冲。用于写入令牌。因此，我们可以使用一个大于1的容量因子。在右侧，你有一个1.5的例子。这意味着现在每个专家大约有三个槽位可以处理三个令牌。
 - en: And so that prevents token dropping because we have more capacity。but the issue
     is that this means higher， you know。this means more expensive communication across
     devices。Yeah， okay， so does it。Yeah， go ahead。But yeah。So yeah。So one thing that
     we also experimented with was this method called no token Left behind。
+  id: totrans-42
   prefs: []
   type: TYPE_NORMAL
+  zh: 因此，这可以防止令牌丢弃，因为我们有更多的容量。但问题是，这意味着更高的，嗯。这意味着设备之间的通信成本更高。是的，好吧，这样可以。是的，请继续。但是是的。因此，我们还实验了一个叫做“没有令牌被落下”的方法。
 - en: And the idea was the following。So since we have to have like， you know。a fixed
     batch size for each expert and there can be token dropping。We kind of we're thinking
     that。hey， yeah， having tokens dropped there like you know having some tokens。not
     having any computationnot applied to it is probably hurting the model performance。
+  id: totrans-43
   prefs: []
   type: TYPE_NORMAL
+  zh: 这个想法如下。由于我们必须为每个专家设定一个固定的批量大小，并且可能会丢弃令牌。我们在想，嘿，丢弃令牌就像有一些令牌没有任何计算应用于它，这可能会损害模型性能。
 - en: So what if we do a multistage routing procedure。So first。you do the normal routing
     where it's like you send each token to its highest probability expert。But then
     any drop tokens， you then send to their second。Highest probability expert and
     so forth and so on， where you can basically repeat this process to guarantee that
     no tokens are being dropped。
+  id: totrans-44
   prefs: []
   type: TYPE_NORMAL
+  zh: 那么如果我们进行多阶段路由程序呢？首先，你进行正常的路由，即将每个令牌发送到其概率最高的专家。但对于任何丢弃的令牌，你再发送给它们的第二高概率专家，依此类推，你可以基本上重复这个过程，以保证没有令牌被丢弃。
 - en: Interestingly， actually， this approach didn't empirically improve model performance
     if anything had actually kind of hurt it。And we thought that was actually very
     interesting。And I think the intuition is that， you know。once the model learns，
     it wants to send a token to one expert。like it really wants to have that computation
     applied to it and just applying some other computation doesn't you know have at
     all the same property along with it actually maybe being potentially detrimental。
+  id: totrans-45
   prefs: []
   type: TYPE_NORMAL
+  zh: 有趣的是，实际上，这种方法在实证上并没有提高模型性能，反而有些损害了它。我们觉得这实际上非常有趣。我认为直觉是，一旦模型学习了，它想把一个令牌发送到一个专家。它真的想将该计算应用于它，而仅仅应用其他计算并没有完全具备相同的特性，实际上可能是有害的。
 - en: So yeah， we thought that was pretty interesting as we were very optimistic this
     would potentially you know get improved performance。but it ended up not really
     making a difference and we found this quite surprising。We have a question from。嗯。I
     think about actually kind of like address and literally the last point that you
     brought up I think when I think about like a mixture of experts usually like they
     specialize in like different things right so I think it's like。
+  id: totrans-46
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我们觉得这很有趣，因为我们非常乐观这可能会提高性能。但结果并没有真正产生差异，这让我们感到惊讶。我们有一个问题来自。嗯。我觉得这个问题确实涉及到你刚才提到的最后一点。当我考虑混合专家时，通常它们会专注于不同的事情，所以我认为这就像是。
 - en: Just like a lot， like I was just wondering。Like if you send it to like the second
     best or whatever。like what if like all your tokens would be particularly good
     for like one expert and then you only like process。let's say like 20% of your
@@ -323,8 +425,10 @@
     Yeah。so yeah， even if you're dropping a lot of tokens， it's not beneficial to
     be sending them to the second third or fourth best thing and one actually interesting
     property that we。
+  id: totrans-47
   prefs: []
   type: TYPE_NORMAL
+  zh: 就像很多情况一样，我只是想知道。如果你把它发送给第二好的专家或者其他的。如果所有的令牌都特别适合一个专家，而你只处理，比如说20%的令牌。这样比重新路由到其他地方要好得多。是的，即使你丢弃了很多令牌，把它们发送到第二、第三或第四个最佳选择也没有好处。而且我们发现的一个有趣特性是。
 - en: you know noticed about these models is they're surprisingly robust to token
     dropping。especially during fine tuning。So yeah， so in the standard paradigm。what
     we'll do is we'll pretrain this thing， we'll have some load balancing loss。which
@@ -339,15 +443,19 @@
     are being dropped that actually performs much better than you know having all
     the tokens balance but doesn't a load balancing loss encourage basically all the
     experts to learn very similar weights and then just randomly assign a tokens。
+  id: totrans-48
   prefs: []
   type: TYPE_NORMAL
+  zh: 你知道我注意到这些模型令人惊讶地对令牌丢失非常鲁棒。尤其是在微调期间。所以是的，在标准范式中，我们会先预训练这个东西，我们会有一些负载均衡损失，这使得令牌实际上相当均衡。但在微调期间，我们真的想在一个特定任务上进行微调，我们实际上研究了这个确切的问题，我们在研究是否在微调期间拥有负载均衡损失是否有帮助，如果你有负载均衡损失，是的，这种方式确实鼓励我们为特定任务尝试使用所有专家，而不是关闭它，而是肯定会有一些先前的专业化，实际上最好就是关闭辅助损失，即使是60%到70%的令牌被丢弃，实际上表现得比所有令牌均衡要好得多，但负载均衡损失难道不鼓励所有专家学习非常相似的权重，然后随机分配令牌吗？
 - en: Because then it doesn't matter to which expert stuff is being sent to。So when
     we use the load bouncing loss like the routing mechanism is definitely learned。so
     the model definitely is encouraged to you know choose an expert that it wants
     to send it to for good right but like if all the experts learn the same weights。then
     the router learns basically oh， it doesn' matter where to send it to。
+  id: totrans-49
   prefs: []
   type: TYPE_NORMAL
+  zh: 因为那样一来，发送到哪个专家就无所谓了。所以当我们使用负载均衡损失时，路由机制肯定是学习到的。因此，模型确实被鼓励去选择一个它想要发送的专家，这是正确的，但如果所有专家都学习相同的权重，那么路由器基本上会学习到，哦，发送到哪里都无所谓。
 - en: So if you encourage load balancing， you encourage。Technically that like you
     want any loss to fit of any expert。right？I mean， that's maybe the extreme behavior。if
     you have a very high sort of load balancing less coefficient。But in practice that
@@ -360,51 +468,65 @@
     experts where they have different weights such that it's like you know definitely
     expect certain tokens decent sent to certain experts but on the other hand still
     be recently balanced so that the models are officially run on like modern hardware。
+  id: totrans-50
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以如果你鼓励负载均衡，你就是在鼓励。技术上来说，就像你想让任何专家的损失都适配，对吧？我的意思是，这可能是极端行为。如果你有一个非常高的负载均衡系数。但实际上这个系数是可以调节的，我们吸收这些值以获得足够智能的钢铁贷款，比如说有意义的路由。是的，因为这就像是在交叉熵损失和负载均衡损失之间的平衡，一方面是的，你肯定想鼓励模型保持平衡，另一方面你也想要良好的经验性能，是的，模型能够肯定地在一方面学习和专门化专家，使得它们有不同的权重，这样你就能确定某些令牌会发送到特定的专家，但另一方面仍然保持最近的平衡，以便模型能够在现代硬件上高效运行。
 - en: Excycl。We also have a question from the classroom。So the question that I want
     to ask is it seems to me like this is a very experimental talk we're talking about
     floating point precision we're talking about different approaches and currently
     work well and whenever were dealing with a group clients there's a question of
     what is the research question and I feel like I miss that so what are we trying
     to answer with all these experiments。
+  id: totrans-51
   prefs: []
   type: TYPE_NORMAL
+  zh: Excycl。我们教室里也有一个问题。所以我想问的问题是，似乎这是一个非常实验性的讨论，我们在讨论浮点精度，讨论不同的方法，而这些方法目前表现良好，每当我们处理一组客户时，总会有一个研究问题，我觉得我错过了，所以我们试图通过这些实验回答什么？
 - en: Yeah， I think I think the high level research question is like you know。can
     we you know create models that are you know， like doing adaptive computation from
     the standpoint of like。you know can we try to make models more simulate the dynamics
     that we think models should you know most naturally use。which is different inputs
     have different amounts of computation applied have different weights applied to
     them you know and basically all of this。
+  id: totrans-52
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，我认为高层次的研究问题是，你知道的。我们能否创建一些模型，从自适应计算的角度出发，你知道的，我们能否尝试让模型更好地模拟我们认为模型应该自然使用的动态，也就是不同的输入应用不同数量的计算，赋予它们不同的权重，基本上都是这样。
 - en: basically we're trying to research and like figure out how can we create like
     a new framework for these models to be trained as opposed to their dense counterparts
     that you know for every input are always having the same exact computation applied
     so that's interesting because when you say the same exact computation applied
     one might imagine that。
+  id: totrans-53
   prefs: []
   type: TYPE_NORMAL
+  zh: 基本上，我们试图研究并找出如何为这些模型创建一个新的框架，以便训练，而不是像稠密模型那样，对于每个输入始终应用相同的计算，这很有趣，因为当你说应用相同的计算时，人们可能会想象。
 - en: Like to me the immediate thing is about how long to deliberate about something
     what I mean by that is if we want to have variable length computation you could
     imagine that I could have a short amount of computation or it could have much
     longer computation。
+  id: totrans-54
   prefs: []
   type: TYPE_NORMAL
+  zh: 对我来说，立即想到的是花多长时间来考虑某件事。我所说的意思是，如果我们想进行可变长度计算，可以想象我可以进行短时间的计算，也可以进行更长时间的计算。
 - en: but this idea of like why then do we instead consider the dimension of different
     computation I mean assuming of course that these experts do indeed need to learn
     different things which I think you'll get to in yeah。So， why do we immediately
     jump to thinking about specialized experts as opposed to thinking about variable
     length computation？
+  id: totrans-55
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是这个想法是，为什么我们不考虑不同计算的维度，我是说当然假设这些专家确实需要学习不同的东西，我想你会在后面提到。那么，为什么我们立即想到专门的专家，而不是思考可变长度计算呢？
 - en: So yeah， so this is actually， we actually go into some variable length computation
     stuff later in the talk。and I feel like they're both actually just important axes
     that should both be pushed on。I think I guess yeah， I guess it's kind of， you
     know。I guess what I'm not freezing my question but I'm trying to understand is
     yourre thinking about why did you decide to tack this one first。
+  id: totrans-56
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以是的，实际上我们稍后会在演讲中深入讨论一些可变长度计算的内容。我觉得这两者都是重要的方向，应该同时推进。我想，是的，我想这有点像，你知道的。我想我并不是要冻结我的问题，而是想理解你为什么决定首先处理这个。
 - en: I want to understand why your team chose to go this direction first。Yeah， absolutely。so
     I think that one empirically， it seems that sparsity has led to better empirical
     results in the field of deep learning than adaptive computation so far。And I think
@@ -415,15 +537,19 @@
     and typically starting from something that works well is better than necessarily
     like you know you know trying something that's not necessarily as proven out and
     then trying to like get it to work really well。
+  id: totrans-57
   prefs: []
   type: TYPE_NORMAL
+  zh: 我想了解为什么你的团队首先选择这个方向。是的，绝对如此。所以我认为，从经验上看，稀疏性在深度学习领域所带来的结果比自适应计算要好。我认为我们使用这些东西的方式与我们现代硬件的映射非常好，这也是非常有前景的。我认为我们看待这个问题的方式是，稀疏性是朝着更有趣和更通用的自适应计算迈出的第一步，因为我认为这些东西是复杂的，通常从一些运作良好的东西开始要比尝试一些不太成熟的东西然后再让它运作得很好要好。
 - en: So I think we're kind of starting from sparsity， which like nu Shaser and others
     got to work really well in the context of LSTMs we were kind of interested in
     let's port some of this to transformers let's get it working really well and then
     that's slowly start expanding towards a lot of the other natural questions that
     you mentioned whereas like okay whereas instead of different weights per core。
+  id: totrans-58
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我认为我们大概是从稀疏性开始的，像nu Shaser和其他人在LSTM背景下取得了很好的效果。我们对将一些东西移植到变压器上很感兴趣，希望让它们运作良好，然后慢慢开始扩展到你提到的其他自然问题，比如，好的，而不是每个核心有不同的权重。
 - en: let's also maybe have different computation per core and all of this that's
     I guess how we were kind of building the natural build up in progression of。Our
     research got it cool， thank you yeah。Whatho do you think Errwin， anything else
@@ -431,64 +557,84 @@
     as。You know。related but separate things。 So， you know especially more like different
     parameters for each example and adaptive computation might be more different amount
     of floods。
+  id: totrans-59
   prefs: []
   type: TYPE_NORMAL
+  zh: 让我们也许每个核心都有不同的计算，这就是我想我们如何建立自然的进展。我们的研究很好，感谢你。你觉得呢，Errwin，还有什么要补充的吗？嗯，是的。我觉得我有点把自适应计算和稀疏性视为。您知道，相关但又是分开的东西。因此，您知道，特别是每个示例不同参数，自适应计算可能是不同数量的流。
 - en: and we have some of that with the talking and dropping， but that's kind of。No。that's
     not the domain。Theomamain motivation， definitely， as Barrett mentioned。I would
     say， you。no one really has figured out adaptive computation yet。For deep learning。And
     what one reason is because we have these。You know， accelerators， right， expect，
     expect like。
+  id: totrans-60
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们有一些与谈话和丢弃相关的内容，但那种。不是的。那不是领域。主要动机，肯定，如巴雷特所提到的。我想说，没有人真正弄清楚深度学习中的自适应计算。而其中一个原因是因为我们有这些。您知道，加速器，对吧，期望，期望像。
 - en: Sort of no。We need to work with like batch like data parallelism， right。And
     all of our accelerators in our frameworks use this SPMD paradigm where we're kind
     of supposed to apply the same computation to。Two examples。And so if you look at
     the literature you have works like universal transformers。where they replace the
     fit forward in the transformer bay。
+  id: totrans-61
   prefs: []
   type: TYPE_NORMAL
+  zh: 不是的。我们需要处理批量数据并行性，对吧？我们所有的加速器和框架都使用这种 SPMD 范式，我们应该将相同的计算应用于两个示例。因此，如果你查看文献，你会看到像普适变压器这样的工作，替换了变压器中的前向适应。
 - en: Just a recurrent weight and so it's kind of like an LSTM on each token and the
     LSTM can stop at different time and space on some。Criteria， but the way these
     things are implemented is just through masking。Because it needs to be implemented
     in the SPMD programming style。And so definitely spaity was kind of like easier
     to get to work first。 And also。
+  id: totrans-62
   prefs: []
   type: TYPE_NORMAL
+  zh: 仅仅是一个递归权重，所以它在每个标记上有点像 LSTM，而 LSTM 可以在某些标准上停止于不同的时间和空间，但这些东西的实现方式仅仅是通过遮罩。因为它需要以
+    SPMD 编程风格来实现。因此，确实，spaity 最开始的工作会更容易。而且还有。
 - en: there were some prior results with LSTM so。In terms of like the first question，
     you know。sort of what store research question here is just like， oh， can we design
     more efficient models？
+  id: totrans-63
   prefs: []
   type: TYPE_NORMAL
+  zh: 之前在 LSTM 上有一些结果。因此，关于第一个问题，你知道，类似的研究问题就是，哦，我们能否设计出更高效的模型？
 - en: And spaity is this new axis that hasn't been explored that much。Yeah， I think
     that。You know。I'm happy with just that being the research question。Great， okay，
     yeah， so next slide。Yep。Oops。Yeah。again， so kind of putting it all together。So
     the switch transformer layer selects an expert like just the top expert and then
     incorporates a bunch of the general sparse model improvements to。you know， allow
     it to fine tune better。 allowow it to， you know。Be more regularized。
+  id: totrans-64
   prefs: []
   type: TYPE_NORMAL
+  zh: 而 spaity 是一个尚未得到太多探索的新维度。是的，我认为，您知道，我对这作为研究问题很满意。很好，好的，接下来是下一张幻灯片。是的。哎呀。是的。再一次，把所有内容放在一起。因此，开关变压器层选择一个专家，就只是顶尖的专家，然后结合一堆一般稀疏模型的改进，以便，您知道，让它更好地微调，允许它，您知道，更加规则化。
 - en: allow it to you know， be trained with lower precision formats and a lot of like
     technical details to just get them training and working well。Yeah so one thing
     that we also wanted to do was a comparison between like top one and top two routing
     since top two routing was kind of the you know most popular technique and so here
     we can see we have two different dense models trained at different sizes and we're
     going to be looking at like the the pretrain like negative log perplexity so。
+  id: totrans-65
   prefs: []
   type: TYPE_NORMAL
+  zh: 让它可以用更低精度的格式进行训练，还有很多技术细节需要处理，以使它们能够顺利训练和工作。因此，我们还希望进行一次比较，比较顶级一和顶级二路由，因为顶级二路由是最流行的技术，因此在这里我们可以看到，我们有两个不同的稠密模型以不同的大小进行训练，我们将查看预训练的负对数困惑度。
 - en: Yeah， the bigger the number， the better。So next slide。So and what we're going
     to be doing is we're going to be studying them at different capacity factors。so
     a capacity factor of 2。0 basically means that there' is enough buffer for two
     tokens to be sent to every single expert。And we're going to be comparing like
     top one versus top two routing。
+  id: totrans-66
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，数字越大越好。接下来的幻灯片中，我们将研究不同容量因子的模型。容量因子为2.0基本上意味着每个专家可以接收两个标记的缓冲区。我们将比较如**Top-1**与**Top-2**路由。
 - en: And also comparing their speeds along with their like time to get some like
     threshold quality。Okay。yeah， so here we can see in the capacity factor 2。0 case。That
     the MOE models outperform switch transformformer。which makes a lot of sense like
     since switch transformformer is only you know sending like a top one token to
     each expert。
+  id: totrans-67
   prefs: []
   type: TYPE_NORMAL
+  zh: 同时比较它们的速度以及达到某个阈值质量的时间。好的，没错，在容量因子为2.0的情况下，我们可以看到**MOE**模型优于**Switch Transformer**，这非常合理，因为**Switch
+    Transformer**仅向每个专家发送一个标记。
 - en: the mixture of expert is sending you know two tokens so that makes sense that
     this extra buffer will be like disproportionately beneficial for the mixture of
     expert models。And so we noticed that and next slide or yeah， next。Now when we
@@ -498,75 +644,99 @@
     tokens to the correct experts it also incurs more compute costs and also incurs
     like a lot of memory overhead so if you can get this lower it's it's usually like
     a very very good thing。
+  id: totrans-68
   prefs: []
   type: TYPE_NORMAL
+  zh: 专家混合模型发送两个标记，这使得这个额外的缓冲对专家混合模型特别有利。因此我们注意到了这一点，下一张幻灯片，或者说下一个。现在，当我们降低容量因子时，**Top-1**路由的真正有趣的部分就出现了。高容量因子有许多缺点，其中之一是它确实会增加将标记发送到正确专家的通信成本，同时也会增加计算成本和大量内存开销，因此如果可以降低容量因子，通常是非常有利的。
 - en: And so what we see here is that switch transformformer actually outperforms
     mixture of experts when you have like a lower capacity factor and we can see that
     the time to quality threshold we you know yeah we get there much quicker and so
     even across the 2。
+  id: totrans-69
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我们在这里看到的是，当容量因子较低时，**Switch Transformer**实际上优于专家混合模型。我们可以看到，在质量达到阈值的时间上，我们到达得更快，因此即使在两个模型之间也是如此。
 - en: 0 and the 1。25 capacity factors like the kind of preto optimal thing we saw
     on our setup is to use switch transformer at a lower capacity factor just due
     to the fact that while the quality is a little bit worse on a step basis。it's
     just like much faster to run so it's kind of the preto optimal decision。Next slide。
+  id: totrans-70
   prefs: []
   type: TYPE_NORMAL
+  zh: 容量因子0和1.25就像我们设置中看到的那种**Pareto最优**，在较低容量因子的情况下使用**Switch Transformer**是最优选择，因为尽管在单步的质量上稍微差一些，但运行速度更快，因此这是一个**Pareto最优**的决策。下一张幻灯片。
 - en: And we can also be seeing that like for capacity factor 1。0 again。we can see
     that this really disproportionately benefits switch transformer and is even better
     from annaparto standpoint than the 1。25 capacity factors。And interestingly， since
     you know。MOE also does like a little bit more computation， we can also just increase
     the amount of compute done elsewhere in the model。
+  id: totrans-71
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们还可以看到，在容量因子为1.0的情况下，这确实对**Switch Transformer**带来了不成比例的好处，甚至在**Annaparto**的观点上优于1.25的容量因子。有趣的是，由于**MOE**也进行了一些额外的计算，我们也可以在模型的其他地方增加计算量。
 - en: and we can see that that's like a much more efficient allocation of compute。So
     yeah。overall our takeaway is that yeah lower capacity factors using top one routing
     is more preto efficient than。you know， using like top two routing at higher capacity
     factors。![](img/cfb06f02d43700aca0402fcc8c4854ad_18.png)
+  id: totrans-72
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们可以看到，这是一种更高效的计算分配。所以，总体而言，我们的结论是，使用**Top-1**路由的较低容量因子比在较高容量因子下使用**Top-2**路由更加**Pareto高效**。![](img/cfb06f02d43700aca0402fcc8c4854ad_18.png)
 - en: Next slide。Oran， you can take it over。Okay， so next we look at how switch transformer
     scales。As a function of the number of exports in the switch layers。![](img/cfb06f02d43700aca0402fcc8c4854ad_20.png)
+  id: totrans-73
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一张幻灯片，Oran，你可以接手了。好的，接下来我们来看一下**Switch Transformer**如何随着开关层中专家数量的增加而扩展。![](img/cfb06f02d43700aca0402fcc8c4854ad_20.png)
 - en: And so on the right side here you see a plot that shows complexity。Vus training
     steps for different switch architectures ranging from Tfi basease。which is basically
     no expert or a single expert up to 128 experts。And so you see that as we increase
     the number of experts。
+  id: totrans-74
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以在右侧，你会看到一个展示复杂性的图表。Vus训练步骤针对不同的切换架构，范围从Tfi基线，也就是基本上没有专家或单个专家到128个专家。你会看到随着我们增加专家的数量。
 - en: which also increases number of parameters of spa parameters。You get sort of
     speedups， you know。you get increasing speedups of the dense baseline and all like
     sort of dimition returns。To multiplying to increasing the number of experts as
     well。So the previous figure was looking at complexityity versus string steps。
+  id: totrans-75
   prefs: []
   type: TYPE_NORMAL
+  zh: 也增加了稀疏参数的数量，你会得到某种速度提升，你知道。你会得到稠密基线的速度提升和所有那种边际收益递减。通过增加专家的数量，之前的图表是查看复杂性与强度步骤的关系。
 - en: Here we look at complexityplexity versus strength time。So that includes， you
     know。All the， you know。additional communication costs when you have more experts
     on。You know， comparing。comparing to the dance baseline。And so this is for switch
     base or then T5 bays。and we observe x up to seven x Philipups over our T5 bays。嗯。And
     so， you know， just to。
+  id: totrans-76
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这里我们查看复杂性与强度时间的关系。这包括，你知道，拥有更多专家时的额外通信成本。你知道，与稠密基线进行比较。因此这是针对基于切换的或T5基线的，我们观察到相对于我们的T5基线，有高达7倍的提升。嗯。所以，你知道，仅仅是。
 - en: Maybe contextualize these， these numbers like。You know。7 x speeds into planning
     are pretty hard to obtain。And so I think this is one of the， you know。one of the
     result that。You know， can spark a lot of interest in sports models。even if it's
     only for preing for now， like just having that number is like， you know。
+  id: totrans-77
   prefs: []
   type: TYPE_NORMAL
+  zh: 也许需要将这些数字进行背景化。你知道，7倍的速度在规划中是很难获得的。因此，我认为这是其中之一，你知道，这是一个结果，可以激发对体育模型的极大兴趣。即使现在只是为了预训练，拥有那个数字就像，你知道。
 - en: maybe it does a。There's a significant。U。Does something significant that can
     be obtained here。Okay。so sports scaling laws。So here well look at。So it philosophy
     versus。Spaous mineral parameterss。which are increased by increasing the number
     of experts。And so similarly to the sort of neural scaling blood paper。
+  id: totrans-78
   prefs: []
   type: TYPE_NORMAL
+  zh: 也许它确实有。这里可以获得显著的东西。好的，所以体育缩放法则。因此在这里我们会看看。所以它的哲学与。稀疏矿物参数，通过增加专家的数量来提高。因此，与那种神经缩放法则的论文相似。
 - en: We observe that as you increase the parameterss。Which the sparse parameterss
     and keep the fluxps fixed。you get diminishing like consistent gains， but diminishing
     gains。Okay。so now we're going to compare export parallelism and model parallel。So
     we introduced sparsity or export parallelism as a new dimension to scale models。
     But， of course。
+  id: totrans-79
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们观察到，当你增加参数时，即稀疏参数，并保持flops固定时，你会得到持续的收益，但收益逐渐递减。好的，所以现在我们要比较专家并行性和模型并行性。因此，我们引入稀疏性或专家并行性作为扩展模型的新维度。但是，当然。
 - en: there's the other one for dense model， which is simply model parallelism where
     you know。model weights are partition across calls once they are。Above the the
     maximum size that you can feed on a single core。No。All right， so。Yeah。advertising
@@ -579,226 +749,301 @@
     parameters by scaling through sparssity and so we can see that you know even compared
     to like you know a dense model that's been scaled up through model parallelism
     that' sparssity is still at the scale a more effective way to scale up the model。
+  id: totrans-80
   prefs: []
   type: TYPE_NORMAL
+  zh: 还有另一个针对稠密模型的，它简单地是模型并行性，你知道。模型权重在调用上进行分区，一旦它们超过单个核心可以处理的最大大小。好的，所以。是的。左边的广告是优先展示的。是的，所以本质上我们所做的是比较基于切换的模型与稠密空间，并且我们还与使用模型并行的更大稠密模型进行比较，我们可以看到，你知道，基本上当我们想要扩大模型的规模时，我们有两个方向可以选择，我们可以通过模型并行性增加flops的数量，或者通过稀疏性增加参数的数量，因此我们可以看到，即使与通过模型并行性扩大的稠密模型相比，稀疏性仍然是在扩大模型规模时更有效的方法。
 - en: By， you know， still getting 2。5 x speed ups over this larger dense model that
     was using model parallelism。Cool， so slide a bit。Basically， here T5 large is the
     dense model that uses other part of。Yeah。all right， go ahead。Okay。Yeah， and so
     one thing that we also wanted to look at is like you know。are these expert models
     effective if you have like you know a really small amount of compute or just a
     small amount of experts。
+  id: totrans-81
   prefs: []
   type: TYPE_NORMAL
+  zh: 通过模型并行ism，依然能比这个更大的密集模型实现2.5倍的速度提升。酷，所以稍微调整一下幻灯片。基本上，这里T5大型是使用其他部分的密集模型。好的，继续。好的。是的，还有一件事我们也想看看的是，如果你拥有很少的计算资源或者只有少量专家，这些专家模型是否有效。
 - en: So typically when we're designing these models， like we have one expert per
     core。but if you don't have like a large cluster run these things on let's say
     you just have like a GPU with two cores or something like is having two experts
     more effective than just like a dense model And the answer is yes。
+  id: totrans-82
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以通常在设计这些模型时，我们每个核心都有一个专家。但如果你没有一个大型集群来运行这些东西，比如说你只有一个有两个核心的GPU，那么有两个专家是否比一个密集模型更有效，答案是肯定的。
 - en: so we can see even pretty good scaling properties， even with like a tiny amount
     of experts。which is very promising for these models to be used even in like much
     lower compute regimes。![](img/cfb06f02d43700aca0402fcc8c4854ad_22.png)
+  id: totrans-83
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以即使只有很少的专家，我们也可以看到相当好的扩展属性。这对这些模型在较低计算环境中使用非常有前景。![](img/cfb06f02d43700aca0402fcc8c4854ad_22.png)
 - en: Next slide。Or you want to go ahead。Okay， so yeah， so。Yes， so look at。You know。What
     things look like when we use different types of parm。namely expel parm to add
     exp to model parallelm to sh model ways。Across calls and also data parallelism，
     which is sort of the dominant paradigm in at the moment。
+  id: totrans-84
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一张幻灯片。或者你想继续。好的，是的，所以。是的，所以看看。你知道。当我们使用不同类型的参数时，它们的表现是什么样的。即通过参数将exp添加到模型并进行模型并行，以实现数据并行，这在目前是主流范式。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_24.png)'
+  id: totrans-85
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_24.png)'
 - en: And so。You know， I guess， you know， in the previous slides， we mostly talked
     about X parallelism。but of course， you know， dense models and large dance models
     use model parallelm。So G3 and other large models， What they do is that they will
     simply she model weights across different core。Yeah， we have a question。Oh yeah，
     I just wanted to know because I think there was like。
+  id: totrans-86
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以，你知道，我想，在之前的幻灯片中，我们主要谈论了X并行，但当然，密集模型和大型密集模型使用模型并行。所以G3和其他大型模型，他们所做的就是在不同的核心之间共享模型权重。是的，我们有一个问题。哦，是的，我只是想知道，因为我觉得有。
 - en: I don't know if you go got under rest laterator， but I think somewhere in a
     paper。it' said that the more experts you have， the more sample efficient it gets。And
     I was just like hoping that you could give us some intuition about that because
     I。Don't understand why that will be the case。
+  id: totrans-87
   prefs: []
   type: TYPE_NORMAL
+  zh: 我不知道你是否在其他地方看到了相关的研究，但我想在某篇论文中提到，专家越多，样本效率越高。我只是希望你能给我们一些关于这个的直觉，因为我。不了解为什么会这样。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_26.png)'
+  id: totrans-88
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_26.png)'
 - en: So I guess， yeah， maybe Er oh yeah， so I guess like， you know。there's all of
     this work on larger models are more sample efficient。![](img/cfb06f02d43700aca0402fcc8c4854ad_28.png)
+  id: totrans-89
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我想，是的，也许嗯，是的，所以我想，比如说。关于更大模型的所有这些工作都是更有效的。![](img/cfb06f02d43700aca0402fcc8c4854ad_28.png)
 - en: And larger in the context of these scaling law works means like more parameters
     and more flops as you increase the number of experts there's more parameters。but
     not more flops， but the model is still like you know larger in like you know a
     similar sense。
+  id: totrans-90
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这些扩展法则的上下文中，更大意味着更多参数和更多计算量。随着专家数量的增加，参数增多，但计算量不变，但模型在某种意义上仍然更大。
 - en: so I guess like building on the intuition that larger models are more sample
     efficient in my mind it's not necessarily that's surprising that these models
     with more experts that have more parameters are more sample efficient。I guess
     that's my kind of high level intuition for it。Yeah， I would say that's kind of
     expected that。
+  id: totrans-91
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我想基于更大模型在样本效率上更高的直觉，实际上并不令人惊讶的是，这些拥有更多专家和更多参数的模型样本效率更高。我想这就是我的高层次直觉。是的，我会说这是可以预期的。
 - en: you know， more exports leads to better sample efficiency。Especially if you look
     at training setup。right in a training tab。Okay cool。So where are we？Yeah， so yeah。So
     okay。So we look at how model weights are speed of a cost for different scenarios。So
     data parallelism is the first one。 So that's kind of the， the typical setup that
     the uses。
+  id: totrans-92
   prefs: []
   type: TYPE_NORMAL
+  zh: 你知道，更多的专家可以提高样本效率。特别是如果你看看训练设置。对，在训练表中。好的，很好。那么我们在哪里呢？是的，所以是的。好的。所以我们看看模型权重在不同场景下的速度。这是第一个数据并行性。这是使用的典型设置。
 - en: Especially for nuts solar large networks which don't require mother parisism。And
     so let me， yeah。let me explain how。Yeah， I'll just go to the final。Figure and
     now explain how to look at this figure。Okay， so we have 16 processes。which are
     organized in a 4 by4 mesh， right， So each dotted line。
+  id: totrans-93
   prefs: []
   type: TYPE_NORMAL
+  zh: 尤其是对于不需要母体并行的大的太阳网络。所以让我，嗯，让我解释一下。好的，我就直接讲到最后的图，并解释一下如何看这个图。好的，我们有16个进程，它们组织成一个4乘4的网格，对吧？所以每一条虚线。
 - en: each4 by four dotted line here represents a different core。In the first row。studies
     how the model weights are speed over callss and the second row。Ituss how data。so
     literally examples and tokens are split over calls。And yeah， and then the final
     thing to。That's required to understand this figure is that each。嗯。Yeah。
+  id: totrans-94
   prefs: []
   type: TYPE_NORMAL
+  zh: 每个4乘4的虚线表示不同的核心。在第一行，研究模型权重在核心上的分布，而第二行，它展示了数据。因此，字面上的例子和标记在核心之间被拆分。然后，理解这个图的最后一件事是每个。嗯。是的。
 - en: each color of the shaded squares here identifies a unique weight matrix。Okay。so
     let's start with data parallelism。So for data parallelism。the same model weights
     are replicated across all core。And the data is simply partition of our cause。and
     so that's what this corresponds to。You know， if you like using the the description
     of the caption。
+  id: totrans-95
   prefs: []
   type: TYPE_NORMAL
+  zh: 这里每种颜色的阴影方块标识一个唯一的权重矩阵。好的，所以我们从数据并行性开始。对于数据并行性，相同的模型权重在所有核心之间被复制。数据仅仅是在我们的核心之间被划分，所以这对应于。你知道的，如果你喜欢使用图注的描述。
 - en: the explanation of the caption that just gave。So next we have model parallelism。That's
     kind of just like a theoretical example because in practice。people always use
     model parallelism in conjunction with data parallelism。But so if you were to do
     only model parallelm now you would have a single model weight that is partitioned
     of all course and your data would just be replicated。
+  id: totrans-96
   prefs: []
   type: TYPE_NORMAL
+  zh: 刚才给出的图注说明。所以接下来我们有模型并行性。这有点像一个理论示例，因为在实践中，人们总是将模型并行性与数据并行性结合使用。但是如果你只做模型并行，现在你将有一个被划分到所有核心的单一模型权重，而你的数据将只是被复制。
 - en: Of all causing said。So now we have modeling data parallelism。and that's kind
     of the typical scenario for large dense networks。So in that case。model weights
     are partition among a subset of the calls。the subset of calls that process different
     batches of data。And so in that example here we have。
+  id: totrans-97
   prefs: []
   type: TYPE_NORMAL
+  zh: 所有核心说。现在我们有模型和数据并行性。这是大型密集网络的典型场景。因此在这种情况下，模型权重在一部分核心之间被划分，这部分核心处理不同的数据批次。在这个例子中，我们有。
 - en: You know， sort of four， so the first sub square here means that the model weights
     are partitioned across four four calls。And。And this is replicated。Sort of four
     times for the data parallel dimension。On the data side for model and data parallelism。Yeah，
     the data here。Is replicated across model parallel core and partitioned across
     data parallel core。
+  id: totrans-98
   prefs: []
   type: TYPE_NORMAL
+  zh: 你知道，四个左右，所以这里的第一个子方块表示模型权重被划分到四个核心。而且这在数据并行维度上被复制，大约四次。在模型和数据并行的情况下，数据在模型并行核心之间被复制，并在数据并行核心之间被划分。
 - en: So next we have exp and data parallelism。So in that scenario that's kind of
     similar to data parallelism。but now each car will hold a different model weight，
     which is illustrate by the different colors。By。And for the data side， the data
     is simply replicated sorry。the data is positioneded across all calls， just like
     in the data parallel scenario。And so finally。
+  id: totrans-99
   prefs: []
   type: TYPE_NORMAL
+  zh: 接下来我们有专家和数据并行性。因此在那个场景中，这有点类似于数据并行性，但现在每个核心将持有不同的模型权重，这通过不同的颜色来表示。并且在数据方面，数据只是简单地被复制，对不起。数据是在所有核心之间被定位的，就像在数据并行场景中一样。最后。
 - en: we have the right most column， which is。I guess yeah。that's the setup use in
     the switch transformer paper for the larger models。And so。here for the model。Partitioning
     each expert is partitioned across multiple calls。so in that example， we have four
     experts。Each partition press four calls。
+  id: totrans-100
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们有最右侧的列，我想是的。那是用于更大模型的开关变换器论文中的设置。所以在这里，对于模型，每个专家被划分到多个核心中。因此在那个例子中，我们有四个专家，每个专家对应四个核心。
 - en: And the data is replicated across multiple parallel calls and partitioned across
     data parallel calls。So that that's a little bit complex to understand orally。but
     the switch transformer paper has a nice the same figure with a nice caption to
     explain it。And yeah， maybe we can。No Barret， we can add something quickly about
     how this is implemented in practice。
+  id: totrans-101
   prefs: []
   type: TYPE_NORMAL
+  zh: 数据在多个并行调用之间复制，并在数据并行调用中进行分区。因此，这有点复杂，口头上理解起来比较困难。但Switch Transformer论文中有一张很好的图，并配有说明来解释这一点。是的，也许我们可以。没有Barret，我们可以快速添加一些关于这个在实践中如何实现的内容。
 - en: So。There's this paper called mesh Transformer， which kind of extends。batchache
     or data parallel to more general purpose SPMD style programming。And so different
     labs have different you know frameworks。but this paper kind of lays the foundation
     for general SPMD distributed computing。
+  id: totrans-102
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以。有一篇名为Mesh Transformer的论文，扩展了批处理或数据并行到更通用的SPMD样式编程。因此，不同的实验室有不同的框架，但这篇论文为通用的SPMD分布式计算奠定了基础。
 - en: which is required for training large scale models。And so under the mesh abstraction。basically
     we have a mesh of processes。ch and so that mesh has dimensions， name dimensions。and
     these name dimensions specify how the tensile dimensions will be partitioned or
     replicated across the mesh dimensions。And so just that simple abstraction sort
     of supports， you know they parallelism。
+  id: totrans-103
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是训练大规模模型所必需的。在网格抽象下，基本上我们有一个过程的网格。ch，这个网格有维度，命名维度。这些命名维度指定了张量维度如何在网格维度之间进行分区或复制。因此，这种简单的抽象支持了你知道的并行性。
 - en: also model parallelism and especially export parallelism at once and so you
     know I invite whoever is interested to also check that paper that because that's
     kind of。![](img/cfb06f02d43700aca0402fcc8c4854ad_30.png)
+  id: totrans-104
   prefs: []
   type: TYPE_NORMAL
+  zh: 还包括模型并行性，尤其是同时进行的导出并行性，因此我邀请任何感兴趣的人查看那篇论文，因为那是有点的。![](img/cfb06f02d43700aca0402fcc8c4854ad_30.png)
 - en: You know， that kind of lays the foundation for understanding these things。All
     right。Dar want to go cool yeah， so next we are going to kind of talk about like
     how we take these parallelism strategies and like kind of combine them together
     to make like a 1。
+  id: totrans-105
   prefs: []
   type: TYPE_NORMAL
+  zh: 你知道，这为理解这些事情奠定了基础。好的，Dar想去吗？好吧，接下来我们要谈谈如何将这些并行策略结合起来，形成一个1。
 - en: 6 trillion parameter sparse model。![](img/cfb06f02d43700aca0402fcc8c4854ad_32.png)
+  id: totrans-106
   prefs: []
   type: TYPE_NORMAL
+  zh: 6万亿参数的稀疏模型。![](img/cfb06f02d43700aca0402fcc8c4854ad_32.png)
 - en: So next slide。So so yeah， so what we ended up doing in this work was we had
     we trained two different very large spae models and we compared them to the largest
     T5 model so we can see the T5 XXL。which is a dense model and it was the largest
     one trained in the T5 paper and it has around 13 billion parameters and here we
     list a lot of the model dimensions like D model DF which are just like you know
     the various sizes and shapes of the tensors and stuff。
+  id: totrans-107
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以接下来的幻灯片。是的，我们在这项工作中训练了两个不同的非常大的稀疏模型，并将它们与最大的T5模型进行比较，我们可以看到T5 XXL。这是一个稠密模型，也是T5论文中训练的最大模型，约有130亿个参数，这里列出了许多模型维度，比如D
+    model DF，这些只是张量的各种大小和形状。
 - en: the number of layers， the number of heads and importantly we also mentioned
     the negative log perplexity。At step 250 k and at 500 k and so yeah so we designed
     two sparse models to test and to test like how scaling versus sparsity versus
     scaling versus sparsity and flops work so first let me talk about switch XXL so
     that has the same amount of flops per token as T5 xxL but has 64 experts and this
     leads it to have around 400 billion parameters。
+  id: totrans-108
   prefs: []
   type: TYPE_NORMAL
+  zh: 层数、头数，重要的是我们还提到了负对数困惑度。在第250k步和第500k步，因此我们设计了两个稀疏模型来测试，测试扩展与稀疏性、扩展与稀疏性以及flops之间的关系。所以首先让我谈谈Switch
+    XXL，它在每个token上的flops数量与T5 XXL相同，但有64个专家，这使得它的参数约为4000亿。
 - en: And we can see that on a step basis， it actually performs quite well and outperforms
     the T5 xXL by like quite a good margin。Interestingly， though， the third model
     we designed SwC， which has 1。6 trillion parameters。but has significantly fewer
     flops， almost 10 less flops per token than either of the above two models。so it's
     really trading by reducing flops that have way more sparse parameters。
+  id: totrans-109
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们可以看到，在步骤基础上，它的性能相当不错，实际上超越了T5 XXL，差距相当大。有趣的是，我们设计的第三个模型SwC有1.6万亿参数，但每个token的flops明显少于以上两个模型，几乎少了10倍flops，因此通过减少flops来换取更多的稀疏参数。
 - en: And we can see on a step basis， the switch C model works well。but not as well
     as actually the higher fl model。But on like a kind of a Pareto axis where were
     looking at TPU hours on the X axis and not step。the switch C model actually outperforms
     them both by like a pretty large margin。So for pre training performance， we're
     seeing that actually just like having a lot of sparsity and less swapps is actually
     can be quite good。
+  id: totrans-110
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们可以在每个步骤中看到，switch C模型的表现很好，但实际上没有更高fl模型那么好。然而，在一个以TPU小时为X轴而不是步骤的Pareto轴上，switch
+    C模型的表现实际上超越了两者，差距相当大。因此，对于预训练性能，我们看到，拥有大量稀疏性和较少交换实际上是非常有利的。
 - en: 😊，Next slide。Yeah， and so yeah， this so again， those two sparse models are kind
     of really trying to get at this hypothesis that actually Noam Shaer had。which
     is， you know。That you know parameters are good for more knowledge reasoning and
     compute aK flops is good for intelligence and so we're going to kind of try to
     get at that by taking these different sparse models and then fine tuning them
     on different tasks。
+  id: totrans-111
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，下一页。是的，所以这两个稀疏模型实际上是在试图探讨诺姆·肖尔的假设。就是说，参数在知识推理中是有用的，而计算`aK flops`则对智能有益，因此我们将通过不同的稀疏模型来深入探讨这个问题，并在不同任务上进行微调。
 - en: some of which require more like knowledge and then others which require more
     of like reasoning。For whatever like hand w definition， we want to give that。So
     yeah， so for a fixed oh go back so yeah。so for a fixed。Oh can you go back to the
     previous slide Oh sorry Okay。so for a fixed quality on an upstream pre training
     task， yeah， do parameters independently matter？
+  id: totrans-112
   prefs: []
   type: TYPE_NORMAL
+  zh: 其中一些任务更需要知识，而其他任务则更依赖推理。对于我们想要给出的任何手动定义来说，都是如此。好的，固定一下，能不能回到上一页？抱歉，好的。对于一个固定的上游预训练任务，参数的独立性是否重要？
 - en: So we're going to look at two tasks here， one of which is super gluelu。which
     is kind of our like reasoning task and then another is like trivia QA which is
     like some knowledge task where it's like you just give it a question and you have
     an output and answer。
+  id: totrans-113
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们将关注两个任务，其中一个是super glue lu，这是一种推理任务，另一个是类似于Trivia QA的知识任务，你只需给出一个问题并得到答案。
 - en: Okay。And so here we're going to take a look at superglo quality so we can see
     on the X axis is the pre training performance and the Y axis is the superg score
     after fine tuning。And interestingly， we can see definitely that the sparse models
     definitely are for a fixed pre training perplexity。
+  id: totrans-114
   prefs: []
   type: TYPE_NORMAL
+  zh: 好的。在这里，我们将查看superglue质量，所以X轴是预训练性能，Y轴是微调后的superg分数。有趣的是，我们可以看到，稀疏模型在固定的预训练困惑度下表现得确实不错。
 - en: do worse on fine tuning。This can be especially noticed at like the upper right
     portion of the plot where the dense models are definitely fine tuning better than
     their sparse counterpoint。Next slide。Interestingly， when we study it on the more
     knowledge heavy tasks。
+  id: totrans-115
   prefs: []
   type: TYPE_NORMAL
+  zh: 微调时效果较差。这一点在图的右上部分尤为明显，那里密集模型的微调效果确实优于它们的稀疏对应模型。下一页。有趣的是，当我们在知识密集型任务上进行研究时。
 - en: the sparse model for a fixed pretraining perplexity does disproportionately
     well。so you know for a model that roughly has the same perplexity we're getting
     like really large boosts for these knowledge heavy tasks so this is pretty interesting
@@ -806,30 +1051,40 @@
     pretraining metric so these models you know can have the same exact pretraining
     metric but very different you know properties when fine tuning them on different
     tasks。
+  id: totrans-116
   prefs: []
   type: TYPE_NORMAL
+  zh: 在固定的预训练困惑度下，稀疏模型的表现出奇地好。所以对于一个大致上有相同困惑度的模型，我们在这些知识密集型任务上获得了很大的提升，这非常有趣，同时也显示了仅在预训练指标上比较的风险。这些模型在预训练指标上可能完全相同，但在微调不同任务时却有很大的差异。
 - en: Next slide。And interestingly， so yeah， all of the switch models here are just
     like， you know。various models。That have still a good amount of flos， but the red
     model is actually the 1。6 trillion parameter sparse model that has， you know very
     few flops， but a lot a lot of parameters。And we can see that as the red dot here，
     and it does actually disproportionately bad compared to other sparse models that
     also have pretty good perplexities。
+  id: totrans-117
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一页。有趣的是，这里所有的switch模型都是各种模型，它们仍然有相当数量的flops，但红色模型实际上是1.6万亿参数的稀疏模型，尽管它的flops很少，但参数却非常多。我们可以看到红点在这里，与其他同样具有良好困惑度的稀疏模型相比，它的表现确实差得很离谱。
 - en: And so yeah， it's definitely very interesting and it shows that for models during
     pre traininging that have a lot of sparsity。they definitely suffer on some of
     these more reasoning heavy metrics。but do disproportionately well for more of
     these knowledge heavy tasks。Next slide。Yeah。and so here we can see it as just
     like a huge outlier for pre training perplexity doing like just incredibly well
     on this downstream question answering task。
+  id: totrans-118
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以是的，这确实非常有趣，显示出在预训练期间具有较多稀疏性的模型，在某些需要更多推理的指标上表现不佳，但在知识密集型任务上却表现出色。下一页。是的，因此我们可以看到，它在预训练的困惑度上是一个巨大的异常值，在下游的问答任务中表现得非常出色。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_34.png)'
+  id: totrans-119
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_34.png)'
 - en: Next slide。![](img/cfb06f02d43700aca0402fcc8c4854ad_36.png)
+  id: totrans-120
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一页。![](img/cfb06f02d43700aca0402fcc8c4854ad_36.png)
 - en: Yeah， okay， so also， you know， one thing that we were going to do is just look
     at the fine tuning properties of sparse models across like a few scales and just
     see how they perform。Next slide。Yeah， and so here we try two different models
@@ -842,27 +1097,36 @@
     when scaled appropriately by scaling up both the flops and sparsity whereas you
     know the negative results you've really seen are like yeah when you just have
     a huge amount of sparsity and not too many flops。
+  id: totrans-121
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，好的，还有一件事，我们打算做的是观察稀疏模型在不同规模下的微调特性，看看它们的表现。下一页。是的，在这里我们尝试了两种不同的模型，一个是 T5 基础版，然后我们制作了一个平坦匹配的稀疏对比模型，当他们说平坦匹配时，就意味着每个
+    token 的计算量是相同的，但现在我们只使用专家，所以我们对基础版和大版都进行了这个实验，实际上我们看到几乎所有任务中，除了两个架构任务，稀疏模型的表现相当不错，这无疑是个好兆头，因此我们看到这些模型非常稳健，预训练效果良好，经过适当扩展后微调效果也不错，通过增加计算量和稀疏性，而负面结果通常是当稀疏性过大而计算量不足时。
 - en: Next slide。Yeah and one also thing we wanted to look at was the multilingual
     training so we were previously studying all of this on like English only and we
     also wanted to see how Sprsity helps in the multilingual setting because you know
     we also felt like this would be a very natural place for Sprsity to work well
     where potentially experts could specialize across languages。
+  id: totrans-122
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一页。是的，我们还想关注多语言训练，因此我们之前都是在仅限英语的情况下进行研究，我们还想看看稀疏性在多语言环境中的作用，因为我们觉得这将是稀疏性表现良好的非常自然的地方，专家可以跨语言进行专业化。
 - en: And we do see strong results， so on 91% of the languages。I think of like around
     100 languages we see over like at least a4 exped over the MT5 dense model。Next
     slide。Or you want to go ahead？No go go ahead。Okay， Yeah。so another thing we wanted
     to talk about was distillation。
+  id: totrans-123
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们确实看到了强劲的结果，因此在 91% 的语言上。我想到大约 100 种语言，我们看到超过至少 a4 的性能超越了 MT5 稠密模型。下一页。还是你想继续？不，继续。好的，是的。我们还想讨论的是蒸馏。
 - en: So one downside of these sparse models is that they'll have a lot more parameters，
     which means that。you know， if you're serving these things or something you either
     need like high throughput use cases or you need to maybe distill it back down
     until like a smaller dense model。
+  id: totrans-124
   prefs: []
   type: TYPE_NORMAL
+  zh: 这些稀疏模型的一个缺点是它们会有更多的参数，这意味着，如果你要提供这些模型，可能需要高吞吐量的用例，或者你可能需要将其蒸馏回更小的稠密模型。
 - en: So here what we do is we look at like the T5 base and switch base and we look
     at its pretraining performance。and then we go through some abllationations of
     different distillation techniques and find that like with the best techniques。we
@@ -873,73 +1137,97 @@
     you know a sparse model and distilling it back down until like its fl match dense
     model so you can get you know get rid of up to 99% of the parameters and still
     keep like around 30% of the improvements。
+  id: totrans-125
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我们在这里所做的是查看 T5 基础模型和转换基础模型，并关注它的预训练性能。然后我们进行一些不同蒸馏技术的消融实验，发现通过最佳技术，我们可以保持约
+    30% 的稀疏性质量提升，同时将其蒸馏回稠密模型。下一张幻灯片。是的，然后我们在多个尺度上进行研究，结果显示，从稠密模型到稀疏模型，再蒸馏回稠密模型时，约
+    30% 到 40% 的收益可以被保留，因此你可以去掉多达 99% 的参数，同时仍然保留大约 30% 的改进。
 - en: which is very promising。Next slide， wait， I'm sorry。Yeah。All right， sorry about
     that。can you say that last sentence again， you said that you can keep the benefit
     30% of the teachers benefit。😡，Yeah， basically so yeah， you you yeah， exactly so
     yeah， so we're looking at like， yeah。you train a sparse model and then you distill
     it back onto to a dense model。
+  id: totrans-126
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是非常有前景的。下一张幻灯片，等等，抱歉。好的，抱歉。你能再说一遍最后一句吗？你说你可以保留教师利益的 30%。😡 是的，基本上是的，所以是的，正是这样，我们在说，我们训练一个稀疏模型，然后将其蒸馏回稠密模型。
 - en: And versus training a dense model from scratch。And like you look at the gap
     between a sparse and dense model from scratch versus the gap between the dense
     and then the distilled dense model。What do you registering？You go forward。Oh yes，
     yeah。Oh yeah。maybe let me just do like a quick high level summary again。 So yeah。we'
     we'll do is for our comparisons is we'll train a dense model from scratch。
+  id: totrans-127
   prefs: []
   type: TYPE_NORMAL
+  zh: 与从头训练稠密模型相比。当你查看从头开始的稀疏和稠密模型之间的差距时，再与蒸馏后的稠密模型之间的差距进行比较，你有什么发现？你继续。哦，是的，可能让我再做一个快速的高层次总结。所以我们将进行的比较是从头训练一个稠密模型。
 - en: We'll train a sparse model from scratch。And then we'll also run a third experiment
     where we distill that sparse model down into a dense model。What does distilling
     mean like we we're basically trying to match the like the teacher's logits。Like
     the kind of standard thing of like， you know， like matching the like either the
     thelogits or like the soft probabilities for each token or something like that。Okay，
     if I can jump in with my question， so what I'm struggling with is。
+  id: totrans-128
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们将从头训练一个稀疏模型。然后我们还会进行第三个实验，将稀疏模型蒸馏成稠密模型。蒸馏是什么意思？我们基本上是想要匹配教师的 logits。就像是标准的做法，匹配每个
+    token 的 logits 或软概率之类的。如果可以的话，我可以插入我的问题，我在挣扎的是。
 - en: how do I interpret the alignment that as percent of teacher and performance？Yeah，
     okay。so it's basically looking at the like the gap between the dense and sparse
     model。So we'll have the dense model get some performance。we'll have the sparse
     model get some performance and then the dense model dis still from the sparse
     model would be somewhere in between that range and we're basically saying it's
     30% through that range。
+  id: totrans-129
   prefs: []
   type: TYPE_NORMAL
+  zh: 我如何解释作为教师和性能的百分比的对齐？是的，好吧。基本上是查看稠密模型和稀疏模型之间的差距。因此，我们会让稠密模型获得一些性能，让稀疏模型获得一些性能，然后稠密模型与稀疏模型之间的蒸馏结果将位于这个范围内，我们基本上是说这是
+    30% 的范围。
 - en: So it's like in like a 0 to1 interval it's like 。3 of the way from the dense
     to the sparse model I see so this is not saying that the percent of teacher performance
     does not mean that if the teacher say if we use the teacher guesses or predictions
     as the ground truth。
+  id: totrans-130
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以在 0 到 1 的区间内，稠密模型到稀疏模型大约是 0.3 的位置。我明白了，所以这并不是说教师性能的百分比并不意味着如果教师使用教师的猜测或预测作为真相。
 - en: this is not saying that the distilled model gets matches with the teacher 33%
     of the time。No， no。exactly。It's basically saying you get like 30% of the the quality
     improvements。Yeah。exactly Okay cool And then if we can back up the slide， I had
     a different question。but I didn't want to interrupt when we're talking about all
     of these different T5 bases and then also on a few slides before this。
+  id: totrans-131
   prefs: []
   type: TYPE_NORMAL
+  zh: 这并不是说蒸馏模型与教师模型匹配的概率是33%。不，不，确切地说。基本上是在说你获得了大约30%的质量提升。是的，确切地说，好的。那么如果我们可以倒回幻灯片，我有一个不同的问题，但我不想在谈论所有这些不同的T5基础时打断。
 - en: I don't know that much about T5， I'm curious you know when T5 is trained。is
     there a weight penalty in the loss function。Is there a way to caterer？No。there
     is no way to cage trained with any of those sparse or dense models I see so out
     of curiosity then how do dense models perform compared to the switch model if
     you add some sort of weight regularization that incentivizes getting rid of useless
     weights。
+  id: totrans-132
   prefs: []
   type: TYPE_NORMAL
+  zh: 我对T5了解不多，我很好奇你知道T5在训练时，损失函数中是否有权重惩罚。有没有办法进行限制？没有。没有办法在那些稀疏或密集模型中进行限制。我很好奇，那密集模型与开关模型相比，添加一些激励去除无用权重的权重正则化时表现如何。
 - en: So some kind of like maybe like L1 term or something like that quickly Yeah。so
     I'm just wondering like how much of because here we're talking about the benefits
     of sparsity and I'm wondering how much of this benefit from sparsity is due to
     the fact that just some of this I mean。
+  id: totrans-133
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以某种程度上，可能像L1项或者类似的东西，快速了解一下。嗯，我只是想知道，因为我们在谈论稀疏性的好处，我在想，这种稀疏性带来的好处有多少是因为某些因素。
 - en: effectively what the switch model is doing， if I understand correctly maybe
     I don't what understand is that the switch model in the feed forward layer。it's
     just like you you fix some of the weight to be zero that's what it means to be
     spars。Well。actually we're kind of really trying to like inject more weights。so
     we're actually kind of trying to do it's a little bit maybe like paradoxical because
     we're saying switch transformer but our idea to be like。
+  id: totrans-134
   prefs: []
   type: TYPE_NORMAL
+  zh: 实际上，开关模型所做的，如果我理解正确，也许我并不完全理解，是在前馈层中的开关模型。就像你将一些权重固定为零，这就是稀疏的意思。嗯，实际上我们确实是在努力注入更多的权重。所以我们实际上有点像是在做一些，可能是有些悖论，因为我们说的是开关变换器，但我们的想法是这样的。
 - en: hey， we actually want to just have significantly more weights。Not last it's
     kind of like you would zero out weights but within a much larger weight matrix
     if that makes sense I see yes。and so to me it seems like a relevant baseline to
@@ -947,14 +1235,18 @@
     an L1 or L2 penalty on the weights and would I'd be curious to know how that compares。Yeah，
     we didn't run this， but also that kind of gets rid of weights for the dense model，
     so if any。
+  id: totrans-135
   prefs: []
   type: TYPE_NORMAL
+  zh: 嘿，我们实际上想要显著更多的权重。并不是说你会将权重归零，而是在一个更大的权重矩阵中，这样说合理吗？我明白了。所以对我来说，似乎一个相关的基准就是问，如果我有密集矩阵，但我激励它，比如说对权重施加L1或L2惩罚，那会发生什么？我想知道这与之比较如何。是的，我们没有进行这个实验，但这也会消除密集模型中的权重，所以如果有的话。
 - en: So yeah， yeah。Yeah， and the last point is like if you just add like an L1 penalty
     loss。You're not going to have structural sparsity。Was like， here we， you know。It's
     not random weights in your giant weight matrix that are 0 that， right。It's like
     really like blocks， depending like blocks corresponding to each expo。
+  id: totrans-136
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以是的，是的。最后一点是，如果你仅仅添加像L1惩罚损失。你不会得到结构稀疏性。就像这里，我们知道。这不是在你庞大的权重矩阵中随机的权重是0，而是，实际上是像块一样，取决于每个expo的块。
 - en: Right so that that structure allows the the whole like communication stuff and
     and that's。Yes that just the fact that you have multiple cousins on right。So I
     totally agree with that block structure and that's what I'm trying to say is that
@@ -962,28 +1254,36 @@
     what I'm trying to do in my mind is disentangle is the sparsity What's offering
     an advantage or is this additional structure that you've built in is that what
     is the performance game So that's why I'm asking。
+  id: totrans-137
   prefs: []
   type: TYPE_NORMAL
+  zh: 没错，这种结构允许整个通信的东西，是的。正是因为你有多个关系在这里。所以我完全同意那个块结构，我想说的是开关模型有这种非常丰富的结构，它不仅仅是稀疏的。它还具有这种丰富的结构，我试图在我的脑海中理清楚，是稀疏性提供了优势，还是你所建立的额外结构，这就是性能提升的原因。所以这就是我问的原因。
 - en: So the the。The block structure is what。Enables to leverage the fact that you
     have multiple calls but like if you if you didn't have that drug structure。you'd
     still have to route to everything and so you have more communication costs and
     so on so and then your first question was what sorry。
+  id: totrans-138
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以，这个结构是使得你能够利用你有多个调用的事实。但是如果你没有这种结构，你仍然需要路由到所有内容，因此会产生更多的通信成本等等。然后你第一个问题是什么，抱歉。
 - en: I'm not actually sure if there was a question， I guess what I'm trying to say
     is I'm trying toambiguate。yeah， anyways。But I agree。it's a little bit weird because
     sparsity kind of's spectrum of meaningful for sparsity。right， it like， for example，
     compression and like model pruning is a form of sparsity。but also switch transformer
     and ME also referred to as sparsity and。That kind of related。
+  id: totrans-139
   prefs: []
   type: TYPE_NORMAL
+  zh: 我不太确定是否有问题，我想我想说的是我在尝试澄清。是的，不管怎样。但我同意，这有点奇怪，因为稀疏性本身是有意义的谱系。对吧，比如说，压缩和模型剪枝就是一种稀疏性。但开关变压器和ME也被称为稀疏性，这两者是相关的。
 - en: but definitely dynamic aiming at different things so this is a really interesting
     idea of it's sparse。but you have more parameters I'll have to think about it more
     thank you。Yeah。like it's kind of like spot within this like giant weight matrix，
     which is exactly Yeah， Yeah， yeah。I hadn't appreciated that。 So I appreciate you
     you pointing that out。 Thank you。
+  id: totrans-140
   prefs: []
   type: TYPE_NORMAL
+  zh: 但绝对是动态的，针对不同的目标，所以这是一个非常有趣的稀疏性概念。可是你有更多的参数，我需要再考虑一下，谢谢。是的。就像是在这个巨大的权重矩阵中的一个点，正是这样。是的，是的，我之前没有意识到这一点。谢谢你指出这一点。
 - en: I have a lot of question on distillation part。Yeah first okay so if you disill
     it back down now you have like one technically you're back to the dense layer
     architecture right so now the entire like the entire idea of expert it's a certain
@@ -992,8 +1292,10 @@
     go back to this like dense layer like aren't you like basically only serving whatever
     like whichever expert you base this dense layer on like these tokens will probably
     perform well and all the other tokens are kind of like left behind right？
+  id: totrans-141
   prefs: []
   type: TYPE_NORMAL
+  zh: 我对消融部分有很多问题。是的，首先好的，如果你把它再提炼回去，现在你有了一个技术上来说是密集层架构，对吧？那么整个专家的概念是，某些令牌将被发送到不同的专家，因为它们在理解这个令牌的某些方面上更加专业。那么如果你回到这个密集层，你不就基本上只能服务于你基于这个密集层的专家吗？这些令牌可能表现良好，而其他的令牌则被抛在了后面，对吧？
 - en: Yeah。I'm actually sorry。I don't think I'm fully understanding your question。So
     so are you kind of getting at like we're just this on a specific data set so that
     don figure out how to use that like yeah yeah so maybe concretely like let's so
@@ -1003,31 +1305,41 @@
     now performs better than if you were to just you know train it from scratch or
     train it from like a pretrained dense model So then it's like you use say that
     again。
+  id: totrans-142
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的。实际上我很抱歉，我觉得我没有完全理解你的问题。那么，你是在询问，我们是否只是针对特定数据集进行调整，以便弄清楚如何使用它？是的，或许具体来说，比如对于超级胶水，假设你想要提供一个能够很好地处理超级胶水的模型，我认为这个想法是将稀疏模型提炼成一个密集模型。这样你就得到了一个压缩的密集模型，它的表现要比从零开始训练或从预训练的密集模型进行训练更好。然后你是想说再说一遍。
 - en: You， you have to pick one expert， right？ No， no， no。you can just distill all
     of the because you're just matching the the model outputs。So you can just treat
     the sparse model as kind of like a black box thing。All we're doing is just trying
     to have the dense model match the actual like final like， you know。
+  id: totrans-143
   prefs: []
   type: TYPE_NORMAL
+  zh: 你必须选择一个专家，对吧？不，不，不。你可以把所有的都提炼出来，因为你只是在匹配模型的输出。所以你可以把稀疏模型视为一种黑箱。我们所做的就是让密集模型匹配实际的最终输出。
 - en: token predictions。 Oh God， Okay about it。 Okay， sorry I was not。I was not familiar
     with the idea of the disill。So I think that was like my entire confusion。Okay。Yeah，
     of course， yeah， because I guess one motivation here is that。Having experts can
     make serving a little bit more difficult， because。It requires bigger toppologies。
+  id: totrans-144
   prefs: []
   type: TYPE_NORMAL
+  zh: 令牌预测。哦，天哪，关于这个。好的，抱歉我不太熟悉这个“消融”的概念。所以我想这就是我整个困惑的来源。好的。是的，当然，因为我想这里的一个动机是，拥有专家可能会让服务变得有些困难，因为这需要更大的拓扑结构。
 - en: let's say you have eight exps。You need like。Well， I guess you can have multiple
     export on fewer calls。but。You know， let' just say that a little bit harder to
     solve。And so if we can， you know。get the benefits from spay at per training。And
     then use distillation to a dense model for serving be that can be beneficial。so
     I think that was sort of the motivation for that experiment， right Eric。Yeah，
     exactly。
+  id: totrans-145
   prefs: []
   type: TYPE_NORMAL
+  zh: 假设你有八个经验。你需要像……好吧，我想你可以在更少的调用中拥有多个导出。但是，你知道，假设这稍微难一些解决。所以如果我们能够从每次训练中获得好处，然后使用蒸馏将其转化为一个稠密模型进行服务，这样会有益处。因此，我认为这就是那个实验的动机，对吧，Eric？是的，没错。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_38.png)'
+  id: totrans-146
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_38.png)'
 - en: Okay， well are't we yeah？Yes， kind go ahead， Ben， I just said。I think one more
     written kind question， so yeah。So yeah go ahead pleasure're asking Oh yeah yeah
     soundss good yeah you guys for the talks so far question was wondering if you
@@ -1035,134 +1347,174 @@
     explicitly optimized for parallel training I guess like the moE models seems like
     you know it does a really good job here and also like at inference time it's you
     know very useful to like you know have fewer flops for computation。
+  id: totrans-147
   prefs: []
   type: TYPE_NORMAL
+  zh: 好吧，我们不是这样吗？是的，继续吧，Ben，我刚刚说。我想还有一个书面的问题，所以是的。继续吧，真高兴你问。哦，是的，听起来不错。是的，你们到目前为止的讨论，问题是想知道你是否认为在构建模型方面有没有任何有趣的方向，比如显式优化并行训练的模型。我想moE模型在这里做得很好，而且在推理时，它的计算量也很少，这样会非常有用。
 - en: But or for forward pass， but I guess do you think that there are any interesting
     directions around distributed training where you might have like models that are
     explicitly architected to have a lot of parallel heads or other like features
     that are you know kind of embarrassingly parallelizable or does just using like
     standard you know。
+  id: totrans-148
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是或者在前向传递时，我想你认为在分布式训练方面是否有任何有趣的方向，其中你可能会有一些明确架构为具有许多并行头或其他像是你知道的那种明显可并行化的特征的模型，还是仅仅使用标准的那种呢？
 - en: scale up the models by adding more layers and then just you know get away with
     using model and data parallelism work well enough。Yeah， so I think， so yeah， so
     let me just make sure I'm fully understanding。So yeah。I think also like， you know，
     right now， like even our models are definitely very co designed with the hardware
     and like the shapes and things。you know， so yeah I think at a high level like
     yes。
+  id: totrans-149
   prefs: []
   type: TYPE_NORMAL
+  zh: 通过增加更多层来扩展模型，然后仅仅依靠模型和数据并行性就可以很好地工作。是的，所以我认为，让我确保我完全理解。所以是的。我认为目前为止，我们的模型确实是与硬件进行协同设计的，以及形状和其他方面。你知道，所以我认为从高层来看，是的。
 - en: I think there's a ton of interesting research on like codesing the hardware。the
     partitioning algorithms and the models。😊，I think given。you know that we have this
     kind of like SPMD mesh style partitioning。we are already kind of designing our
     models in ways that fit it really well。 So for example。
+  id: totrans-150
   prefs: []
   type: TYPE_NORMAL
+  zh: 我认为在代码与硬件、分区算法和模型方面有很多有趣的研究。😊 我认为，鉴于我们有这种SPMD网格样式的分区，我们已经在某种程度上设计我们的模型，使其能够很好地适配它。所以例如。
 - en: when we want to scale up our model， one of the first dimensions we go to scale
     up is the internal hidden dimension。I there some really nice properties of scaling
     up this dimension。It basically becomes like kind of you know independent to some
     of the communication costs。It's really good when looking at the compute to memory
     operations on these you know like compute devices and stuff。
+  id: totrans-151
   prefs: []
   type: TYPE_NORMAL
+  zh: 当我们想要扩展模型时，我们第一个扩展的维度就是内部隐藏维度。扩展这个维度确实有一些很好的特性。基本上它在某种程度上变得与你的一些通信成本是独立的。当我们查看这些计算设备上的计算与内存操作时，这一点是非常好的。
 - en: Yeah， exactly。like I think when we're even designing these models。we're like
     really setting dimensions such that it maps well out the hardware。So it's almost
     like。you know， given that we have this model data parallelism。we're like actually
     designing models more for it。 But I also think that there's a ton of new interesting
     distributed algorithms and stuff like that。
+  id: totrans-152
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，没错。就像我觉得在设计这些模型时，我们实际上是在设定一些维度，以便它能够很好地映射到硬件上。所以几乎就像是，你知道，鉴于我们有这种模型数据并行性，我们实际上是更有针对性地设计模型。但我也觉得有很多新的有趣的分布式算法等等。
 - en: which makes designing models very interesting。Like I think one thing that I
     think is really cool is like the Microsoft  zero partitioning too。which also like
     adds some new new like nice implications for like how to design and scale models
     and stuff。So yeah， I think there's like， this is a very fruitful research direction。if
     that kind of answered to your question。 Yeah， no， that was super helpful and interesting。
     yeah。😊。
+  id: totrans-153
   prefs: []
   type: TYPE_NORMAL
+  zh: 这使得模型设计变得非常有趣。我觉得一件非常酷的事情是微软的零分区工具。这也为模型设计和扩展等方面带来了一些新的有趣的影响。所以，我认为这是一个非常丰硕的研究方向。如果这回答了你的问题的话。是的，这非常有帮助而且有趣。嗯。😊。
 - en: Yeah definitely like i'm very optimistic on the future of us like designing
     the hardware， the model。the partitioning strategies altogether because really
     to get it to work well you kind of have to know about all three and like kind
     of you know intertwine the development of them Yeah yeah that sounds awesome。
+  id: totrans-154
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，我对我们在硬件、模型、分区策略等方面的未来非常乐观，因为要想做到很好，你需要了解这三者，并将它们的发展相互交织。是的，是的，这听起来很棒。
 - en: Cool， yeah， so just to summarize it's like yeah so switch transformer is like
     a nice simplification over a mixture of experts and we're seeing that we get really
     strong speed up improvements on pretrain over like a lot of the T5 models which
     are very strong baseline we're seeing that we can you know efficiently distill
     the sparse models back to dense ones。
+  id: totrans-155
   prefs: []
   type: TYPE_NORMAL
+  zh: 很酷，是的，总结一下，切换变压器相对于专家混合来说是一种很好的简化，我们看到在许多非常强大的T5模型上，预训练的速度提升非常显著，而这些模型是非常强的基线，我们看到我们可以有效地将稀疏模型蒸馏回密集模型。
 - en: and you know get improved both pretraining and fine tuning through some of these
     newer techniques we talked about。and we're also seeing that the models are working
     on multilingual data and that we can you know now easily successfully train up
     to you know 1。
+  id: totrans-156
   prefs: []
   type: TYPE_NORMAL
+  zh: 而且你知道，通过我们所讨论的一些新技术，得到了改进的预训练和微调。我们也看到这些模型在多语言数据上有效地工作，而且我们现在可以很容易地成功训练到1。
 - en: 6 trillion parameter models， which is pretty promising。And next slide。and so
     we also wanted to go into two slides about some like newer work about actually
     using these kind of models for computer vision and actually also a little bit
     of how they can be used to actually do some level of like adaptive computation。
+  id: totrans-157
   prefs: []
   type: TYPE_NORMAL
+  zh: 6万亿参数的模型，这非常有前景。下一张幻灯片。因此，我们还想谈两张幻灯片关于一些新工作的内容，实际上是使用这些类型的模型进行计算机视觉，实际上也涉及到它们如何用于某种程度的自适应计算。
 - en: where not only now each input gets different weights。but also sometimes different
     inputs will have different amounts of compute applied to it。And yeah so there's
     some really great work of doing this out of the Google Zuric team and yeah there's
     just doing it for image classification and you know they're basically seeing a
     lot of the similar types of scaling properties where you scaling up the number
     of experts and using sparsity allows them to get good performances on image classification。
+  id: totrans-158
   prefs: []
   type: TYPE_NORMAL
+  zh: 这不仅使每个输入获得不同的权重，而且有时不同的输入将应用不同的计算量。是的，所以谷歌苏黎世团队在这方面有一些很好的工作，他们基本上在图像分类方面看到了类似的扩展属性，增加专家数量并利用稀疏性使他们在图像分类上获得良好的性能。
 - en: Next slide。And interestingly， one of the things they do is like as we talk the
     capacity factor。so we were talking about values of like1 1。252。0， which means
     like at a value of 2。0 there's buffer for you know two tokens per expert。but they
     actually study it going less than one so that means that like at 0。
+  id: totrans-159
   prefs: []
   type: TYPE_NORMAL
+  zh: 下一张幻灯片。有趣的是，他们讨论的一个内容是能力因子。所以我们在讨论像1、1.25、2.0这样的值，这意味着在2.0的值下，每个专家有两个token的缓冲区。但他们实际上研究了低于1的情况，这意味着在0。
 - en: 5 that means there's only like room for half the number of tokens。And the nice
     part is is that they did this for image classification and also in images there's
     just a lot of redundancy and they notice that you can actually get really good
     performance by only allowing like you know up to one10th of the the parts of the
     image to be processed by a sparse layer。
+  id: totrans-160
   prefs: []
   type: TYPE_NORMAL
+  zh: 这意味着只允许一半的token数量。而且好的一点是，他们在图像分类中做了这个，而且在图像中有很多冗余，他们注意到通过只允许最多1/10的图像部分通过稀疏层处理，实际上可以获得非常好的性能。
 - en: So yeah， we think this is like a really nice direction too in terms of combining
     sparsity along with like adaptive computation。😊，And yeah， and yeah， thanks so
     much for having us。That's the， that's the talk。It does think you better than。Sorry
     other fun for coming here so you know。道。So I will just like ask a bunch of questions
     and then we can have like after the class open question panel for the students。
+  id: totrans-161
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以是的，我们认为这是一个非常好的方向，结合稀疏性和自适应计算。😊，而且是的，非常感谢你们的邀请。就是这样，演讲结束。确实比其他人有趣。抱歉其他人来这里，所以你知道。道。所以我会问一堆问题，然后我们可以在课后为学生举行一个开放式问答环节。
 - en: So one thing is like have you tried using like like more like linear attention
     mechanisms like reformers and like all the stuff to like scale the computation？
+  id: totrans-162
   prefs: []
   type: TYPE_NORMAL
+  zh: 有一件事是你有没有尝试使用更线性的注意力机制，比如改革者之类的东西来扩展计算？
 - en: I personally haven't maybe， I haven't personally done this。Yes， so。You know。I
     guess we can maybe comment on how。You know， the attention。the cost coming from
     the attention maps isn't。The dominant curve in these large transformers。So you
     know， the motivation for using Millar attention like perform is that it reduces
     the quadratic cost of attention map。
+  id: totrans-163
   prefs: []
   type: TYPE_NORMAL
+  zh: 我个人可能没有，我还没有亲自做过这个。是的，所以。你知道。我想我们可以评论一下。你知道，注意力。来自注意力图的成本并不是。这些大型变换器中的主导曲线。所以，你知道，使用Millar注意力的动机是它减少了注意力图的二次成本。
 - en: right？嗯。But so far， I mean， at least， you know， in like sort of typical NLP
     setups like super gly far and so on。As you scale the models， most of the memory
     comes from the model weights as opposed to attention to the attention maps。That's
     also because， you know， using very long。Context or sequence length。Does't improve
     that footfall and so you know just you know walking with a vanilla self attention
     mechanism is a very strong baseline already。
+  id: totrans-164
   prefs: []
   type: TYPE_NORMAL
+  zh: 对吧？嗯。但到目前为止，至少，在典型的NLP设置中，比如超级gly far等。随着模型的扩展，大部分内存来自模型权重，而不是来自注意力图。这也是因为你知道，使用非常长的。上下文或序列长度并没有改善这个结果，所以你知道，使用普通的自注意力机制已经是一个非常强的基线了。
 - en: Goard it， okay。So another question is like do you think this like mechanism
     is even more scalable。like can you go on and build like 10 trillion parametermeter
     models stuff like that like what do you think？
+  id: totrans-165
   prefs: []
   type: TYPE_NORMAL
+  zh: 明白了，好吧。另一个问题是你认为这种机制是否更具可扩展性。比如你能否构建像10万亿参数模型这样的东西，你觉得呢？
 - en: Yeah， definitely I think yeah， totally， I think honestly one of the biggest
     constraints is that like you know。and this isn't even necessarily a constrained
     it's just like you have to fit the parameter somewhere and there's just limited
     storage on devices。
+  id: totrans-166
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，我绝对认为，老实说，最大的限制之一是你知道的。这甚至不一定是限制，只是你必须把参数放在某个地方，而设备上的存储是有限的。
 - en: but if you get enough devices such that you know yeah。you can just partition
     the weights it's like yeah I don't see anything stopping it。Got it so what do
     you think like personally is your like like you thing like with the direction
@@ -1170,8 +1522,10 @@
     that are trying to just like use such transformer like mechanisms make of experts
     or do you think thiss like you're going to be other things that the community
     needs？
+  id: totrans-167
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是如果你有足够的设备，你知道，是的。你可以分区权重，我觉得没有什么能阻止它。明白了，那你觉得你个人的方向是什么？像变换器的扩展会走向哪里？是否会有更多的研究尝试使用这样的变换器机制来构建专家，还是你认为社区需要其他东西？
 - en: Yeah I mean， I definitely think mixture of experts should find its way or at
     least you know sparse layers like switch transformment stuff but will definitely
     I think find their way into like the future of large models。I think they really
@@ -1182,14 +1536,18 @@
     best model I can to fit on as small of a device as I can then they're probably
     not going to be the best solution because the sparse weights just aren't as good
     as just the dense weight that's being used for everything。
+  id: totrans-168
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，我确实认为专家混合方法应该找到它的出路，或者至少你知道像切换转换那样的稀疏层，但我肯定认为它们会融入未来的大型模型中。我认为它们确实带来了很多好处，而且在高吞吐量应用中也非常出色。所以我认为，稀疏性的一个缺点是，如果你看看每个模型权重的性能，它们总是会比稠密模型差。因此，如果你真的受到限制，想要设计一个尽可能适合小设备的最佳模型，那么它们可能不是最佳解决方案，因为稀疏权重的效果不如用于所有内容的稠密权重。
 - en: So I think it really depends on the application， but I'm very optimistic for
     when we're training these models during pretraining with lots of data parallelism
     and then we're serving them in like medium the higher throughput examples。I feel
     like they could actually just be a pretty big win。
+  id: totrans-169
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我认为这真的取决于应用，但我对在预训练期间使用大量数据并行训练这些模型时非常乐观，然后在更高吞吐量的示例中为它们提供服务。我觉得这实际上可能会是一个相当大的胜利。
 - en: So that's kind of my thoughts on how I think scarrscity will be used in terms
     of other things yeah I think I don't know there's a ton of exciting research you
     know from everything from yeah like a lot of the linear attention stuff adaptive
@@ -1197,11 +1555,17 @@
     future will look like but yeah a lot of exciting things to look forward to great
     sounds Okay so we can now have like a round of student questions so is totally
     voting。
+  id: totrans-170
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以这就是我对稀疏性在其他方面应用的看法，是的，我认为我不知道有很多令人兴奋的研究，你知道从许多线性注意力的东西，自适应计算，新预训练目标，你知道，未来会是什么样子很难预测，但有很多令人兴奋的事情可以期待。听起来不错，现在我们可以进行一轮学生提问，所以完全可以投票。
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_40.png)'
+  id: totrans-171
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_40.png)'
 - en: '![](img/cfb06f02d43700aca0402fcc8c4854ad_41.png)'
+  id: totrans-172
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/cfb06f02d43700aca0402fcc8c4854ad_41.png)'

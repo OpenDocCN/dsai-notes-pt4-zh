@@ -1,82 +1,108 @@
 - en: 斯坦福 GPT／Transformer 原理介绍 (中英文双字幕) - P4：4.Decision TransformerReinforcement Learning
     via Sequence Modeling - life_code - BV1X84y1Q7wV
+  id: totrans-0
   prefs:
   - PREF_H1
   type: TYPE_NORMAL
+  zh: 斯坦福 GPT／Transformer 原理介绍 (中英文双字幕) - P4：4.决策变换器 通过序列建模进行强化学习 - life_code - BV1X84y1Q7wV
 - en: '![](img/041a2ae7aae080f075f80cd7c4c33a68_0.png)'
+  id: totrans-1
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/041a2ae7aae080f075f80cd7c4c33a68_0.png)'
 - en: So I'm excited to talk today about our recent work on using Transers for reinforcement
     learning and this is joint work with a bunch of really exciting collaborators。most
     of them at UC Berkeley and some of them at Facebook and Google。I should mention
     this work was led by way to talented undergrads， Li Chen and Kevin Blue。![](img/041a2ae7aae080f075f80cd7c4c33a68_2.png)
+  id: totrans-2
   prefs: []
   type: TYPE_NORMAL
+  zh: 我很高兴今天能谈论我们最近关于使用变换器进行强化学习的工作，这项工作是与一群非常优秀的合作者共同完成的，他们大多在加州大学伯克利分校，有一些在Facebook和Google。我应该提到这项工作是由两位才华横溢的本科生李晨和凯文·布鲁领导的。![](img/041a2ae7aae080f075f80cd7c4c33a68_2.png)
 - en: And I'm excited to present the results we had， so let's try to motivate why
     we even care about this problem。So we have seen in the last。Three or four years，
     that transformers since the introduction in 2017 have taken over lots and lots
     of different fields of artificial intelligence。
+  id: totrans-3
   prefs: []
   type: TYPE_NORMAL
+  zh: 我很高兴能展示我们所取得的成果，所以让我们来动机为什么我们甚至关心这个问题。在过去的三四年里，自2017年引入变换器以来，已经在人工智能的许多不同领域中占据了重要地位。
 - en: so we saw them having a big impact for language processing， we saw them being
     used for vision。the vision transformer very recently they were in nature trying
     to solve protein folding and very soon they might just replace as computer scientists
     by having automatically generate code。
+  id: totrans-4
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们看到它们对语言处理产生了重大影响，看到它们被用于视觉处理。最近，视觉变换器在《自然》杂志上尝试解决蛋白质折叠问题，很快它们可能会取代计算机科学家，自动生成代码。
 - en: So with all of these advances， it seems like we are getting closer to having
     a unified model for decision making for artificial intelligence。But artificial
     intelligence is much more about not just having perception。but also using the
     perception knowledge to make decisions。And this is what this talk is going to
     be about。But before I go into actually thinking about how we will use these models
     decision making。
+  id: totrans-5
   prefs: []
   type: TYPE_NORMAL
+  zh: 随着这些进展，似乎我们越来越接近于为人工智能建立一个统一的决策模型。但人工智能不仅仅涉及感知，还涉及如何利用感知知识做出决策。这就是本次演讲的主题。但在我深入探讨如何使用这些模型进行决策之前。
 - en: here is a motivation for why I think it is important to ask this question。So
     unlike models for RL。when we look at transformers for perception modalities like
     I showed in the previous slide。we find that these models are very scalable and
     have very stable training dynamics so you can keep as long as you have enough
     computation and you have more and more data that can be sourced。you can train
     bigger and bigger models and you'll see very smooth reductions in the loss。
+  id: totrans-6
   prefs: []
   type: TYPE_NORMAL
+  zh: 这里是我认为询问这个问题重要性的动机。因此，与强化学习模型不同，当我们查看变换器在感知模式上的表现时，就像我在前一张幻灯片中展示的那样，我们发现这些模型非常可扩展，并且具有非常稳定的训练动态。因此，只要你有足够的计算能力和越来越多的可获取数据，你就可以训练越来越大的模型，并且可以看到损失平滑下降。
 - en: And the overall training dynamics are very stable， and this makes it very easy
     for practitioners and researchers to build these models and learn richer and richer
     distributions。So like I said， all of these advances have so far occurred in perception
     what we've been interested in this talk is to think about how we can go from perception。
+  id: totrans-7
   prefs: []
   type: TYPE_NORMAL
+  zh: 整体训练动态非常稳定，这使得从业者和研究人员构建这些模型并学习更丰富的分布变得非常简单。因此，正如我所说，这些进展迄今为止主要发生在感知方面，而我们在本次演讲中关注的是如何从感知转向。
 - en: looking at images， looking at text and all these kinds of sensory signals to
     then going into the field of actually taking actions and making our agents do
     interesting things in the world。😊，啊。And here throughout the talk， we should be
     thinking about why this perspective is going to enable us to do scalable learning。
+  id: totrans-8
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们需要观察图像、文本和各种感官信号，然后进入实际采取行动的领域，让我们的智能体在世界中做出有趣的事情。😊，啊。在整个演讲中，我们应该考虑为什么这种视角能够让我们实现可扩展学习。
 - en: like I showed on the previous slide， as well as brings stability into the whole
     procedure。😊。So sequential decision making is a very broad area and what I'm specifically
     going to be focusing on today is the one route to sequential decision making that's
     reinforcement learning。
+  id: totrans-9
   prefs: []
   type: TYPE_NORMAL
+  zh: 就像我在前一张幻灯片上展示的那样，也为整个过程带来了稳定性。😊。因此，顺序决策是一个非常广泛的领域，我今天要特别关注的是通往顺序决策的一个路径，即强化学习。
 - en: So just as a brief background， what is reinforcement learning。so we are given
     an agent who' is in a current state and the agent is going to interact with the
     environment by taking actions。And by taking these actions， the environment is
     going to return to it a reward。For how good that action was as well as next state
     into which the agent will transition and this whole feedback loop will continue。
+  id: totrans-10
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以简单介绍一下，什么是强化学习。我们给定一个处于当前状态的代理，该代理将通过采取行动与环境进行互动。通过采取这些行动，环境将给它返回一个奖励，以评估该行动的好坏，以及代理将转移到的下一个状态，这整个反馈循环将继续进行。
 - en: 啊。The goal here for an intelligent agent is to then using trial and error。so
     try out different actions， see what rewards will lead to learn a policy which
     maps your states to actions such that the policy maximizes the agent's cumulative
     rewards over time horizon。
+  id: totrans-11
   prefs: []
   type: TYPE_NORMAL
+  zh: 啊。这里智能代理的目标是通过试错来实现。所以尝试不同的动作，看看什么奖励能够引导，学习一种将状态映射到动作的策略，以便最大化代理在时间跨度内的累积奖励。
 - en: So you take a sequence of actions and then based on the reward you accumulate
     for that sequence of actions。will' judge how good your policy is。This talk is
     also going to be specifically focused on a form of reinforcement learning that
     goes by the name of offline reinforcement learning。
+  id: totrans-12
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以你进行一系列动作，然后根据你为这一系列动作积累的奖励来判断你的策略有多好。这次讲座还将特别关注一种名为离线强化学习的强化学习形式。
 - en: So the idea here is that what changes from the previous picture where I was
     talking about online learning。online reinforcement learning is that here now instead
     of doing actively interacting with the environment。you have a collection of log
@@ -85,27 +111,35 @@
     log data you now want to train another agent。it could be another robot to then
     learn something interesting about that environment just by looking at the log
     data。
+  id: totrans-13
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以这里的想法是，和我之前谈论在线学习的图像相比，在线强化学习的变化在于，现在不再是主动与环境互动，而是拥有一组交互的日志数据。想象一下某个机器人在田野中收集了一堆传感器数据，并且你已经记录了所有这些数据，利用这些日志数据，你现在想训练另一个代理，也许是另一个机器人，仅仅通过查看日志数据来学习关于该环境的有趣信息。
 - en: G so theres no trial and error component。Which is currently one of the extensions
     of this framework。which would be very exciting， so I'll talk about this towards
     the end of the talk why it's exciting to think about how we can extend this framework
     to include an exploration component and have trial and error。
+  id: totrans-14
   prefs: []
   type: TYPE_NORMAL
+  zh: G，因此没有试错成分。这目前是该框架的一个扩展，将会非常激动人心，所以我将在讲座结束时谈谈为什么思考如何扩展这个框架以包括探索成分并进行试错是令人兴奋的。
 - en: Okay， so not to go more concretely into what the motivating challenge of the
     stock was now that they have introduced ArL。so let's look at some statistics。So
     large language models。I have billions of parameters and they have today they have
     roughly about 100 layers in Transformer。they are very stable to train using supervised
     learning， style losses。
+  id: totrans-15
   prefs: []
   type: TYPE_NORMAL
+  zh: 好的，不再具体讨论股票的激励挑战，既然他们已经引入了ArL。那么我们来看看一些统计数据。大型语言模型拥有数十亿的参数，今天它们大约有100层的Transformer。它们在使用监督学习和风格损失时非常稳定。
 - en: which are the building blocks of autoregressive generation， for instance。or
     for mass language modeling as in B。And this is like a field that's growing every
     day and there's a course on it at Stanford that we're all taking just because
     it has had such a monumental impact on AI。
+  id: totrans-16
   prefs: []
   type: TYPE_NORMAL
+  zh: 这些是自回归生成的构建块，例如，或者用于大规模语言建模的B模型。这是一个每天都在增长的领域，斯坦福大学有一门课程，我们都在参加，因为它对人工智能产生了巨大的影响。
 - en: 嗯。RL policies， on the other hand， and I'm talking about deep RL。the maximum
     they would extend to is maybe millions of parameters at 20 layers。嗯。And what's
     really unnerving is that they're very unstable to train so the current algorithms
@@ -115,47 +149,61 @@
     this so what I really want you to see here is the variance in the returns that
     we tend to get in RL it's really huge even after doing multiple rounds of experimentation
     and that's often that is really at the code got to done with the fact that。
+  id: totrans-17
   prefs: []
   type: TYPE_NORMAL
+  zh: 嗯。另一方面，强化学习策略，尤其是深度强化学习，其最大参数量大概在2000万个参数和20层之间。嗯。更让人不安的是，它们的训练非常不稳定，因此目前的强化学习算法主要基于动态编程，涉及解决一个非常不稳定的内循环优化问题。在强化学习中，实践者经常看到这样的奖励代码，所以我希望你能看到在RL中我们得到的回报的方差非常大，即使在进行多轮实验后，这往往与代码本身的复杂性有关。
 - en: Our algorithms learning checks need better improvements so that the performance
     can be stably achieved by Asians。In complex environments。So what this work is
     hoping to do is it's meant to introduce transformers。And I'll first show in one
     slide what exactly that model looks like and we're going to go into deeper details
     of each of the components。I have good question。Yeah， I can ask a question real
     quick。Yes。
+  id: totrans-18
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们的算法学习检查需要更好的改进，以便在复杂环境中实现稳定的性能。因此，这项工作的目的是引入变换器。我会先在一张幻灯片中展示这个模型的具体样子，然后深入讲解每个组件。我有个好问题。是的，我可以快速问一个问题。好的。
 - en: and thank you what I'm curious to know is is the what is the cause for why RL
     typically has several orders of magnitude fewer parameters？
+  id: totrans-19
   prefs: []
   type: TYPE_NORMAL
+  zh: 谢谢，我好奇的是，为什么强化学习（RL）通常参数量比其他方法少几个数量级？
 - en: That's a great question， so typically when you think about reinforcement learning
     algorithms。😊。In deep art in particular， so the most common algorithms， for example。have
     different networks playing different roles in the task so you'll have a network
     for instance。playing the role of an actor so trying to figure out a policy and
     then therell a different network that's playing the role of a critic。
+  id: totrans-20
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是个好问题，通常当你考虑强化学习算法时。😊。特别是在深度学习中，最常见的算法例如，有不同的网络在任务中扮演不同的角色，你会有一个网络扮演演员的角色，试图找出策略，还有一个不同的网络扮演评论者的角色。
 - en: And these networks are trained on data that's adaptively gathered so unlike
     perception where you will have a huge data set of interactions on which you can
     train your models in this case the architectures and even the environments to
     some extent。are very simplistic because of the fact that we are trying to train
     very small components the functions that we're training and then bringing them
     all together and these functions are often trained in not super complex environments。
+  id: totrans-21
   prefs: []
   type: TYPE_NORMAL
+  zh: 这些网络在自适应收集的数据上进行训练，因此与感知任务不同，在感知中你会有一个巨大的交互数据集来训练模型，而在这种情况下，架构甚至在某种程度上环境都非常简单，因为我们试图训练非常小的组件，我们训练的函数，然后将它们结合在一起，这些函数通常是在不太复杂的环境中训练的。
 - en: so it's a mix of different issues I wouldn't say it's purely just got to with
     the fact that the learning objectives are fault。but it's a combination of the
     environments we use the combination of the targets that each of the neural networks
     are predicting which leads to networks which are much bigger than。
+  id: totrans-22
   prefs: []
   type: TYPE_NORMAL
+  zh: 这涉及到不同的问题，我不会说这纯粹与学习目标有关，而是与我们使用的环境、每个神经网络预测的目标的组合有关，这导致网络的规模比预期要大得多。
 - en: What we currently see tending to or， and that's why it's very common to see
     neural networks with much fewer layers being used in RL as opposed to perception。Thank
     you。You want to ask a questionep yeah， I was going to is there a reason why you
     chose offline RL versus online RL？
+  id: totrans-23
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们目前看到的倾向，正因为如此，强化学习中使用的神经网络通常层数要比感知任务少很多。谢谢。你想问个问题吗？是的，我想知道为什么你选择离线强化学习而不是在线强化学习？
 - en: That's another great question so the question is why offline R is opposed to
     online RL and the plain reason is because all this is a first work trying to look
     at reinforcement learning so offline RL avoids this problem of exploration。You
@@ -168,76 +216,99 @@
     there is no reason why we should not study why online RL cannot be done it's just
     that it provides a more contained setup where ideas from transformers will directly
     extend。
+  id: totrans-24
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是另一个很好的问题，问题是为什么离线强化学习（R）与在线强化学习（RL）对立，简单的原因是，因为这是第一次尝试研究强化学习，所以离线RL避免了探索的问题。你得到了一个交互的日志数据集，不能进一步与环境交互，因此仅从这个数据集中，你试图挖掘出最优代理的策略。如果你进行在线RL，难道不会给你这个探索的机会吗？基本上会，但技术上更具挑战的是，探索会更难编码。因此，离线R是第一步，没有理由不研究为什么在线RL不能做到，只是它提供了一个更封闭的设置，其中来自变换器的想法将直接扩展。
 - en: Okay， sounds good， so let's look at the model and it's really simple on purpose。So
     what we're going to do is we're going to look at our offline data。which is essentially
     in the form of tra trees， so offline data would look like a sequence of states。actions，
     returns over multiple time steps。It's a sequence that's natural to think of us
     as directly feeding as input to a transformer in this case we use a causal transformer
     as it's common in GPT。
+  id: totrans-25
   prefs: []
   type: TYPE_NORMAL
+  zh: 好的，听起来不错，那么我们来看看模型，它故意做得非常简单。我们要做的是查看我们的离线数据，基本上是以树形结构的形式呈现的，离线数据看起来像是多个时间步中的状态序列、行动、回报。这是一个自然的序列，可以直接作为输入提供给变换器，在这种情况下，我们使用的是因果变换器，这在GPT中很常见。
 - en: So we go from left to right and because the data set comes with the notion of
     time step causality here is much more well intended than the general meaning that's
     used for perception this is really causality how it should be in perspective of
     time。What we predict out of this transformer are the actions conditioned on everything
     that comes before that token in the sequence。
+  id: totrans-26
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我们从左到右，因为数据集带有时间步因果性的概念，这里比用于感知的一般意义更具意图。这实际上是如何从时间的角度看待因果关系。我们从这个变换器预测的，是基于序列中该令牌之前所有内容的条件下的行动。
 - en: So if you want to predict the action at this t minus one step， we'll use everything
     that came。At time step D minus two， as well as the returns and states at time
     step D minus one。Okay。So we will go into the details of how exactly each of these
     are encoded。but essentially this is in a one liner， it's taking the tragic pre
     datata from the offline data。
+  id: totrans-27
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以如果你想预测在这个t减一的步骤中的行动，我们将利用之前所有的信息。在D减二的时间步，以及在D减一的时间步中的回报和状态。好的。所以我们将深入了解这些是如何被编码的。但从本质上讲，这就是一条线，它从离线数据中提取悲惨的预数据。
 - en: treating it as a sequence of tokens， passing it through a causal transformer
     and getting a sequence of actions as the output。Okay， so how exactly do we do
     the forward path through the network？
+  id: totrans-28
   prefs: []
   type: TYPE_NORMAL
+  zh: 将其视为一个令牌序列，经过因果变换器处理，得到一系列行动作为输出。那么，我们到底如何在网络中进行前向传播呢？
 - en: So one important aspect of this work， which is the U states' actions and this
     quantity called returns to room。So these are not direct rewards。These are returns
     to go and let's see what they really mean。So this is a trajectory that goes as
     input。and the returns to go are the sum of rewards starting from the current time
     step into until the end of the episode。So really what we want the transformer
     is to get better at using a target return。
+  id: totrans-29
   prefs: []
   type: TYPE_NORMAL
+  zh: 因此，这项工作的一个重要方面是U状态的行动和这个称为“返回”的量。因此这些不是直接的奖励。这些是未来回报，让我们看看它们的真正含义。这是一条作为输入的轨迹，未来回报是从当前时间步到该剧集结束的奖励总和。因此，我们希望变换器能够更好地使用目标返回。
 - en: this is how you should think of returns to go。As the input in deciding what
     action to take。This perspective is going to have multiple advantages if it willll
     allow us to actually do much more than offline RL and generalizing to different
     tasks by just changing the returns to go。
+  id: totrans-30
   prefs: []
   type: TYPE_NORMAL
+  zh: 这就是你应该如何看待未来回报作为决定采取什么行动的输入。这种视角将有多个优势，它将使我们能够做更多的事情，超越离线RL，并通过仅改变未来回报来泛化到不同的任务。
 - en: And here it's very important， so at time step one we will just have the overall
     sum of rewards for the entire tragic dream at time step two we subtract the reward
     we get by taking the first action and then have the sum of rewards for the remainder
     of the tragic dream。
+  id: totrans-31
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这一点上非常重要，因此在时间步长一，我们将仅拥有整个悲惨梦境的总体奖励之和；在时间步长二，我们减去采取第一行动所获得的奖励，然后获得悲惨梦境其余部分的奖励之和。
 - en: Okay， so that's how we quality turns to go like how many more rewards in accumulation
     you need to acquire to fulfill your。Re your return goal that is set the beginning。What
     is the output。the output is the sequence of predicted actions， so as I showed
     in the previous slide。we use a causal transformer so we predict in sequence the
     desired actions。The attention， which is。
+  id: totrans-32
   prefs: []
   type: TYPE_NORMAL
+  zh: 好的，这就是我们如何质量转向的方式，像是你需要积累多少更多的奖励来实现你在开始时设定的返回目标。输出是什么？输出是预测行动的序列，正如我在上一张幻灯片中展示的。我们使用因果变换器，因此我们按顺序预测所需的行动。注意力。
 - en: Going to be computed inside the transformer with taking an important hyperparameter
     key。which is the context length。We see that in perception as well here， and for
     the rest of the talk。I'm going to use the notation K to denote how many tokens
     in the past would we be attending over to predict the action and the current time
     step。Okay， so again， digging a little bit deeper into code。
+  id: totrans-33
   prefs: []
   type: TYPE_NORMAL
+  zh: 将在变换器内部计算，关键的一个重要超参数是上下文长度。我们在感知中也看到了这一点，接下来在整个讲座中，我将使用符号 K 来表示我们在过去需要关注多少个标记以预测当前时间步的行动。好的，再深入一点代码。
 - en: There are some subtle differences with how a decision transformer operates as
     opposed to a normal transformer。the first is that here the time step notion is
     going to be。哦。Have a much bigger semantics that extends across three tokens。So
     in perception。you just think about the time step per word， for instance， like
     in NLP or per patch for vision。
+  id: totrans-34
   prefs: []
   type: TYPE_NORMAL
+  zh: 决策变换器与普通变换器的操作有一些微妙的差异。首先，这里的时间步长概念将具有更大的语义，扩展到三个标记。因此在感知中，你只需考虑每个单词的时间步长，例如在
+    NLP 中，或每个补丁在视觉中。
 - en: and in this case we will have a time step encapsulating three tokens， one for
     the states。one for the actions and one for the rewards。And then we embed each
     of these tokens and then add the pollution embedding as it common in the transformer
@@ -245,22 +316,28 @@
     of these fee tokens in those default side I will say experiments where even the
     other tokens might be of interest as target predictions but for now let's keep
     it simple。
+  id: totrans-35
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这种情况下，我们将有一个时间步长包含三个标记，一个用于状态，一个用于行动，一个用于奖励。然后我们嵌入每个标记，并添加污染嵌入，正如在变换器中常见的那样，然后将这些输入提供给变换器；在输出时，我们只关心这些费用标记中的一个，在那些默认的实验中，我会说即使其他标记可能对目标预测感兴趣，但现在让我们保持简单。
 - en: we want to learn a policy a policy which is trying to predict actions。So when
     we try to decode。we'll only be looking at the actions from the hidden representation
     in the prefin layer。Okay。so this is the forward pass now what do we do with this
     network， we train it how do we train it？😊。Sorry， just a quick question on semantics
     there if you go back one slide。The plus in this case。
+  id: totrans-36
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们想要学习一个策略，这个策略试图预测行动。所以当我们尝试解码时，我们只会关注从预先定义层中的隐藏表示得到的行动。好的。这是前向传递，那么我们用这个网络做什么？我们训练它，怎么训练呢？😊。抱歉，关于语义的一个快速问题，如果你回到上一张幻灯片。这里的加号。
 - en: the syntax means that you are actually adding the values element wise and not
     concatenating them。is that right？That is correct。公。Okay， so what's the last function
     follow up on that。I thought it was concot， why are we just adding it？Sorry， can
     you go back？Yeah。I think it's a design choice， you can pattern in it， you can
     add it。
+  id: totrans-37
   prefs: []
   type: TYPE_NORMAL
+  zh: 语法意味着你实际上是在逐元素添加值，而不是将它们连接在一起。是这样吗？没错。公。好的，那最后一个函数是什么？我以为是连接，为什么我们只是加它呢？抱歉，你能回去一下吗？好的。我认为这是一个设计选择，你可以在其中进行模式操作，可以添加它。
 - en: it leads to different functions being encoded in our case it was editioned。O。Why
     did you try the other one and it just didn't work or why is that because I think
     intuitively concatenating would like make more sense。So I think both of them have
@@ -268,34 +345,44 @@
     the embeddings for the state and basically shifting it so and you add something
     if you think of the embedding of the states as a vector and you add something
     you are actually shifting it。
+  id: totrans-38
   prefs: []
   type: TYPE_NORMAL
+  zh: 这导致了不同功能的编码，在我们的案例中是版本化的O。你为什么尝试另一个，而它不起作用？或者说，为什么这样？因为我觉得直观上串联似乎更有意义。因此，我认为它们在编码功能上有不同的用例，一个是真正混合状态的嵌入并基本上进行位移，如果你把状态的嵌入视为一个向量，添加某些东西实际上是在位移。
 - en: Whereas in the concatetnation case， you are actually increasing the dimensionality
     of this space。😊。Yeah呀。So those are different choices which are doing very different
     things we found this one to be worked better i'm not sure I remember if the results
     was very significantly different if you would concatetnate them。
+  id: totrans-39
   prefs: []
   type: TYPE_NORMAL
+  zh: 而在串联的情况下，你实际上是在增加这个空间的维度。😊。是的。所以这些是做着非常不同事情的不同选择，我们发现这个效果更好，我不确定我是否记得如果你将它们串联，结果是否会有显著差异。
 - en: but this is the one which we operate with。But wouldn't there because like if
     you're shifting it right like if you have an em bedding for a state and let's
     say like you perform certain actions and you like end up at the same state again。You
     would want these embeddings to be the same however now you're at a different time
     step so like you shifted it so wouldn't that be like harder to learn？
+  id: totrans-40
   prefs: []
   type: TYPE_NORMAL
+  zh: 但这是我们使用的这个。如果你是对的位移，那么如果你对一个状态进行嵌入，并且假设你执行某些操作，然后又回到同一状态。你希望这些嵌入是相同的，然而现在你处于不同的时间步骤，所以你进行了位移，那么这不是更难学习吗？
 - en: So there's a bigger and interesting question in that what you said is basically。are
     we losing the Marco property？Because as you said that if we come back to the same
     state at a different time step。shouldn't we be doing similar operations and the
     answer here is yes， we are actually being nonmarco。And this might seem very nonintuitive
     at first that why is nonmarkovness important here。
+  id: totrans-41
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以在你所说的基本上，有一个更大且有趣的问题。我们是否在失去马尔可夫性质？因为如你所说，如果我们在不同的时间步骤回到相同的状态，难道我们不应该执行类似的操作吗？答案是肯定的，我们实际上是非马尔可夫的。这在最开始可能看起来非常反直觉，为什么非马尔可夫性在这里很重要。
 - en: and I want to refer to another paper which came very much in conjunction with
     this a transer that actually shows in more detail and its basically says that
     if you were trying to predict the transition dynamics。then you could have actually
     had a Markovvian system built in here， which would do just as good。
+  id: totrans-42
   prefs: []
   type: TYPE_NORMAL
+  zh: 我想提到另一篇论文，它与这个研究非常相关，实际上更详细地展示了这一点，并且基本上说，如果你试图预测过渡动态，那么你实际上可以在这里构建一个马尔可夫系统，这样效果也会很好。
 - en: However， for the perspective of trying to actually predict actions。it does help
     to look at the previous time steps， even more so when you have missing observations
     so for instance。if you have the observations being a subset of the true state
@@ -303,8 +390,10 @@
     pieces in some sense so this is commonly known as partial observability where
     you by looking at the previous tokens you can do a better job at predicting the
     actions that you should take at the current time step。
+  id: totrans-43
   prefs: []
   type: TYPE_NORMAL
+  zh: 然而，从实际预测行动的角度来看，考虑之前的时间步骤是有帮助的，尤其是在有缺失观察的情况下。例如，如果你的观察是实际状态的一个子集，那么查看之前的状态和动作可以帮助你更好地填补某种意义上的缺失部分，这通常被称为部分可观察性，通过查看之前的标记，你可以更好地预测在当前时间步骤应采取的行动。
 - en: So nonmarkness is on purpose， and it's non intuitive。but I think it's one of
     the things that separates this framework from existing ones。So it will basically
     help you because like RL usually works on like infinite like works better on like
@@ -312,22 +401,29 @@
     work better on finite horizon problems I'm assuming because you want to take different
     actions based on like a history based on like given the fact that now you have
     to a different time step。
+  id: totrans-44
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以非马尔可夫性是故意的，而且是反直觉的。但我认为这是将这个框架与现有框架区分开来的事情之一。因此，它实际上会帮助你，因为强化学习通常在无限问题上表现更好，对吧？从技术上讲，按照你所制定的方式，它在有限问题上表现会更好，我假设是因为你希望根据历史采取不同的行动，考虑到现在你处于不同的时间步骤。
 - en: Yeah yeah so if you wanted to work on In Verorizon maybe something like discounting
     would work just as well to get that effect in this case we were using a discount
     factor of one or basically like no discounting at all。but you're right if I think
     we really want to extend it to In horizonizon you would need to change the discount
     factor。
+  id: totrans-45
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，如果你想在 In Verorizon 上工作，或许折扣政策在这种情况下也能起到类似的效果，我们使用的折扣因子是1，基本上就是没有折扣。但你说得对，如果我们真的想将其扩展到
+    In horizonizon，就需要更改折扣因子。
 - en: Thanks。Okay， so questions。Oh。I think it was just answered in chat， but I'll
     ask it anyways。I think I might have missed this or maybe you're about to talk
     about it。the offline data that was collected， what policy was used to collect
     it。So this is a very important question and it will be something I mentioned the
     experiments。
+  id: totrans-46
   prefs: []
   type: TYPE_NORMAL
+  zh: 谢谢。好的，问题。哦。我想在聊天中刚刚回答了，但我还是想问。我可能错过了，或者也许你要谈论它。收集的离线数据，使用了什么政策进行收集？这是一个非常重要的问题，我会在实验中提到。
 - en: so we were using the benchmarks that exist for our scenario where essentially
     the way these benchmarks are constructed as。You train an agent using online RL
     and then you look at its replay buffer at some time step。So while training so
@@ -337,48 +433,62 @@
     but make something that in our experiments is based on traditional benchmarks
     got it so the reason I ask isn't I'm sure that your framework can accommodate
     any offline data。
+  id: totrans-47
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我们使用的是针对我们场景存在的基准，基本上这些基准的构建方式是。你使用在线强化学习训练一个代理，然后在某个时间步查看它的重放缓冲区。因此，在训练时，作为一种中等水平的专家，你收集了它的转移经验，作为离线数据。我们的框架对你使用的离线数据是非常不敏感的，所以我尚未讨论过，但在我们的实验中是基于传统基准的。明白了，我问的原因并不是因为我不相信你的框架能够容纳任何离线数据。
 - en: but it seems to me like the results that you're about to present are going to
     be heavily contingent on what that that data collection policy is。Indeed， indeed，
     and also so we will， I think I have a slide where we show an experiment where
     the amount of data can make a difference in how we compare with baselines and
     essentially we will see how distant transformer especially shines when there is
     small amounts of offline data。
+  id: totrans-48
   prefs: []
   type: TYPE_NORMAL
+  zh: 但我觉得你即将展示的结果将严重依赖于数据收集政策。确实，确实如此，我想我有一张幻灯片展示了一个实验，其中数据量在我们与基准比较时可能产生差异，尤其是当离线数据较少时，变换器特别闪耀的地方。
 - en: 知道。Okay， cool。thank you。Okay great questions so let let's go ahead so we have
     defined our model which is going to look at these tra trees and now let's see
     how we train it so very simple we are trying to fill actions。we'll try to match
     them to the ones we have in our data set if they are continuous using the mean
     square error if they are discrete and we can use across entropy。
+  id: totrans-49
   prefs: []
   type: TYPE_NORMAL
+  zh: 知道。好的，酷。谢谢。好的，伟大的问题，所以让我们继续。我们已经定义了我们的模型，它将关注这些树结构，现在让我们看看如何训练它，所以非常简单，我们试图填充动作。我们将尝试将它们与数据集中已有的动作匹配，如果是连续的，就使用均方误差；如果是离散的，我们可以使用交叉熵。
 - en: 😊，Um。But there is something very deep in here for our research。which is that
     these objectives are very stable to train and easily regularize because they've
     been developed for supervised learning。In contrast， what R is more used to is
     dynamic programming。style objectives which are based on the Belman equation。
+  id: totrans-50
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，嗯。但是这里对我们的研究有很深的意义。因为这些目标在训练时非常稳定且容易正则化，因为它们是为监督学习开发的。相较之下，R 更常用于基于贝尔曼方程的动态规划风格目标。
 - en: And those end up being much harder to optimize and scale。and that's why you
     see a lot of the variance in the results as well。Okay so this is how we train
     the model now how do we use the model and that's the point about trying to do
     rollouts for the model so here again this is going to be similar to doing an autoregressive
     generation there was an important token here which was the returns to go。
+  id: totrans-51
   prefs: []
   type: TYPE_NORMAL
+  zh: 而这些最终会变得更难以优化和扩展。这就是你看到结果中存在很多差异的原因。好的，那么这是我们训练模型的方式，现在我们如何使用模型，这就涉及到为模型进行回放的问题，这里将类似于自回归生成，其中一个重要的标记是“未来回报”。
 - en: And what we need to set during evaluation， presumably we want export level performance
     because that will have the highest returns。so we set the initial returns to go。Not
     based on a tragic tree because now we don't have a tragic tree we're going to
     generate a tragic tree so this is at entrance time。
+  id: totrans-52
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们在评估时需要设置什么，假设我们想要专家级表现，因为那将有最高的回报。所以我们设置初始回报为进行。不是基于悲惨树，因为现在我们没有悲惨树，我们将生成一个悲惨树，所以这是在入口时。
 - en: so we will set it to the expatory term for instance。So in code what this whole
     procedure would look like is basically you set this returns to go token to as
     some target return and you set your initial state to one from the environment
     distribution of initial states。
+  id: totrans-53
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我们会将其设置为暴露项。例如，在代码中，这整个过程的样子基本上是将这个回报标记设置为某个目标回报，并将初始状态设置为来自初始状态分布的一个。
 - en: And then you just roll out your decision transformer。So you get a new action。this
     action will also give you a state and reward from the environment。you append them
     to your sequence and you get a new returns to go and you take just the context
@@ -386,28 +496,36 @@
     then field it back to the distant transformer。So it's regular auto regressive
     generation， but the only key point to notice is how you initialize the transformer
     for RL。
+  id: totrans-54
   prefs: []
   type: TYPE_NORMAL
+  zh: 然后你只是推出你的决策变换器。这样你就得到了一个新的动作。这个动作也会给你环境中的状态和奖励。你将它们附加到你的序列中，你得到新的回报，并且只取上下文和关键，因为这是变换器用来做出预测的，然后将其反馈给远程变换器。所以这是常规的自回归生成，但要注意的关键点是你如何为强化学习初始化变换器。
 - en: So add one question here。So how much is it choice on the expert target written
     method。is it does it have to be like the mean expert reward or can it be like
     the maximum reward possible in demand？
+  id: totrans-55
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以在这里添加一个问题。那么在专家目标书写方法上，这个选择有多大？是否必须像平均专家奖励那样，还是可以是需求中可能的最大奖励？
 - en: 😊，Like， does that try of the number really matter？That's a very good question。so
     we generally would set it to be slightly higher than the max return in the data
     so I think the fact that we use was 1。1 times， but I think we have done a lot
     of experimentation in the range and it's fairly robust to what choice you use。So
     for example， for hopper export returns about 3600 and we have found very stable
     performance from all the way from like 30。
+  id: totrans-56
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，那么，这个数字的尝试真的重要吗？这是一个很好的问题。我们通常会将其设置为稍高于数据中的最大回报，所以我认为我们使用的事实是1.1倍，但我认为我们在这个范围内进行了很多实验，而且它对你使用的选择相当稳健。例如，对于hopper专家，回报大约为3600，我们发现从30开始的表现非常稳定。
 - en: 5400 to even going to very high numbers like 5000 it works。嗯。Yeah， so however。I
     would want to point out that this is something which is not typically needed in
     regular RL like knowing the exposure return here we are actually going beyond
     regular Rl and that we can choose a return we want so we also actually need this
     information about what the exposure return is。
+  id: totrans-57
   prefs: []
   type: TYPE_NORMAL
+  zh: 从5400甚至高达5000的数字都有效。嗯。是的，不过我想指出的是，这在常规强化学习中通常并不需要，比如知道暴露回报，而我们实际上是超越常规强化学习，可以选择我们想要的回报，因此我们确实需要知道暴露回报是什么。
 - en: At that point。Thanks。There's another question。Yes， so yeah， it' just you。you
     cannot be on the regular oil， but I'm curious about。Do you also like restrict
     this framework to only offline oil cost。If you wanna run this kind of framework
@@ -416,169 +534,221 @@
     I think asking this question as well earlier that yes， I think for now this is
     the first work。so we were focusing on offline Rs where this information can be
     gathered from the offline data set。
+  id: totrans-58
   prefs: []
   type: TYPE_NORMAL
+  zh: 到那时。谢谢。还有一个问题。是的，所以是的，这只是你。你不能在常规油上，但我很好奇。你是否也限制这个框架仅限于离线油成本。如果你想在在线油中运行这种框架，你必须事先确定回报。因此，这种框架我认为仅限于离线油。你觉得呢？是的，我认为是的，早些时候也问过这个问题，是的，我认为现在这是第一项工作。所以我们专注于离线强化学习，这些信息可以从离线数据集中获取。
 - en: 啊。It is possible to think about strategies on how you can even get this online
     what you'll need is a curriculum so early on during training as you're gathering
     data。You will set when you're doing rollouts， you will set your export return
     to whatever you see in the data set。
+  id: totrans-59
   prefs: []
   type: TYPE_NORMAL
+  zh: 啊。可以考虑一些策略，想想你如何在线获得这些信息，你需要一个课程，所以在训练初期，当你收集数据时。当你进行推出时，你会将你的专家回报设置为数据集中看到的任何内容。
 - en: And then incremented as when we start seeing that the transformer can actually
     exceed that performance。So you can think of specifying a curriculum from slow
     to high for what that export return could be for Biitzitchu rollout。Chs the the
     decision transforming。I say cool。 Thank you。So yeah， this was about the model。so
     we discussed how this model is， what the input to these model are， what the outputs
     are。
+  id: totrans-60
   prefs: []
   type: TYPE_NORMAL
+  zh: 然后随着我们开始看到变换器实际上可以超越该性能而递增。因此你可以认为，从慢到快为Biitzitchu回滚指定一个课程，决策变换。我说太好了。谢谢。所以是的，这就是关于模型的内容。我们讨论了这个模型是什么，输入是什么，输出是什么。
 - en: what the loss function is used for training this model， and how do we use this
     model at test time。There is a connection to this framework as being one way to
     instantiate what is often known as all as probabilistic inference。So we can formulate
     RL as a graphical model problem where you have these states and actions being
     used to determine what the next state is。And to encode a notion of optimality，
     typically you would also have these additional a variables， 01。
+  id: totrans-61
   prefs: []
   type: TYPE_NORMAL
+  zh: 训练该模型使用的损失函数是什么，以及我们在测试时如何使用该模型。这个框架与通常称为概率推断的实例化方式有联系。因此我们可以将强化学习公式化为一个图模型问题，其中使用这些状态和行为来确定下一个状态。为了编码最优性概念，通常还会有这些额外的变量，01。
 - en: 02 and so on forth， which are implicitly saying that encoding some notion of
     reward。and conditioned on this optimality being true， RL is the task of learning
     a policy。which is the mapping from states to actions such that we get optimal
     behavior。And if you really squint your eyes， you can see that these optimality
     variables and decision transformers are actually being encoded by the returns
     to go。
+  id: totrans-62
   prefs: []
   type: TYPE_NORMAL
+  zh: 02 以及其他隐含表示编码某种奖励的内容。基于这一最优性成立，强化学习的任务是学习一种策略，即从状态到行为的映射，以实现最优行为。如果你仔细观察，你会发现这些最优性变量和决策变换器实际上是通过返回值进行编码的。
 - en: 😊，So if then we give。A value that's high enough at this time during rollouts
     like the expert return。we are essentially saying that conditioned on this being。The
     mathematical form of quantification of optimality。Roll out your listen transformer
     to hopefully satisfy this condition。So。Yeah。
+  id: totrans-63
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，所以如果我们在回滚期间给予一个足够高的值，比如专家返回，我们实际上是在说，基于这一点。最优性的数学量化形式。希望你能实现这个条件。
 - en: so this was all I want to talk about the model' can you explain that， please？
+  id: totrans-64
   prefs: []
   type: TYPE_NORMAL
+  zh: 这就是我想谈论模型的全部内容。你能解释一下吗？
 - en: What do you mean by optimality variables in the decision transformer and how
     do you mean like return to go？
+  id: totrans-65
   prefs: []
   type: TYPE_NORMAL
+  zh: 你在决策变换器中所说的最优性变量是什么意思，返回值又是什么意思？
 - en: Right， so optimality variables we can think in the more simplest context as
     legislative or binary。so one is if you。Solt the goal and zero as if you did not
     solve the goal。And what basically in that case， you could also think of your decision
     transformer as at test time and we encode the returns to go。We could set it to
     one， which will basically mean that conditioned on optimalities optimality here
     means。
+  id: totrans-66
   prefs: []
   type: TYPE_NORMAL
+  zh: 对，所以我们可以在更简单的上下文中将最优性变量视为立法或二进制。一个是如果你达成目标，另一个是如果你没有达成目标。在这种情况下，你也可以考虑在测试时编码返回值。我们可以将其设置为一，这基本上意味着基于最优性的最优性。
 - en: Solving the goal as one。Generate me the sequence of actions such that this would
     be true。Of course。our learning is not perfect， so it's not guarantee we'll get
     that。but we have trained the transformer in a way to interpret the returns to
     go as some notion of optimality。So is it is it if I'm interpreting this correctly，
     it's roughly like saying。
+  id: totrans-67
   prefs: []
   type: TYPE_NORMAL
+  zh: 将达成目标视为一。生成一系列行动，使其成立。当然，我们的学习并不完美，所以不能保证我们能做到这一点。但我们已经训练了变换器，以一种方式将返回值解释为某种最优性概念。如果我正确理解的话，基本上可以说。
 - en: show me what an optimal sequence of transitions look like。Because you've learned
     the model has learned sort of both successful and unsuccessful transitions。Exactly
     exactly and as we shall seen some experiments， we can for the binary case。it's
     either optimal or non optimal， but rarely this can be a continuous variable which
     it is in our experiment so we can also see what happens in between experimentally。
+  id: totrans-68
   prefs: []
   type: TYPE_NORMAL
+  zh: 展示一个最优转换序列是什么样子的。因为你已经学习到模型已经学习了成功和不成功的转换。确切地说，正如我们将看到的一些实验，对于二元情况，它要么是最优的，要么不是，但很少情况下它可以是连续变量，而在我们的实验中确实如此，因此我们也可以实验性地观察其间的情况。
 - en: 😊，哦。Okay， so let's jump into the experiments so there are a bunch of experiments
     and I've picked out a few which I think are interesting and give the key results
     in the paper but feel free to refer the paper for you and even more detailed analysis
     on some of the components of our module。
+  id: totrans-69
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，哦。好的，让我们进入实验，有很多实验，我挑选了一些我认为有趣的，给出论文中的关键结果，但随时可以参考论文，获取我们模块某些组件的更详细分析。
 - en: So this first we can look at how well does it do on offline RL。so there are
     benchmarks for the Atari suite of environments and the Open eye gym and we have
     another environment keyto door which is especially hard because it contains Pass
     Was and requires you to do credit assignment that I'll talk about later。
+  id: totrans-70
   prefs: []
   type: TYPE_NORMAL
+  zh: 首先，我们可以看看它在离线RL上的表现。对于Atari套件环境和OpenAI Gym有基准测试，还有一个特别难的环境Keyto Door，因为它包含通道，并要求你进行信用分配，稍后我会谈到这一点。
 - en: But across the board we see that thisilent transformer is competitive with the
     state of the art model free offline RL methods in this case。this was a version
     of Q learning designed for offline RL。And it can do excellent when especially
     when there is long term assignment where traditional methods based on T learning
     would fail。Yeah， so the takeaway here should not be that we should we are at the
     stage where we can just substitute the existing algorithms for the decision transformer。
+  id: totrans-71
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是我们看到，这种沉默的变换器在这个案例中与最先进的无模型离线RL方法具有竞争力。这是为离线RL设计的Q学习版本。当涉及长期分配时，它能表现出色，而传统的基于T学习的方法则会失败。是的，所以这里的要点不应该是我们已经可以用决策变换器替代现有算法。
 - en: but this is a very strong evidence in favor that this paradigm which is building
     on transformers will permit us to better aerate and improve the models to hopefully
     surpass the existing algorithms uniformly。and there is some early evidence of
     that in harder environments which do require credit long term credit assignment。
+  id: totrans-72
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是这强有力的证据支持这个基于变换器的范式将允许我们更好地通气和改进模型，希望能够均匀超越现有算法。而且在需要长期信用分配的更困难环境中也有一些早期证据。
 - en: Can I ask a question here about the baseline， specifically TD learning？
+  id: totrans-73
   prefs: []
   type: TYPE_NORMAL
+  zh: 我可以在这里问一个关于基线的问题，具体是TD学习吗？
 - en: I'm curious to know because I know that a lot of TD learning agents are feed
     forward networks are these baselines do they have recurrence。Yeah， yeah， so I
     think the conservative dual learning baselines here did have recur。but I'm not
     very sure so I can check back on this offline and get back to you on this。O k。Will
     be okay。Thank you。Also another quick question。
+  id: totrans-74
   prefs: []
   type: TYPE_NORMAL
+  zh: 我很好奇，因为我知道很多TD学习代理都是前馈网络，这些基线是否有递归结构。是的，保守的双重学习基线确实有递归。但我不太确定，可以在离线时再查一下，回头告诉你。好的，没问题，谢谢。还有一个快速的问题。
 - en: so just how exactly do you evaluate the decision transformer here in the experiment
     so because you need to supply the returns to go so do you use the optimal。Like
     policy to get what's optimal reward and that in。so so here we basically look at
     the offline data that that is useful for training。And we said whatever was the
     maximum return in the offline data， we set the。
+  id: totrans-75
   prefs: []
   type: TYPE_NORMAL
+  zh: 那么，你是如何在实验中评估决策变换器的，因为你需要提供目标回报。你是否使用了最优策略来获取最优回报？在这里，我们基本上查看有用的离线数据进行训练。我们设定了离线数据中的最大回报。
 - en: Desire target are going to go as slightly higher than that， so 1。1 broke coefficient
     used。I see so and the performance sorry I'm not really what we're seeing or else
     but how is the performance defined here it just like is how much reward you get
     actually from the Yes yes so you can specify target return to go。
+  id: totrans-76
   prefs: []
   type: TYPE_NORMAL
+  zh: 目标回报略高于此，所以使用了1.1的系数。我明白了，关于表现，抱歉我不太明白我们看到的是什么，但这里的表现是如何定义的，是你实际获得的奖励吗？是的，你可以指定目标回报。
 - en: but there's no guarantee that the actual actions that you take will achieve
     that return so yeah so you you measure the true environmental return based on
     yeah I see but then like just curious like so what so are these performance the
     percentage you get like for like how much I guess your you recover from。
+  id: totrans-77
   prefs: []
   type: TYPE_NORMAL
+  zh: 但没有保证你所采取的实际行动能够实现那个回报，所以你需要根据实际环境回报进行衡量。我明白了，但我好奇这些表现百分比是如何计算的，比如你从中恢复了多少。
 - en: The next few months yeah so these are not percentages。these are some we have
     normalizing the returns so that everything costs between the 200。Yeah， yeah。I
     see then just wonder if you have a like a rough idea about how much like reward
     actually is recovered by the student transformers like does they say like if you
     specify。I want to get like 50 rewards， does it get 49 or is this even better sometimes
     or。
+  id: totrans-78
   prefs: []
   type: TYPE_NORMAL
+  zh: 接下来的几个月，是的，这些不是百分比。这是我们对回报进行规范化，使其在200之间。是的，我明白了。那么我只是想知道，学生变换器实际回收了多少奖励，比如说如果你指定。我想要50个奖励，它能得到49个，还是有时能更好一些？
 - en: That's an excellent question and my next。So here we're going to answer precisely
     this question that will asked is like if you feed in the target return。it could
     be expert or it could also non be expert how well does the mall actually do in
     attaining it？
+  id: totrans-79
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是一个很好的问题，我的下一个问题。在这里，我们将精确回答这个问题：如果你输入目标回报，它可以是专家的也可以是非专家的，那么模型实际上在实现这一点方面表现如何？
 - en: 😊，So the x axis is what we specify as the target return we want。and the y axis
     is basically how much， how well do we actually get？For reference。we have this
     green line， which is the oracles， so which means。😊。Whatever you desire that this
     student transformer gives it to you so this would have been the ideal case。
+  id: totrans-80
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，所以x轴是我们指定的目标回报，y轴基本上是我们实际获得的程度。作为参考，我们有这条绿色线，即神谕线，这意味着。😊。无论你希望得到什么，这个学生变换器都能给你，所以这将是理想情况。
 - en: so it's a diagonal。We also have， because this is offline RL we have in orange。what
     was the best project between data sets， so the offline data is not perfect。so
     we just plot what is the upper bound on the offline data performance。And here
     we find that for the majority of the environments。
+  id: totrans-81
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以这是一个对角线。我们还因为这是离线RL，所以有橙色的。哪个是数据集之间的最佳项目，所以离线数据并不完美。我们只是绘制了离线数据性能的上限。在这里我们发现大多数环境都是如此。
 - en: there is a good fit between the target return we feed in and the actual performance
     of the model。And there are some other observations which I wanted to take from
     this slide is that。Because they can vary this notion of reward。We can in some
     sense do multitask R by reward condition return conditioning this is not the only
     way to do multitask parallel you can specify a task via natural language you can
     via goal state and so on forth。
+  id: totrans-82
   prefs: []
   type: TYPE_NORMAL
+  zh: 目标回报与我们输入的目标回报和模型实际表现之间的契合度良好。我还想从这一幻灯片中提取一些其他观察结果。因为他们可以变化这种奖励的概念。从某种意义上说，我们可以通过奖励条件返回进行多任务R，这并不是进行多任务平行的唯一方法，你可以通过自然语言指定任务，或者通过目标状态等等。
 - en: but this is one notion where the notion of a task could be how much reward you
     want。嗯。And another thing to notice is occasionally these smallest extrapolate
     this is not a trend we have been seeing consistently。but we do see some signs
     of it， So if you look at for example Sequest。😊，Here。the highest return tri cleanerer
     data sets was pretty low。
+  id: totrans-83
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是这是一个概念，其中任务的概念可能是你想要多少奖励。嗯。另一个需要注意的是，这些最小值偶尔会外推，这不是我们一直看到的趋势。我们确实看到一些迹象，所以如果你看一下例如Sequest。😊，在这里，最高的回报三清数据集相当低。
 - en: And if we specify a return higher than that。For our decision transformer。we
     do find that the model is able to achieve。So it is able to generate tragic trees
     with returns higher than it ever saw in the day。嗯。I do believe that future work
@@ -586,15 +756,19 @@
     be more consistent across environments because this would really achieve the goal
     of offine RL。which is given suboptimal behavior， how do you get optimal behavior
     out of it？
+  id: totrans-84
   prefs: []
   type: TYPE_NORMAL
+  zh: 如果我们指定一个比这更高的回报。对于我们的决策变换器。我们确实发现模型能够实现。因此，它能够生成比它以前在数据中看到的更高的回报树。嗯。我确实相信，未来在这个领域的工作应考虑如何使这一趋势在不同环境中更加一致，因为这将真正实现离线RL的目标。即在次优行为下，如何从中获得最佳行为？
 - en: But remains to be seen how well this trend can be made consistent across environments。Can
     I jump in with a question。Yes， so I think that last point is really interesting
     and it's cool that you guys occasionally see it。I'm curious to know what happens。So
     this is all condition you give as an input。what return you would like and it tries
     to select a sequence of actions that gives it。
+  id: totrans-85
   prefs: []
   type: TYPE_NORMAL
+  zh: 但仍需观察这个趋势在不同环境中能否保持一致。我可以插入一个问题吗？是的，所以我觉得最后一点非常有趣，你们偶尔看到这个真不错。我很好奇会发生什么。所以这都是你作为输入给出的条件。你想要什么回报，它就会尝试选择一系列能够提供的行动。
 - en: I'm curious to know what happens if you just give it ridiculous inputs like
     for example。you know here here the order of magnitude for the return is like 50
     to 100。What happens if you put in 10000。Good question and this is something we
@@ -602,155 +776,205 @@
     high returns which not even an expert could get and generally we see this leveling
     performance so you can see hints of it in half Che arm and you know pong as well
     or Walker to some extent that if you look at the very end things start saturating。
+  id: totrans-86
   prefs: []
   type: TYPE_NORMAL
+  zh: 我很好奇，如果你给它一些荒谬的输入会发生什么，比如说，你知道这里的回报数量级大概是50到100。如果你输入10000会怎样？好问题，这是我们早期尝试过的事情。我不想说我们是否尝试过10000，但我们确实尝试过一些很高的回报，这连专家都无法获得，通常我们会看到这种性能水平的现象，所以你可以在Half
+    Cheetah和Pong等游戏中看到一些迹象，或者在Walker中，在你观察最后时刻时，事情开始饱和。
 - en: 😊，So if you exceed what is like certain threshold which often corresponds with
     the best tragic threshold。but not always beyond that everything is similar returns
     so it's not that it so at least one good thing is it does not degrade in performance
     so it would have been a little bit worrying if you specified a return of 10000
     and gives you return which is。
+  id: totrans-87
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，所以如果你超过了某个阈值，这个阈值通常对应于最佳的回报阈值，但并不总是如此，超出这一点后，所有的回报都是相似的。因此至少有一点好事是，它的性能不会退化，所以如果你指定一个10000的回报而得到的回报是这样的，那就会有点令人担忧。
 - en: Train0 or something really new。So it's good that it stabilizes。but it's not
     that it keeps increasing on and on， so there would be a point where the performance
     would get saturated。Okay， thank you。I was also curious like so usually for transfer
     models you need a lot of data。so do you know how well like like how much data
     do you need like how where does it scale the data the performance？
+  id: totrans-88
   prefs: []
   type: TYPE_NORMAL
+  zh: Train0或其他一些新的东西。所以稳定化是好的，但这并不是说它会持续不断地增加，因此会有一个点，性能会达到饱和。好的，谢谢。我也很好奇，通常对于迁移模型，你需要很多数据。那么你知道需要多少数据吗？数据的规模和性能之间的关系是什么？
 - en: Yeah， so here we use。The standard。UmData like the D4 RL benchmarks for Mexico。which
     I think have million u transitions in the order of millions。For。Atari。we used
     one person of the replay buffer， which is smaller than the one we used for the
     Mujoco benchmarks。and I actually have a result in the very next slide which shows
     dis transformer especially being useful when you have a little data。
+  id: totrans-89
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，所以在这里我们使用了标准的数据，比如D4RL的墨西哥基准，我认为有数百万的转移数据。对于Atari，我们使用了重放缓冲区中的一部分，这个规模小于我们用于Mujoco基准的数据。我在下一张幻灯片中有一个结果，显示了在数据较少时，变换器特别有用。
 - en: So yeah， so I guess one question to ask before you move on。In the last slide。what
     do you mean again by return conditioning for like the multitask part？Yeah。so if
     you think about the returns to go at test time。the one you feed have to feed in
     as the starting token。As one girl。Specifying what policy you want。
+  id: totrans-90
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以是的，我想在你继续之前问一个问题。在上一张幻灯片中，你再次提到的多任务部分的回报条件是什么意思？是的，所以如果你考虑测试时的目标回报，你必须作为起始标记输入的那一个。作为一个标记，指定你想要的策略。
 - en: 喂。How is that multit？So it's multitask in the sense that because you can get
     different policies by changing your target return to go。you're essentially getting
     different behaviors encoded so think about for instance a hopper and you specify
     a return to go that's really low。
+  id: totrans-91
   prefs: []
   type: TYPE_NORMAL
+  zh: 喂，这样的多任务怎么理解？所以它是多任务，因为你可以通过改变目标回报来获得不同的策略，实质上是在编码不同的行为。例如，想象一个跳跃者，你指定一个非常低的目标回报。
 - en: So you're basically saying， get me an agent which will just stick around its
     initial state。And not going into unchared territory。And if you give it really，
     really high。then you're asking it to do the traditional task， which is to hop
     and go as far as possible without falling but can you qualify those multitask
     because that basically just means that your return conditioning is a cue for it
     to memorize right which is usually like one of the pitfalls of multitask。
+  id: totrans-92
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以你基本上是说，给我一个代理，它只会停留在初始状态，而不会进入未知领域。如果你给它非常非常高的目标回报，那么你要求它执行的传统任务就是跳跃并尽可能远地移动而不摔倒，但你能否对那些多任务进行量化，因为这基本上意味着你的回报条件是它记忆的提示，对吧？这通常是多任务的一个陷阱。
 - en: So I'm not sure if it's a task identifier， that's what I'm trying to say。So
     I'm not sure if it's memorization because like I think the purpose of this。I mean。like
     having an offline data set that's fixed is basically saying that it's very。very
     specific to if you had the same start state and you took the same actions and
     you had the same target fair turns。
+  id: totrans-93
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我不确定这是否是任务标识符，这正是我想说的。我不确定这是否是记忆化，因为我认为这个目的。就是说，拥有一个固定的离线数据集基本上是在说，如果你有相同的起始状态并采取相同的动作，并且有相同的目标公平收益，这将是非常特定的。
 - en: that would qualify as memorization。But here at test time we allow all of these
     things to change and in fact they do change so your initial state would be different。your
     target return it could be very could be a different scalar than one you ever saw
     during training。
+  id: totrans-94
   prefs: []
   type: TYPE_NORMAL
+  zh: 这将被视为记忆化。但在测试时，我们允许所有这些东西发生变化，实际上它们确实会变化，所以你的初始状态会不同，目标收益可能与训练期间看到的完全不同。
 - en: It yeah and so so essentially the model has to learn to generate that behavior
     starting from a different initial state and maybe a different value of the target
     return than it saw during during during training if the dynamics are stochastic
     that also makes so that even if you memorize the actions you're not guaranteed
     to get the next the same next state。
+  id: totrans-95
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，因此本质上模型必须学习在不同的初始状态和目标收益值下生成该行为，这与训练期间看到的情况可能不同。如果动态是随机的，即使你记住了动作，也不能保证得到相同的下一个状态。
 - en: so you would actually have a bad correlation with the performance of the dynamics
     are also stochastic。Also， I was very curious how much time does it take to train
     business transformer？In general。So it takes about a few hours， so I want to say
     like about。45 hours。Depending on what quality GPU use， but yeah thats that's a
     reasonable estimate y call it thanks。Okay。
+  id: totrans-96
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以你实际上会与动态性能有不良相关性，因为动态也是随机的。另外，我很好奇训练商业变换器需要多少时间？一般来说，大约需要几个小时，我想说大约是45小时。这取决于使用的GPU质量，但这是一个合理的估计。
 - en: so actually while doing this experiment， this project。we thought of a baseline
     which we were surprised as not there in previously traditional on offine RL but
     makes very much sense and we thought we should also think about whether decision
     transformers are actually doing something very similar that baseline and the baseline
     is what we call as person behavioral cloning。
+  id: totrans-97
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以实际上在进行这个实验和项目时，我们想到了一个基线，我们很惊讶在之前的传统离线RL中并不存在，但它非常有意义，我们还想考虑决策变换器是否在做一些类似的事情，而这个基线我们称之为个人行为克隆。
 - en: So behavioral clo， what it does is basically it ignores the returns。And simply
     imitates the agent looking by just trying to map the actions given the current
     states。This is not a good idea with an offline inter set which will have project
     trees of both low returns and high returns。So traditional vehicle cloning， it's
     common to see that as a baseline in offline Ral methods and it is unless you have
     a very high quality data set。
+  id: totrans-98
   prefs: []
   type: TYPE_NORMAL
+  zh: 行为克隆的作用基本上是忽略收益，简单地通过尝试映射当前状态下的动作来模仿代理。这在离线数据集上不是一个好主意，因为它会有低收益和高收益的项目树。传统的车辆克隆，通常被视为离线RL方法的基线，除非你拥有非常高质量的数据集。
 - en: does it is not a good baseline for offline RL。However， there is a version that
     we call as Per BC。which actually makes quite a lot of sense and in this version。We
     filter out the top tra trees from our offline set。once stop the ones which have
     the highest rewards。
+  id: totrans-99
   prefs: []
   type: TYPE_NORMAL
+  zh: 这对于离线RL来说并不是一个好的基线。然而，有一个我们称之为Per BC的版本，这实际上是有意义的。在这个版本中，我们从离线集中过滤出收益最高的项目树。
 - en: you know the rewards for each transition you calculate the returns of the tra
     trees and you take the tra trees with the highest returns and keep a certain percentage
     of them。which is going to be hyperparameter here。And once you keep those top fraction
     of your tragic trees。
+  id: totrans-100
   prefs: []
   type: TYPE_NORMAL
+  zh: 你知道每个转移的奖励，你计算项目树的收益，保留收益最高的项目树，并保持一定的百分比，这将是超参数。一旦你保留了这些最高比例的项目树。
 - en: you then just ask your module to imitate them。Whi so imitation learning also
     uses especially when it's used in the form of behavioral planning。it uses supervised
     learning， essentially it's a supervised learning problem so you could actually
     also get supervised learning objective functions if you did this filtering step。
+  id: totrans-101
   prefs: []
   type: TYPE_NORMAL
+  zh: 然后你只是要求你的模块模仿它们。因此，模仿学习也特别使用，尤其是在行为规划的形式中。它使用监督学习，基本上是一个监督学习问题，因此如果你执行这个过滤步骤，实际上也可以得到监督学习的目标函数。
 - en: Oh。So。And what we find actually that for the moderate and highal regimes。the
     recent transform is actually very comparable to Pu and VC so it's a very strong
     baseline which I think all the future work in offline Rs should include there's
     actually an eyeC submission from last week which has a much more detailed analysis
     on justice this baseline that introduced in this paper。
+  id: totrans-102
   prefs: []
   type: TYPE_NORMAL
+  zh: 哦。我们发现，实际上在中等和高数据情况下，最近的变换器与 Pu 和 VC 非常可比，因此这是一个非常强的基线，我认为所有未来的离线 Rs 工作都应该包括这个。实际上，上周有一篇提交的
+    eyeC 文章对此基线进行了更详细的分析，这在本论文中有所介绍。
 - en: And。What we do find is that for low data regimes the dis transformer does much
     better than person behavioral clo。so this is for the Atari benchmarks where like
     I previously mentioned we have a much smaller data set。As compared to the Mojoko
     environments， and here we find that for even after varying the different fraction
     of the percentage hyperparameter here。we are generally not able to get the strong
     performance status in transformer gets。
+  id: totrans-103
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们发现，在低数据情况下，变换器的表现远远优于行为克隆。这是针对 Atari 基准测试的，正如我之前提到的，我们的数据集要小得多。与 Mojoko 环境相比，我们发现即使在不同的百分比超参数变化下，通常也无法达到变换器的强性能。
 - en: So 10% DCc basically means that we filter out and keep the top 10% of the trajectories
     if you go even lower then the start data set becomes fairly small so the baseline
     become meaningless。But for even the reasonable ranges， we'd never find the performance
     matching that of the transformers for these Atari benchmarks。
+  id: totrans-104
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以 10% DCc 基本上意味着我们过滤掉并保留前 10% 的轨迹，如果你再低一些，起始数据集就会变得相当小，因此基线变得毫无意义。但是对于合理的范围，我们从未发现性能能匹配变换器在这些
+    Atari 基准测试中的表现。
 - en: 呃的铁 I may。So I notice in table three， for example， which is not this table with
     one just before in the paper。there's a report on the CQL performance， which to
     me also feels you know intuitively pretty similar to the percent BC in the sense
     of like you pick trajectories you know performing well and you try and stay roughly
     within sort of the same kind of policy distribution。
+  id: totrans-105
   prefs: []
   type: TYPE_NORMAL
+  zh: 嗯，我可能注意到了。在第三张表中，例如，这不是论文前面的那张表。这里有关于 CQL 性能的报告，这让我觉得在直觉上与百分比 BC 相似，意思是你选择表现良好的轨迹，并尽量保持在相似的策略分布内。
 - en: It state space distribution。I was curious on this one。do you have a sense of
     what the CQL performance was relative to say the percent BC performance here？
+  id: totrans-106
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是状态空间分布。我对此感到好奇。你是否知道 CQL 性能相对于这里的百分比 BC 性能如何？
 - en: So that's a great question， question is that even for CQL you rely on this notion
     of pessimism where you want to pick trajectories where you're more confident in
     and try to make sure policy remains in that region。so I don't have the numbers
     with CQL on this table。
+  id: totrans-107
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以这是个好问题，问题是即使对于 CQL，你也依赖于这种悲观的概念，在选择更有信心的轨迹时，并努力确保策略保持在该区域。所以我没有这个表中 CQL 的数字。
 - en: but if you look at the detailed results for Atring。Then I think should they
     should have the SQL for sure because that's the numbers we are reporting here
     so I can tell you what the sQL performance is actually pretty good and it's very
     competitive。When the decision transformer for aary？So this TD learning baseline
     here is SeQ。So financially by extension， I would imagine it doing better than
     person B。Yeah。
+  id: totrans-108
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是如果你查看 Atring 的详细结果。我认为他们肯定应该有 SQL，因为这就是我们在这里报告的数字，所以我可以告诉你，SQL 性能实际上相当不错，而且竞争力很强。当决策变换器针对
+    aary 时？所以这里的 TD 学习基线是 SeQ。因此，从财务角度来看，我想它的表现会比 B 个人更好。是的。
 - en: And apologize apologize if this was mentioned， I just missed it。but if you have
     the sense that this is basically like a failure of CQL to be able to extrapolate
     well or sort of stitch together different parts of trajectories。Whereas a decision
@@ -759,46 +983,60 @@
     good so you can actually piece those together a decision transformer where you
     can't necessarily do that with CQL because the path connecting those may not necessarily
     be well covered by the behavior policy。
+  id: totrans-109
   prefs: []
   type: TYPE_NORMAL
+  zh: 如果之前提到过，我表示歉意，我只是错过了。但是如果你有感觉，这基本上是CQL在外推方面的失败，或者说在拼接轨迹的不同部分时存在问题。而决策变换器能够进行这种外推，比如第一段轨迹非常好，第二段轨迹也很好，因此可以将它们拼接起来，而CQL可能做不到，因为连接这些的路径可能未被行为策略良好覆盖。
 - en: Yeah， yeah， so and this actually goes to one of the intuitions which I did not
     emphasize too much。but we have a discussion on the paper where essentially why
     do we expect a transformer or any model for that matter to look at offline data
     that's suboptimal and get something a policy which generates optimal loadouts？
+  id: totrans-110
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，是的，这实际上涉及到一个我没有强调太多的直觉，但我们在论文中讨论了，基本上我们为什么期望变换器或任何模型查看次优的离线数据并得到生成最优负载的策略？
 - en: The intuition is that as Scott was mentioning， you could perhaps。Stitch together。Good
     behaviors from suboptimal trajectories and that stitching could perhaps lead to
     a behavior that was better than anything you saw in individual tra trees in your
     data set。
+  id: totrans-111
   prefs: []
   type: TYPE_NORMAL
+  zh: 直觉是，如斯科特提到的，你或许可以将次优轨迹中的良好行为拼接在一起，而这种拼接可能会导致比数据集中单个轨迹更好的行为。
 - en: It's something we find earlier evidence of small skill experiment for graphs。and
     that's really our hope also that something that will transformers very good at
     because it can attend to very long sequences so it could identify those segments
     of behavior。
+  id: totrans-112
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是我们在小规模图实验中早期发现的证据。我们也希望变换器在这方面表现良好，因为它可以关注非常长的序列，因此能够识别这些行为片段。
 - en: which when stitch together would give you optimal optimal behavior。So。And it's
     very much possible that is something unique to this in transformers and something
     like CQL would not be able to do person BCC because it's filtering out the data
     is automatically being limited and not being able to do that because those segments
     of good behavior could be in trajectories which overall do not have a high return。
+  id: totrans-113
   prefs: []
   type: TYPE_NORMAL
+  zh: 当拼接在一起时，会给出最优的行为。所以，很可能这在变换器中是独特的，而像CQL这样的模型可能做不到，因为它过滤掉的数据是自动限制的，无法进行这样的操作，因为这些良好行为的片段可能出现在整体回报不高的轨迹中。
 - en: but so if you filter them out， you are losing all of that information。Okay。so
     I said there is hyperparameter the context in K and like with most of perception。one
     of the big advantages of transformers opposed to other sequence models like LSTMs
     is that they can process really large sequences。And here at a first glance， it
     might seem that being Markcoan would have been helpful for RL。
+  id: totrans-114
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是如果你将它们过滤掉，你就失去了所有这些信息。好的，我说过这里的超参数是上下文和K，和大多数感知模型一样，变换器相对于其他序列模型如LSTM的一个大优势是它们可以处理非常大的序列。从表面上看，这可能看起来在RL中使用Markovian会很有帮助。
 - en: which also was a question that was raised earlier。so we did this experiment
     where we did compare performance with context and K equals1 and here we had context
     and between 30 for the environments in 50 for pong and we find that increasing
     the context length is very。
+  id: totrans-115
   prefs: []
   type: TYPE_NORMAL
+  zh: 这也是之前提到的一个问题。因此，我们进行了这个实验，比较了上下文与K等于1的性能，这里我们有上下文，环境中为30，乒乓球为50，我们发现增加上下文长度是非常重要的。
 - en: very important to get good performance。Okay。Now呃。So so far I've showed you how
     this in transformformer。which is very simple， there was no slide I had which was
     going into the details of dynamic programming。which is the crux of most R， this
@@ -811,195 +1049,251 @@
     trajectory so every transition will have a zero reward except the very end where
     you get the entire reward at once it's a very sparse reward perform scenario for
     that reason。
+  id: totrans-116
   prefs: []
   type: TYPE_NORMAL
+  zh: 获取良好性能非常重要。好的。那么到目前为止，我给你展示了变换器中的这些内容，这非常简单，我没有哪一张幻灯片是深入探讨动态编程的，而动态编程是大多数R的关键，这只是纯粹的监督学习，在自回归框架下取得了良好的性能。嗯。那么在什么情况下这种方法实际上开始超越一些传统方法呢？所以为了进一步探讨，我们开始研究稀疏奖励环境，基本上我们只是拿现有的mojoku环境，然后不是为每个过渡提供奖励信息，而是在轨迹结束时给予累计奖励，所以每个过渡的奖励为零，只有在最后才能一次性获得全部奖励，这就是一个非常稀疏奖励的表现场景。
 - en: And here we find that。哦。Compared to the original denses results， the delayed
     results for Dt。they will deteriorate a little bit， which is expected because now
     you are withholding some of the more fine grain information at every time step。but
     the drop is。Not too significant compared to the original E performance here。whereas
     for something like CQL there is a drastic drop in performance so CQL suffers quite
     a lot in sparse reward scenarios。
+  id: totrans-117
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这里我们发现，哦。与原始密集结果相比，DT的延迟结果会稍微恶化，这是意料之中的，因为现在你在每个时间步骤都 withholding了一些更细粒度的信息，但与原始E性能相比，下降并不太显著。而对于CQL这样的算法，性能下降非常明显，所以CQL在稀疏奖励场景中受到了很大的影响。
 - en: but the distant transformer does more。And just for completeness if you also
     have performance of behavioral training and person behavioral clo。which because
     they don't look at reward information。except maybe person BC looks at only for
     preprocessing the data set。these are agnostic to whether the environments as spa
     wordss or not。
+  id: totrans-118
   prefs: []
   type: TYPE_NORMAL
+  zh: 但远程变换器做得更多。为了完整起见，如果你还看到了行为训练和个人行为克隆的性能，因为它们不看奖励信息，除了个人BC可能只是在预处理数据集时看一下。这些对环境是否稀疏并不敏感。
 - en: Would you expect this to be different if you were doing online R。嗯。What's the
     intuition for it being different April I would say no。but maybe I'm missing out
     on a key piece of intuition behind that question。嗯。I think that because you're
     training like offline， right。
+  id: totrans-119
   prefs: []
   type: TYPE_NORMAL
+  zh: 如果你在做在线R，你会期望这有所不同吗？嗯。为什么会有不同的直觉？我会说没有，但也许我错过了这个问题背后关键的直觉。嗯。我认为因为你是在离线训练，对吧。
 - en: like your're the next input will always be the correct action in that sense。So
     you don't just like deviate and like go off the rails technically because you
     just don't know。So I could see like how online would have like a really hard。Like
     cold start basically because it just doesn't know and it's just happeningping
     in the dark until it like maybe eventually hits the jackpot。
+  id: totrans-120
   prefs: []
   type: TYPE_NORMAL
+  zh: 就像你的下一个输入在某种意义上总是正确的行动。因此，你不会偏离轨道，因为你只是不知道。所以我能理解在线环境会非常困难。基本上因为它什么都不知道，都是在黑暗中摸索，直到可能最终获得成功。
 - en: Right， right I think I agree that so that's a good piece of intuition out there
     that yeah。I think here because offline R is really。Getting rid of the trial and
     error aspect of it and firstpa reward environment that would be harder so。The
     drop in DT performance should be more prominent there。I'm not sure how it would
     compare with the drop performance for other algorithms but it does seem like an
     interesting。
+  id: totrans-121
   prefs: []
   type: TYPE_NORMAL
+  zh: 对，对，我认为我同意，这确实是一个很好的直觉。我认为这里因为离线R真的在去除试错的方面，而在稀疏奖励环境中会更困难。因此，DT性能的下降在这里应该更加明显。我不确定它与其他算法性能下降的比较，但这似乎是一个有趣的点。
 - en: Set up to test DTN。Well and I did to maybe i'm wrong here。but my understanding
     with the decision transformer as well is this is this critical piece that in the
     training you use the rewards to go right so is it is it not the sense that essentially
     like。
+  id: totrans-122
   prefs: []
   type: TYPE_NORMAL
+  zh: 设置测试DTN。那么我也许错了，但我对决策变换器的理解是，在训练中你使用奖励进行正确的决策，所以这是不是意味着本质上。
 - en: は。For each trajectory from the initial state based on the training regime。The
     model has access to whether or not the final result was a success or failure，
     right？
+  id: totrans-123
   prefs: []
   type: TYPE_NORMAL
+  zh: 从初始状态出发，根据训练方案，模型可以知道最终结果是成功还是失败，对吧？
 - en: But that's sort of that's sort of the unique aspect of the training regime for
     decision transformers whereas in CQL。My understanding is that it's based on sort
     of a per transition。Training regime and so each transition is decoupled somewhat
     to what what the final reward was。is that correct？Yes， although like one difficulty
     which at a first glance you kind of imagined the discipline transform we're having
     is that。
+  id: totrans-124
   prefs: []
   type: TYPE_NORMAL
+  zh: 但这就是决策变换器训练方案的独特之处，而CQL则有所不同。我的理解是，它基于每个转换的训练方案，因此每个转换在某种程度上与最终奖励解耦。这是正确的吗？是的，尽管乍一看，纪律变换器所面临的一个困难是。
 - en: That initial token will not change throughout the trajectory。Yeah because it's
     this past reward scenario， so except the very last token where it will drop down
     to zero all of a sudden the token remains the same throughout。But maybe that that
     but I think you're right that maybe just even at this start。Peding it in a manner
     which looks at the future rewards that you need to get to is perhaps one part
     of the reason why the drop in performance is。
+  id: totrans-125
   prefs: []
   type: TYPE_NORMAL
+  zh: 最初的标记在整个轨迹中不会改变。是的，因为这是过去奖励的场景，所以除了最后一个标记会突然降到零之外，标记在整个过程中保持不变。但也许我认为你是对的，也许在这个开始的时候就能看到这一点。以一种关注未来奖励的方式进行训练，或许是性能下降的原因之一。
 - en: Not noticeable。Yeah， I mean， I guess one sort of abl experiment here would be
     if you change the training regime so that only the last trajectory had the award。but
     I'm trying to think about whether or not that would just be compensated for by
     sort of the attention mechanism anyway。
+  id: totrans-126
   prefs: []
   type: TYPE_NORMAL
+  zh: 不可察觉。是的，我想这里有一个实验，如果你改变训练方案，使得只有最后一个轨迹有奖励，但我在考虑这是否会被注意机制弥补。
 - en: And vice versa right， if you embedded that reward information into the CQL training
     procedure as well。I'd be curious to see what would happen there。Yeah， a good experiments。Okay，
     so related to this。theres another environment we tested I gave you a brief preview
     of the results in one of the earlier slides。so this is called the keycudo environment。😊，And
     it has three phases。
+  id: totrans-127
   prefs: []
   type: TYPE_NORMAL
+  zh: 反之也是对的，如果你将奖励信息嵌入到CQL训练过程中，我很想知道会发生什么。是的，这是一个很好的实验。好吧，关于这个，还有另一个我们测试过的环境，我在早些幻灯片中给你简要预览了结果。这个环境叫做keycudo环境。😊，它有三个阶段。
 - en: so in the first phase you the agent is placed in a room with the key。A good
     agent will pick up the key and then they do it replaced in an empty room。And in
     phase three。it will be placed in a room at the door where it will actually use
     the key that it collected in phase one if it did to open the door。😊，So essentially
     the agent is going to receive a binding reward corresponding to whether it reached
     and opened the door in phase three。
+  id: totrans-128
   prefs: []
   type: TYPE_NORMAL
+  zh: 在第一阶段，代理被放置在一个有钥匙的房间里。一个好的代理会捡起钥匙，然后把它放在一个空房间里。在第三阶段，它会被放在一个房间的门口，实际使用在第一阶段收集到的钥匙来打开门。😊，所以本质上，代理将获得一个绑定奖励，取决于它在第三阶段是否到达并打开了门。
 - en: Conditioned on the fact that it。Did pick up the key in phase one。So there is
     this national notion of that you want to assign credit to something that happened
     to an event that happened really in the past。so it's very challenging。And sensible
     scenario if you wanted to estimate models for how well they are at long term credit
     assignment。And here we find that so we tested it for different amounts of project
     trees。
+  id: totrans-129
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是基于它在第一阶段是否捡起钥匙的条件。因此，你想要将功劳分配给过去发生的事件，这是一个相对抽象的概念，所以这非常具有挑战性。如果你想估算模型在长期功劳分配上的表现，这在现实场景中是非常合理的。我们在这里发现，我们测试了不同数量的项目树。
 - en: so here the number of project trees basically see how often would you actually
     see this kind。Of behavior and the listen transformer is and person behavioral
     to both of these actually baseline。Do do much better than other models which struggle
     at this。does。哦。There's a related experiment there which is also of interest。
+  id: totrans-130
   prefs: []
   type: TYPE_NORMAL
+  zh: 在这里，项目树的数量基本上是看你实际上看到这种行为的频率，而听力变换器在这两种基线行为上表现得更好，实际上比其他模型要好得多，其他模型在这方面很挣扎。哦，还有一个相关的实验也很有趣。
 - en: so generally a lot of oral algorithms have this notion of an actor and a critic。actor
     is basically someone that takes actions condition on the states to think of a
     policy。a critic is basically evaluating how good these actions are in terms of
     achieving a long term。in terms of the cummulative sum of rewards in the long term。
+  id: totrans-131
   prefs: []
   type: TYPE_NORMAL
+  zh: 通常，很多口头算法都有演员和评论者的概念。演员基本上是根据状态采取行动的人，想象成策略。评论者则是在实现长期目标方面评估这些行动的好坏，即长期奖励的累积和。
 - en: This is a good environment because we can see how how well the distant transformer
     would do if it was trained as a critic so here what we did is。Instead of having
     the actions as the output target， what if you substituted that with the rewards？
+  id: totrans-132
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是一个良好的环境，因为我们可以看到远程变压器作为评论者训练时的表现。我们在这里做的就是，不是将动作作为输出目标，而是将其替换为奖励。
 - en: So that's very much possible， we can again use the same causal transformer machinery
     to only look at transitions in the previous time step and try to play the reward。And
     here we see this interesting pattern where in the three phases that we had in
     that key to door environment。
+  id: totrans-133
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以这很有可能，我们可以再次使用相同的因果变压器机制，仅关注前一个时间步骤的转变，并尝试玩弄奖励。在这里，我们看到在钥匙到门的环境中出现有趣的模式。
 - en: We do see the reward probability changing very much in how we expect so basically
     the three scenarios so the agent。the first scenario let's look at blue。In which
     the agent does not pick up the key in pays fund。So the reward probability， they
     all start around the same。but as it becomes apparent that the agent is not going
     to pick up the key。
+  id: totrans-134
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们确实看到奖励概率在预期中变化很大，因此基本上有三种场景。首先，看看蓝色场景，其中代理没有捡起钥匙并且付出了代价。因此，奖励概率都大致相同，但随着代理不去捡钥匙变得明显。
 - en: the reward starts going down。And then it stays very much close to zero throughout
     the episode because there is no way you will have the key to open the door in
     the future phases。If you pick up the key。There are two possibilities。哦。Which remain
     which are essentially the same in phase two where you are in an empty room。Which
     is just a distractor to make the episode really long。But at the very end。
+  id: totrans-135
   prefs: []
   type: TYPE_NORMAL
+  zh: 奖励开始下降。然后在整个剧集中保持接近零，因为未来阶段您无法拥有钥匙来打开门。如果您捡起钥匙，有两种可能性。哦。在第二阶段，您在一个空房间中，这只是一个干扰因素使剧集变得很长。但在最后。
 - en: the two possibilities are one that you take the key and you actually reach the
     door。which is the one we see in orange and brown here where you see that the reward
     probability goes up。😊，And is is this other possibility that you actually pick
     up the key but do not reach the door in which case。again， it starts seeing that
     the reward probability that's predicted starts going down？
+  id: totrans-136
   prefs: []
   type: TYPE_NORMAL
+  zh: 两种可能性是，一种是您拿到了钥匙并且实际上到达了门，这就是我们在这里看到的橙色和棕色部分，您会看到奖励概率上升。😊 另一种可能性是您拿到了钥匙，但没有到达门，在这种情况下，预测的奖励概率开始下降吗？
 - en: So the takeaway from this experiment is that mission transformers are not just
     great actors。which is what we've been seeing so far in the results from the optimized
     policy。but they are also very impressive critics in doing this long-tered and
     assignment where the reward is also very sparse。So just to be correct， are you
     predicting the rewards to go at each time stuff or is it is this like the the
     like the reward at each time stuff？
+  id: totrans-137
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以这次实验的主要结论是，任务变压器不仅仅是优秀的演员，这在我们从优化策略中看到的结果中已经很明显。它们在执行这项长期任务和稀疏奖励的任务时，也展现出非常出色的批评能力。那么，为了确保，您是预测每个时间点的奖励吗？还是这像是每个时间点的奖励？
 - en: But you predicting。So this was the rewards to go and I can also check my impression
     was in this particular the experiment it didn't really make a difference。whether
     we were predicting rewards to go or the actual rewards。But I think Lu returns
     to go further this one。Also most curious so how do you get the probability distribution
     on the rewards。is it just like you just evaluate a lot of different episodes and
     just part the rewards or are you explicitly predicting some sort of distribution？
+  id: totrans-138
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是您在预测。因此，这里的奖励是走向，而我也可以检查我的印象，在这个特定的实验中，预测走向奖励或实际奖励并没有什么区别。但我认为Lu对此更感兴趣。那么，您是如何获得奖励的概率分布的？是通过评估很多不同的剧集并只计算奖励，还是您明确预测某种分布？
 - en: Oh， so this is a binary reward so you can have a probabilistic outcome。哪的。have
     a question。yeah。So generally， we will call like some， something predicts the state
     value or state actual value as critic。But in this case， you， you ask decision
     transformer to only predict the reward。So why should you still call it a critic。So
     I think the analogy here gets a bit clear with returns to go。
+  id: totrans-139
   prefs: []
   type: TYPE_NORMAL
+  zh: 哦，所以这是一个二元奖励，这样你就可以有一个概率结果。哪的。我有个问题。是的。通常，我们会称某些东西预测状态值或状态实际值为评论员。但在这种情况下，你要求决策转换器仅预测奖励。那么你为什么还要称其为评论员呢？我觉得这里的类比通过“未来收益”变得更清晰。
 - en: like if you think what returns to go， it's really capturing that essence that
     you want to see the future rewards so I mean it's just going to predict the return
     to go instead of single step reward。right？Yeahや， yeah。Okay， so， so if you're gonna
     predict the returns to go is kind of counterintuitive to me because in phase  one。
+  id: totrans-140
   prefs: []
   type: TYPE_NORMAL
+  zh: 就像如果你想想“未来收益”，它确实抓住了你想看到未来奖励的本质，所以我的意思是它只会预测未来收益，而不是单步奖励。对吧？是的，好的，所以如果你要预测未来收益，对我来说有点反直觉，因为在第一阶段。
 - en: when the agent is still in the key room， I think you should have a like high
     returns to go if it pick up the K。But in in the plot you， you know， in the key
     room， the agents pick up K and the agent that。Didn't pick tea has the same kind
     level of returns to go。 So that's quite countertuitive to me。I think this is reflecting
     on a good property， which is that your distribution。Like if you interpret。
+  id: totrans-141
   prefs: []
   type: TYPE_NORMAL
+  zh: 当代理仍在钥匙房间时，我认为如果捡到K，它应该有很高的未来收益。但在图中，你知道，在钥匙房间，代理捡到K，而没有捡到T的代理却有相同水平的未来收益。所以这对我来说相当反直觉。我认为这反映了一个良好的特性，就是你的分布。就像如果你解释。
 - en: it turns to going the right way。In phase one， you don't know which of these
     three outcomes are really possible and phase one also I'm talking about the very
     big meaning basically。slowly you will learn about it， but essentially in phase
     one。if you see the returns to go as one or zero for all three possibilities are
     equally likely。And all three possibilities， so if we try to evaluate the predicted。
+  id: totrans-142
   prefs: []
   type: TYPE_NORMAL
+  zh: 它朝着正确的方向前进。在第一阶段，你不知道这三种结果中哪些是实际可能的，而第一阶段我也在谈论非常大的意义。你会慢慢了解它，但基本上在第一阶段，如果你看到所有三种可能的未来收益都是一或零，那是同样可能的。而所有三种可能性，如果我们尝试评估预测的。
 - en: Reward for these possibilities it shouldn't be the same。Because we really haven't
     done how we don't know what's going to happen in phase three sorry it's my mistake
     because previous that salter green line is the agent which doesn't pick up the。but
     it turns out a blue line is agent which doesn't pick up。Okay， so yeah， it's my
     best take okay。It makes sense to me。 Thank you。Alsomosts not like fully clear
     from the paper。
+  id: totrans-143
   prefs: []
   type: TYPE_NORMAL
+  zh: 这些可能性的奖励不应该是相同的。因为我们真的不知道在第三阶段会发生什么，对不起，这是我的错误，因为之前那个盐水绿线是代理，没选到。但结果是蓝线是代理，没选到。好的，所以是的，这是我最好的理解，好的。这对我有意义。谢谢。论文中似乎并没有完全清晰。
 - en: but did you do experiments where like predicting both the actions and both the
     rewards to go and like does it like。😊，K candidate liberal performance if we didn't
     work together so actually we did some preliminary experiments on that and it didn't
@@ -1007,41 +1301,54 @@
     tragically transform summer which tried to predict states actions and rewards
     actually all three of them they were in a modelal based set up where it made sense
     also to。
+  id: totrans-144
   prefs: []
   type: TYPE_NORMAL
+  zh: 但是你做过实验，比如预测动作和未来奖励，结果如何？😊，K候选者表现是否有所帮助？实际上我们做了一些初步实验，但没多大帮助。不过，我确实想再次提到一篇同时发表的论文，“悲剧性转换夏季”，他们尝试预测状态、动作和奖励，实际上这三者都是在一个基于模型的设置中进行的，这样也有意义。
 - en: Try to learn each of the components like the transition dynamics， the policy。and
     maybe even the critic in their setup together。We did not find any significant
     improvements。so in favor of simplicity and keeping it models free， we did not
     try to predict them together。Go it。Okay， so the summary。We show dis transformers，
     which is。
+  id: totrans-145
   prefs: []
   type: TYPE_NORMAL
+  zh: 尝试学习每个组件，比如转移动态、策略，甚至可能在它们一起的设置中学习评论员。我们没有发现任何显著的改进。因此，为了简单起见并保持模型自由，我们没有尝试将它们一起预测。明白了。好的，总结一下。我们展示了决策转换器。
 - en: A first work in trying to approach R based on sequence modeling。The main advantages
     of previous approaches is it's simple by design。the hope is with further extensions，
     we will find it to scale much better than existing algorithms。It is stable to
     train because the loss functions we are using have been tested and are traded
     upon a lot by。
+  id: totrans-146
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是尝试基于序列建模来接近 R 的第一项工作。之前方法的主要优点在于其设计简单。希望通过进一步扩展，我们会发现它的扩展能力远远优于现有算法。训练是稳定的，因为我们使用的损失函数经过了大量测试和优化。
 - en: Research and perception。And in the future， we will also hope that because of
     these similarities with in the architecture and the training with how perception
     based tasks are conducted。if it also be easy to integrate them within this loop
     so the states the actions or even the task of interest。
+  id: totrans-147
   prefs: []
   type: TYPE_NORMAL
+  zh: 研究和感知。未来，我们也希望由于架构和训练之间的这些相似性，如何进行基于感知的任务的实施。如果可以轻松地将它们集成到这个循环中，以便状态、动作或甚至感兴趣的任务。
 - en: they could be specified based on。Perceptual based cs。or you could have a target
     task being specified by natural language instruction and because these models
     can very well play with these kinds of inputs。the hope is that they would be easy
     to integrate within the decision making process。And emly。we saw strong performance
     in the range of offline R settings。
+  id: totrans-148
   prefs: []
   type: TYPE_NORMAL
+  zh: 它们可以基于感知来指定。或者你可以通过自然语言指令来指定目标任务，因为这些模型可以很好地处理这些类型的输入。希望它们能够轻松集成到决策过程中。而且，我们在离线
+    R 设置中看到强劲的表现。
 - en: And especially with performance in scenarios which required us to do long term
     assignment。So there's a lot of future work， this is definitely not the end。this
     is a first work in rethinking how do we build our agents that can scale and generalize。嗯。A
     few things that I picked out， which I feel would be very exciting to extend。
+  id: totrans-149
   prefs: []
   type: TYPE_NORMAL
+  zh: 尤其是在需要我们进行长期任务的场景中表现出色。所以还有很多未来的工作，这绝对不是结束。这是重新思考如何构建能够扩展和概括的智能体的第一步。嗯。我挑选出了一些我觉得非常令人兴奋的扩展点。
 - en: The first is multimodality， so really one of our big motivations with going
     after these kinds of models is that we can combine different kinds of inputs both
     online and offline。To really build decision making agents which work like humans。we
@@ -1049,61 +1356,79 @@
     we do take decisions and we want the same to happen in artificial agents and maybe
     decision transformers is one important step in that route。Multiitaask so I should
     or I described very limited form of multitasking here。
+  id: totrans-150
   prefs: []
   type: TYPE_NORMAL
+  zh: 首先是多模态性，所以追求这些模型的一个重要动机是我们可以结合不同类型的输入，无论是在线还是离线。真正构建像人类一样的决策智能体。我们处理周围的多种输入，并对此做出反应，因此我们做出决策，我们希望在人工智能体中也能实现同样的效果，也许决策变换器是实现这一目标的重要一步。多任务，因此我在这里描述的多任务形式非常有限。
 - en: which was based on the desired returns to go。But it could be more richer in
     terms of。Specifying a command to be a robot or a desired goal state， which could
     be， for example， even visual。So trying to better explore the different multitask
     capabilities of this model would also be an interesting extension。Finally， multi
     agent。As human beings we never act in isolation。
+  id: totrans-151
   prefs: []
   type: TYPE_NORMAL
+  zh: 这是基于期望的回报。但在指定命令给机器人或理想的目标状态方面，它可以更丰富，例如，甚至是视觉上的。因此，更好地探索这个模型的不同多任务能力也是一个有趣的扩展。最后，多智能体。作为人类，我们从不孤立地行动。
 - en: we are always acting within an environment that involves many， many more agents。things
     become partially observable in those scenarios。which plays to the strengths of
     distant transformformers being non-marovviian by design。so I think there is great
     possibilities of exploring even multi agentent scenarios where the fact the transformers
     can process very large sequences compared to existing algorithms could again help
     build better models of other agents in your environment and act。
+  id: totrans-152
   prefs: []
   type: TYPE_NORMAL
+  zh: 我们总是在一个涉及许多其他智能体的环境中进行操作。在这些场景中，事物变得部分可观察，这恰好发挥了变换器设计上非马尔可夫性质的优势。因此，我认为探索多智能体场景的巨大可能性，变换器能够处理比现有算法更长的序列，这可能有助于构建更好的环境中其他智能体的模型并做出反应。
 - en: So that yeah， there's some just useful links in case you're interested the project
     website。the paper and the code are all public。And I'm happy to take any more questions。UOkay，
     so I said。thanks for the good talk。really appreciate it。Everyone had a good time
     here。诶。So I think we are like near the class limit so usually I have like a round
     of record five questions for the speaker that just like the students usually know。
+  id: totrans-153
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以，是的，这里有一些有用的链接，以防你对项目网站感兴趣，论文和代码都是公开的。我很乐意回答更多问题。好的，我说过了。感谢精彩的演讲，真的很感激。大家在这里都很愉快。诶。我认为我们快到课堂限制了，所以通常我会为发言者准备一轮五个问题，这些问题通常是学生们知道的。
 - en: but if someone is hurry， you can you just like ask general questions folks。😊。Before
     we stop the recording， so if anyone wants to like leave earlier at this time。just
     feel free to ask your questions。Otherwise， I would just like continue on。So what
     do you think is like the future of like transformers in LL do you think they will
     take over like they've already taken over like language and vision。
+  id: totrans-154
   prefs: []
   type: TYPE_NORMAL
+  zh: 但如果有人很着急，你可以问一些一般性的问题，大家。😊。在我们停止录音之前，如果有人想提前离开，现在请随意提问。否则，我将继续进行。那么你认为变压器在强化学习中的未来是什么？你认为它们会像已经在语言和视觉领域那样占据主导地位吗？
 - en: do you think for like model based and like model field learning。you think like
     youll see a lot more like transformers pop up in LL literature。Yes。I think we'll
     see a flurry of work， if not already。we have there's so many works using transformers
     at this year's eyeC conference。Having said that。
+  id: totrans-155
   prefs: []
   type: TYPE_NORMAL
+  zh: 你认为在基于模型和模型驱动学习中，你会在强化学习文献中看到更多的变压器出现吗？是的，我认为我们会看到大量的研究，甚至可能已经出现了。今年的眼动大会上有很多使用变压器的研究。话虽如此。
 - en: I feel that an important piece of the puzzle that needs to be solved is explorationiration。It's
     non trivial， and it will。my guess is that you will have to forego some of the
     advantages that I talked about for transformers in terms of loss functions to
     actually enable explorationir。
+  id: totrans-156
   prefs: []
   type: TYPE_NORMAL
+  zh: 我觉得需要解决的一个重要环节是探索。这个问题并不简单，我猜你将不得不放弃一些我提到的变压器在损失函数方面的优势，以真正实现探索。
 - en: So it remains to be seen whether those modified dose functions。For exploration
     actually hurt performance significantly。but as long as we cannot cross that bottleneck，
     I think it is， I'm not。I do not want to commit that this is indeed the future
     of our。
+  id: totrans-157
   prefs: []
   type: TYPE_NORMAL
+  zh: 因此，尚不清楚那些修改过的损失函数在探索中是否会显著影响性能。但只要我们无法突破那个瓶颈，我认为，我不想承诺这确实是我们的未来。
 - en: Go it also your question Sure I'm not sure understood that point。so you're saying
     that in order to apply transformers in RL to do exploration there have to be particular
     loss functions and and they're tricky for some reason。Could you explain more like
     what are the modified loss functions and why do they seem tricky？
+  id: totrans-158
   prefs: []
   type: TYPE_NORMAL
+  zh: 没问题，你的问题当然。我不太确定是否理解这一点。所以你是说，为了在强化学习中应用变压器进行探索，必须有特定的损失函数，而它们出于某种原因很棘手。你能多解释一下修改过的损失函数是什么，以及它们为什么看起来棘手吗？
 - en: So a sense in exploration。You have to do the opposite of exploitation， which
     is not a with you。And there is right now no nothing inbuilt in the transformer
     right now。which encourages that sort of random behavior。Where you seek out。Unfaili
@@ -1114,101 +1439,135 @@
     mean just naively suppose I have this exact same setup and the way that I sample
     the action is I sample epsilon greedily or I create a boltzman distribution and
     I sample from that I mean what happens it seems。
+  id: totrans-159
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以在探索中，你必须做与开发相反的事情，这与你无关。而且目前在变压器中没有任何内置机制来鼓励这种随机行为。在状态空间中寻求不熟悉的部分。这是传统算法中内置的内容，通常会有某种熵奖励来鼓励探索，如果想将这些变压器用于在线强化学习，那么这些修改也是需要考虑的。那么，如果有人，我是说，简单假设我有这个完全相同的设置，而我采样行动的方式是以epsilon贪婪的方式采样，或者创建一个Boltzmann分布并从中采样，那么会发生什么呢？看起来似乎会。
 - en: That's what OrL does so does what happens。So ArL does a little bit more than
     that。it indeed does those kinds of things where it would change the distribution，
     for example。that your postal distribution sample from it。But it's also， there
     are these。as I said the devil lies in the detail， it's also about how it controls
     that explorationir component with the exploitation。
+  id: totrans-160
   prefs: []
   type: TYPE_NORMAL
+  zh: 这就是强化学习所做的事情。那么会发生什么？自适应强化学习比这多做了一点。它确实做了那些事情，例如改变分布，你的邮政分布是从中采样的。但同样，正如我所说，魔鬼藏在细节中，这也与如何控制探索与利用的组件有关。
 - en: 😊，And it remains to be seen whether that is compatible with distant transformers。I
     don't want to jump the gun， but I would say it it's I mean。Preliminary evidence
     suggests that it's not directly transferable exact same setup to the online case
     that's what we have found。there has to be some adjustments to be made to make
     but we are still figuring it out。
+  id: totrans-161
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，这是否与远程变压器兼容还有待观察。我不想过早下结论，但我会说，初步证据表明，它并不是完全可以直接转移到在线案例的，这是我们所发现的。必须进行一些调整以适应，但我们仍在弄清楚。
 - en: So the reason why I ask is as you said the devil's in the details and so someone
     naively like me might just come along and try doing what's an RL。I want to hear
     more about this， so you're saying that what works in RL may not work for decision
     transformers。
+  id: totrans-162
   prefs: []
   type: TYPE_NORMAL
+  zh: 我问这个的原因是，如你所说，魔鬼藏在细节中，所以像我这样天真的人可能会直接尝试做强化学习。我想听听更多关于这个的内容，所以你是说在强化学习中有效的方法可能在决策变压器中并不适用。
 - en: Can you tell us why， like what pathologies emerge？What are those devils？Hiding
     in the details。also remind you like the sorry we are like also over time so definitely
     okay turn feel free to like follow up but like to me that's really exciting and
     I'm sure that it's tricky。
+  id: totrans-163
   prefs: []
   type: TYPE_NORMAL
+  zh: 你能告诉我们为什么吗，像哪些病理会出现？那些“魔鬼”是什么？隐藏在细节中。同时提醒你，我们已经超时了，所以当然可以，随时跟进，但对我来说，这真的很令人兴奋，我相信这很棘手。
 - en: Yeah I will just ask like two more questions and like you finish sh those so
     one is like Eric did you think like something like this transformer is a way to
     solve a k center problem in oil instead of using some sort of like discon factoror。😊，This
     isSo that can you repeat the question sorry Yes。
+  id: totrans-164
   prefs: []
   type: TYPE_NORMAL
+  zh: 是的，我再问两个问题，然后就结束了。第一个是，埃里克，你认为像这种变压器是否可以作为解决石油中的k中心问题的一种方法，而不是使用某种折扣因子？😊，这能否请你重复一下问题，抱歉。
 - en: So I think usually in parallel we have to allow on some sort of disor to encode
     the rewards to go that but it in transformableer transformer is able to do this
     credit assignment without that。So do you think like something like this book is
     like the way you should do it like we should。
+  id: totrans-165
   prefs: []
   type: TYPE_NORMAL
+  zh: 我认为通常我们需要在某种失调中允许编码奖励，但变压器能够在没有这个的情况下进行信用分配。所以你认为像这样的书是你应该这样做的方式吗？
 - en: Like instead of having some discount， try to directly predict the rewards。So
     I would go on to say that I feel that discount factor is an important consideration
     in general and it's not incompatible with discipline transformers。So basically
     what would change and I think the code actually gives that functionality where。The
     returns to Google would be computed as the discounted sum of rewards。
+  id: totrans-166
   prefs: []
   type: TYPE_NORMAL
+  zh: 例如，不是使用某种折扣，而是直接预测奖励。所以我想说，折扣因子在一般情况下是一个重要的考虑因素，并且它与纪律变压器并不相互排斥。所以基本上会有什么变化，我认为代码实际上提供了这种功能，其中返回值将作为折扣奖励的总和进行计算。
 - en: And so it is very much compatible， so there's scenarios where our context length
     is still is not enough to actually capture the long term behavior we really need
     for credit assignment。maybe traditional tricks that are used could be brought
     in back to solve those kinds of problems。
+  id: totrans-167
   prefs: []
   type: TYPE_NORMAL
+  zh: 因此，这在很大程度上是兼容的，在某些情况下，我们的上下文长度仍然不足以真正捕捉到我们进行信用分配所需的长期行为。也许可以借用传统技巧来解决这类问题。
 - en: Got it。Yeah， also thought like when I was reading the distance transform work
     that the interesting thing is。Then you don't have a fixed gamma like a gamma is
     like usually a hypopenimeter like。You don't have a fixed gamma so do you think
     like can you also like learn this thing and could this also be like。can you have
     a different gamma for each gesture or something， possibly？
+  id: totrans-168
   prefs: []
   type: TYPE_NORMAL
+  zh: 明白了。是的，我在阅读距离变换工作时也想到了有趣的事情。你没有固定的伽玛，伽玛通常是一个超参数。你没有固定的伽玛，所以你认为可以学习这个吗？这是否可能？你能否为每个手势有不同的伽玛？
 - en: That would be interesting actually， I had not thought of that。but maybe learning
     to predict the discount factor could be another extension of this work。😊，Also。do
     you think like this like a decision transformer work is like like is it compatible
     with Q learning so if you have something like EQL stuff like that。can you also
     implement those sort of loss functions？😊，On top of a decision transformer。
+  id: totrans-169
   prefs: []
   type: TYPE_NORMAL
+  zh: 这实际上会很有趣，我之前没有想到过。但也许学习预测折扣因子可以是这项工作的另一个扩展。😊，你认为这种决策变压器的工作与 Q 学习兼容吗？如果你有像 EQL
+    这样的东西，你也可以实现这些损失函数吗？😊，在决策变压器之上。
 - en: So I think maybe I could imagine ways in which you could encode pessimism in
     here as well。which is key to how CQL works， and actually most of oftenal algorithms
     work。including the model based ones。Our focus here deliberately was to go out
     is simplicity because we feel that part of the reason why oural literature has
     been so scattered as well if you think about different sub problems that everyone
     tries to solve has been because everyone's tried to。
+  id: totrans-170
   prefs: []
   type: TYPE_NORMAL
+  zh: 所以我想，也许我可以想象在这里编码悲观主义的方法，这对 CQL 的工作原理至关重要，实际上大多数算法也是如此，包括基于模型的那些。我们在这里故意关注简单性，因为我们认为，散乱的学术文献部分原因在于，大家都试图解决不同的子问题。
 - en: 😊，Pick up on IDOs which are very well suited for that narrow problem like for
     example。you have whether you're doing offline or you're doing online or you're
     doing imitation。you're doing multitals and all these different variants。And so
     by design， we did not we were very。we did not want to incorporate exactly the
     components that exist in the current algorithms because then it just where it
     starts looking more like。
+  id: totrans-171
   prefs: []
   type: TYPE_NORMAL
+  zh: 😊，关注 IDOs，它们非常适合解决像你在线或离线、模仿、进行多任务等各种不同变体的问题。因此，我们的设计并没有想要直接包含当前算法中的确切组件，因为那样看起来就会更像是架构的变化，而不是更概念性的变化，转向思考
+    RS 序列建模。非常一般地说，是的，就这样。
 - en: Architecture change that opposed to a more conceptual change engine to thinking
     about RS sequence modeling。Very generally。cor it， yeah just。So do you think like
     we can use some sort of like like3 learning objectives instead of supervised learning？
+  id: totrans-172
   prefs: []
   type: TYPE_NORMAL
+  zh: 你认为我们可以使用某种像 3 学习目标而不是监督学习吗？
 - en: 诶。It's possible and maybe like I'm saying that for certain like for online RL，
     it might be necessary。😊，Of， we were happy to see it was not necessary。But it remains
     to be seen more generally for a transformer model or any other model for that
     matter。encompassing R more broadly whether that becomes a necessity。哦也。Well， thanks
     for your time。this was great。
+  id: totrans-173
   prefs: []
   type: TYPE_NORMAL
+  zh: 诶，这可能是的，也许我说，对于某些情况，比如在线 RL，这可能是必要的。😊，不过，我们很高兴看到它并不是必需的。但对于变压器模型或其他模型是否变得必要，仍需进一步观察。哦，也好。感谢你的时间，这真是太好了。
 - en: '![](img/041a2ae7aae080f075f80cd7c4c33a68_4.png)'
+  id: totrans-174
   prefs: []
   type: TYPE_IMG
+  zh: '![](img/041a2ae7aae080f075f80cd7c4c33a68_4.png)'
