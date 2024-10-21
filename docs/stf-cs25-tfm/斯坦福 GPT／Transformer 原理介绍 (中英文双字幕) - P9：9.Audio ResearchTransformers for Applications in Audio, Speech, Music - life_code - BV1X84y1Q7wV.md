@@ -1,0 +1,531 @@
+# 斯坦福 GPT／Transformer 原理介绍 (中英文双字幕) - P9：9.Audio ResearchTransformers for Applications in Audio, Speech, Music - life_code - BV1X84y1Q7wV
+
+![](img/e397dafe2290c08be55c621b4940569f_0.png)
+
+Thanks for inviting me for the talk today and I'll be just talking about Transers for music and audio which is very different than what all of us were doing in this past course I'm also the only speaker from Stanford so I have to do a good job so you see like a very good slides because I'm kind of representing the university in some sense。
+
+So yeah so the flow of the talk for today is basically like I'll be throwing a lot of stuff it's kind of like a buffet style and then you feel free to like or dislike whatever you want。
+
+And I'll be talking mostly about like three papers of what I've been working on。
+
+I start with like introducing like what transformers are from a different perspective。
+
+ what audio representations are。Talk about a generative model for audio。
+
+ which is just doing like language modeling on sample level。
+
+Then I'll talk about how can one do like language modeling for speech and audio。
+
+ which is different than what people do for text， what are the current trends in the literature。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_2.png)
+
+Finally， I'll briefly mention similar stuff as to what was happening in Comp vision with regard to vision transformers。
+
+ or can we adapt similar ideas for audio transformers and throw in a bit of signal processing to improve the performance。
+
+Having told that the talk is about 35 to 40 minutes with about 15 minutes of Q&A。
+
+ I should also say that all of the opinions of mine and Stanford or any other professor is not responsible for any of the mistake which I do。
+
+hel。So transformers kind of have kind of revolutionized in a way like everyone was approaching deep learning before that was all about CNNNs and mostly all of these prominent models have been coming in waves so there was a time when everyone was just applying CNNs then came a time where people started adapting CNNs in some sort of like dilated cons and slowly the recordcurrent networks were getting out of fashion now it seems like transformers and fashion all the time so it seems to be solving almost every single problem which is being thrown at them。
+
+So， so what's special about？One of the fact that struck me was their simplicity。
+
+ which is if you think about it， this and it has been like hugely popular also so it was just released in 2018 and within three years it has like about 30。
+
+000 citations and it is kind of solving every single problem in every single domain。
+
+ it has its limitations also， but if you think about it in a way transformers are basically like a way of like just cascading self-at with feature learning and if we keep on doing it over and over again。
+
+ then the model in a way learns which parts of the input are important and keep on transforming them removing the contents which are not important and just have the limited information which is just responsible for a particular task。
+
+呃。And it has been very very difficult to keep up with the literature， you know。
+
+ like I have put it as a joke here but then even Twitter's recommendation engine were kind of just getting out of like they were getting hay viruss to like why is Chris Manning just searching about transformers and that was way back in 2020 so it has been like difficult for researchers also to keep up with a pace of what's going on。
+
+Just before Transers。All the LP community was just doing gaga about like bidirectional eteems with attention。
+
+ so every single paper before 2017 was just like you have encode or LTM layers。
+
+ you keep on adding like multiple layers and then after that you have a attention mechanism which just loads at what's important and then just keeps on decoding sequentially one at a time。
+
+But this was not kind of like an ideal way to do it， you know。
+
+ because what turns out is when we start throwing in longer sequences， the connections are no longer。
+
+Storing the gradient updates in a way it should be doing so what what the researchers from Google said you know like instead of having just a attention layer at the very last encoding we would just have these attention mechanisms at every single layer which in a way would just learn what's important for a particular problem at that particular layer and we keep on doing it over and the over again。
+
+So then then the whole idea of like transformers and retention mechanism cascaded one after the other came and I'll not go into the details because this is the last class of the courses。
+
+ but then usual tricks to help across the neural net literature。
+
+ which is like having multihad attentions having skip connection and layer norms so all of these things they are not only like giving gains for transformers themselves。
+
+ but they can be just applied to any single other architecture also。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_4.png)
+
+The other thing which is helping these research is basically the compute bar is getting better and better so all of these big companies are just throwing massive amounts of computing resources at solving very very simple in tasks the top of the hill being like the switch transformer which was discussed in the course also。
+
+But but one of the thing which I think started all of the strength was Elmo which was just learning these contextualized representations for natural language processing and that model right here was perhaps one of the first。
+
+呃。Kind of like like moral。0。0 or something or 0。1 in terms of like bringing and ushering in the whole revolution you can see that how similar these kind of modelss look like Bt was basically like inspired heavily from Elmo in which they just replace some of the Lteem layers with transformer modules。
+
+So， so a point to note also is like。Irespective of like natural language processinging or other domain。
+
+ these can be adapt in a variety of domains and for today's talk I'll be just adapting them to audio。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_6.png)
+
+So I'll basically start with introducing people what audio representations are and just for the sake of completeness talk about spectrograms so like you can take any time domain signal and you can decompose that signal into a variety of basis functions and if you take up a Fourier transform your kind of like decomposing actual time domain signal into a soidal basis components so if you have like a waveform here like this which is a sum of three pure soids。
+
+Then there sum basically is this and you can see that when you take a freeier transform and its magnitude。
+
+ you kind of have their strength of the individual components。
+
+Sn here so you can take up another wave from let's say a square wave and what you have is basically much richer sinusoidal decomposition because it is kind of a discontinuous signal so you need like many more sinusoids to represent that particular signal as close to the actual signal as possible。
+
+And here also you can see that okay if this was a square wave then it is actually made up of a lot of sinusoids where each of the bar here represents the strength of the particular sinusoid from an optimization perspective I mean this right away is subop right because you are kind of fixing up the number of sinusoid you're using for representing a square wave I would have rather used a basis function which it was a square wave itself than sinusoid with signal right the second thing is like even if you are taking a sinusoid signal we kind of just。
+
+Putting them in an equidistant space so you are kind of dividing the whole frequency access into like equidistant bins and each of the bins are responsible for like a particular sinusai a lot。
+
+So that is like a traditional fur representation for representing any signal。
+
+What we do for what a spectrogram so like but in reality all these signals are discontinuous all of these signals vary quite a bit right so you can have like a signal while i'm speaking which is like a square for a certain period of time and then it gets sinusoidal and then it becomes something else so what we really need is like in a way to。
+
+kindind of like take patches of input signal and take freeier transform of these individual patches I'm deliberately using the wood patches but you can like in traditional terms you're windowing the signal so right here you can see that you have a continuous signal you keep on windowing it you apply the freeier transform and what you get is basically like a spectrogram representation of the signal so right here what you're seeing basically is for each of the slices the signal kind of look like this after taking the freeier transform with a waveform which is there below。
+
+And what you're do is for spectrogram representation you keep on stacking these Fourier trans slice the magnitude of the Fourier transform slices and in this way you kind of get like a 2D representation of audio signals and if you are coming from a vision background it is basically all of the things which you are doing in vision would just work well if you just apply them to these 2D spec representations and'll quickly play how these spectrograms look for a wide area of like common sounds。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_8.png)
+
+嗯。Yeah。🎼，🎼，🎼Yeah。W。
+
+![](img/e397dafe2290c08be55c621b4940569f_10.png)
+
+Okay。So you could see like for spectrograms you have kind of like a time axis on your x axis and then you have a frequency axis on y axis and then for whatever is your signal of interest you're basically like putting these slices together and different sound gives you like different spectral representation so it's kind of a vision problem just in this sort of like Fourier space。
+
+So there can be like different kinds of representations also so one you could you could just take these slices of coier transform and then do like a linear mapping to them so that you are kind of in a way making these as close to how humans here so you can have like log of the frequency and the wax instead sort of common frequency and then you get like a constant queue like representation the advantage of this being like you can see that for different frequencies the spacing between the harmonics kind of remains same so if you're like training convolutional filters and that's of a huge advantage because the signal like one component of the invaris is gone and you can just learn these filters which are catching onto these constant templates of Fourier slices you can have metal filter bank coefficient or you can have like the raw waveform also for raw waveforms basically there are two things which we have to keep in mind one is the sampling ratess so we kind of like take the continuous signal and then we。
+
+Scritize the continuous signal so one way one parameter is like how fast we are sampling the continuous signal。
+
+ So that's typically on the order of like 16000 or 8000 times a second if you're on telephonic speech the other thing which we also is like how how many levels we are dividing your vertical axis so in this case you can see that each of the dots is basically one level and typically people use 8 bit quants or 16 bit quants so in a way you can think about that for every one second audio which we would hear you would have like 16000 samples and then in each of the 16000 samples are allowed to take one of the levels between0 to 55 and that's like if I can like take the problem of like continuous audio and just have it in terms of like this sort of like discrete space then basically like I'm just going to the territory of like doing language modeling。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_12.png)
+
+呃。
+
+![](img/e397dafe2290c08be55c621b4940569f_14.png)
+
+So one the first papers I' discuss is how can we do like generative modeling for raw audio。
+
+ which is similar to wavenets using transformers and we put in QR codes if you like the stuff what I'm doing and if you think that this is relevant to you please cite or please have a look in terms of like the QR codes so yeah so I'll start with the first subtopic of today's talk which is like what are wave nets and how do we do like this generative modeling of raw audio。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_16.png)
+
+So in single word， you can think about this as doing like language modeling over these 255 states of audio。
+
+ so you can throw in your favorite transform model like transform Excel or GPT or whatever you want to call it and just treat the problem as if you're trying to predict one of the levels of a 235 and you have to predict the next level given a certain context。
+
+That's what Wanet was doing so the way you are modeling the probability distribution of a continuous space is basically you're trying to predict what's the probability of the next sample given some parts one text and Wavenet has been like hugely popular because it has over 3000 citations and it has been a code building block for almost like all speech and audio related problems like you can think about like speech to text text to speech synthesis。
+
+ instrument conversion packet loss concealment with the internet speech denoizing so wherever there's some sort of element of modifying audio people have been using wavenet as a code building block。
+
+And raw away from synthesis has been difficult because just the magnitude of the problem。
+
+ if I'm just trying to synthesize 10 seconds of audio。
+
+ would just amount to like me having a probability distribution over 160，000 samples。
+
+And that itself is stuff because our ears are very very sensitive to subtle changes if I'm off by one pixel in an image the image like my eyes would not be as as susceptible to noticing that effect versus like if I'm off by say a few pixel a few samples in an audio it will just catch our ears pretty quickly people have been trying raw audio synthesis a lot in the past and before all of the wavenet and transformer based approaches kind of like wave rronance and sample rinance were kind of like like state of the art models on the right I' seen I've shown a sample rronN model which kind of like。
+
+Models the probability distribution of what's going to come next given the past at multiple levels。
+
+And this was work done by Yoa Bnji at Nila， but you can closely see like if you just see this architecture versus a transformer architecture in a way。
+
+ these are like starting to get very very similar because what you're trying to do is that for the probability distribution here you're trying to see a lot of like local substructures and then you keep on doing it over and over again and you can draw parallels like okay attention mechanism should also kind of be doing the same thing so。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_18.png)
+
+This was the this was the kind of like the literature in the past what we tried to do was we just had like the wavenet model and we try to see whether transformers can beat them and our intuition was like it should be able to read them because they are successful all over the other other domains like in language modeling so it should it should do that for raw waveformms also we also try to see whether we can circumvent the auto and square constrained by。
+
+Conditioning of the context itself and like we did not go for specific applications and we just said。
+
+ okay， just in terms of like modeling behavior， how will they do？
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_20.png)
+
+So so the data set for this was just like real world data recordings so actual。
+
+Sound should not matter because like the model is agnostic to what it has been thrown in and the setup was exactly the same like you're giving a certain context and I have to predict like the next sample you do the same thing with wavenets you do the exact same thing with transform based like GPT kind of like a model and see how well they do。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_22.png)
+
+I'll briefly chat about like what wavength models are so wavevenett was kind of like a convolutional based model which was getting rid of like all of the vanishing gradient problem by just treating sequential problem as being learned by a convolutional model so what they did was basically like have this sort of like dilation layers or like a convolution with dis which is basically like I kind of skip in every subsequent layer by one sample so you can see like if I have dilation factor of two with a kernel size of two I would get this kind of a topology where my convolution filters in the very first layer I just like combining the first two samples and I skip by one in the next layer and then I skip by three which is like I look at like the fourth one and the next layer and so on the loss is still the same so I have this network I learn a latent space and then I have like a cross categorical crossenttropy loss which is basically have to predict the next sample。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_24.png)
+
+In the previous one。And I just do the exact same thing with transformers also so but then I have to make sure that I do it in a causal manner so I have something which is very similar to GPT in which I have cause masks in my attention mechanism and I keep doing it over and over again so you have like selfper after that you have feed fer layersers you just have a stack of these transformer blocks and see how will they do。
+
+So I said in it should work so。Like it should be doing better than like our。
+
+Base wavenet models right because if you look at the topology we are kind of defining a topology on our own right so what what if like the current prediction Excel layer one world to depend on like very like way back samples here instead of the second sample the1 samples so we are kind of ignoring all of that topology which would have an important for prediction of this particular task whereas transform risk with the self-atten mechanism can just learn like okay which part of the samples are important and which are not and you can keep on doing it creatively so it made sense to us that okay。
+
+Transform layer should be doing way better than wavelength models。嗯。
+
+The second thing which we came across was like okay we cannot have a lot of context。
+
+ for example the attention mechanism needs to store all of those of order n squares and in this case if I'm like storing data at 100 milliseconds then I have like about 1600 samples and I need to store 1600 by 1600 at multiple layers and it just becomes like a huge problem with the data problem with the memory constraint so what we said was okay what if we just use the context itself as a latent code in order to like have like much better representation at every layer we cannot have like huge big attention matrices so what we said was we would just do sample by conditioning and through a CNN layers just to understand what the latent code would be so you still have like an attention mechanism or just a past context but then I'm also。
+
+At every sample okay what the next sample should be given on this context in building and if you think about it in a way it is like okay if there are like five or six notess being played in a piano then Im kind of certain which notess will be played to a certain extent if I just throw in a CNN layer so I'll use that information along with what my transfers are learning and then I would condition it and I would just use that to predict the next sample。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_26.png)
+
+So for the evaluation criteria we did not look for negative not likelihood scores。
+
+ we just looked at how well our prediction prediction task was so we took up like stacked wave net which was implemented by deep mind and saw that okay what was the performance using their benchmarks and even like bigger stacked wave nets。
+
+ we then started to increase the complexity of transformers and started to see whatever we had proposed in terms of like conditioning on on the vanilla transformer architectures to see how well they do we did not look for like an application specific problem which is basically like we don't look at like how well perceptual task was part for like say text to speech synthesis or speech renoizing we just look at okay if we are trying to model this using a crossenttropy loss then with the same model with the same loss function how will they do on like similar kind of parameters？
+
+So this was the first kind of like subblock of like how can we use transformers for generatedative modeling？
+
+哦。For the second problem， I'll do a quick headaway on。
+
+How can we use like transformers for doing language modeling which is kind of becoming a really fancy term right now and this work was done by Julia Smith way back in 2020 and the goal of this was can we kind of in a way do language modeling with continuous audio sequences and I'll briefly mention about that this part of in this subb of the talk？
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_28.png)
+
+哦。So， so and this is in regard for like solving acoustic scene understanding。
+
+ which is basically like。If I'm given a chunk of audio。
+
+ then I want to understand what's in there and if we could do that well。
+
+ then in a way we can do a lot of fancy nice applications so for example like if you think about like cell driving cars so VMmo has started to incorporate microphones into the cell driving cars why because say if there is a ambulance coming or if there is a。
+
+File truck coming then that sound would be picked up way way before even than the Liarrs or even their sensors so they want to understand that and take actions based upon that Apple during COviID did a handwa detection on their Apple watch because if you could detect when someone is washing their hands then you can in a way like tell people that oh you need to wash hands for 20 seconds and then that that can be built upon as a cool application。
+
+It can be used for music recommendations so Spotify YouTube music kind of gives like very。
+
+ very good songs which you're listening to which are similar in content that you would perhaps like it can also give like really cool applications like say people have tried like detecting depression from audio or I could detect whether I'm coughing or not or I'm sneezing or not and these can be like good。
+
+Medical device medical applications， which can be used along with the current diagnosis what doctor provides。
+
+So the question was basically for us was like how can we do like language modeling in a continuous audio domain and secondly。
+
+ like how can we train models or how should we approach doing this？
+
+So so this kind of like recipe has become like very。
+
+ very popular these days in terms of like how would you approach this problem it started with like open AI and to a certain extent deep proposing that in terms of like VQV models but it turns out like transformers love operating in discrete spaces as of now and what they kind of do is。
+
+As long as your representations are discrete， they are very。
+
+ very good at modeling what's going to come next。So what people have been proposing as a workaround is。
+
+You could take up like your， your。Favorite embedding in some manner you could take a Vq V E embeddings or you could take a wave to work or in terms of video you can just do。
+
+Classic VGG or resonnet embeddings you can apply k means clustering to it and k means clustering would give you like discrete codes you do language modeling with those discrete codes。
+
+And you predict the next code and in a way， if youre doing this。
+
+ then you're kind of doing language modeling over audio and if you need to get back to the audio then。
+
+You already saw its wavenet that you can condition the wavenet model to give continuous output so you can use those codes to get back to the audio similar to what Jubox and Open I did。
+
+呃。So I'll quickly mention about like what vector quantization is。
+
+It's it's one of the most like underutilized algorithms to be honest and what it does is basically gives in a way discrete codes to continue assembling spaces so how how does it do it so you basically have。
+
+呃。Ebedding space let's say in 2D right here you define what what are the number of clusters you want to put each of them in you run K means and you would certainly get these patches of like where all of these embedding so what would be the representative embedding of a continuous embedding you can take all of those patches and you can see you can just number them or you can just like list them so in this case you can perhaps have like 25 numbers or 20 numbers which are like in a way mapping from a continuous embedding to a discrete token。
+
+This is another example right here。 so in our case what we did was we look up patches of spectrogram。
+
+ which are basically like very small。Patches across time and then shared all across the frequency axis you take those patches you learn a embedding representation in our case it was just like three layer auto encodecoder fully connected encoders with three layers of decoders and have bottlene layer in between so that bottleneck layer basically is kind of similar to this kind of diagram in like say 64 dimensional space of 120 dimensional space you take up those bottle echos and then urine k means clustering on it certainly in a way you can find。
+
+Discrete codes for continuous embedding spaces or even continuous signals and since we know that transformers kind of love operating discrete spaces。
+
+ we can just apply language botling now and then you can see what you can do。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_30.png)
+
+So in our case we just have like very simple three layer fully connected auto encoder small patches the number of codes is important because if you have like too many codes then you are kind of just throwing in all kinds of noisy things i'll give an example of like。
+
+Why the number of codes are important through some example and you have like two little codes。
+
+ what you're in a way doing is you're removing all of the information which was relevant and you're just kind of like averaging them all out。
+
+嗯。I'll start with like so this idea first was proposed by Juke B， which did it for music。
+
+So you do the exact same thing what I talked about in a slightly different manner in a way that okay you cannot learn codes for like longer sequences。
+
+ so you know in a way learn sequences which are just moving slowly and which are looking at only a certain amount of audio so we kind of encode this in if these discrete levels which are basically like all of these basically are codes so at every point I define like okay this audio had perhaps like code number 55 and in the next level perhaps it at code number two and the very top perhaps it add code number 2000。
+
+So in a way I'm like discretizing the whole codes now what I do is I take up my favorite transform model。
+
+ perhaps like a causal or autoregressive one and I say that okay given these codes try to predict what codes would come next and for sure transformers can do that so I would generate the codes in the future once I've generated the codes in the future I can say that okay this problem now is kind of like a text to speech problem right because I have like these discrete codes text to speech in a way is going from discrete letters to continuous audio so I would throw in like the fanciest which was wavenet and I would just get back the code and I would get the generated audio so this was in a way what I described that they take up a continuous audio they have these compressed codes which they encode using a CNN in this case the method doesn't matter you can throw in like the fanciest of like embeing or late representation。
+
+On those continuous code， you generate the patterns which are like what's going to happen next in the future and then decode back using a fancy wavenet state of the art audit。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_32.png)
+
+So so this was what they were doing for music synthesis what we said was you know like yeah this is good this can generate like good amount of music。
+
+ but what can can can these balls be used for generating。
+
+Like good representation of the current audio and the goal there was like can language models learn representation which can just encapsulate whatever we are kind of like giving as an input signal so in this case what we tried after that was kind of like you kind of do exactly kind of similar ideas but instead of doing like on Wikiva end toend learned encodecodings we just apply vanillaular k means clustering similar to what I described earlier we do on spectrogram patches so you take up these spectrograms of audio and you just divide them into like very small chunks learn autoendcoder encodecodings for each of those chunks run means clustering and this case like let's say I am learning 16 codes represent the continuous audio in terms of the 16 codes have transformer which can perhaps predict the next code and if I keep on getting bit。
+
+And better at predicting what's going to happen next， then in this linear layer。
+
+ I should be encapsulating。What's important or what's？
+
+A good summary of what has happened in the past。
+
+![](img/e397dafe2290c08be55c621b4940569f_34.png)
+
+呃。So that was kind of like our intuition behind trying this。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_36.png)
+
+And as I explained like the number of codes play a very important role。
+
+ you can see here these are just two piano nodes switching one after the other。
+
+ if I just have like say 16 number of codes it just have happens to have just a single line of encoding。
+
+ a single code assigned to all of this， whereas if I'm assigning like more codes than it becomes kind of like a fine grade prediction where I'm actually able to get what the individual notes are。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_38.png)
+
+Recently， Facebook also said you know like okay they just had a different name to the whole thing which is would we can just call this as text class NLP also in a sense that okay you can do NLP without having access to text with the idea is very very similar you have an encoder which is exactly similar to say what openaiI was using you have a VQba wave to V or whatever you want to do you can apply k means clusterstering to it we apply language models to it and instead of a decoder being vnet they just have a decoder which is like a different version of text to speech which is like toptro in this case so as you can see like these are all like same wine and very different bottle but the core idea is almost exactly the same。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_40.png)
+
+So this was like it created a huge pro of like oh this is going to change an LPN。
+
+ but this is very very similar to what people have been doing the past。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_42.png)
+
+So I've already explained what what this was so in our case， we just try to predict。
+
+What's going to happen next， given the previous context and use that representation similar to every single like one short learning or zero short learning based method。
+
+ I also explain like why the number of codes are important like if you have too small then you're just throwing up a lot of information if you have too large then you don't put in like it is no longer robust to noise。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_44.png)
+
+哦。So this was our setup and before I jump in， I should add one of the tweets which I saw from one of the most prominent researchers at DeepM。
+
+ which is basically like a lot of times it is very very easy to bump up numbers， you know。
+
+ like I can have these details just not present in my paper。
+
+ which actually help a lot in terms of like improving the performance and kind of sometimes don't take into account。
+
+What the actual model is incorerating or what the model is contributing versus what the actual these tricks for training are incorerrating so for most of these methods what we have tried to see is we try to keep almost exactly the same approach。
+
+ no data augmentation no fancy label smoothing or moving average of weights or decay or whatever you just have similar based recipes to see how well we are doing。
+
+So for this case the goal was to say that how well our models with respect to a purely supervised approach and how well it does with respect to a similar unsupervised approach so in the first case the model and all of the weights access to all of the labels which is just shown as VGD supervised which is basically you take up audio understanding data set and you see how well you are doing an accuracy metrics so that was the first one in the second one we applied Simclair which was proposed by Jeff In in which you can take up these multiple augmentations of the same input you can have like patches removed you can blur the signal you can flip the signal you learn embedded out of the last layer without access to the labels and then just have a linear head to predict what's happening by using that we got a 55% accuracy use the exact same thing we transform us you don't have access to labels you just run them while just predict the next code you take the linear layer apply the same linear head。
+
+And try to predict what's happening inside。 And with that， we got 60% accuracy。
+
+ So even though the results are not good， but the fact is the neural networks actually。
+
+Are very very good at like getting better and better with throwing of huge amounts of data right so there is still 10% back gap between like purely supervised and purely unsupervised but then that's going to improve with throwing a lot of data to these models because it doesn't have access to any label as person so this is a famous paper by the analystly and Nelson also Morgan at Berkeley in which they actually showed way back in 1999 as to why。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_46.png)
+
+Like size matters， four deep neural networks and also the number of data points which is present so as they kept on increasing the size of the data set and the parameters。
+
+ they kept on getting lower and lower whatever error rates and this has been true across any of the data set and that's why the whole excitement is about unsupervised learning。
+
+So this wast a way flavor of like how can we do like language modeling and unsupervised learning on audio for continuous signals？
+
+For the third up plot， I' just quickly mention。Ideas which are very similar to what you would have seen in vision transformers。
+
+ but with the caveat that how can we use some sort of like signal processing to improve these performance a further？
+
+So the basic approach still remains the same exactly as what you would have seen in vision transformers。
+
+You have a signal of interest which you want to classify here they are raw wave font instead of images。
+
+ the goal is to predict what's there inside of it right。And also we don't have any conclusions。
+
+ we don't have any other tricks which we were using before。
+
+ all we have to do is they can transform us stem solve this particular problem。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_48.png)
+
+So for the data set and the whole setup are still the same。
+
+ no data augmentation and no other forms of these tricks， you are given like 40。
+
+000 snippets for training and 10，000 for validation。
+
+Our job is to predict as good as possible as to what's there in the audio this problem is very similar to the sound which you heard and the video which you saw that given a patch you ought to predict given a spectrogram patch you have to predict what's there inside of it。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_50.png)
+
+呃。
+
+![](img/e397dafe2290c08be55c621b4940569f_52.png)
+
+We kind of do one step further than what。What's just like a simple transformer model in a sense that we try to see whether some sort of like hierarchy over transform emtics would help us in any manner。
+
+ so for that we use like wavelelet decomposition on the intermediate transformer ems so what is like a waveleng decomposition。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_54.png)
+
+![](img/e397dafe2290c08be55c621b4940569f_55.png)
+
+In very naive terms， it can be like a way of decomposing the intermediate embeddings into。
+
+intermediate embedding in a sense that we are kind of putting these highways of like some embeddings are moving very slowly and some embeddings are moving very fast and some embeddings are retained exactly at the rate of what the original signal was and why this is important because you can think about that at every intermediate state you are in a whale learning some sort of hierarchy in the model so if if I look at what we do with the like waveleair decomposition before and after let's say like you had time across this and you had the embedding size across this and this whole patch was your output of say the end layer of the transformer what I say now is okay I would just。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_57.png)
+
+Have a mapping from this to the mapping of my interest using waveleth decomposition in which for half of the samples I just created the exact same embedding as what was learned by the transform model in the next half I would start combining two at a time so in a way i'm learning this sort of like a tree structure within a single layer of the transformer embedding and for now the wavelength or the B function which I use a simple averaging so let's say from all of the embedding layers in between I just need to have like one one embedding which is not moving at all which is just representative of whatever is there。
+
+Of the whole latent space in that n layer， then in the next next layer I would just use like two at a time and then I would use like four at a time。
+
+Until I reached the exact resolution as what I had。
+
+Doing this operation doesn't add any para as whatsoever you're just like defining what your basis function would be or what a wavelength function would be in this case it is a hard waveleth and I start combining them and I kind of like learned a hierarchy at every single layer of the transformers and this kind of like。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_59.png)
+
+![](img/e397dafe2290c08be55c621b4940569f_60.png)
+
+Improved our performance significantly as compared to not using them with addition of no extra parameters。
+
+And I'll come to the results later also so so this is how the whole approach looks like you have a front end the front end is basically a single layer of 2000 neurons followed by dense layer of 64 neurons which is just to make sure to confirm it to the intermediate transformer readings。
+
+ let's say for the transformers I define the bidding size to be 64 then that's the dimension which I'm like mapping them to so I take a broadway form I patch it in very small patches similar to how you do in vision transformers I would just have a single layer of 2000 neurons followed by dense layer of 64 neurons with the hope that the first layer kind of is learning like a Fourriier B function which should be adaptable according to what I'm learning after that I keep on doing this over and over again like I don't have a classification head or anything like that I keep on。
+
+Adding multiple stacks of transformers after that but。
+
+And then I have two approaches of like what I can do in terms of like adaptation。
+
+ I can do average pooling across time of these intermediate emddings because that is the idea is very similar to what we do in classical vision that each of the embleddings are looking at much much broader output in the subsequent layers or I could do w decomposition so what I do is that I take all of these embleddings and I define these highways so some of the emddings are moving fast。
+
+ some of them are moving very slow and some are retained at the exact same resolution as what the transform is learning。
+
+And then I keep doing this over and over again， I have a dense layer， I have my soft max or sigmoid。
+
+ whatever is my classification head， so so this is kind of what the approach looks like。
+
+We compare it with all of the traditional vision based architecture。
+
+ so the vision based models have been very good and the performance have been like similar in understanding audio also so we compare all of those models in terms like mean average precision。
+
+And we see that even the tiniest models of transformers were just like surpassing all of the state of the art CNN models。
+
+ which was a very good sign， then we started to bump up。
+
+ okay the larger model should keep on improving the performance and with the multi-scale models as well as with the pooling layers。
+
+ they improve the performance even further， which was kind of very surprising to us because the number of parameters are very small。
+
+ these are very tiny architectures yet they are surpassing like things like even densenet which are like huge models with a lot of millions of parameters。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_62.png)
+
+So after that we said and I'm going to conclude quickly after that we said that okay。
+
+ this is looking pretty cool， are the what actually is the transformer or the first layer learning right？
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_64.png)
+
+In order to。Make this plot what we said was okay， if you were to take a classic Fourier transform。
+
+Then if this axis is kind of like like frequency， this axis is the number of filters and this axis is the frequency。
+
+Then in a way。It should be connecting all of the points in a linear line and this is akin to the number of points in the 50 so how many points I'm defining here。
+
+ if I'm defining 2000 points here， then I would have like 2048 sineoidal B functions which are going from lower frequency to the most highest frequency。
+
+We said okay we'll do the exact same thing but now with filters so we have frequency along y axis and the number of points in my X axis and if it was a classic Fourier transform then it would be connecting right as a linear line but what we did was we take up the front end which is learned by transformer take its Fourier transform solved according to its center frequency as to what frequency it is activating the most and then keep on stacking them when we did this two problems we saw that we are kind of learning a different time frequency representation which is specific to a predict problem if I'm trying to understand what's there in the content of the audio I learn a representation which is very different than Fourier transform which should have in a straight line which is kind of like a curld exponential line like this and if I do like a polyphonnic pitch estimation。
+
+I learn a very different front end which is adapting to that particular problem so this was like very exciting to us because like making computers here in a way in which they're adapting their ears according to a particular problem is a very cool idea second thing is we actually saw each of the filters as to what they were doing and these are basically just like single slices like this so this is what we would have been learned as a front end neurons we take up each of the neurons and we just plot them and for plotting this we basically take its free transform and then saw them according to where the center of frequency is when we just saw the neurons as to what they were learning in the front end we saw that it is learning properties which are very very closely matching with the traditional signal processing so you would have something like an onset detector learned right here you learning windowing function in a way it is learning to。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_66.png)
+
+Have a kernel which is best for a time frequency representation what people have been using in signal processinging which is like a hamming or a hanging window we are learning these pure sinusoids which are responsible for activating a particular frequency so you can see the richness as compared to like having a fixed purely sinusoidal PCs function right here。
+
+So this was what we had。Done， and then to share the final thoughts。
+
+ I'll conclude by saying that okay， transformers are proving to be a major advancement in AI research across the fields。
+
+And。It seems like they're solving everything for now and hopefully this is not the end and we should keep an eye out on something which would change and have impact。
+
+ which is more than。What transformers have put？And who knows what's going to come next？Yeah。
+
+ so by that I'll just conclude and I'll be happy to take questions。
+
+Thank you Praique that was a really good talk and you provided some really good insights about how like Transers work for the audio case and yeah thank you for the talk and now I would invite questions from from the class students let me just stop the recording。
+
+
+
+![](img/e397dafe2290c08be55c621b4940569f_68.png)
+
+![](img/e397dafe2290c08be55c621b4940569f_69.png)
