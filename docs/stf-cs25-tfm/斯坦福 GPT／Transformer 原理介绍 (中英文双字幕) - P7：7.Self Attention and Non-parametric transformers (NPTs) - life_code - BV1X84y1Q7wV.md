@@ -4,267 +4,93 @@
 
 Thanks so much great to be here and happy Halloween related Halloween everyone so I think the talk is going to be split into two sections so I'll start by spending like 10 minutes 15 minutes chatting about transformers in general but I'm assuming most of you are familiar with them and we can move on to MPTs which Ya and Neil will be presenting。
 
-😊。
+😊。![](img/1777b223f7bf8be27a8767d209c7f271_2.png)
 
-![](img/1777b223f7bf8be27a8767d209c7f271_2.png)
-
-So let's see， I'm going like。Try to fly through the transformer overview and maybe spend。
-
-A little bit extra time on like the history of transformers and maybe just tell the story a little bit。
-
- I think that might be more interesting。嗯。So just in terms of the transformer architecture。
-
- the two kind of things that it introduced for the first time were multihead attention and selfat and then it combined those with fast utter aggressive decoding so before the Transer pretty much everyone was using LSTMs and LSTMs with attention I'll try to get into the difference of selfat multihead attention。
+So let's see， I'm going like。Try to fly through the transformer overview and maybe spend。A little bit extra time on like the history of transformers and maybe just tell the story a little bit。I think that might be more interesting。嗯。So just in terms of the transformer architecture。the two kind of things that it introduced for the first time were multihead attention and selfat and then it combined those with fast utter aggressive decoding so before the Transer pretty much everyone was using LSTMs and LSTMs with attention I'll try to get into the difference of selfat multihead attention。
 
 So originally you would have two sequences and you would have a attention module which would attend from the source to the target and so each token or each word in the source sequence would get associated with you know a soft approximation of one element in the target sequence。
 
-And so you'd end up with something like like this， but with self attention。
+And so you'd end up with something like like this， but with self attention。we did away with the two separate sequences， we make them both the same。and so you're relating each element within the sequence to another element in the sequence。And so the。The idea here is that you're learning a relationship of the words within a sentence to the other words。
 
- we did away with the two separate sequences， we make them both the same。
+ so you can imagine something like an adjective which is being applied to a noun and so you want to relate that adjective like the blue ball。you want to relate blue as referring to ball through learning patterns within the sequence interest sequence patterns。
 
- and so you're relating each element within the sequence to another element in the sequence。
+嗯。So sorry I gave this talk in Kenya， so I' am using Kewa Heley here， but with multihead attention。the idea is you have like each word represented by an embedding which is in the depth dimension here and then you have your sentence of words。you split that up into a bunch of different groups。so here I've droppedpped it depthwise into four groups。
 
-And so the。The idea here is that you're learning a relationship of the words within a sentence to the other words。
+You apply attention to each one of these groups independently and then when you get the result back you can catnate them together and you're back to your model dimension representation。What this lets you do is if each attention like each attention head can now focus on learning one pattern。
 
- so you can imagine something like an adjective which is being applied to a noun and so you want to relate that adjective like the blue ball。
+ so maybe attention head one is learning the relationship of adjectives to nouns and the second attention head can learn something different so this lets us learn like a hierarchy or a list of different relationships。Okay， so that was self attention。The other piece is fast auto oppressive decoding。
 
- you want to relate blue as referring to ball through learning patterns within the sequence interest sequence patterns。
+And do I really want to go into this？Okay， I will， so the important thing about this is it。If you're doing normal autoaggressive decoding， what you do is you generate your first token and now conditioned on that first token you generate the second and condition on the first two you generate the third and so on and so forth。
 
-嗯。So sorry I gave this talk in Kenya， so I' am using Kewa Heley here， but with multihead attention。
+ but that's super slow right like it's a loop applying this thing again and again and so what we can do instead is we make an assumption in the code that our model always generates the right thing and we generate and then we generate a prediction。Only one token ahead and so the way that this looks is。You okay so。hy。Why hat here？Sorry once again。
 
- the idea is you have like each word represented by an embedding which is in the depth dimension here and then you have your sentence of words。
+Input to output， so you have like your outputs， which are y， you have your targets， which are Y hat。And what you do is you feed in those gold targets so that you don't need to actually do this loop。so instead of assuming instead of having to generate the first token feed it back into your architecture。generate a second token， you feed in the entire target sequence and you just pretend that you generate all the right tokens up to position k and then you predict the K plus first and you compute your loss on that。
 
- you split that up into a bunch of different groups。
+So in reality your model might have generated you know at the beginning of training junk。but you're getting a loss as if your model had seen all the correct tokens and is now just predicting the next one this is a little bit subtle but it's hugely impactful for training speed because all of this can be done un in parallel and so it's actually what makes transformers so scalable。
 
- so here I've droppedpped it depthwise into four groups。
-
-You apply attention to each one of these groups independently and then when you get the result back you can catnate them together and you're back to your model dimension representation。
-
-What this lets you do is if each attention like each attention head can now focus on learning one pattern。
-
- so maybe attention head one is learning the relationship of adjectives to nouns and the second attention head can learn something different so this lets us learn like a hierarchy or a list of different relationships。
-
-Okay， so that was self attention。The other piece is fast auto oppressive decoding。
-
-And do I really want to go into this？Okay， I will， so the important thing about this is it。
-
-If you're doing normal autoaggressive decoding， what you do is you generate your first token and now conditioned on that first token you generate the second and condition on the first two you generate the third and so on and so forth。
-
- but that's super slow right like it's a loop applying this thing again and again and so what we can do instead is we make an assumption in the code that our model always generates the right thing and we generate and then we generate a prediction。
-
-Only one token ahead and so the way that this looks is。You okay so。hy。Why hat here？Sorry once again。
-
-Input to output， so you have like your outputs， which are y， you have your targets， which are Y hat。
-
-And what you do is you feed in those gold targets so that you don't need to actually do this loop。
-
- so instead of assuming instead of having to generate the first token feed it back into your architecture。
-
- generate a second token， you feed in the entire target sequence and you just pretend that you generate all the right tokens up to position k and then you predict the K plus first and you compute your loss on that。
-
-So in reality your model might have generated you know at the beginning of training junk。
-
- but you're getting a loss as if your model had seen all the correct tokens and is now just predicting the next one this is a little bit subtle but it's hugely impactful for training speed because all of this can be done un in parallel and so it's actually what makes transformers so scalable。
-
-Okay， so in order to do this successfully， if you were just feeding in all of the。
-
-All of the correct tokens naively， what would happen is your model would just be able to look forward in time and cheat。
-
-So you've put in all of your true targets， the things that you're trying to get your model to predict and so if that's where you're computing your loss on。
-
- it could just look forward in time and say， okay I'm just going to grab that and it would get zero error trivially right because you've given it all the right answers so what we have to do inside the architecture is we need to actually prevent the attention mechanism from being able to look at tokens that it shouldn't have been able to see already so the way that this looks is you create a mask on your attention。
+Okay， so in order to do this successfully， if you were just feeding in all of the。All of the correct tokens naively， what would happen is your model would just be able to look forward in time and cheat。So you've put in all of your true targets， the things that you're trying to get your model to predict and so if that's where you're computing your loss on。it could just look forward in time and say， okay I'm just going to grab that and it would get zero error trivially right because you've given it all the right answers so what we have to do inside the architecture is we need to actually prevent the attention mechanism from being able to look at tokens that it shouldn't have been able to see already so the way that this looks is you create a mask on your attention。
 
 嗯。😊，And so sorry this is the example of like doing a trivial attention if you don't mask your attention properly what it's going to do is it's just going to look into the future just grab the token that you're telling it to predict and copy it over and so it learn something trivial something that doesn't actually generalize and so what we do is we。
 
-Actually prevent it from attending to those tokens， we prevent it from attending into the future。
+Actually prevent it from attending to those tokens， we prevent it from attending into the future。For each position in the source sequence， we block out everything that it shouldn't be able to see。everything into the future， and then as we move down we gradually unblock so it can start to see into the past。嗯。So those are kind of like two the three major components of transformers， the self attention。
 
-For each position in the source sequence， we block out everything that it shouldn't be able to see。
+ the multihead attention， and then deploying this gold targets decoding fast utter restive decoding。嗯。In terms of the story， which might be a little bit more interesting。嗯。So transformers。I was an intern with Lukash Kaiser at Google back in 2017。and I was sitting next to Nome and Sheish was like a couple seats down from us。
 
- everything into the future， and then as we move down we gradually unblock so it can start to see into the past。
+And what's really incredible is that essentially this entire project came together in like three months。And it was done so I showed up at Google Noam had been working on。Autoag models。same thing with like Ashishish and Yaakov and Nikki and they'd just been kind of like exploring the space figuring it out and Luksh and I at the same time we had been working on this framework called Tensor to Tensor。嗯。Which was like explicitly made for multimodal learning autoreive learning and lukash is kind of like a master of。
 
-嗯。So those are kind of like two the three major components of transformers， the self attention。
+Keeping track of everything that's happening in the field and adopting it。and so within tensor to tensor， there were like these。There were like these kind of emerging little things that maybe one paper had been written about and people were interested in like layerorm。but it hadn't actually taken off yet the warmup in the learning rate schedule all of these little pieces were just default like on by default。
 
- the multihead attention， and then deploying this gold targets decoding fast utter restive decoding。
+ and so whennome and aishish and the Nikki and Yaak，Came over and adopted tensor to tensor。all of these things were just on by default。And so a lot of people。when they look at the transformer paper， it just seems like there's so many like arbitrary little things thrown in and when now like in present day these have become standard for like a lot of different training algorithms like the learning rate warm up。
 
-嗯。In terms of the story， which might be a little bit more interesting。嗯。So transformers。
+The way that we did initialization， all of these pieces have just become the norm。but back then they had like have just been introduced。And so。We we spent a lot of time running ablations trying to figure out like which were the necessary pieces and what made it work and if any of you have actually tried training transformers and tried like pulling out the learning rate warmup or changing any of these little pieces。
 
- I was an intern with Lukash Kaiser at Google back in 2017。
-
- and I was sitting next to Nome and Sheish was like a couple seats down from us。
-
-And what's really incredible is that essentially this entire project came together in like three months。
-
-And it was done so I showed up at Google Noam had been working on。Autoag models。
-
- same thing with like Ashishish and Yaakov and Nikki and they'd just been kind of like exploring the space figuring it out and Luksh and I at the same time we had been working on this framework called Tensor to Tensor。
-
-嗯。Which was like explicitly made for multimodal learning autoreive learning and lukash is kind of like a master of。
-
-Keeping track of everything that's happening in the field and adopting it。
-
- and so within tensor to tensor， there were like these。
-
-There were like these kind of emerging little things that maybe one paper had been written about and people were interested in like layerorm。
-
- but it hadn't actually taken off yet the warmup in the learning rate schedule all of these little pieces were just default like on by default。
-
- and so whennome and aishish and the Nikki and Yaak，Came over and adopted tensor to tensor。
-
- all of these things were just on by default。And so a lot of people。
-
- when they look at the transformer paper， it just seems like there's so many like arbitrary little things thrown in and when now like in present day these have become standard for like a lot of different training algorithms like the learning rate warm up。
-
-The way that we did initialization， all of these pieces have just become the norm。
-
- but back then they had like have just been introduced。And so。
-
-We we spent a lot of time running ablations trying to figure out like which were the necessary pieces and what made it work and if any of you have actually tried training transformers and tried like pulling out the learning rate warmup or changing any of these little pieces。
-
- you'll see that it really does break down optimization like it actually really does hurt performance。
-
-For instance， like removing the layer arms， that type of thing。嗯。
-
-So I always thought it was kind of funny how。All of these random editions that Luash had just like thrown in because he was playing around with them turned out to be crucial and they were just on by default。
-
-嗯。So anyway， it was like three months， I remember。It all really started coming together towards the end。
+ you'll see that it really does break down optimization like it actually really does hurt performance。For instance， like removing the layer arms， that type of thing。嗯。So I always thought it was kind of funny how。All of these random editions that Luash had just like thrown in because he was playing around with them turned out to be crucial and they were just on by default。嗯。So anyway， it was like three months， I remember。It all really started coming together towards the end。
 
  like just before the Nup deadline。And I can still remember sitting in the micro kitchen and a sheish telling me like as just like I was a little intern telling me like this is going to be such a big deal and I was like yeah sure okay like I have no idea what's happening I just showed up。
 
-And he was like， no dude， like this this actually matters like you know。
+And he was like， no dude， like this this actually matters like you know。we bumped up blue three points and I was like sick， great anyway。嗯。😊。And then I can remember on the night of the deadline for nerves。It was like 2 am a shish。Sheish was the only one left at the office and we were still like moving around figures and like adjusting things and then I went to bed but she stayed up and I slept in like this tiny little phone booth。
 
- we bumped up blue three points and I was like sick， great anyway。嗯。😊。
+And then for the other paper that I was submitting， I forgot to press submit， but luckily。Like some lady opened the door to the phone booth and hit me in the head while I was sleeping in the morning and just before the deadline I got the paper in and so I owe it to that lady for submitting to N that year but yeah anyway the I think the crazy thing about transformers was that it all came together in like three months like most of the ideas happened in that span and it was just like this sprint towards the N deadline。
 
-And then I can remember on the night of the deadline for nerves。It was like 2 am a shish。
+Um， and I think a lot of the other members on the team。Yaka Lukaash she they knew how important it was， but for me I was like。I don't know。I really did not appreciate the impact， but in retrospect it's been amazing how the community has kind of like come together and adopted it。😊，And I think most of that can be ad to the ease of optimization。
 
-Sheish was the only one left at the office and we were still like moving around figures and like adjusting things and then I went to bed but she stayed up and I slept in like this tiny little phone booth。
-
-And then for the other paper that I was submitting， I forgot to press submit， but luckily。
-
-Like some lady opened the door to the phone booth and hit me in the head while I was sleeping in the morning and just before the deadline I got the paper in and so I owe it to that lady for submitting to N that year but yeah anyway the I think the crazy thing about transformers was that it all came together in like three months like most of the ideas happened in that span and it was just like this sprint towards the N deadline。
-
-Um， and I think a lot of the other members on the team。
-
- Yaka Lukaash she they knew how important it was， but for me I was like。I don't know。
-
- I really did not appreciate the impact， but in retrospect it's been amazing how the community has kind of like come together and adopted it。
-
-😊，And I think most of that can be ad to the ease of optimization。
-
- it seems like very robust to hyperparameter choices so you don't need to like tune the hell out of it。
-
- spend a lot of time tweaking little things。And the other side is that it's like super tailored to the accelerators that we run on。
-
-So it's like very paralyzable， hyper efficient， and so it lends itself to that kind of scaling law effort that's really taken off in popularity。
-
-Okay， unless there are any questions that。
+ it seems like very robust to hyperparameter choices so you don't need to like tune the hell out of it。spend a lot of time tweaking little things。And the other side is that it's like super tailored to the accelerators that we run on。So it's like very paralyzable， hyper efficient， and so it lends itself to that kind of scaling law effort that's really taken off in popularity。Okay， unless there are any questions that。
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_4.png)
 
-We're both excited， so we just unmuteed at the same time。Yeah， so cold。Yeah。
+We're both excited， so we just unmuteed at the same time。Yeah， so cold。Yeah。sos that's my section if there's any questions happy to answer them otherwise。Let's get into NPs NPptTs are like I think。There's such a nice next level abstraction of the architecture。so you've probably seen the trend of。Transformers getting applied to new domains。
 
- sos that's my section if there's any questions happy to answer them otherwise。
+ first into vision and video and audio。But this is kind of like cutting back to an even more abstract level。like I think tabular data， yeah， I don't know， I'll Yna and Ne take over from here。but I think MPT is a pretty sick， pretty sick project。Thanks A for the introduction thanks all for the invitation we're very happy to be here and Neil and I are now going to tell you about our selfattention between data points paper where we introduce introduce the nonprometric transformer architecture we'll start with a little bit of motivation we want to explaining the architecture detail Im show you the experiments this is more or less a step through of the paper but maybe you know with a little bit extra insight here and there。
 
-Let's get into NPs NPptTs are like I think。There's such a nice next level abstraction of the architecture。
+All right， as promised， the motivation and a brief summary。So we'll start by thinking about something that we don't often think about。that is that from seal to transformers， most of supervised deep learning relies on parametric prediction。So what that means is that we have some self training data and we want to learn to predict the outcomes y from the inputs X and for this we set up some model with tunable parameters theta。
 
- so you've probably seen the trend of。Transformers getting applied to new domains。
+ then we optimize these parameters to maximize predictive likelihoods on a training set or you know equivalently we minimize some loss。And then after training， we have this optimized set of parameters theta。and then at test time we just put these into the model and use these parameters to predict on novel test data。And so crucially here， our prediction at test time only depends on these parameters。
 
- first into vision and video and audio。But this is kind of like cutting back to an even more abstract level。
+ right it's parametric。Also that means that given these parameters。the prediction is entirely independent of the training data and so why would we want to do parametric prediction？
 
- like I think tabular data， yeah， I don't know， I'll Yna and Ne take over from here。
+Well， it's really convenient because all that we've learned from the training data can be summarized in the parameters and so at prediction time we only need these final parameters and we do not need to store the training data。which might be really， really large。On the other hand。
 
- but I think MPT is a pretty sick， pretty sick project。
-
-Thanks A for the introduction thanks all for the invitation we're very happy to be here and Neil and I are now going to tell you about our selfattention between data points paper where we introduce introduce the nonprometric transformer architecture we'll start with a little bit of motivation we want to explaining the architecture detail Im show you the experiments this is more or less a step through of the paper but maybe you know with a little bit extra insight here and there。
-
-All right， as promised， the motivation and a brief summary。
-
-So we'll start by thinking about something that we don't often think about。
-
- that is that from seal to transformers， most of supervised deep learning relies on parametric prediction。
-
-So what that means is that we have some self training data and we want to learn to predict the outcomes y from the inputs X and for this we set up some model with tunable parameters theta。
-
- then we optimize these parameters to maximize predictive likelihoods on a training set or you know equivalently we minimize some loss。
-
-And then after training， we have this optimized set of parameters theta。
-
- and then at test time we just put these into the model and use these parameters to predict on novel test data。
-
-And so crucially here， our prediction at test time only depends on these parameters。
-
- right it's parametric。Also that means that given these parameters。
-
- the prediction is entirely independent of the training data and so why would we want to do parametric prediction？
-
-Well， it's really convenient because all that we've learned from the training data can be summarized in the parameters and so at prediction time we only need these final parameters and we do not need to store the training data。
-
- which might be really， really large。On the other hand。
-
- we usually have models that already predict for a bunch of data in parallel right think of mini batching and modern architectures and actually things like batch on already make these data interact。
-
-And so our thinking here was that if we've got all of this data in parallel anyways。
+ we usually have models that already predict for a bunch of data in parallel right think of mini batching and modern architectures and actually things like batch on already make these data interact。And so our thinking here was that if we've got all of this data in parallel anyways。
 
  there's no reason not to make use of it and so more a bit grounder we kind of challenge carmetric prediction as the dominant paradigm in deep learning and so we want to give models the additional flexibility of using the training data directly when making predictions。
 
-And so a bit more concretely。😊，We introduced the nonparmetric transformer architecture。
+And so a bit more concretely。😊，We introduced the nonparmetric transformer architecture。and this is going to be a general deep learning architecture。meaning we can apply to a variety of scenarios。![](img/1777b223f7bf8be27a8767d209c7f271_6.png)
 
- and this is going to be a general deep learning architecture。
+NPTs will take the entire data set as input whenever possible。And NPTs then crucially learn to predict from interactions between data points。And to achieve this。we use multi head self attention。That as Age has introduced us to。has just really established itself as a general purpose layer for reasoning。
 
- meaning we can apply to a variety of scenarios。
+We also take another thing from the NLP community and we use a stochastic masking mechanism and we use that to tell entitiesmpes where to predict and also to regularise the learning task of it。And last year， of course， we hope to convince that the ends up working really。
 
-![](img/1777b223f7bf8be27a8767d209c7f271_6.png)
+ really well and that this kind of simple idea of learning to predict from the other data points of the input。from the training points of the input and up working as as well。So。and so very briefly summarizing what we've heard already。A， we input into NPptTCide dataset。And then B， let's say for the purpose of this slide here。
 
-NPTs will take the entire data set as input whenever possible。
+ we only care about predicting the orange question mark in that green row。And then we can compare entitiespts to parametric prediction right so a classical deep learning model would predict this target value only from the features of that single grid input to do that it would use the parameters theta。
 
-And NPTs then crucially learn to predict from interactions between data points。And to achieve this。
+ those would depend on whatever training data we've seen and so on。but at test time we only look at that single row for which we care about the prediction。😊。In contrast， NPpts predict an explicit dependence on all samples in the input they can look beyond that single green data of interest and look at all other samples that are there and consider their values for prediction so this presents an entirely。😊，Different way of thinking about how we learn predictive mechanisms somebody on Twitter called this Canan 2。
 
- we use multi head self attention。That as Age has introduced us to。
+0， which we would have not written in the paper， but maybe is kind of a nice way of thinking about how NPTs can learn to predict。😊。![](img/1777b223f7bf8be27a8767d209c7f271_8.png)
 
- has just really established itself as a general purpose layer for reasoning。
+So of course， non parametric models are a thing already， we didn't invent them at all and。![](img/1777b223f7bf8be27a8767d209c7f271_10.png)
 
-We also take another thing from the NLP community and we use a stochastic masking mechanism and we use that to tell entitiesmpes where to predict and also to regularise the learning task of it。
-
-And last year， of course， we hope to convince that the ends up working really。
-
- really well and that this kind of simple idea of learning to predict from the other data points of the input。
-
- from the training points of the input and up working as as well。So。
-
- and so very briefly summarizing what we've heard already。A， we input into NPptTCide dataset。
-
-And then B， let's say for the purpose of this slide here。
-
- we only care about predicting the orange question mark in that green row。
-
-And then we can compare entitiespts to parametric prediction right so a classical deep learning model would predict this target value only from the features of that single grid input to do that it would use the parameters theta。
-
- those would depend on whatever training data we've seen and so on。
-
- but at test time we only look at that single row for which we care about the prediction。😊。
-
-In contrast， NPpts predict an explicit dependence on all samples in the input they can look beyond that single green data of interest and look at all other samples that are there and consider their values for prediction so this presents an entirely。
-
-😊，Different way of thinking about how we learn predictive mechanisms somebody on Twitter called this Canan 2。
-
-0， which we would have not written in the paper， but maybe is kind of a nice way of thinking about how NPTs can learn to predict。
-
-😊。
-
-![](img/1777b223f7bf8be27a8767d209c7f271_8.png)
-
-So of course， non parametric models are a thing already， we didn't invent them at all and。
-
-
-
-![](img/1777b223f7bf8be27a8767d209c7f271_10.png)
-
-I defined them here as prediction in explicit dependence on the training data。
-
- which is certainly what MPptTs do。Classical examples like Gaussian processes， can neighbor。
-
- kernelnal methods， those might be familiar to you。😊。
-
-And there exists also efforts to combine the benefits of nonprometrics and representation learning in a similar fashion to how we did it in entities。
+I defined them here as prediction in explicit dependence on the training data。which is certainly what MPptTs do。Classical examples like Gaussian processes， can neighbor。kernelnal methods， those might be familiar to you。😊。And there exists also efforts to combine the benefits of nonprometrics and representation learning in a similar fashion to how we did it in entities。
 
 😊，However， these approaches are usually limited in some sense in comparison opportunities right they're often kind of motivated from the statistics community a bit more they often require more fiically approximate inference schemes are limited in the interactions they can learn or things like that and so。
 
@@ -274,207 +100,75 @@ And there exists also efforts to combine the benefits of nonprometrics and repre
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_12.png)
 
-And so with that， I'd hand over to Neil， whos going to tell you about the nonparmetric transformer architecture in all of its details。
-
-you also have one question hi Jen could you please go to the previous slide？
+And so with that， I'd hand over to Neil， whos going to tell you about the nonparmetric transformer architecture in all of its details。you also have one question hi Jen could you please go to the previous slide？
 
 
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_14.png)
 
-The very previous slide。 Yeah， yes。 This slide。 Yeah。 So in terms of the problem definition。
+The very previous slide。Yeah， yes。This slide。Yeah。So in terms of the problem definition。I think is' quite similar to some meta learning problem。which basically learns a mapping from a data point and the data sets to some predictions。So could you please suggest any differences between your problem setting and meta learning problem setting。
 
- I think is' quite similar to some meta learning problem。
+ I can't really。Fed out any differences between these two problems。Well。I think it really depends on the framing that you want to have right so I would say meta learning would be when I try to predict over multiple data sets。so when I try to predict some when I try to learn some sort of prediction model or I can just plug in a different data set and it will automatically or almost automatically give me new predictions on this different data distribution。But that's not what we do at all， right， we're training a single model for a fixed data set。
 
- which basically learns a mapping from a data point and the data sets to some predictions。
-
- So could you please suggest any differences between your problem setting and meta learning problem setting。
-
- I can't really。Fed out any differences between these two problems。Well。
-
- I think it really depends on the framing that you want to have right so I would say meta learning would be when I try to predict over multiple data sets。
-
- so when I try to predict some when I try to learn some sort of prediction model or I can just plug in a different data set and it will automatically or almost automatically give me new predictions on this different data distribution。
-
-But that's not what we do at all， right， we're training a single model for a fixed data set。
-
-And so this is why I wouldn't really call that meta learning because we're doing。
-
- we're trying to predict on the same tasks that all the supervised deep learning or any supervised machine learning method is trying to predict well on。
-
-Consuming you use kind of same test site to test your trend model， right？I mean， I mean， like。呃。So。
-
-So basically in MI learning we're going to test on different kind of meta test sets。
+And so this is why I wouldn't really call that meta learning because we're doing。we're trying to predict on the same tasks that all the supervised deep learning or any supervised machine learning method is trying to predict well on。Consuming you use kind of same test site to test your trend model， right？I mean， I mean， like。呃。So。So basically in MI learning we're going to test on different kind of meta test sets。
 
  but in your case you just want to use a test set which is similar to the distribution Yeah of your training set right？
 
-Yeah absolutely so we explore data set distribution shift a bit。
+Yeah absolutely so we explore data set distribution shift a bit。I think it's a really interesting scenario I think meta learning different data sets is also an interesting scenario right when you have this model where you just pressure in different data sets but for the scope of this paper it's very much training set test set they come from the same distribution and we're just trying to do supervised learning in a standard setting thats so cool thank you。
 
- I think it's a really interesting scenario I think meta learning different data sets is also an interesting scenario right when you have this model where you just pressure in different data sets but for the scope of this paper it's very much training set test set they come from the same distribution and we're just trying to do supervised learning in a standard setting thats so cool thank you。
+😊，Thank you for the question。![](img/1777b223f7bf8be27a8767d209c7f271_16.png)
 
-😊，Thank you for the question。
+Yeah， and I would chime in a couple additional things， I guess。so at least from what I understand from the problem definition of meta learning。I think the aim is more。Perhaps being able to perform well on a new data with a relatively small number of additional gradient steps on that data set。so I think there's some interesting ways that you could actually consider applying NPTs in a meta learning type setting and so we'll get into this a little bit more but for example you know there might be ways to essentially add in a new data so let's suppose we've trained on a bunch of different data sets we now add in a new data set we can perhaps do some sorts of kind of zero zero shot meta learning basically where there's no need for additional gradient steps because we're basically predicting kind of similar to how you might do prompting nowadays in NLP literature。
 
-![](img/1777b223f7bf8be27a8767d209c7f271_16.png)
+Anyways， yeah， I think we'll get into some more details。Just to chime in on that I don't think that every meta learning algorithm I think the ones that you're described right now are like optimization based。but they're also black box ones like you don't need to。Further。I think the main difference seems to be that there is like one task versus multiple tasks for meta learning。
 
-Yeah， and I would chime in a couple additional things， I guess。
+Yeah， I I think so too， I think the the like main， yeah。theing the main framing question is whether or not there's multiple data sets。Cool。Okay， awesome。If there's no other questions， I'll dive a bit more into the architecture。![](img/1777b223f7bf8be27a8767d209c7f271_18.png)
 
- so at least from what I understand from the problem definition of meta learning。
+Awesome， so there's three key components to NPpts。I'm gonna to first state them at a high level。and then we'll go through each of them in more detail。So， first of all。we take the entire data set。All data points is input。So， for example， at test time。the model is going to take as input， both training and test data。
 
- I think the aim is more。Perhaps being able to perform well on a new data with a relatively small number of additional gradient steps on that data set。
+ And we approximate this with mini batches for large data。😊。We apply self attention between data points， so for example， at test time。we model relationships amongst training points， amongst test points and between the two sets。And then finally we have this masking based training objective。
 
- so I think there's some interesting ways that you could actually consider applying NPTs in a meta learning type setting and so we'll get into this a little bit more but for example you know there might be ways to essentially add in a new data so let's suppose we've trained on a bunch of different data sets we now add in a new data set we can perhaps do some sorts of kind of zero zero shot meta learning basically where there's no need for additional gradient steps because we're basically predicting kind of similar to how you might do prompting nowadays in NLP literature。
+ it's a burnt like stochastic masking and the key point is that we actually use it on both features as well as on training targets and we'll get into why that kind of leads to an interesting predictive mechanism later。Sure。So to start with this idea of data sets as input。
 
-Anyways， yeah， I think we'll get into some more details。
-
-Just to chime in on that I don't think that every meta learning algorithm I think the ones that you're described right now are like optimization based。
-
- but they're also black box ones like you don't need to。Further。
-
- I think the main difference seems to be that there is like one task versus multiple tasks for meta learning。
-
-Yeah， I I think so too， I think the the like main， yeah。
-
- theing the main framing question is whether or not there's multiple data sets。Cool。Okay， awesome。
-
- If there's no other questions， I'll dive a bit more into the architecture。
-
-
-
-![](img/1777b223f7bf8be27a8767d209c7f271_18.png)
-
-Awesome， so there's three key components to NPpts。 I'm gonna to first state them at a high level。
-
- and then we'll go through each of them in more detail。 So， first of all。
-
- we take the entire data set。 All data points is input。 So， for example， at test time。
-
- the model is going to take as input， both training and test data。
-
- And we approximate this with mini batches for large data。😊。
-
-We apply self attention between data points， so for example， at test time。
-
- we model relationships amongst training points， amongst test points and between the two sets。
-
-And then finally we have this masking based training objective。
-
- it's a burnt like stochastic masking and the key point is that we actually use it on both features as well as on training targets and we'll get into why that kind of leads to an interesting predictive mechanism later。
-
-Sure。So to start with this idea of data sets as input。
-
- there's two things that compose the input to NPT， it's a full data set in the form of a matrix X and a masking matrix M。
-
-And so Yick has described this data set matrix a little bit， we basically have data points as rows。
-
- the columns are attributes and each attribute shares some kind of semantic meaning among all of its data points。
-
- so say for example you're just doing single target classification or regression the last column would be the target and the rest of the matrix would be input features so for example the pixels of an image。
+ there's two things that compose the input to NPT， it's a full data set in the form of a matrix X and a masking matrix M。And so Yick has described this data set matrix a little bit， we basically have data points as rows。the columns are attributes and each attribute shares some kind of semantic meaning among all of its data points。so say for example you're just doing single target classification or regression the last column would be the target and the rest of the matrix would be input features so for example the pixels of an image。
 
 We also have a masking matrix， so let's say you know we're thinking about mass language modeling the mass tokens will just tell us where we're going to conceal words and where we're going to backproagate a loss we do a similar type of thing here where we use this binary mass matrix to specify which entries are masked。
 
-And the goal is to predict mass values from observed values。
+And the goal is to predict mass values from observed values。I see that there was a question about handling inputs with different lengths。In the data sets we've considered we'll get into it in the results section。but it's mostly been sort of tabular in image data where the lengths for each of the data points is the same。
 
-I see that there was a question about handling inputs with different lengths。
+ but it would work just like padding that would be a reasonable way to go about that and there's also kind of an interesting yeah go for an。This to add to that I'm not sure if length prefers refers to columns or two rows right rows we don't care about how many rows length padding or something would be an option Yeah my question was about column exactly so that that makes sense I think。
 
-In the data sets we've considered we'll get into it in the results section。
+Yeah， and I mean， that goes along with the whole meta learning discussion is I think if we wanted to adapt to data sets that have a different number of data data points per data set。you know， we can take advantage of the fact that self attention is kind of okay with that。Cool。
 
- but it's mostly been sort of tabular in image data where the lengths for each of the data points is the same。
+So continuing on。Le to discuss here is basically how we do the embedding so to put this more explicitly we have this data matrix it has n data points。it's called X and it all has D attributes and we have the binary mass matrix M we're going to stack them and then we're going to do a linear embedding so specifically we're doing the same linear embedding independently for each data point we're learning a different embedding for each attribute。
 
- but it would work just like padding that would be a reasonable way to go about that and there's also kind of an interesting yeah go for an。
+We have a positional encoding on the index of the attributes because we don't really care about say being equi over the columns。if it's tabular data you of course want to treat all these kind of heterogeneous columns differently and then finally we have an encoding on the type of columns so whether or not it's continuous or categorical。
 
-This to add to that I'm not sure if length prefers refers to columns or two rows right rows we don't care about how many rows length padding or something would be an option Yeah my question was about column exactly so that that makes sense I think。
+And that ends up giving us this input data set representation that is dimensions n by D by E。The second key component of NPpts is tension between data points。So to do that。we first take this representation we have and flatten to an end by d times e representation。so basically we're treating each of these d times e size rows as if it's a token representation。
 
-Yeah， and I mean， that goes along with the whole meta learning discussion is I think if we wanted to adapt to data sets that have a different number of data data points per data set。
+We're actually going to just accomplish this operation using multied selfat you know we've reviewed this a lot。but the nice thing is that we know from language modeling we stack this multiple times we can model these higher order dependencies and here they between data points and that's really the key draw of this architecture there's been other kind of instances of people using attention for similar sorts of things so for example like attentive neural processes a lot of times they've sort of used just a single layer as kind of representational lookup and we believe that this actually ends up limiting expresssivity and that by sacking this many times you can learn more complex relationships between the data points。
 
- you know， we can take advantage of the fact that self attention is kind of okay with that。Cool。
+On any lots of questions。So you can go ahead first。OhCool thanks I have a question about like how you guys do the embedding is there always like arties like convolutional filters or like linear layers like what is the type of embedding that you guys use Yeah so i'm attempting to go back to the slide I think it's not not very happy with linear now but yeah so for for Tular data we did just linear embeddings actually so we。
 
-So continuing on。Le to discuss here is basically how we do the embedding so to put this more explicitly we have this data matrix it has n data points。
+You know， we we could get into like， I guess details of feturization for categorical and continuous。but it's literally like， say for categorical， you know。you do a one hot encoding and then you learn this embedding that is specific to that attribute and then for numerical。I believe we were just standard onizing for the image data we did end up using。
 
- it's called X and it all has D attributes and we have the binary mass matrix M we're going to stack them and then we're going to do a linear embedding so specifically we're doing the same linear embedding independently for each data point we're learning a different embedding for each attribute。
+A Resnet 18 encoder for C4 10。however， I think that I mean。we'll discuss that a bit later in results， but that embedding is a bit arbitrary。you can sort of do whatever the key part of the architecture is the attention between data points。So it's in terms of how you actually want to embed each attribute。 it's kind of up to you。Thanks。
 
-We have a positional encoding on the index of the attributes because we don't really care about say being equi over the columns。
+I think another question， same question as Victor Tos。Awesome。Cool。so here we have attention between data points done。so we can also do this attention between attributes。So we reshape back to this N by D by E representation and then we can just apply self- attention independently to each row in other words to a single data point and the intuition for why we would kind of do this nested type idea where we switch between attention between data points and attention between attributes is just we're trying to learn better per data point representations for the between data point interactions this is literally just normal self-atten。
 
- if it's tabular data you of course want to treat all these kind of heterogeneous columns differently and then finally we have an encoding on the type of columns so whether or not it's continuous or categorical。
+ as you'd see in language modeling or image classification the attributes are the tokens here。And finally， we just minins and repeat。So what are we actually getting out of this to summarize we're learning higher order relationships between data points？
 
-And that ends up giving us this input data set representation that is dimensions n by D by E。
-
-The second key component of NPpts is tension between data points。So to do that。
-
- we first take this representation we have and flatten to an end by d times e representation。
-
- so basically we're treating each of these d times e size rows as if it's a token representation。
-
-We're actually going to just accomplish this operation using multied selfat you know we've reviewed this a lot。
-
- but the nice thing is that we know from language modeling we stack this multiple times we can model these higher order dependencies and here they between data points and that's really the key draw of this architecture there's been other kind of instances of people using attention for similar sorts of things so for example like attentive neural processes a lot of times they've sort of used just a single layer as kind of representational lookup and we believe that this actually ends up limiting expresssivity and that by sacking this many times you can learn more complex relationships between the data points。
-
-On any lots of questions。So you can go ahead first。
-
-OhCool thanks I have a question about like how you guys do the embedding is there always like arties like convolutional filters or like linear layers like what is the type of embedding that you guys use Yeah so i'm attempting to go back to the slide I think it's not not very happy with linear now but yeah so for for Tular data we did just linear embeddings actually so we。
-
-You know， we we could get into like， I guess details of feturization for categorical and continuous。
-
- but it's literally like， say for categorical， you know。
-
- you do a one hot encoding and then you learn this embedding that is specific to that attribute and then for numerical。
-
- I believe we were just standard onizing for the image data we did end up using。
-
-A Resnet 18 encoder for C4 10。 however， I think that I mean。
-
- we'll discuss that a bit later in results， but that embedding is a bit arbitrary。
-
- you can sort of do whatever the key part of the architecture is the attention between data points。
-
- So it's in terms of how you actually want to embed each attribute。 it's kind of up to you。Thanks。
-
-I think another question， same question as Victor Tos。Awesome。Cool。
-
- so here we have attention between data points done。
-
- so we can also do this attention between attributes。
-
-So we reshape back to this N by D by E representation and then we can just apply self- attention independently to each row in other words to a single data point and the intuition for why we would kind of do this nested type idea where we switch between attention between data points and attention between attributes is just we're trying to learn better per data point representations for the between data point interactions this is literally just normal self-atten。
-
- as you'd see in language modeling or image classification the attributes are the tokens here。
-
-And finally， we just minins and repeat。So what are we actually getting out of this to summarize we're learning higher order relationships between data points？
-
-We're learning transformations of individual data points。And then importantly。
-
- NPT is equivariant to a permutation of the data points。
-
- this basically just reflects the intuition that the learned relationships between the data points should not depend on the ordering in which you receive them or in which you observe your data set。
-
-The third key component of NPptTs is a masking based string objective。
+We're learning transformations of individual data points。And then importantly。NPT is equivariant to a permutation of the data points。this basically just reflects the intuition that the learned relationships between the data points should not depend on the ordering in which you receive them or in which you observe your data set。The third key component of NPptTs is a masking based string objective。
 
 So recall that what we're trying to do is we're trying to predict missing entries from observed entries and those mass values can be both features or targets so again the classic use say mass language modeling is to do self-supervised learning on a sequence of tokens which you could think of as just having features in our setting ours is a bit different in that we do stochastic feature masking to mass feature values with a probability piece sub future and then we also do this masking of training targets with this probability piece subtart so if we write out the training objective。
 
-We are just taking a weighted sum of the negative log likelihood loss from targets as well as from features。
-
- and of course at test time we're only going to mask and compute a loss over the targets of test points。
-
-So to break this down a bit further and point out some of the cool parts of it here。
-
- the thing that's highlighted right now on the far right is the term relating to the features。
+We are just taking a weighted sum of the negative log likelihood loss from targets as well as from features。and of course at test time we're only going to mask and compute a loss over the targets of test points。So to break this down a bit further and point out some of the cool parts of it here。the thing that's highlighted right now on the far right is the term relating to the features。
 
  it's the feature masking， basically we find that this has a nice regularizing effect more or less the model can now predict anywhere and makes the task a bit harder and introduce some more supervision and we found in an ablation for the tabular dataset sets that it helped for eight of 1 of those。
 
-And then there's this other term， which is kind of interesting it's this stochastic target masking and the idea is that。
+And then there's this other term， which is kind of interesting it's this stochastic target masking and the idea is that。You're actually going to have some training targets unmasked to the model at input at training time。which means that the NPptT can learn to predict the mask targets of certain training data points using the targets of other training data points as well as all of the training features。And so that means you don't actually need to memorize a mapping between training inputs and outputs in your parameters。
 
-You're actually going to have some training targets unmasked to the model at input at training time。
-
- which means that the NPptT can learn to predict the mask targets of certain training data points using the targets of other training data points as well as all of the training features。
-
-And so that means you don't actually need to memorize a mapping between training inputs and outputs in your parameters。
-
- You can instead devote the representational capacity of the model to learn functions that use other training features and targets as input。
-
- So this is kind of getting into the idea of this sort of like learn K and N idea。 You know。
-
- obviously， we can be learn more complex， relational lookups and those sorts of things from this。
-
- But you can imagine one such you know case being， we have a bunch of test data points coming in。
+ You can instead devote the representational capacity of the model to learn functions that use other training features and targets as input。So this is kind of getting into the idea of this sort of like learn K and N idea。You know。obviously， we can be learn more complex， relational lookups and those sorts of things from this。But you can imagine one such you know case being， we have a bunch of test data points coming in。
 
 We're going to look at their features and use that to assign them to clusters of training data points and then our prediction for those points is just going to be an interpolation of the training targets in that respective cluster that's like an example of something that this mechanism lets NPptTs learn。
 
@@ -482,395 +176,137 @@ We're going to look at their features and use that to assign them to clusters of
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_20.png)
 
-All right， so if there's any questions， we can take them now。
+All right， so if there's any questions， we can take them now。otherwise I'm happy to take them in the discussion or something。All right。So let's discuss go for it curious when you're using the entire data set。Is that limit the type of data sets you can use because of the size？Yeah， so in practice。
 
- otherwise I'm happy to take them in the discussion or something。All right。
+ we do random mini batchching as an approximation， so the idea is just you know if you have a reasonably large mini batch。you're going to benefit a bit from still having kind of this lookup ability because if youre reasonable number of classes。probably you're going to be able to learn some you know interesting mappings based on features and targets amongst those classes we found in practice that you know and we'll get into this a little bit。but we do actually indeed learn to use relationships between data points on prediction for data sets where we're doing mini batchching and we also didn't necessarily find that you need like a ludicrously large batch size for this to be a thing but I do think it's just this is in general and important point and it's one that points us towards looking into say you know sparse transformers literature for trying to expand to some larger data sets without having the mini batchching assumption。
 
-So let's discuss go for it curious when you're using the entire data set。
+Great， thank you。If I can add a number to that， we can without mini batchching accommodate data sets off around like 8000 points or so。so that already accounts for a fair proportion I would say of the tabular data sets out there but we also do data sets with  11 million points where obviously we then resort two mini batchching so it's very good to have like an idea of the sizes that we're talking about。
 
-Is that limit the type of data sets you can use because of the size？Yeah， so in practice。
+I'm curious on that， I mean it's pretty exciting， I feel like you don't normally hear about。Transformers being applied to the sets sub size 8000。U。I'm curious and we could talk about this sort of later once we've covered the other material if you found that sample efficiency is one of the key gains here or just experience working on small data of transformers generally and yeah。but I'll happy to put the answer to that until after as part of this。😊，Yeah， I I think that'd be。
 
- we do random mini batchching as an approximation， so the idea is just you know if you have a reasonably large mini batch。
+ that'd be really nice to talk about a bit。And it was something that in general， I guess， I'd say。was surprising to us in terms of how robust NPTs were on small data sets and how we surprisingly didn't have to tune a terrible number of parameters。But we can get into details in a bit。😊，awesome。So to get into the experiments。we focused a lot on tabular data because it's a very general setting。
 
- you're going to benefit a bit from still having kind of this lookup ability because if youre reasonable number of classes。
+ and it's also notoriously challenging for deep learning。So we know， you know。treebasedase boosting methods， stuff like X boost is very dominant and this is also a very relevant domain to。I think people in industry and that sort of thing。So we were excited about the idea of trying to do better on this。
 
- probably you're going to be able to learn some you know interesting mappings based on features and targets amongst those classes we found in practice that you know and we'll get into this a little bit。
+ So we chose a broad selection of data sets varying across a few different dimensions。you know as we mentioned， you know on the order of hundreds to tens of millions of instances broad range in the number of features in the composition of features in terms of being categorical or continuous various types of tasks。
 
- but we do actually indeed learn to use relationships between data points on prediction for data sets where we're doing mini batchching and we also didn't necessarily find that you need like a ludicrously large batch size for this to be a thing but I do think it's just this is in general and important point and it's one that points us towards looking into say you know sparse transformers literature for trying to expand to some larger data sets without having the mini batchching assumption。
-
-Great， thank you。If I can add a number to that， we can without mini batchching accommodate data sets off around like 8000 points or so。
-
- so that already accounts for a fair proportion I would say of the tabular data sets out there but we also do data sets with  11 million points where obviously we then resort two mini batchching so it's very good to have like an idea of the sizes that we're talking about。
-
-I'm curious on that， I mean it's pretty exciting， I feel like you don't normally hear about。
-
-Transformers being applied to the sets sub size 8000。U。
-
-I'm curious and we could talk about this sort of later once we've covered the other material if you found that sample efficiency is one of the key gains here or just experience working on small data of transformers generally and yeah。
-
- but I'll happy to put the answer to that until after as part of this。😊，Yeah， I I think that'd be。
-
- that'd be really nice to talk about a bit。 And it was something that in general， I guess， I'd say。
-
- was surprising to us in terms of how robust NPTs were on small data sets and how we surprisingly didn't have to tune a terrible number of parameters。
-
- But we can get into details in a bit。😊，awesome。So to get into the experiments。
-
- we focused a lot on tabular data because it's a very general setting。
-
- and it's also notoriously challenging for deep learning。 So we know， you know。
-
- treebasedase boosting methods， stuff like X boost is very dominant and this is also a very relevant domain to。
-
- I think people in industry and that sort of thing。
-
- So we were excited about the idea of trying to do better on this。
-
- So we chose a broad selection of data sets varying across a few different dimensions。
-
- you know as we mentioned， you know on the order of hundreds to tens of millions of instances broad range in the number of features in the composition of features in terms of being categorical or continuous various types of tasks。
-
- binary and multiclass classification as well as regression And like I said。
-
- the baselines were kind of the usual suspects for tabular data， X boost cat boost。
-
- byGBM to MLPs and Tnet， which is a transformer architecture for tabular data。
-
-
-
-![](img/1777b223f7bf8be27a8767d209c7f271_22.png)
+ binary and multiclass classification as well as regression And like I said。the baselines were kind of the usual suspects for tabular data， X boost cat boost。byGBM to MLPs and Tnet， which is a transformer architecture for tabular data。![](img/1777b223f7bf8be27a8767d209c7f271_22.png)
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_23.png)
 
 So to get into the results here I'm showing the average rank for the various subtasks we did well in terms of rankwise performance against methods like cat boostost and X boostt which are designed specifically for Tular data and in fact we find that NPT is the top performer on four of the 10 of these data sets on image data I mentioned that we used a CNN encoder and with that we were performing well on C410。
 
-And we also think that， you know， in general， like with， let's say。
-
- new work on image transformers on small data， this can probably just be done with linear patching。
-
- And so this kind of the manner in which you're embedding things is probably not the key。Neil。
-
- if I can jump in with two questions。Can you go back two slides first？
+And we also think that， you know， in general， like with， let's say。new work on image transformers on small data， this can probably just be done with linear patching。And so this kind of the manner in which you're embedding things is probably not the key。Neil。if I can jump in with two questions。Can you go back two slides first？
 
 
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_25.png)
 
-One is just a small minor point， back one more please。Thank you。 here for the features， 50 plus。
+One is just a small minor point， back one more please。Thank you。here for the features， 50 plus。what does plus mean here？I'll have to double check what the exact number is I'm pretty sure it's probably around 50。I would guess like so the 50 is really a order of it's not like 150 or 5000。Yes， yeah。 I mean。I I'll double check for you， or you can check with the the metadata statistics at the end of the paper。
 
- what does plus mean here？I'll have to double check what the exact number is I'm pretty sure it's probably around 50。
+ But no， it wasn't like you know， arbitrarily large， I would say， though。You know。we did these ablations on whether or not we actually need attention between attributes。We did find that this ended ended up benefiting us， but you could perhaps do kind of say。just an MLP embedding in that dimension and go to like a relatively small number of hidden dimensions and fit kind of an arbitrary number of features。
 
- I would guess like so the 50 is really a order of it's not like 150 or 5000。Yes， yeah。 I mean。
+So I think that， yeah， if you， if you kind of relax the necessity of attention between attributes。you can probably scale out at least that dimension quite a lot。Okay， and then my second question。if you could go forward one slide。![](img/1777b223f7bf8be27a8767d209c7f271_27.png)
 
- I I'll double check for you， or you can check with the the metadata statistics at the end of the paper。
+Thank you here， I'm not sure I quite caught。what does four of 10 data sets。2 of 10 data sets and four of 10 mean。This is of the， of all the tabular data sets that we had。So oh， I you think binaryer classification is for I see， okay。Yeah， exactly。Awesome。Any other questions？The standard errors here because I mean， there's like there's just 10 data sets。
 
- But no， it wasn't like you know， arbitrarily large， I would say， though。You know。
+ right。Yeah， correct。1010 total tabular data sets。Yeah， but these are rank good。Yeah， these are。these are rankwise performance， correct， Okay， I'm justing。How the。Where the uncertainty comes from in this case？Yeah。average averaged over four of 10 data sets the rank so for each particular data set we have a rank of all the different methods then we take the average and the very answer of the rankings within each of the types of task within binary classification within multiclass。
 
- we did these ablations on whether or not we actually need attention between attributes。
+ etc。Good。We also， if you're curious， you know， have the full results in the paper。Yeah， thank you。We also have a couple of questions more some questions。Hey yeah， thanks。I guess I just found it a little surprising that the worst performer was KNN given that it's also nonparmetric。I guess could you comment on that and yeah， is it that there's something like intrinsic to the NPT that makes it just exceptional far beyond other nonparmetric methods or yeah。
 
- We did find that this ended ended up benefiting us， but you could perhaps do kind of say。
-
- just an MLP embedding in that dimension and go to like a relatively small number of hidden dimensions and fit kind of an arbitrary number of features。
-
-So I think that， yeah， if you， if you kind of relax the necessity of attention between attributes。
-
- you can probably scale out at least that dimension quite a lot。 Okay， and then my second question。
-
- if you could go forward one slide。
-
-![](img/1777b223f7bf8be27a8767d209c7f271_27.png)
-
-Thank you here， I'm not sure I quite caught。 what does four of 10 data sets。
-
-2 of 10 data sets and four of 10 mean。This is of the， of all the tabular data sets that we had。
-
- So oh， I you think binaryer classification is for I see， okay。Yeah， exactly。Awesome。
-
-Any other questions？The standard errors here because I mean， there's like there's just 10 data sets。
-
- right。Yeah， correct。1010 total tabular data sets。 Yeah， but these are rank good。 Yeah， these are。
-
- these are rankwise performance， correct， Okay， I'm justing。How the。
-
-Where the uncertainty comes from in this case？Yeah。
-
- average averaged over four of 10 data sets the rank so for each particular data set we have a rank of all the different methods then we take the average and the very answer of the rankings within each of the types of task within binary classification within multiclass。
-
- etc。Good。We also， if you're curious， you know， have the full results in the paper。Yeah， thank you。
-
-We also have a couple of questions more some questions。Hey yeah， thanks。
-
- I guess I just found it a little surprising that the worst performer was KNN given that it's also nonparmetric。
-
- I guess could you comment on that and yeah， is it that there's something like intrinsic to the NPT that makes it just exceptional far beyond other nonparmetric methods or yeah。
-
- why is it that KN performs the worst here？Well， I suppose ultimately can and is is still a relatively naive predictive method in that you know it might just be predicting based on kind of cluster means so for example。
-
- you know I think this is probably universally true for all the data sets but there's probably some amount of kind of additional reasoning that needs to occur over the features at least to basic level so for example。
+ why is it that KN performs the worst here？Well， I suppose ultimately can and is is still a relatively naive predictive method in that you know it might just be predicting based on kind of cluster means so for example。you know I think this is probably universally true for all the data sets but there's probably some amount of kind of additional reasoning that needs to occur over the features at least to basic level so for example。
 
  like one of the data sets is this poker hand data set where it's like a mapping between all of the different hands you have in poker and what like they're commonly known to people like full houses or whatever So this requires some amount of reasoning over the features to be able to group things together。
 
-So just taking like the cluster means of the featurization of those different you know hands is likely not going to give you a great predictive function。
+So just taking like the cluster means of the featurization of those different you know hands is likely not going to give you a great predictive function。whereas NPTs can kind of do the classic thing where say you have an MLP type of thing over the features or like a you know tree type of thing over the features。
 
- whereas NPTs can kind of do the classic thing where say you have an MLP type of thing over the features or like a you know tree type of thing over the features。
+ you can learn some sort of complex embedding， but then you also can do some nonparmetric sort of prediction based on say like clusters of embeddings。I said yeah that makes sense， I guess if what if you used？
 
- you can learn some sort of complex embedding， but then you also can do some nonparmetric sort of prediction based on say like clusters of embeddings。
+Pre trained embeddings from a stack of encoders as your vector representation for the canon。How do you think that would perform compared to the rest of the crowd？Yeah， so this is like， I mean。this idea is kind of like deep kernel learning or like， yeah。I believe it is deep kernel learning is basically you use an MLP independently。
 
-I said yeah that makes sense， I guess if what if you used？
+ So you learn an MP on each input data point， and then you apply a G over all the representations of those。you get this sort of like complex embedding and then the lookups。The key difference between that type of idea and Ns is that we also learn the relationships between the data points themselves。because we use this parametric attention mechanism to learn the relationships。
 
-Pre trained embeddings from a stack of encoders as your vector representation for the canon。
+ So we're not just learning like an embedding independently。We're basically back propagating through the entire process learning the ways in which we would try to embed this。but also the the ways that say the lookup would occur and essentially the the relationships at that could potentially be kind of higher order as well。cool more follow up。😊，Oh yeah go for it cool yeah thanks so I guess then if if the advantage of NPT has to do with sort of the relationships between data points。
 
-How do you think that would perform compared to the rest of the crowd？Yeah， so this is like， I mean。
-
- this idea is kind of like deep kernel learning or like， yeah。
-
- I believe it is deep kernel learning is basically you use an MLP independently。
-
- So you learn an MP on each input data point， and then you apply a G over all the representations of those。
-
- you get this sort of like complex embedding and then the lookups。
-
- The key difference between that type of idea and Ns is that we also learn the relationships between the data points themselves。
-
- because we use this parametric attention mechanism to learn the relationships。
-
- So we're not just learning like an embedding independently。
-
- We're basically back propagating through the entire process learning the ways in which we would try to embed this。
-
- but also the the ways that say the lookup would occur and essentially the the relationships at that could potentially be kind of higher order as well。
-
- cool more follow up。😊，Oh yeah go for it cool yeah thanks so I guess then if if the advantage of NPT has to do with sort of the relationships between data points。
-
-AndWhat if you you know took the？Took the let's say you know encoder representations and then you passed that as input say for the you know 10 nearest neighbors along with like some other like。
-
-input representation and sort of had this like weighted average like attention style where you weighted the vectors of the nearest neighbors based on the attention weights between those input data points and then like the supplied input data point and then like past that as you know the vector to like the final prediction layer。
+AndWhat if you you know took the？Took the let's say you know encoder representations and then you passed that as input say for the you know 10 nearest neighbors along with like some other like。input representation and sort of had this like weighted average like attention style where you weighted the vectors of the nearest neighbors based on the attention weights between those input data points and then like the supplied input data point and then like past that as you know the vector to like the final prediction layer。
 
  like do you think that captures some amount of the relationship or is that off base？
 
-So I think the nice part， like and really what our ideas behind this whole thing is just。
+So I think the nice part， like and really what our ideas behind this whole thing is just。These sorts of instances where certain fixed kernels would perform particularly well in tasks is like kind of an annoyance。And like ultimately like tuning a lot of these types of things or're trying to derive the predictive methods that might make a lot of sense for a given situation。kind of stinks And ideally， you'd want to just back propagate on a data and kind of learn these relationships yourself。
 
-These sorts of instances where certain fixed kernels would perform particularly well in tasks is like kind of an annoyance。
+ So I actually would be really interested to see if we can come up with some synthetic experiments that have these sort of like very particular K and N。like predictive mechanisms and just see if we can learn precisely those and get you know。zero error with NPpts。 And， in fact， like we'll get into this a little bit with some of the interventional experiments we do。We have like kind of precise lookup functions that NPpts end up being able to learn。
 
- And like ultimately like tuning a lot of these types of things or're trying to derive the predictive methods that might make a lot of sense for a given situation。
-
- kind of stinks And ideally， you'd want to just back propagate on a data and kind of learn these relationships yourself。
-
- So I actually would be really interested to see if we can come up with some synthetic experiments that have these sort of like very particular K and N。
-
- like predictive mechanisms and just see if we can learn precisely those and get you know。
-
- zero error with NPpts。 And， in fact， like we'll get into this a little bit with some of the interventional experiments we do。
-
- We have like kind of precise lookup functions that NPpts end up being able to learn。
-
- So we can learn interesting relational functions。😊，Cool， yeah， thanks a lot， appreciate。好。All right。
-
- we have one more question from。
-
-![](img/1777b223f7bf8be27a8767d209c7f271_29.png)
+ So we can learn interesting relational functions。😊，Cool， yeah， thanks a lot， appreciate。好。All right。we have one more question from。![](img/1777b223f7bf8be27a8767d209c7f271_29.png)
 
 I just wanted to clarify something about basically so at test time you just take the exact same data set and you just like add like your test examples right and then you like do the same type of like masking and is that how it works？
 
-Yeah， correct。Okay got it and I do have one more question that is just because like I think I like misunderstood like how like the effects of your NPT objective。
-
- do you mind going back to that slide？Sure。Yeah， can you repeat one more time like what makes this so special？
+Yeah， correct。Okay got it and I do have one more question that is just because like I think I like misunderstood like how like the effects of your NPT objective。do you mind going back to that slide？Sure。Yeah， can you repeat one more time like what makes this so special？
 
 Yeah， so the regularizerizer on the right over the features I would think of very similarly to self-supervised learning with just a standard transformer like you're basically just introducing a lot more supervision and you're even if say you're just doing a supervised objective this is kind of like some amount of reconstruction over the features you learn a more interesting representation and like what a regularizing effect。
 
- which we think is interesting but perhaps not as interesting as this stochastic target masking。
+ which we think is interesting but perhaps not as interesting as this stochastic target masking。this one is unique because。In kind of standard parametric deep learning。you're not going to have an instance in your training process where you're taking targets as input。And so basically， what happens is。If you have your training data set is input。
 
- this one is unique because。In kind of standard parametric deep learning。
+ whatever you're gonna have some stochastic feature masking stuff happening on the features amongst the training targets。you're randomly going to have some of those unmasked and some of them will indeed be masked。You're going to be back propagating a loss on the ones that are masked， of course。because you don't want your model to have those available input if you're going to actually try to you know back propagate a loss on it。
 
- you're not going to have an instance in your training process where you're taking targets as input。
+ But you can use the other ones as input， And that means you can learn these kind of like interpoative functions。So that was like this whole idea of like being able to kind of like learn K and N。But doesn't that allow？The model to cheat again。Yeah。so this is like an interesting point and actually like subtle so I think it's it's really worthwhile to bring up so first of all。
 
-And so basically， what happens is。If you have your training data set is input。
+ we never actually back propagate a loss on something that was visible to the model at input and so if。for example the model did actually end up basically overfitting on training labels we would not observe the model's ability to generalize to test data we don't observe this so obviously it seems like this kind of blocking of back propagation on labels that are visible at input to the NPT is helping。
 
- whatever you're gonna have some stochastic feature masking stuff happening on the features amongst the training targets。
+It could also be possible that。In bird style stochastic masking。you also randomly will flip some labels to be in a different category。So this is like kind of just like a random fine print that was introduced in the bird masking text。We also do that。So it's possible that that somehow contributes to the to that。
 
- you're randomly going to have some of those unmasked and some of them will indeed be masked。
+ but it's probably pretty likely to just be the fact that we're not back propagating a loss on something that's visible。Great， thanks， make sense。😊，I have two more questions， if I can jump in。![](img/1777b223f7bf8be27a8767d209c7f271_31.png)
 
- You're going to be back propagating a loss on the ones that are masked， of course。
+Yes， sorry。Can we go to the the metrics， the performance， the results slide。![](img/1777b223f7bf8be27a8767d209c7f271_33.png)
 
- because you don't want your model to have those available input if you're going to actually try to you know back propagate a loss on it。
+Sure。![](img/1777b223f7bf8be27a8767d209c7f271_35.png)
 
- But you can use the other ones as input， And that means you can learn these kind of like interpoative functions。
+I feel like I missed something else。I'm sorry about this。So A U are。so looking on the binary classification， A U R O C。Can you clarify what these numbers mean。Are they the A U ROC。So this is the so on each of the data sets。So say for a particular binary classification data set。
 
- So that was like this whole idea of like being able to kind of like learn K and N。
-
-But doesn't that allow？The model to cheat again。Yeah。
-
- so this is like an interesting point and actually like subtle so I think it's it's really worthwhile to bring up so first of all。
-
- we never actually back propagate a loss on something that was visible to the model at input and so if。
-
- for example the model did actually end up basically overfitting on training labels we would not observe the model's ability to generalize to test data we don't observe this so obviously it seems like this kind of blocking of back propagation on labels that are visible at input to the NPT is helping。
-
-It could also be possible that。In bird style stochastic masking。
-
- you also randomly will flip some labels to be in a different category。
-
- So this is like kind of just like a random fine print that was introduced in the bird masking text。
-
- We also do that。 So it's possible that that somehow contributes to the to that。
-
- but it's probably pretty likely to just be the fact that we're not back propagating a loss on something that's visible。
-
-Great， thanks， make sense。😊，I have two more questions， if I can jump in。
-
-
-
-![](img/1777b223f7bf8be27a8767d209c7f271_31.png)
-
-Yes， sorry。 Can we go to the the metrics， the performance， the results slide。
-
-
-
-![](img/1777b223f7bf8be27a8767d209c7f271_33.png)
-
-Sure。
-
-![](img/1777b223f7bf8be27a8767d209c7f271_35.png)
-
-I feel like I missed something else。 I'm sorry about this。 So A U are。
-
- so looking on the binary classification， A U R O C。Can you clarify what these numbers mean。
-
- Are they the A U ROC。So this is the so on each of the data sets。
-
-So say for a particular binary classification data set。
-
- we're going to get a ranking of the methods we're going to repeat this yeah。
-
-so these numbers here are the the relative ranking across in this particular case。
-
- the four data sets。Correct， yeah， I see。 So this， these values are not the A U R O Cs on average。
-
- across the data sets。No， yeah。 they're not。 I mean， like everything。Averaging our might make sense。
+ we're going to get a ranking of the methods we're going to repeat this yeah。so these numbers here are the the relative ranking across in this particular case。the four data sets。Correct， yeah， I see。So this， these values are not the A U R O Cs on average。across the data sets。No， yeah。 they're not。 I mean， like everything。Averaging our might make sense。
 
  but averaging things like accuracy and RMC seems like a bad idea right because you might have some data sets where everything has high accuracy or where RMC needs something drastically different I see so this these numbers here only tell us the relative ranking between the different methods not how well they actually perform。
 
-I mean， it tells us how they perform relative to one another， but not how well they perform in I see。
+I mean， it tells us how they perform relative to one another， but not how well they perform in I see。Okay， but that's not in the appendix。all we have that information。I see， Okay， I was。I was sitting here confused going like， why is A U R O C。Why is the best one the smallest and accuracy， What is an accuracy of 2。 anyways。 Okay。
 
- Okay， but that's not in the appendix。 all we have that information。 I see， Okay， I was。
+ that makes my more sense。Thank you both。Awesome。😊，Great。so I'll try to speed through this just in the interest of time。But the basically thing。the thing that you might be thinking after all these results is are we even learning any data point interactions on these real data sets。And so basically， we design an experiment to figure this out。
 
- I was sitting here confused going like， why is A U R O C。
+ And the idea is that we're going to disallow NPT from using other data points when predicting on one of them。😊。![](img/1777b223f7bf8be27a8767d209c7f271_37.png)
 
- Why is the best one the smallest and accuracy， What is an accuracy of 2。 anyways。 Okay。
+If we do that， and we observe that NPT actually predicts or performs significantly worse。it is indeed using these interactions between data points。A subtle challenge or kind of like an added added bonus we can get from this is that ideally。we wouldn't actually break batch statistics。 So let's say like the mean of each particular attribute。
 
- that makes my more sense。 Thank you both。Awesome。😊，Great。
-
- so I'll try to speed through this just in the interest of time。 But the basically thing。
-
- the thing that you might be thinking after all these results is are we even learning any data point interactions on these real data sets。
-
- And so basically， we design an experiment to figure this out。
-
- And the idea is that we're going to disallow NPT from using other data points when predicting on one of them。
-
-😊。
-
-![](img/1777b223f7bf8be27a8767d209c7f271_37.png)
-
-If we do that， and we observe that NPT actually predicts or performs significantly worse。
-
- it is indeed using these interactions between data points。
-
-A subtle challenge or kind of like an added added bonus we can get from this is that ideally。
-
- we wouldn't actually break batch statistics。 So let's say like the mean of each particular attribute。
-
- if we can find a way to do this experiment such that we don't break these things。
-
- we can kind of rule out the possibility that we learn something that's a bit similar to bash norm。
-
-And so the way that we do this is we basically look at the predictions for each one of the data points in sequence。
-
- So let's say in this case we're looking at the prediction of the model for this particular green row and you know it's going be predicting in this last column that has this question mark which is mess what we're going do is we're going permute each of the attributes independently amongst all other data points except for that one so the information for that row if it was kind of just predicting like a classic parametric deep model is still intact but the information from all of the other rows is gone so that's why we call this sort of the corruption experiment。
+ if we can find a way to do this experiment such that we don't break these things。we can kind of rule out the possibility that we learn something that's a bit similar to bash norm。And so the way that we do this is we basically look at the predictions for each one of the data points in sequence。So let's say in this case we're looking at the prediction of the model for this particular green row and you know it's going be predicting in this last column that has this question mark which is mess what we're going do is we're going permute each of the attributes independently amongst all other data points except for that one so the information for that row if it was kind of just predicting like a classic parametric deep model is still intact but the information from all of the other rows is gone so that's why we call this sort of the corruption experiment。
 
 And so we find in general when we perform this experiment performance kind of falls off a cliff for the vast majority of these methods and I'll note that you the performances between the methods on a lot of these were fairly close and so this is actually indeed pretty significant so for example on protein we went from being the top performer amongst all the methods to the worst performer worse than even like KNN or something like that I'll also note that there's kind of this interesting behavior where on these data sets like For and kick and breast cancer we actually observe that there's basically no drop in performance and we basically see this as kind of an interesting feature and not necessarily a bug of the model which is that if we're back propagating on a given data the model can sort of just find that it's actually not that worthwhile to attempt to predict using some kind of you know relational predictive mechanism amongst data points and can instead just learn to predict parametrically and basically ignore other data points when it's predict on any given one of them。
 
-And so this probably leads to some kind of like interesting ideas where perhaps you could do like postdoc pruning or something like that。
-
- taking away the tension between data points and doing fine tuning， let's say。All right。
-
- so now I'll hand over to Y to talk a bit about learning some interesting relationships。
-
-Yeah will you though I see that we're at the end of what the time is。
+And so this probably leads to some kind of like interesting ideas where perhaps you could do like postdoc pruning or something like that。taking away the tension between data points and doing fine tuning， let's say。All right。so now I'll hand over to Y to talk a bit about learning some interesting relationships。Yeah will you though I see that we're at the end of what the time is。
 
  but like I know there's a buffer planned and or something can you I can go through this experiment we can have a more discussion what's what do you guys prefer？
 
-Yeah， I think。Normally， what we do is we would sort of stop the recording at this point and have an off the record discussion。
+Yeah， I think。Normally， what we do is we would sort of stop the recording at this point and have an off the record discussion。And。I guess the question to ask is does anyone have any questions at this point？
 
-And。I guess the question to ask is does anyone have any questions at this point？
+But I think we've basically。Laantching questions as they come， so I personally feel fine just yeah。considering this a sort of question throughout。Yeah。I guess that sounds that sounds good ya you can go forward with it with like with your tongue as planned and yeah we can data we can see about the time thing。I think this will only be like another。4our or five minutes I shouldn't go for it， yes for sure。
 
-But I think we've basically。Laantching questions as they come， so I personally feel fine just yeah。
+All right。So Neil has now told us how well entities perform in real data and that they do make use of information from other samples of the input。But we're now going to take this a bit further and come up with some toy experiments that test a bit。the extent to which entities can learn to look up information from other role。like the extent to which they can learn this nonprometric prediction mechanism。
 
- considering this a sort of question throughout。Yeah。
-
- I guess that sounds that sounds good ya you can go forward with it with like with your tongue as planned and yeah we can data we can see about the time thing。
-
-I think this will only be like another。4our or five minutes I shouldn't go for it， yes for sure。
-
-All right。So Neil has now told us how well entities perform in real data and that they do make use of information from other samples of the input。
-
-But we're now going to take this a bit further and come up with some toy experiments that test a bit。
-
- the extent to which entities can learn to look up information from other role。
-
- like the extent to which they can learn this nonprometric prediction mechanism。
-
-And so specifically what we'll do is we'll create the following semi syntheticthe data set。
-
-So I want you to focus on A now。Yeah so we take one of the tabular data sets that we've used previously specifically the protein data set。
-
- but it doesn't really matter what matters is there it's a regression data set and so now what we do is we。
-
-The top half here is the original data set， but the bottom half is a copy of the original data set where we have unveiled the true target value so now NPTs could learn to use attention between data points to achieve arbitrarily good performance。
+And so specifically what we'll do is we'll create the following semi syntheticthe data set。So I want you to focus on A now。Yeah so we take one of the tabular data sets that we've used previously specifically the protein data set。but it doesn't really matter what matters is there it's a regression data set and so now what we do is we。The top half here is the original data set， but the bottom half is a copy of the original data set where we have unveiled the true target value so now NPTs could learn to use attention between data points to achieve arbitrarily good performance。
 
  they could learn to look up the target values in these matching duplicate row and then paste them back into that must out target value and then a test time of course we put in a novel test data input where this mechanism is also possible just to make sure that it hasn't learned to memorize anything but has actually learned this correct relational mechanism。
 
-And so what we see is that indeed MPs do successfully learn to perform this lookup so what I'm visualizing here is attention maps and they very clearly show that let's say when predicting for this green row here。
+And so what we see is that indeed MPs do successfully learn to perform this lookup so what I'm visualizing here is attention maps and they very clearly show that let's say when predicting for this green row here。this first green row what emmputees look at is exactly only that other green row here and so。😊。
 
- this first green row what emmputees look at is exactly only that other green row here and so。😊。
+This is really nice we can further look at the kind of the。😊。The pieson correlation between what MPs should predict and what they actually do predict and so this is 99。9% this is much better than anything you could achieve with parametric prediction and so it seems thatmp here can actually discover this mechanism and discover here I feel like it's the right word because MPmps could have as we've seen it's just also continued to predict in parametric fashion right from each row independently this is really kind of showing to us that there is this bias in the model to learn to predict from other rows and of course that is also very attractive in this setting because it allows you to achieve arbitrary load loss in this setting or as low as you can optimize for it。
 
-This is really nice we can further look at the kind of the。😊。
-
-The pieson correlation between what MPs should predict and what they actually do predict and so this is 99。
-
-9% this is much better than anything you could achieve with parametric prediction and so it seems thatmp here can actually discover this mechanism and discover here I feel like it's the right word because MPmps could have as we've seen it's just also continued to predict in parametric fashion right from each row independently this is really kind of showing to us that there is this bias in the model to learn to predict from other rows and of course that is also very attractive in this setting because it allows you to achieve arbitrary load loss in this setting or as low as you can optimize for it。
-
-😊，And so。We kind of take that to mean that our gradient based discovery。
-
- non parametrics philosophy seems to make some sense。
-
-And so we can take this a bit further by performing somewhat of an interventional experiment that investigates the extent to which NPTs have actually learned a robust causal mechanism that's underlying this semi synthetic data set。
-
-😊，Just depending you know this。This extra extra column of test data that' already kind of cool。
+😊，And so。We kind of take that to mean that our gradient based discovery。non parametrics philosophy seems to make some sense。And so we can take this a bit further by performing somewhat of an interventional experiment that investigates the extent to which NPTs have actually learned a robust causal mechanism that's underlying this semi synthetic data set。😊，Just depending you know this。This extra extra column of test data that' already kind of cool。
 
  but I think we can take a bit further and actually study if this generalizes beyond the data that we see in the training set or beyond data coming from this specific distribution and so what we now do is we intervene on individual duplicate data points at test time by varying their target value so now we only care about the prediction in a specific row we do this across all rows but at each time we just care about a single row what we do is we change the target value here that what we're hoping to see is and then NPT just adjusts the prediction as well right there's a very simple intervention experiment for us to test if NPTs have actually learned this mechanism and to some extent it also test robustness because now we're associating target values with features that are not part of the train distribution here。
 
-😊，And so what we see is that as we as we adjust these values here。
-
- this is the kind of the duplicate value and then we here see the target value as we adjust them。
-
- we can see the correlation stay is really really good， it's not quite 99。9% like on average。
-
- we're now at 99。6， but it' still very， very good。😊。
+😊，And so what we see is that as we as we adjust these values here。this is the kind of the duplicate value and then we here see the target value as we adjust them。we can see the correlation stay is really really good， it's not quite 99。9% like on average。we're now at 99。6， but it' still very， very good。😊。
 
 At this point you might be slightly annoyed with me because you know standard nonprometric models can also solve this task right this is a task that I could solve by nearest enables Sure maybe you know I would have to change the input format bit because this is kind of like in a batch setting and I can just use masks but most generally nearest neighbor can also you know it also looks up different input points based on their features nearest neighbor doesn't learn to do this。
 
- I still think it's cool that we need to learn this because it does require you know a decent amount of you know computational sequences that we have to learn like match on the features look up target you copy it back and so on but。
+ I still think it's cool that we need to learn this because it does require you know a decent amount of you know computational sequences that we have to learn like match on the features look up target you copy it back and so on but。It is in fact very easy for us to complicate this task to a degree such that essentially no other model that we know of can can solve this very easily and so like a really simple thing to do is just to add a plus one to all of the duplicate values。
 
-It is in fact very easy for us to complicate this task to a degree such that essentially no other model that we know of can can solve this very easily and so like a really simple thing to do is just to add a plus one to all of the duplicate values。
-
-😊，So now nearest neighbor would look up the right collar the right row， of course。
-
- but it would always predict the wrong target with a plus one on it and in in fact， many of the。
-
-The models that we're aware of， they're not modeling。😡。
-
-The joint distribution over features and targets what they're modeling is the traditional distribution of the targets given the input features and so they also cannot do this and so for us it's really not a problem at all MPs will just learn to subtract another one and no problems and sure this is also still a very synthetic setting but I do think I mean I challenge you to come up with something that MPmpes can't solve but the other models can solve I think in general this masking mechanism and the nonmetric of the approach really nice in general and leads to lots of nice behavior in a variety of settings and so with that I think we can go to the conclusions which Neil is going to give you。
+😊，So now nearest neighbor would look up the right collar the right row， of course。but it would always predict the wrong target with a plus one on it and in in fact， many of the。The models that we're aware of， they're not modeling。😡。The joint distribution over features and targets what they're modeling is the traditional distribution of the targets given the input features and so they also cannot do this and so for us it's really not a problem at all MPs will just learn to subtract another one and no problems and sure this is also still a very synthetic setting but I do think I mean I challenge you to come up with something that MPmpes can't solve but the other models can solve I think in general this masking mechanism and the nonmetric of the approach really nice in general and leads to lots of nice behavior in a variety of settings and so with that I think we can go to the conclusions which Neil is going to give you。
 
 
 
@@ -878,55 +314,27 @@ The joint distribution over features and targets what they're modeling is the tr
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_40.png)
 
-Yeah， I think， I mean， we're can cut out the。Main part here。 I'll just fast forward。
+Yeah， I think， I mean， we're can cut out the。Main part here。I'll just fast forward。look at them Yeah yeah， I was gonna say I think you you all get the gist NPpts take the entire data set input and they use self- attentiontention to model complex relationships between data points。
 
- look at them Yeah yeah， I was gonna say I think you you all get the gist NPpts take the entire data set input and they use self- attentiontention to model complex relationships between data points。
+ know， they do well in experiments on type of their data as well as image data we present some of these interventional experiments to show that they can solve complex reasoning tasks there's some more experiments in the paper。I'd say that you know， the interesting type of future work is scaling type things。
 
- know， they do well in experiments on type of their data as well as image data we present some of these interventional experiments to show that they can solve complex reasoning tasks there's some more experiments in the paper。
+ So we can you know， not having this mini batchching approximation。and then also just trying to expand this to some more interesting application domain So we talked a little bit about metal learning。but it could also be things like you know few shot generalization in general domain adaptation。semi surprise learning， etc。😊，So I think if there's some more questions。
 
- I'd say that you know， the interesting type of future work is scaling type things。
+ maybe we can do some more discussion。Yeah， things sounds good。Great thanks for the talk。I think everyone had a fun time see。I will just ask some general questions and then we can have like a discussion session with everyone after that So I think one thing that I noticed is like like this like you said like this is similar to like canons and I thought like this seems similar to like graph neural networks where I can think like each data point is like a node and then you can think of everything as a fully connected graph and you're learning some sort of attention rate in this graph。
 
- So we can you know， not having this mini batchching approximation。
-
- and then also just trying to expand this to some more interesting application domain So we talked a little bit about metal learning。
-
- but it could also be things like you know few shot generalization in general domain adaptation。
-
- semi surprise learning， etc。😊，So I think if there's some more questions。
-
- maybe we can do some more discussion。Yeah， things sounds good。 Great thanks for the talk。
-
- I think everyone had a fun time see。I will just ask some general questions and then we can have like a discussion session with everyone after that So I think one thing that I noticed is like like this like you said like this is similar to like canons and I thought like this seems similar to like graph neural networks where I can think like each data point is like a node and then you can think of everything as a fully connected graph and you're learning some sort of attention rate in this graph。
-
-So this is like a note prediction task you are kind of doing on this sort of like graph structure。
-
- so any comments on that like is it similar to like graph neural networks or is it like other differences？
+So this is like a note prediction task you are kind of doing on this sort of like graph structure。so any comments on that like is it similar to like graph neural networks or is it like other differences？
 
 Yeah this is a very good observation yeah I think there are a lot of similarities to work on graphraph neural networks if we want to talk about differences the differences might be that we're kind of assuming a fully connected graph right and so you could maybe also phrase that as we're discovering the relational structure or as graphraph neural networks usually assume that it's given but that's also not always true and so there are a lot of similarities I don't know Neil if there is something specific you would like to mention go ahead but it's a very good observation and then we also do feel that that's the case and we've added an extra sectional related work to graphra neural networks in the updated version of the that will be online soon。
 
-Got it。Yeah， I agree with everything you've said。 I think that the closest work from the GNN literature that we were looking at a little bit was this neural relational inference paper。
+Got it。Yeah， I agree with everything you've said。I think that the closest work from the GNN literature that we were looking at a little bit was this neural relational inference paper。which uses mess passage message passing neural networks to try to kind of like learn edges that may or may not exist and help for like extrapolating I think positions of like particles in like a multipart system or something。
 
- which uses mess passage message passing neural networks to try to kind of like learn edges that may or may not exist and help for like extrapolating I think positions of like particles in like a multipart system or something。
+ which is like kind of a similar idea to us like you know。if you don't have these edges as given the attention mechanism kind of approximate and interesting relationship amongst some interacting things。I see got it yeah that's pretty cool Another thing is like so you mostly look on like tableular data。but can you also like have other modalities like if you want to do language or something。
 
- which is like kind of a similar idea to us like you know。
-
- if you don't have these edges as given the attention mechanism kind of approximate and interesting relationship amongst some interacting things。
-
-I see got it yeah that's pretty cool Another thing is like so you mostly look on like tableular data。
-
- but can you also like have other modalities like if you want to do language or something。
-
- can you still use non para transformomers？Yeah， so I think part of our motivation for doing tabular was because we felt like tabular data is in a sense。
-
- a generalization of let's say the language data， for example， I mean。
-
- I guess there's these other notions like that people have brought up like padding but ultimately you can think of it as like a bunch of categorical attributes So it is it is definitely generalizable to things like sentences and we do you know images so yeah I think actually like like I always go back and forth on whether or not I think smaller or larger data is more interesting for us So I think small data is really interesting because we can't just fit the entire data set into it and all of this just works out of the books without any extra thought but large data is actually also really interesting because。
+ can you still use non para transformomers？Yeah， so I think part of our motivation for doing tabular was because we felt like tabular data is in a sense。a generalization of let's say the language data， for example， I mean。I guess there's these other notions like that people have brought up like padding but ultimately you can think of it as like a bunch of categorical attributes So it is it is definitely generalizable to things like sentences and we do you know images so yeah I think actually like like I always go back and forth on whether or not I think smaller or larger data is more interesting for us So I think small data is really interesting because we can't just fit the entire data set into it and all of this just works out of the books without any extra thought but large data is actually also really interesting because。
 
 Sure you might have to introduce some app mechanism or some lookup mechanism because you can't always have the entire data set in but at the same time you are very explicitly kind of trading off the compute that you use to look up with the compute that you need to store like how much how many parameters in GPT are used for storing data right there's lots of memorization happening in these models and we know that and so maybe we can use the parameters more efficiently to learn lookup type behavior right that is more close to this you know neurocanin or whatever so I think these are very exciting。
 
-Questions yeah yeah I'll also be looking forward to the future works because this seems like a very good way to like do one shot learning kind of situations so yeah really very interesting to see that。
-
-Okay， so I will stop the recording and we can have like any other questions。
+Questions yeah yeah I'll also be looking forward to the future works because this seems like a very good way to like do one shot learning kind of situations so yeah really very interesting to see that。Okay， so I will stop the recording and we can have like any other questions。
 
 
 
