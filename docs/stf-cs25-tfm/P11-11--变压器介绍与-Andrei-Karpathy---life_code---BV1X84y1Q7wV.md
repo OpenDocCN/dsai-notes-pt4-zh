@@ -1,4 +1,4 @@
-# 斯坦福 GPT/Transformer 原理介绍 (中英文双字幕) - P11：11. 变压器介绍与 Andrei Karpathy - life_code - BV1X84y1Q7wV
+# P11：11. 变压器介绍与 Andrei Karpathy - life_code - BV1X84y1Q7wV
 
 ![](img/c0ab12f5375bf7d79cfc3dbecdf3007c_0.png)
 

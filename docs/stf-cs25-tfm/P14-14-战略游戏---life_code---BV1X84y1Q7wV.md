@@ -1,4 +1,4 @@
-# 斯坦福 GPT/Transformer 原理介绍 (中英文双字幕) - P14：14.战略游戏 - life_code - BV1X84y1Q7wV
+# P14：14.战略游戏 - life_code - BV1X84y1Q7wV
 
 ![](img/e3abef98963297997c09e5d05b736a64_0.png)
 

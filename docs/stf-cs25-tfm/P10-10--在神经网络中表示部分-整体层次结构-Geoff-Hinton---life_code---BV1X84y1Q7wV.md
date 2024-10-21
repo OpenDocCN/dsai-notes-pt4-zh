@@ -1,4 +1,4 @@
-# 斯坦福 GPT/Transformer 原理介绍 (中英文双字幕) - P10：10. 在神经网络中表示部分-整体层次结构，Geoff Hinton - life_code - BV1X84y1Q7wV
+# P10：10. 在神经网络中表示部分-整体层次结构，Geoff Hinton - life_code - BV1X84y1Q7wV
 
 ![](img/a6e82a7e40b8f10bedf5eedaad6d0492_0.png)
 

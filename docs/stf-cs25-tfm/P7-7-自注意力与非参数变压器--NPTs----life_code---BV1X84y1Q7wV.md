@@ -1,4 +1,4 @@
-# 斯坦福 GPT/Transformer 原理介绍 (中英文双字幕) - P7：7.自注意力与非参数变压器 (NPTs) - life_code - BV1X84y1Q7wV
+# P7：7.自注意力与非参数变压器 (NPTs) - life_code - BV1X84y1Q7wV
 
 ![](img/1777b223f7bf8be27a8767d209c7f271_0.png)
 

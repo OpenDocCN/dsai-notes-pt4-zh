@@ -1,4 +1,4 @@
-# 斯坦福 GPT/Transformer 原理介绍 (中英文双字幕) - P6：6.DeepMind 的 Perceiver 和 Perceiver IO 新数据家族架构 - life_code - BV1X84y1Q7wV
+# P6：6.DeepMind 的 Perceiver 和 Perceiver IO 新数据家族架构 - life_code - BV1X84y1Q7wV
 
 ![](img/1222cb1eda9b25cb98d5ff5f1d8e043f_0.png)
 

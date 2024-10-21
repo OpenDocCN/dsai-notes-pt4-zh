@@ -1,4 +1,4 @@
-# 斯坦福 GPT/Transformer 原理介绍 (中英文双字幕) - P2：2.语言中的 Transformers GPT 模型的发展，GPT3 - life_code - BV1X84y1Q7wV
+# P2：2.语言中的 Transformers GPT 模型的发展，GPT3 - life_code - BV1X84y1Q7wV
 
 ![](img/542291b724ae1b1a3bd31a38e9d3acdc_0.png)
 

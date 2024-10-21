@@ -1,4 +1,4 @@
-# 斯坦福 GPT/Transformer 原理介绍 (中英文双字幕) - P12：12.Language and Human Alignment - life_code - BV1X84y1Q7wV
+# P12：12.Language and Human Alignment - life_code - BV1X84y1Q7wV
 
 ![](img/b473ddacf8908cc92f68d174d1de8757_0.png)
 
