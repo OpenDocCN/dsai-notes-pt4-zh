@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P32：2-环境配置与预处理 - 迪哥的AI世界 - BV1hrUNYcENc
+# P32：2-环境配置与预处理 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/1d045aac17d66f3b9abd17feae083f81_0.png)
 

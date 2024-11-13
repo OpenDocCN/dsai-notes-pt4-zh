@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P8：2-视频的读取与处理 - 迪哥的AI世界 - BV1hrUNYcENc
+# P8：2-视频的读取与处理 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/644696af046a3dda36c64e7fd579b712_0.png)
 

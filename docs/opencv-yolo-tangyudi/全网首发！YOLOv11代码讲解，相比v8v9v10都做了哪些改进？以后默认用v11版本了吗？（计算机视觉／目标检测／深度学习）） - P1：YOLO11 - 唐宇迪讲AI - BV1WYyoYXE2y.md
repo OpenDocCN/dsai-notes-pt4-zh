@@ -1,4 +1,4 @@
-# 全网首发！YOLOv11代码讲解，相比v8v9v10都做了哪些改进？以后默认用v11版本了吗？（计算机视觉／目标检测／深度学习）） - P1：YOLO11 - 唐宇迪讲AI - BV1WYyoYXE2y
+# P1：YOLO11 - 唐宇迪讲AI - BV1WYyoYXE2y
 
 ![](img/13b4e49c4d8e6c1d004e4b1874d0c15d_0.png)
 

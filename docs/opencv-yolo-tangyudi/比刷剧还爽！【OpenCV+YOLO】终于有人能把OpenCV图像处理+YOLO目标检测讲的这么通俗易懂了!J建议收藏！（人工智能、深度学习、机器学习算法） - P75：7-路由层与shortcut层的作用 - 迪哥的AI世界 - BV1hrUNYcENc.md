@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P75：7-路由层与shortcut层的作用 - 迪哥的AI世界 - BV1hrUNYcENc
+# P75：7-路由层与shortcut层的作用 - 迪哥的AI世界 - BV1hrUNYcENc
 
 接下来啊在我们的网络结构当中，还有一个叫root层的，我给大家解释一下这个root层是什么意思，因为经常有同学啊，可能把这个弱层，还有那个reset当中这个shortcut层，这两个咱们傻傻分不清啊。
 

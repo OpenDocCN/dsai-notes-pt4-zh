@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P65：4-残差连接方法解读 - 迪哥的AI世界 - BV1hrUNYcENc
+# P65：4-残差连接方法解读 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/7556aa9d3aaadd6cda3f5bfe8ada3945_0.png)
 

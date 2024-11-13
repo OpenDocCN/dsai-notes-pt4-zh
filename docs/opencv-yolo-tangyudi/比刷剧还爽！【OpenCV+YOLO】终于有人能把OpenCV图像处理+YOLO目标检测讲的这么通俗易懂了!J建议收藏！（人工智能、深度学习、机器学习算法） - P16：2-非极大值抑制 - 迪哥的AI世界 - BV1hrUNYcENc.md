@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P16：2-非极大值抑制 - 迪哥的AI世界 - BV1hrUNYcENc
+# P16：2-非极大值抑制 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/1b97f3ed37206fe7ee002fe884cfe251_0.png)
 

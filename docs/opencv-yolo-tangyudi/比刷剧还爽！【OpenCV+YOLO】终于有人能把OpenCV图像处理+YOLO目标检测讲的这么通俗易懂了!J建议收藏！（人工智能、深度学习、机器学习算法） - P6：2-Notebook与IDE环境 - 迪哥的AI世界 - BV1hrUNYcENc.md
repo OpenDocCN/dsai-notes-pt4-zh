@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P6：2-Notebook与IDE环境 - 迪哥的AI世界 - BV1hrUNYcENc
+# P6：2-Notebook与IDE环境 - 迪哥的AI世界 - BV1hrUNYcENc
 
 然后再跟大家说一点，就是我们不不光是open CV，我怎么去装，其他的时候你用到了，可能课程当中会用到一些额外工具包，其他工具包安装方法都是一样的，我们可以先尝试一下pip store。
 

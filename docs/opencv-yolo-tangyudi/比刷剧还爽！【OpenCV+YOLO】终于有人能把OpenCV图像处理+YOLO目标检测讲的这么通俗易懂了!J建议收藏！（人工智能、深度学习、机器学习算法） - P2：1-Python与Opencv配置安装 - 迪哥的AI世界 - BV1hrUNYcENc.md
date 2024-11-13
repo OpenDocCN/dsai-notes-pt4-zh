@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P2：1-Python与Opencv配置安装 - 迪哥的AI世界 - BV1hrUNYcENc
+# P2：1-Python与Opencv配置安装 - 迪哥的AI世界 - BV1hrUNYcENc
 
 这节课呀来跟大家说一下，就是我们整个系列课程环境啊该怎么进行配置，首先啊最重点的就是open CV了，但是呢我们课程当中啊，是用Python接口去调open CV当中啊，各种各样的函数。
 

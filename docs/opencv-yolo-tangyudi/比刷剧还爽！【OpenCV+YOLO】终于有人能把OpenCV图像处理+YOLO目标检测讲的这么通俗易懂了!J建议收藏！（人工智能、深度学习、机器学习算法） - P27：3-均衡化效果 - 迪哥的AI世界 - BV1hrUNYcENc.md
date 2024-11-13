@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P27：3-均衡化效果 - 迪哥的AI世界 - BV1hrUNYcENc
+# P27：3-均衡化效果 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/cb257ce30b52464643f3a56037460a1d_0.png)
 

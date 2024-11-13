@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P17：3-边缘检测效果 - 迪哥的AI世界 - BV1hrUNYcENc
+# P17：3-边缘检测效果 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/0128a42e91deab58818d75b8cb1d077c_0.png)
 

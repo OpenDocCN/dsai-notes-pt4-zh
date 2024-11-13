@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P91：8-训练模型并测试效果 - 迪哥的AI世界 - BV1hrUNYcENc
+# P91：8-训练模型并测试效果 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/bdcfd9c9e17277645737857c427044ae_0.png)
 

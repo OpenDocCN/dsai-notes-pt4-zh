@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P48：3-特征关键点定位 - 迪哥的AI世界 - BV1hrUNYcENc
+# P48：3-特征关键点定位 - 迪哥的AI世界 - BV1hrUNYcENc
 
 ![](img/b8131c8bdf7308a9ebde2f8c7bd98512_0.png)
 

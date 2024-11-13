@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P14：3-scharr与lapkacian算子 - 迪哥的AI世界 - BV1hrUNYcENc
+# P14：3-scharr与lapkacian算子 - 迪哥的AI世界 - BV1hrUNYcENc
 
 接下来啊咱们再说一下图像梯度当中啊，另外两种算子，一个叫做一个shell算子，一个叫做拉普拉斯算子，我们先来看一下，它跟之前咱们说过那个SOO算子啊，有什么的一个区别呃，首先所有算法当中啊。
 

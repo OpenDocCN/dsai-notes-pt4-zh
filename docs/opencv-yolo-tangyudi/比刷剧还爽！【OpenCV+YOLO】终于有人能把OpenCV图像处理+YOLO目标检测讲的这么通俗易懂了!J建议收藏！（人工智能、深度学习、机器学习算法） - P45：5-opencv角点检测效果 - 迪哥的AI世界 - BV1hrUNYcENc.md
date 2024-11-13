@@ -1,4 +1,4 @@
-# 比刷剧还爽！【OpenCV+YOLO】终于有人能把OpenCV图像处理+YOLO目标检测讲的这么通俗易懂了!J建议收藏！（人工智能、深度学习、机器学习算法） - P45：5-opencv角点检测效果 - 迪哥的AI世界 - BV1hrUNYcENc
+# P45：5-opencv角点检测效果 - 迪哥的AI世界 - BV1hrUNYcENc
 
 接下来咱们再来看一下在open CV当中啊，我们怎么样进行焦点检测，其实啊就是使用工具包，道理非常简单了，只需要调用接口就完事了，这里给大家使用的函数啊，叫做CV two，点corner haro。
 
