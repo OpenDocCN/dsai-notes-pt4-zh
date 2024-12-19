@@ -3,12 +3,12 @@
   prefs: []
   type: TYPE_NORMAL
   zh: <!--yml
-- en: 'category: 未分类'
+- en: "category: 未分类"
   id: totrans-1
   prefs: []
   type: TYPE_NORMAL
   zh: 类别：未分类
-- en: 'date: 2024-09-08 18:49:51'
+- en: "date: 2024-09-08 18:49:51"
   id: totrans-2
   prefs: []
   type: TYPE_NORMAL
@@ -18,7 +18,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: -->
-- en: 'QAQ: Quality Adaptive Quantization for LLM KV Cache'
+- en: "QAQ: Quality Adaptive Quantization for LLM KV Cache"
   id: totrans-4
   prefs:
   - PREF_H1
@@ -65,7 +65,7 @@
   type: TYPE_NORMAL
   zh: 大型语言模型（LLMs）的出现引发了自然语言处理（NLP）应用的新一轮突破，特别是在问答系统和文本生成等领域。随着对更长上下文的需求增加，由于上下文长度导致的键值（KV）缓存的线性扩展，模型部署中出现了一个显著的瓶颈。现有的方法主要依赖于各种假设，例如基于注意力分数对KV缓存进行排序以进行替换或驱逐，以压缩KV缓存并提高模型吞吐量。然而，这些策略使用的启发式方法可能会错误地驱逐重要的KV缓存，从而显著降低模型性能。在本文中，我们提出了QAQ，一种用于KV缓存的质量自适应量化方案。我们从理论上证明了键缓存和值缓存对量化的敏感性不同，从而形成了针对其非均匀量化的单独量化策略。通过集成专门的异常值处理以及改进的注意力感知方法，QAQ实现了高达$10\times$的KV缓存大小压缩比，并对模型性能的影响可以忽略不计。QAQ显著减少了部署LLMs的实际障碍，为长上下文应用开辟了新的可能性。代码可在
     github.com/ClubieDong/KVCacheQuantization 上获取。
-- en: '^†^†footnotetext: $*$ Co-first author, contributed equally.'
+- en: "^†^†footnotetext: $*$ Co-first author, contributed equally."
   id: totrans-9
   prefs: []
   type: TYPE_NORMAL
@@ -103,7 +103,7 @@
     Brown et al. ([2020](#bib.bib4))、LLaMA系列 Touvron et al. ([2023](#bib.bib17)) 和
     OPT系列 Zhang et al. ([2022](#bib.bib20))，这些LLMs的生成推理通常包括KV缓存机制，以提高计算资源的使用效率。KV缓存存储之前注意力计算中Key-Value向量的计算值，并在计算当前token时重用这些值，从而节省与冗余计算相关的额外成本。尽管KV缓存是一种**广泛使用的优化方法**，但随着模型大小和上下文长度的持续增加，KV缓存本身的存储开销也急剧增长，对设备，特别是高成本的GPU内存施加了**巨大压力**。减少KV缓存的内存占用已经成为一个**高度活跃的研究课题**
     Zhu et al. ([2023](#bib.bib22))。
-- en: 'Currently, there is a substantial body of research addressing the efficient
+- en: "Currently, there is a substantial body of research addressing the efficient
     utilization of GPU memory in memory-constrained scenarios. Offloading is an intuitive
     solution for handling insufficient GPU memory during model inference. Although
     offloading can alleviate the pressure on GPU memory, implementing offloading specifically
@@ -119,7 +119,7 @@
     essential. Nevertheless, these approaches may lead to erroneously removing crucial
     KV cache and significantly degrading the performance of the model Zhang et al.
     ([2023](#bib.bib21)). Naturally, it leads to the question: is there a direct quantization
-    method that can avoid the drawbacks mentioned above, while achieving leading performance?'
+    method that can avoid the drawbacks mentioned above, while achieving leading performance?"
   id: totrans-12
   prefs: []
   type: TYPE_NORMAL
@@ -189,13 +189,13 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 在这些考虑下，QAQ实现了接近$10\times$的压缩。我们将我们的代码公开以供复制。
-- en: '![Refer to caption](img/86ba0047b149852bf14d1228f1c56b70.png)'
+- en: "![Refer to caption](img/86ba0047b149852bf14d1228f1c56b70.png)"
   id: totrans-21
   prefs: []
   type: TYPE_IMG
   zh: '![参见说明](img/86ba0047b149852bf14d1228f1c56b70.png)'
-- en: 'Figure 1: Calculation process of quantized key and value vectors, $\frac{1}{\sqrt{D}}$
-    is neglected.'
+- en: "Figure 1: Calculation process of quantized key and value vectors, $\frac{1}{\sqrt{D}}$
+    is neglected."
   id: totrans-22
   prefs: []
   type: TYPE_NORMAL
@@ -234,11 +234,11 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 自回归生成型LLM的推理过程通常包括两个程序，提示编码和令牌生成。在提示编码程序中，对于每个令牌生成，LLM需要来自先前令牌的上下文信息，即关键和数值向量（KV向量）。生成的KV向量会存储在KV缓存中，以消除冗余计算。当在令牌生成程序中生成新的令牌时，其相关的KV向量会附加到KV缓存中，这意味着KV缓存的大小随着令牌序列的长度线性增加。然而，KV缓存与序列长度表现出线性增长关系。随着模型对更长上下文的需求增加，KV缓存成为一个显著的性能瓶颈。以OPT-175B为例，其具有96层和12288的隐藏层大小，权重占用325GB内存，而KV缓存则大约大$3.54\times$，在最大序列长度下达到1152GB。
-- en: 'We formally define the problem of quantization of the KV cache, we focus on
+- en: "We formally define the problem of quantization of the KV cache, we focus on
     the memory footprint of the KV cache in the attention calculation. Denote $\textbf{Q}\in\mathbb{R}^{1\times
     D}$ represents the product of S and V. All the notions and their shape are illustrated
     in Figure [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ QAQ: Quality Adaptive Quantization
-    for LLM KV Cache").'
+    for LLM KV Cache")."
   id: totrans-27
   prefs: []
   type: TYPE_NORMAL
@@ -251,22 +251,22 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 对于特定的量化方法 $C$，我们选择最小化精度损失同时使用最少内存的方法，如下所示。
-- en: '|  | $\displaystyle C^{*}=\text{argmin}_{C\in\mathcal{C}}\ \text{KVCacheMemory}(C)\quad$
-    | s.t. |  |'
+- en: "|  | $\displaystyle C^{*}=\text{argmin}_{C\in\mathcal{C}}\ \text{KVCacheMemory}(C)\quad$
+    | s.t. |  |"
   id: totrans-29
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle C^{*}=\text{argmin}_{C\in\mathcal{C}}\ \text{KVCacheMemory}(C)\quad$
     | 满足 |  |'
-- en: '|  | $\displaystyle\left\lVert\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\textbf{K}^{T}\right)-\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\hat{\textbf{K}}^{T}\right)\right\rVert^{2}_{2}$
-    |  |'
+- en: "|  | $\displaystyle\left\lVert\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\textbf{K}^{T}\right)-\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\hat{\textbf{K}}^{T}\right)\right\rVert^{2}_{2}$
+    |  |"
   id: totrans-30
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle\left\lVert\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\textbf{K}^{T}\right)-\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\hat{\textbf{K}}^{T}\right)\right\rVert^{2}_{2}$
     |  |'
-- en: '|  | $\displaystyle\left\lVert\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\textbf{K}^{T}\right)\textbf{V}-\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\hat{\textbf{K}}^{T}\right)\hat{\textbf{V}}\right\rVert^{2}_{2}$
-    |  |'
+- en: "|  | $\displaystyle\left\lVert\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\textbf{K}^{T}\right)\textbf{V}-\text{Softmax}\left(\frac{1}{\sqrt{D}}\textbf{Q}\hat{\textbf{K}}^{T}\right)\hat{\textbf{V}}\right\rVert^{2}_{2}$
+    |  |"
   id: totrans-31
   prefs: []
   type: TYPE_TB
@@ -284,7 +284,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 2.2 相关工作
-- en: 'To alleviate the practical deployment challenges associated with the increasing
+- en: "To alleviate the practical deployment challenges associated with the increasing
     scale of models, numerous methods have been developed in recent years for model
     compression. The memory footprint of a LLM consists of three components: model
     weights, activation, and KV cache. Early compression techniques primarily targeted
@@ -317,7 +317,7 @@
     for the KV cache and reduces the storage buffer. However, these methods rely on
     attention values to eliminate redundant parts in the KV cache, retaining the so-called
     important portions. Nevertheless, any misjudgment of importance leading to the
-    loss of crucial cache can significantly degrade the performance of the model.'
+    loss of crucial cache can significantly degrade the performance of the model."
   id: totrans-34
   prefs: []
   type: TYPE_NORMAL
@@ -330,7 +330,7 @@
     LLM 中的 KV 缓存以缓解瓶颈方面的研究较少。FastGen Ge 等人 ([2023](#bib.bib11)) 开发了一种自适应的 KV 缓存压缩方法，利用了注意力模块中存在大量结构的观察。H2O
     Zhang 等人 ([2023](#bib.bib21)) 利用少量标记的重要性，提出了一种高效的 KV 缓存驱逐策略。Scissorhands Liu 等人
     ([2023](#bib.bib14)) 验证了 KV 缓存重要性假设的持久性，并减少了存储缓冲区。然而，这些方法依赖于注意力值来消除 KV 缓存中的冗余部分，保留所谓的重要部分。然而，任何对重要性的误判导致关键缓存丢失，都可能显著降低模型性能。
-- en: '![Refer to caption](img/aac032fb460fa829319609ac9eb448b4.png)'
+- en: "![Refer to caption](img/aac032fb460fa829319609ac9eb448b4.png)"
   id: totrans-35
   prefs: []
   type: TYPE_IMG
@@ -340,7 +340,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (a) KV 缓存对量化的敏感性不同。
-- en: '![Refer to caption](img/82574143a2b930c68a4eb7e56a670b4b.png)'
+- en: "![Refer to caption](img/82574143a2b930c68a4eb7e56a670b4b.png)"
   id: totrans-37
   prefs: []
   type: TYPE_IMG
@@ -350,7 +350,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (b) 注意力矩阵中的例外。
-- en: '![Refer to caption](img/72c0ab79ae6dea615f899863a0c835f5.png)'
+- en: "![Refer to caption](img/72c0ab79ae6dea615f899863a0c835f5.png)"
   id: totrans-39
   prefs: []
   type: TYPE_IMG
@@ -360,7 +360,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (c) KV 缓存值和异常值的分布。
-- en: 'Figure 2: The experiment demonstration of our key insights.'
+- en: "Figure 2: The experiment demonstration of our key insights."
   id: totrans-41
   prefs: []
   type: TYPE_NORMAL
@@ -390,29 +390,29 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 鉴于关键向量和价值向量在注意力计算中的不同作用，量化对关键缓存和价值缓存的影响产生了不同的结果。支持这一断言的理论推导如下。
-- en: 'We first investigate the partial derivative of $X_{j}$ as follows:'
+- en: "We first investigate the partial derivative of $X_{j}$ as follows:"
   id: totrans-46
   prefs: []
   type: TYPE_NORMAL
   zh: 我们首先如下研究 $X_{j}$ 的偏导数：
-- en: '|  | $\displaystyle\frac{\partial X_{j}}{\partial V_{ti}}=\begin{cases}0&amp;i\neq
-    j\\ S_{t}&amp;i=j\end{cases}\text{.}$ |  |'
+- en: "|  | $\displaystyle\frac{\partial X_{j}}{\partial V_{ti}}=\begin{cases}0&amp;i\neq
+    j\\ S_{t}&amp;i=j\end{cases}\text{.}$ |  |"
   id: totrans-47
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle\frac{\partial X_{j}}{\partial V_{ti}}=\begin{cases}0&amp;i\neq
     j\\ S_{t}&amp;i=j\end{cases}\text{.}$ |  |'
-- en: 'Similarly, we investigate the partial derivative of $X_{j}$ as follows:'
+- en: "Similarly, we investigate the partial derivative of $X_{j}$ as follows:"
   id: totrans-48
   prefs: []
   type: TYPE_NORMAL
   zh: 同样地，我们如下研究 $X_{j}$ 的偏导数：
-- en: '|  | $\displaystyle\frac{\partial X_{j}}{\partial K_{ti}}=$ |  |'
+- en: "|  | $\displaystyle\frac{\partial X_{j}}{\partial K_{ti}}=$ |  |"
   id: totrans-49
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle\frac{\partial X_{j}}{\partial K_{ti}}=$ |  |'
-- en: 'From the above two equations, it is evident that changes in $K$. In other words,
+- en: "From the above two equations, it is evident that changes in $K$. In other words,
     the key cache is more sensitive to quantization, quantizing key cache results
     in more severe performance degradation. To validate our theoretical analysis,
     we utilize a uniform quantization approach to quantize the key cache and value
@@ -428,7 +428,7 @@
     with our derived conclusions. This underscores the necessity of employing distinct
     quantization strategies for the key cache and value cache to acquire the best
     performance. To the best of our knowledge, we are the first ever to exploit this
-    observation.'
+    observation."
   id: totrans-50
   prefs: []
   type: TYPE_NORMAL
@@ -453,7 +453,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 重要令牌的持续性，即具有更大注意力值的特定令牌是当前和未来步骤中唯一重要的令牌，在以往的工作中已被提出（Liu 等人 ([2023](#bib.bib14))）。虽然这一发现大多数情况下是成立的，但仍有一些例外，初始时不太重要的令牌在后续生成过程中会突然变得关键。
-- en: 'Figure [2(b)](#S2.F2.sf2 "In Figure 2 ‣ 2.2 Related Work ‣ 2 Problem Description
+- en: "Figure [2(b)](#S2.F2.sf2 "In Figure 2 ‣ 2.2 Related Work ‣ 2 Problem Description
     and Related Work ‣ QAQ: Quality Adaptive Quantization for LLM KV Cache") illustrates
     the attention computations matrix for the $1^{st}$ head of LLaMA 2-7B Touvron
     et al. ([2023](#bib.bib17)), after the inference process on a randomly selected
@@ -467,7 +467,7 @@
     these exceptional tokens might be evicted or discarded before demonstrating their
     importance. This could result in the loss of information when their importance
     changes and they are required for computation, subsequently impacting the model’s
-    performance.'
+    performance."
   id: totrans-53
   prefs: []
   type: TYPE_NORMAL
@@ -502,7 +502,7 @@
   zh: 异常值的处理至关重要，因为它们在制定量化策略时可能显著影响模型性能。现有研究已经深入理解了模型权重和激活中的异常值。例如，LLM.int8() Dettmers
     等人 ([2022](#bib.bib7)) 采用了按向量量化和混合精度分解来处理模型权重中的异常值。OWQ Lee 等人 ([2023](#bib.bib12))
     从理论上分析了激活异常值如何放大权重量化中的误差。
-- en: 'The outliers in the KV cache also play an important role. After randomly testing
+- en: "The outliers in the KV cache also play an important role. After randomly testing
     1,000 questions from HellaSwag using the LLaMA 2-7B model, the normalized numerical
     distributions of the key cache and value cache are depicted in Figure [2(c)](#S2.F2.sf3
     "In Figure 2 ‣ 2.2 Related Work ‣ 2 Problem Description and Related Work ‣ QAQ:
@@ -510,7 +510,7 @@
     better visibility. Please note that the jagged distribution in the figure is a
     result of floating-point precision. The graph reveals a substantial presence of
     outliers in both the key cache and value cache. Further experiments indicate that
-    neglecting to address these outliers significantly impacts the model’s performance.'
+    neglecting to address these outliers significantly impacts the model’s performance."
   id: totrans-57
   prefs: []
   type: TYPE_NORMAL
@@ -542,43 +542,43 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 4.1 定量公式推导
-- en: 'The idea behind the derivation of our formula is as follows: We regard the
-    quantized KV cache ($\hat{\textbf{K}}$ are satisfied.'
+- en: "The idea behind the derivation of our formula is as follows: We regard the
+    quantized KV cache ($\hat{\textbf{K}}$ are satisfied."
   id: totrans-62
   prefs: []
   type: TYPE_NORMAL
   zh: 我们公式推导的思想如下：我们将量化后的KV缓存（$\hat{\textbf{K}}$满足。
-- en: 'Value cache quantization. We start with the quantization of value cache, which
+- en: "Value cache quantization. We start with the quantization of value cache, which
     is simpler in comparison. The value at index $d$ in the output of the self-attention
-    module is given by:'
+    module is given by:"
   id: totrans-63
   prefs: []
   type: TYPE_NORMAL
   zh: 值缓存量化。我们从值缓存的量化开始，相比之下更为简单。自注意力模块输出中索引$d$处的值由下式给出：
-- en: '|  | $\hat{X}_{d}=\sum_{t=1}^{T}S_{t}\cdot\hat{V}_{td}\text{,}$ |  |'
+- en: "|  | $\hat{X}_{d}=\sum_{t=1}^{T}S_{t}\cdot\hat{V}_{td}\text{,}$ |  |"
   id: totrans-64
   prefs: []
   type: TYPE_TB
   zh: '|  | $\hat{X}_{d}=\sum_{t=1}^{T}S_{t}\cdot\hat{V}_{td}\text{,}$ |  |'
-- en: 'where the standard deviation of $\hat{V}_{td}$ can be expressed as:'
+- en: "where the standard deviation of $\hat{V}_{td}$ can be expressed as:"
   id: totrans-65
   prefs: []
   type: TYPE_NORMAL
   zh: 其中$\hat{V}_{td}$的标准差可以表示为：
-- en: '|  | $\sigma^{2\left(\textbf{X}\right)}_{d}=\sum_{t=1}^{T}S_{t}^{2}\cdot\sigma^{2\left(\textbf{V}\right)}_{t}\text{,}$
-    |  |'
+- en: "|  | $\sigma^{2\left(\textbf{X}\right)}_{d}=\sum_{t=1}^{T}S_{t}^{2}\cdot\sigma^{2\left(\textbf{V}\right)}_{t}\text{,}$
+    |  |"
   id: totrans-66
   prefs: []
   type: TYPE_TB
   zh: '|  | $\sigma^{2\left(\textbf{X}\right)}_{d}=\sum_{t=1}^{T}S_{t}^{2}\cdot\sigma^{2\left(\textbf{V}\right)}_{t}\text{,}$
     |  |'
-- en: 'which implies that the error of $X_{d}$, the following constraint must be satisfied:'
+- en: "which implies that the error of $X_{d}$, the following constraint must be satisfied:"
   id: totrans-67
   prefs: []
   type: TYPE_NORMAL
   zh: 这意味着$X_{d}$的误差，必须满足以下约束：
-- en: '|  | $\sigma^{\left(\textbf{V}\right)}_{t}\leq\frac{1}{\sqrt{T}}\cdot\frac{\sigma^{\left(\textbf{X}\right)}_{\text{max}}}{\left\lvert
-    S_{t}\right\rvert}\text{.}$ |  |'
+- en: "|  | $\sigma^{\left(\textbf{V}\right)}_{t}\leq\frac{1}{\sqrt{T}}\cdot\frac{\sigma^{\left(\textbf{X}\right)}_{\text{max}}}{\left\lvert
+    S_{t}\right\rvert}\text{.}$ |  |"
   id: totrans-68
   prefs: []
   type: TYPE_TB
@@ -590,65 +590,65 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 这个公式表明，每个标记的值缓存误差应与其对应的注意力值成反比。
-- en: 'Key cache quantization. Due to the involvement of the Softmax function, the
+- en: "Key cache quantization. Due to the involvement of the Softmax function, the
     quantization of key cache is inherently more complex. The attention score of token
-    $t$ is given by:'
+    $t$ is given by:"
   id: totrans-70
   prefs: []
   type: TYPE_NORMAL
   zh: 键缓存量化。由于涉及Softmax函数，键缓存的量化本质上更复杂。标记$t$的注意力分数由下式给出：
-- en: '|  | $1$2 |  |'
+- en: "|  | $1$2 |  |"
   id: totrans-71
   prefs: []
   type: TYPE_TB
   zh: '|  | $1$2 |  |'
-- en: 'Given that $\hat{A}_{t}$ according to the central limit theorem, where:'
+- en: "Given that $\hat{A}_{t}$ according to the central limit theorem, where:"
   id: totrans-72
   prefs: []
   type: TYPE_NORMAL
   zh: 给定$\hat{A}_{t}$根据中心极限定理，其中：
-- en: '|  | $1$2 |  |'
+- en: "|  | $1$2 |  |"
   id: totrans-73
   prefs: []
   type: TYPE_TB
   zh: '|  | $1$2 |  |'
-- en: 'By definition, $e^{\hat{A}_{t}}$ with the mean and variance being:'
+- en: "By definition, $e^{\hat{A}_{t}}$ with the mean and variance being:"
   id: totrans-74
   prefs: []
   type: TYPE_NORMAL
   zh: 根据定义，$e^{\hat{A}_{t}}$的均值和方差为：
-- en: '|  | $\displaystyle\mathbb{E}\left[e^{\hat{A}_{t}}\right]$ |  |'
+- en: "|  | $\displaystyle\mathbb{E}\left[e^{\hat{A}_{t}}\right]$ |  |"
   id: totrans-75
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle\mathbb{E}\left[e^{\hat{A}_{t}}\right]$ |  |'
-- en: '|  | $\displaystyle\text{Var}\left[e^{\hat{A}_{t}}\right]$ |  |'
+- en: "|  | $\displaystyle\text{Var}\left[e^{\hat{A}_{t}}\right]$ |  |"
   id: totrans-76
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle\text{Var}\left[e^{\hat{A}_{t}}\right]$ |  |'
-- en: 'Similarly, we expect the uniformity in error contribution from each token,
-    implying that $e^{\hat{A}_{t}}$ is approximately:'
+- en: "Similarly, we expect the uniformity in error contribution from each token,
+    implying that $e^{\hat{A}_{t}}$ is approximately:"
   id: totrans-77
   prefs: []
   type: TYPE_NORMAL
   zh: 同样，我们期望每个标记的误差贡献的均匀性，这意味着$e^{\hat{A}_{t}}$大约为：
-- en: '|  | $\displaystyle\sigma^{2\left(\textbf{S}\right)}_{t}\approx$ |  |'
+- en: "|  | $\displaystyle\sigma^{2\left(\textbf{S}\right)}_{t}\approx$ |  |"
   id: totrans-78
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle\sigma^{2\left(\textbf{S}\right)}_{t}\approx$ |  |'
-- en: '|  | $\displaystyle=$ |  |'
+- en: "|  | $\displaystyle=$ |  |"
   id: totrans-79
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle=$ |  |'
-- en: 'To ensure that $\sigma^{2\left(\textbf{S}\right)}_{t}$, we have:'
+- en: "To ensure that $\sigma^{2\left(\textbf{S}\right)}_{t}$, we have:"
   id: totrans-80
   prefs: []
   type: TYPE_NORMAL
   zh: 为确保$\sigma^{2\left(\textbf{S}\right)}_{t}$，我们有：
-- en: '|  | $1$2 |  |'
+- en: "|  | $1$2 |  |"
   id: totrans-81
   prefs: []
   type: TYPE_TB
@@ -670,26 +670,26 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 确定量化位数。在最后一步中，我们确定每个标记$t$的KV缓存的量化位数。由于在此步骤中键缓存和值缓存之间的对称性，我们仅演示键缓存K的推导。
-- en: 'To quantize key cache into $B^{\left(\textbf{K}\right)}_{t}$ satisfies:'
+- en: "To quantize key cache into $B^{\left(\textbf{K}\right)}_{t}$ satisfies:"
   id: totrans-84
   prefs: []
   type: TYPE_NORMAL
   zh: 要将关键缓存量化为$B^{\left(\textbf{K}\right)}_{t}$，需要满足：
-- en: '|  | $2\cdot\Delta^{\left(\textbf{K}\right)}_{t}\cdot 2^{B^{\left(\textbf{K}\right)}_{t}}=K_{t}^{\text{max}}-K_{t}^{\text{min}}\text{.}$
-    |  |'
+- en: "|  | $2\cdot\Delta^{\left(\textbf{K}\right)}_{t}\cdot 2^{B^{\left(\textbf{K}\right)}_{t}}=K_{t}^{\text{max}}-K_{t}^{\text{min}}\text{.}$
+    |  |"
   id: totrans-85
   prefs: []
   type: TYPE_TB
   zh: '|  | $2\cdot\Delta^{\left(\textbf{K}\right)}_{t}\cdot 2^{B^{\left(\textbf{K}\right)}_{t}}=K_{t}^{\text{max}}-K_{t}^{\text{min}}\text{.}$
     |  |'
-- en: 'Given that the standard deviation of the above uniform distribution $\sigma^{\left(\textbf{K}\right)}_{t}$,
-    we get:'
+- en: "Given that the standard deviation of the above uniform distribution $\sigma^{\left(\textbf{K}\right)}_{t}$,
+    we get:"
   id: totrans-86
   prefs: []
   type: TYPE_NORMAL
   zh: 考虑到上述均匀分布的标准差$\sigma^{\left(\textbf{K}\right)}_{t}$，我们得到：
-- en: '|  | $B^{\left(\textbf{K}\right)}_{t}=\left\lceil\log_{2}\left(\frac{K_{t}^{\text{max}}-K_{t}^{\text{min}}}{2\sqrt{3}\cdot\sigma^{\left(\textbf{K}\right)}_{t}}\right)\right\rceil\text{.}$
-    |  |'
+- en: "|  | $B^{\left(\textbf{K}\right)}_{t}=\left\lceil\log_{2}\left(\frac{K_{t}^{\text{max}}-K_{t}^{\text{min}}}{2\sqrt{3}\cdot\sigma^{\left(\textbf{K}\right)}_{t}}\right)\right\rceil\text{.}$
+    |  |"
   id: totrans-87
   prefs: []
   type: TYPE_TB
@@ -713,7 +713,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 注意力分数预测。我们的量化方法需要注意力分数，这些分数量化了未来标记对前序标记的关注程度。然而，这些注意力分数在量化时并不可用。为了解决这一限制，我们运用了*重要性持久性*理论，该理论认为每个标记的注意力分数（*即*，重要性）在标记生成过程中保持相对稳定（*即*，持久性）。因此，我们可以通过使用当前的注意力分数来近似未来的注意力分数，并在量化公式中使用它。
-- en: 'Nevertheless, as stated in Section [3.2](#S3.SS2 "3.2 Persistence of Importance
+- en: "Nevertheless, as stated in Section [3.2](#S3.SS2 "3.2 Persistence of Importance
     has Exceptions ‣ 3 Insights ‣ QAQ: Quality Adaptive Quantization for LLM KV Cache"),
     certain attention scores exhibit abrupt increments, which poses challenges to
     the quantization method, since quantization is irreversible, we can only quantize
@@ -723,31 +723,31 @@
     a window of the preceding $n$ scores. This strategy ensures that aggressive quantization
     to lower bits is undertaken only after a sequence of consistently low attention
     scores has been observed, thereby being confident that future scores will remain
-    low.'
+    low."
   id: totrans-90
   prefs: []
   type: TYPE_NORMAL
   zh: '然而，如第[3.2](#S3.SS2 "3.2 Persistence of Importance has Exceptions ‣ 3 Insights
     ‣ QAQ: Quality Adaptive Quantization for LLM KV Cache")节中所述，某些注意力分数表现出突然的增加，这对量化方法提出了挑战，因为量化是不可逆的，我们只能将缓存从高位量化到低位，而不能反向进行。为了解决这一问题，我们提出了*注意力窗口*方法，该方法跟踪每个标记的注意力分数，并预测未来的注意力分数为前$
     n $个分数窗口内的最大值。这个策略确保只有在观察到一系列持续低注意力分数之后，才会进行到低位的激进量化，从而对未来分数保持低水平有信心。'
-- en: 'Outliers. Outliers of KV cache have a significant impact on the model’s performance,
+- en: "Outliers. Outliers of KV cache have a significant impact on the model’s performance,
     as highlighted in Section [3.3](#S3.SS3 "3.3 Outliers in KV Cache Matter ‣ 3 Insights
     ‣ QAQ: Quality Adaptive Quantization for LLM KV Cache"). We define outliers as
     the values in the KV cache that exceed the $\alpha\%$ is a hyperparameter that
     controls the proportion of values deemed as outliers. To mitigate the impact of
     outliers, we introduce a mixed-precision quantization approach. Specifically,
-    we keep outliers unquantized and store them in a sparse matrix at full precision.'
+    we keep outliers unquantized and store them in a sparse matrix at full precision."
   id: totrans-91
   prefs: []
   type: TYPE_NORMAL
   zh: '异常值。KV缓存中的异常值对模型性能有显著影响，正如第[3.3](#S3.SS3 "3.3 Outliers in KV Cache Matter ‣
     3 Insights ‣ QAQ: Quality Adaptive Quantization for LLM KV Cache")节中强调的那样。我们将异常值定义为KV缓存中超出$\alpha\%$的值，这个$\alpha\%$是一个控制被视为异常值的比例的超参数。为了减少异常值的影响，我们引入了一种混合精度量化方法。具体来说，我们保持异常值不进行量化，并以全精度将其存储在稀疏矩阵中。'
-- en: 'Compared to quantizing KV cache uniformly, the benefits of this method are
+- en: "Compared to quantizing KV cache uniformly, the benefits of this method are
     twofold: 1) the important outliers themselves are stored accurately without quantization
     error; 2) the quantization of the remaining values in KV cache can be more granular
     because the distribution range is significantly reduced without outliers. Our
     experiments also demonstrate that this method effectively avoids the performance
-    degradation caused by quantization.'
+    degradation caused by quantization."
   id: totrans-92
   prefs: []
   type: TYPE_NORMAL
@@ -768,130 +768,130 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 在文本生成过程中的集成。当前的自回归LLM按令牌逐个生成文本。在每次推理迭代中，我们的方法将量化的KV缓存与新令牌结合，并输出新令牌的KV缓存。我们将未量化的新KV缓存复制到CPU内存中以备将来使用，并使用之前推导的公式计算所有现有令牌的量化位。对于新计算的量化位低于当前位的令牌，我们进一步将其量化到更低的位数。对于其他情况，我们从CPU内存中提取未量化的KV缓存，并重新量化到所需的位数。尽管这种方法引入了CPU和GPU内存之间的额外传输，但我们通过谨慎的量化策略可以有效减少这种开销。
-- en: '| Methods | Backbone model | Task | Compression ratio with less than $1\%$
-    acc. drop |'
+- en: "| Methods | Backbone model | Task | Compression ratio with less than $1\%$
+    acc. drop |"
   id: totrans-94
   prefs: []
   type: TYPE_TB
   zh: '| 方法 | 基础模型 | 任务 | 在$1\%$准确度下降情况下的压缩比 |'
-- en: '| ScissorhandsLiu et al. ([2023](#bib.bib14)) | OPT-6B | HellaSwag-Five shot
-    | 3 |'
+- en: "| ScissorhandsLiu et al. ([2023](#bib.bib14)) | OPT-6B | HellaSwag-Five shot
+    | 3 |"
   id: totrans-95
   prefs: []
   type: TYPE_TB
   zh: '| ScissorhandsLiu等（[2023](#bib.bib14)） | OPT-6B | HellaSwag-Five shot | 3 |'
-- en: '| PIQA-Five shot | 5 |'
+- en: "| PIQA-Five shot | 5 |"
   id: totrans-96
   prefs: []
   type: TYPE_TB
   zh: '| PIQA-Five shot | 5 |'
-- en: '| MathQA-Five shot | 5 |'
+- en: "| MathQA-Five shot | 5 |"
   id: totrans-97
   prefs: []
   type: TYPE_TB
   zh: '| MathQA-Five shot | 5 |'
-- en: '| OPT-13B | HellaSwag-Five shot | 5 |'
+- en: "| OPT-13B | HellaSwag-Five shot | 5 |"
   id: totrans-98
   prefs: []
   type: TYPE_TB
   zh: '| OPT-13B | HellaSwag-Five shot | 5 |'
-- en: '| PIQA-Five shot | 5 |'
+- en: "| PIQA-Five shot | 5 |"
   id: totrans-99
   prefs: []
   type: TYPE_TB
   zh: '| PIQA-Five shot | 5 |'
-- en: '| MathQA-Five shot | 5 |'
+- en: "| MathQA-Five shot | 5 |"
   id: totrans-100
   prefs: []
   type: TYPE_TB
   zh: '| MathQA-Five shot | 5 |'
-- en: '| H2OZhang et al. ([2023](#bib.bib21)) | OPT-30B | PIQA | 5 |'
+- en: "| H2OZhang et al. ([2023](#bib.bib21)) | OPT-30B | PIQA | 5 |"
   id: totrans-101
   prefs: []
   type: TYPE_TB
   zh: '| H2OZhang等（[2023](#bib.bib21)） | OPT-30B | PIQA | 5 |'
-- en: '| MathQA | 5 |'
+- en: "| MathQA | 5 |"
   id: totrans-102
   prefs: []
   type: TYPE_TB
   zh: '| MathQA | 5 |'
-- en: '| QAQ | LLaMA 2-7B | HellaSwag-Zero shot | 7.477 |'
+- en: "| QAQ | LLaMA 2-7B | HellaSwag-Zero shot | 7.477 |"
   id: totrans-103
   prefs: []
   type: TYPE_TB
   zh: '| QAQ | LLaMA 2-7B | HellaSwag-Zero shot | 7.477 |'
-- en: '| PIQA-Zero shot | 9.022 |'
+- en: "| PIQA-Zero shot | 9.022 |"
   id: totrans-104
   prefs: []
   type: TYPE_TB
   zh: '| PIQA-Zero shot | 9.022 |'
-- en: '| MathQA-Zero shot | 7.477 |'
+- en: "| MathQA-Zero shot | 7.477 |"
   id: totrans-105
   prefs: []
   type: TYPE_TB
   zh: '| MathQA-Zero shot | 7.477 |'
-- en: '| LLaMA 2-13B | HellaSwag-Zero shot | 8.394 |'
+- en: "| LLaMA 2-13B | HellaSwag-Zero shot | 8.394 |"
   id: totrans-106
   prefs: []
   type: TYPE_TB
   zh: '| LLaMA 2-13B | HellaSwag-Zero shot | 8.394 |'
-- en: '| PIQA-Zero shot | 9.024 |'
+- en: "| PIQA-Zero shot | 9.024 |"
   id: totrans-107
   prefs: []
   type: TYPE_TB
   zh: '| PIQA-Zero shot | 9.024 |'
-- en: '| MathQA-Zero shot | 7.888 |'
+- en: "| MathQA-Zero shot | 7.888 |"
   id: totrans-108
   prefs: []
   type: TYPE_TB
   zh: '| MathQA-Zero shot | 7.888 |'
-- en: 'Table 1: The experiment performance of QAQ vs. SOTA methods.'
+- en: "Table 1: The experiment performance of QAQ vs. SOTA methods."
   id: totrans-109
   prefs: []
   type: TYPE_NORMAL
   zh: 表1：QAQ与SOTA方法的实验性能。
-- en: '| Model | Task | w/o outliers acc. | w/o outliers compression ration | w 1%
-    outliers acc. | w 1% outliers compression ration |'
+- en: "| Model | Task | w/o outliers acc. | w/o outliers compression ration | w 1%
+    outliers acc. | w 1% outliers compression ration |"
   id: totrans-110
   prefs: []
   type: TYPE_TB
   zh: '| 模型 | 任务 | 无离群点准确度 | 无离群点压缩比 | 有1%离群点准确度 | 有1%离群点压缩比 |'
-- en: '| --- | --- | --- | --- | --- | --- |'
+- en: "| --- | --- | --- | --- | --- | --- |"
   id: totrans-111
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- | --- | --- | --- | --- |'
-- en: '| LLaMA 2-7B | HellaSwag | 0.572 | 7.981 | 0.722 | 7.629 |'
+- en: "| LLaMA 2-7B | HellaSwag | 0.572 | 7.981 | 0.722 | 7.629 |"
   id: totrans-112
   prefs: []
   type: TYPE_TB
   zh: '| LLaMA 2-7B | HellaSwag | 0.572 | 7.981 | 0.722 | 7.629 |'
-- en: '| PIQA | 0.707 | 7.695 | 0.763 | 7.333 |'
+- en: "| PIQA | 0.707 | 7.695 | 0.763 | 7.333 |"
   id: totrans-113
   prefs: []
   type: TYPE_TB
   zh: '| PIQA | 0.707 | 7.695 | 0.763 | 7.333 |'
-- en: '| MathQA | 0.250 | 7.969 | 0.279 | 7.497 |'
+- en: "| MathQA | 0.250 | 7.969 | 0.279 | 7.497 |"
   id: totrans-114
   prefs: []
   type: TYPE_TB
   zh: '| MathQA | 0.250 | 7.969 | 0.279 | 7.497 |'
-- en: '| LLaMA 2-13B | HellaSwag | 0.660 | 7.938 | 0.766 | 7.583 |'
+- en: "| LLaMA 2-13B | HellaSwag | 0.660 | 7.938 | 0.766 | 7.583 |"
   id: totrans-115
   prefs: []
   type: TYPE_TB
   zh: '| LLaMA 2-13B | HellaSwag | 0.660 | 7.938 | 0.766 | 7.583 |'
-- en: '| PIQA | 0.737 | 7.614 | 0.789 | 7.223 |'
+- en: "| PIQA | 0.737 | 7.614 | 0.789 | 7.223 |"
   id: totrans-116
   prefs: []
   type: TYPE_TB
   zh: '| PIQA | 0.737 | 7.614 | 0.789 | 7.223 |'
-- en: '| MathQA | 0.257 | 7.928 | 0.287 | 7.453 |'
+- en: "| MathQA | 0.257 | 7.928 | 0.287 | 7.453 |"
   id: totrans-117
   prefs: []
   type: TYPE_TB
   zh: '| MathQA | 0.257 | 7.928 | 0.287 | 7.453 |'
-- en: 'Table 2: The ablation result of outliers in QAQ.'
+- en: "Table 2: The ablation result of outliers in QAQ."
   id: totrans-118
   prefs: []
   type: TYPE_NORMAL
@@ -915,14 +915,14 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.1 实验设置
-- en: 'Our experiments are based on a representative LLM model family, LLaMA 2 with
+- en: "Our experiments are based on a representative LLM model family, LLaMA 2 with
     model sizes ranging from 7 billion and 13 billion. The outliers ratio is set as
     $1\%$. We compare the accuracy of QAQ-LLaMA against the original LLaMA on a number
     of downstream tasks: HellaSwag Zellers et al. ([2019](#bib.bib19)), MathQA Amini
     et al. ([2019](#bib.bib1)), PIQA Bisk et al. ([2020](#bib.bib3)). The evaluation
     uses a similar architecture as lm-eval-harness Gao et al. ([2021](#bib.bib10))
     with zero shot in every task, all experiments are conducted on a server with 8
-    NVIDIA V100 32GB GPUs.'
+    NVIDIA V100 32GB GPUs."
   id: totrans-122
   prefs: []
   type: TYPE_NORMAL
@@ -935,18 +935,18 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.2 压缩比与准确度
-- en: 'We present the experimental evaluation results depicting the variations in
+- en: "We present the experimental evaluation results depicting the variations in
     accuracy and compression ratio for QAQ in Figure [3](#S5.F3 "Figure 3 ‣ 5.2 Compression
     Ratio vs. Accuracy ‣ 5 Evaluation ‣ QAQ: Quality Adaptive Quantization for LLM
     KV Cache"). The compression ratio is defined as the average ratio of the quantized
     KV cache size to the original KV cache size, where 1$\times$ compressed model’s
     performance approaches that of the uncompressed model, indicating the robust capability
-    of QAQ to significantly compress the KV cache size without compromising performance.'
+    of QAQ to significantly compress the KV cache size without compromising performance."
   id: totrans-124
   prefs: []
   type: TYPE_NORMAL
   zh: '我们展示了实验评估结果，描绘了图[3](#S5.F3 "图3 ‣ 5.2 压缩比与准确率 ‣ 5 评估 ‣ QAQ: 质量自适应量化用于LLM KV缓存")中QAQ的准确率和压缩比的变化。压缩比定义为量化后的KV缓存大小与原始KV缓存大小的平均比率，其中1$\times$压缩模型的性能接近于未压缩模型，表明QAQ在不影响性能的情况下显著压缩KV缓存大小的强大能力。'
-- en: '![Refer to caption](img/3d784e31352f340aaf0d47f62b0b5e4d.png)'
+- en: "![Refer to caption](img/3d784e31352f340aaf0d47f62b0b5e4d.png)"
   id: totrans-125
   prefs: []
   type: TYPE_IMG
@@ -956,7 +956,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (a) LLaMA 2-7B 零样本。
-- en: '![Refer to caption](img/a69ee895e7ff330c5ab516eac581e189.png)'
+- en: "![Refer to caption](img/a69ee895e7ff330c5ab516eac581e189.png)"
   id: totrans-127
   prefs: []
   type: TYPE_IMG
@@ -966,7 +966,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (b) LLaMA 2-13B 零样本。
-- en: 'Figure 3: Experiment performance of QAQ.'
+- en: "Figure 3: Experiment performance of QAQ."
   id: totrans-129
   prefs: []
   type: TYPE_NORMAL
@@ -977,7 +977,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.3 比较
-- en: 'We conducted a comparative analysis with existing state-of-the-art compression
+- en: "We conducted a comparative analysis with existing state-of-the-art compression
     methodologies. In the realm of model quantization, the widespread practice of
     uniformly quantizing parameters has exhibited notable compression efficacy Frantar
     et al. ([2022a](#bib.bib8)). Considering the pivotal role played by outliers during
@@ -993,13 +993,13 @@
     points across all tasks in both models. This implies that the LLaMA models quantized
     using QAQ, whether in the 7B or 13B parameter specifications, exhibit significantly
     superior performance in the four downstream tasks compared to uniform quantization.
-    This underscores the exceptional efficacy of the QAQ quantization strategy.'
+    This underscores the exceptional efficacy of the QAQ quantization strategy."
   id: totrans-131
   prefs: []
   type: TYPE_NORMAL
   zh: '我们对现有的最先进压缩方法进行了比较分析。在模型量化领域，普遍采用的均匀量化参数方法表现出显著的压缩效果 Frantar 等人 ([2022a](#bib.bib8))。考虑到离群点在量化过程中的关键作用，我们在均匀量化框架内保留了离群点。QAQ的性能评估与均匀量化方法进行对比，如图[4](#S5.F4
     "图4 ‣ 5.3 比较 ‣ 5 评估 ‣ QAQ: 质量自适应量化用于LLM KV缓存")所示。散点图中的压缩比由压缩后的KV缓存大小与原始KV缓存大小的比率决定。数据点靠近图的右上角表示更高的压缩比和更好的性能保证，表明整体性能优越。显然，QAQ所形成的红色数据点包络线涵盖了所有任务中两个模型的蓝色数据点。这意味着，无论是7B还是13B参数规格的LLaMA模型，使用QAQ进行量化在四个下游任务中都表现出显著优于均匀量化的性能。这突显了QAQ量化策略的卓越效果。'
-- en: '![Refer to caption](img/cf0aeb870546153a59f7013f8fc98ec1.png)'
+- en: "![Refer to caption](img/cf0aeb870546153a59f7013f8fc98ec1.png)"
   id: totrans-132
   prefs: []
   type: TYPE_IMG
@@ -1009,7 +1009,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (a) HellaSwag LLaMA 2-7B。
-- en: '![Refer to caption](img/d74aedf62657fe52d939a59b8f883d70.png)'
+- en: "![Refer to caption](img/d74aedf62657fe52d939a59b8f883d70.png)"
   id: totrans-134
   prefs: []
   type: TYPE_IMG
@@ -1019,7 +1019,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (b) MathQA LLaMA 2-7B。
-- en: '![Refer to caption](img/3a989b7422bfd280b0a21772c467b8fe.png)'
+- en: "![Refer to caption](img/3a989b7422bfd280b0a21772c467b8fe.png)"
   id: totrans-136
   prefs: []
   type: TYPE_IMG
@@ -1029,7 +1029,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (c) PIQA LLaMA 2-7B。
-- en: '![Refer to caption](img/4cff47d52e57ebe94d35112d261c0959.png)'
+- en: "![Refer to caption](img/4cff47d52e57ebe94d35112d261c0959.png)"
   id: totrans-138
   prefs: []
   type: TYPE_IMG
@@ -1039,7 +1039,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (d) HellaSwag LLaMA 2-13B。
-- en: '![Refer to caption](img/868391e458f4cc4acb2080ff6a6691ab.png)'
+- en: "![Refer to caption](img/868391e458f4cc4acb2080ff6a6691ab.png)"
   id: totrans-140
   prefs: []
   type: TYPE_IMG
@@ -1049,7 +1049,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (e) MathQA LLaMA 2-13B。
-- en: '![Refer to caption](img/4186bbc3bb4d0a9a55ca142d863494b4.png)'
+- en: "![Refer to caption](img/4186bbc3bb4d0a9a55ca142d863494b4.png)"
   id: totrans-142
   prefs: []
   type: TYPE_IMG
@@ -1059,18 +1059,18 @@
   prefs: []
   type: TYPE_NORMAL
   zh: (f) PIQA LLaMA 2-13B。
-- en: 'Figure 4: Experiment result of QAQ v.s. non-attention quantization.'
+- en: "Figure 4: Experiment result of QAQ v.s. non-attention quantization."
   id: totrans-144
   prefs: []
   type: TYPE_NORMAL
   zh: 图4：QAQ与非注意力量化的实验结果。
-- en: 'For the existing SOTA techniques in compressing KV cache, we present a comparative
+- en: "For the existing SOTA techniques in compressing KV cache, we present a comparative
     analysis of QAQ in Table [1](#S4.T1 "Table 1 ‣ 4.2 Methods ‣ 4 Quality Adaptive
     Quantization Method for Key Cache and Value Cache ‣ QAQ: Quality Adaptive Quantization
     for LLM KV Cache"). It is evident that QAQ achieves a notable $1.6-1.8\times$
     improvement in lossless compression ratio across multiple downstream tasks when
     compared to the current SOTA methods. The results substantiate the outstanding
-    performance of QAQ.'
+    performance of QAQ."
   id: totrans-145
   prefs: []
   type: TYPE_NORMAL
@@ -1090,7 +1090,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 为验证异常值在量化中的关键作用，我们在保持其余实验条件不变的情况下进行了消融实验。
-- en: 'Outliers. To evaluate the outliers’ role in the quantization method, we conduct
+- en: "Outliers. To evaluate the outliers’ role in the quantization method, we conduct
     the ablation experiment on the outliers. The experiments were conducted on the
     same three downstream tasks, distinguishing between two groups: one where outliers
     were treated separately and another where no special treatment was applied. The
@@ -1102,7 +1102,7 @@
     In cases where outliers are not handled separately, the model’s performance on
     downstream tasks experiences a significant decline of $12\%-26\%$ additional overhead
     on the compression ratio. This demonstrates the efficient and accurate handling
-    of outliers by QAQ.'
+    of outliers by QAQ."
   id: totrans-148
   prefs: []
   type: TYPE_NORMAL
@@ -1111,88 +1111,88 @@
     Method for Key Cache and Value Cache ‣ QAQ: Quality Adaptive Quantization for
     LLM KV Cache") 中呈现。实验结果表明，异常值对 KV 缓存量化有显著影响。在未单独处理异常值的情况下，模型在下游任务上的性能下降了 $12\%-26\%$，压缩比额外增加。这展示了
     QAQ 对异常值的高效和准确处理。'
-- en: 'Attention window size. To verify the importance of handling exceptional cases
+- en: "Attention window size. To verify the importance of handling exceptional cases
     in quantization, we conducted ablation experiments to investigate the impact of
     treating such cases differently. The experiments are conducted on the same three
     downstream tasks, involving two groups: one with a specified window size and the
     other without, where the absence of a specific setting implies a default window
-    size of $1$ in performance. This further advances the performance of QAQ.'
+    size of $1$ in performance. This further advances the performance of QAQ."
   id: totrans-149
   prefs: []
   type: TYPE_NORMAL
   zh: 注意力窗口大小。为了验证在量化中处理特殊情况的重要性，我们进行了消融实验，以调查不同处理方式对这些情况的影响。实验在相同的三个下游任务中进行，涉及两组：一组具有指定窗口大小，另一组没有，其中没有特定设置的情况下默认窗口大小为
     $1$。这进一步推动了 QAQ 的性能。
-- en: '| Model | Task | Attention window size | Acc. | Compression ratio |'
+- en: "| Model | Task | Attention window size | Acc. | Compression ratio |"
   id: totrans-150
   prefs: []
   type: TYPE_TB
   zh: '| Model | Task | Attention window size | Acc. | Compression ratio |'
-- en: '| --- | --- | --- | --- | --- |'
+- en: "| --- | --- | --- | --- | --- |"
   id: totrans-151
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- | --- | --- | --- |'
-- en: '| LLaMA 2-7B | HellaSwag | 1 | 0.722 | 7.628 |'
+- en: "| LLaMA 2-7B | HellaSwag | 1 | 0.722 | 7.628 |"
   id: totrans-152
   prefs: []
   type: TYPE_TB
   zh: '| LLaMA 2-7B | HellaSwag | 1 | 0.722 | 7.628 |'
-- en: '| 5 | 0.730 | 7.377 |'
+- en: "| 5 | 0.730 | 7.377 |"
   id: totrans-153
   prefs: []
   type: TYPE_TB
   zh: '| 5 | 0.730 | 7.377 |'
-- en: '| PIQA | 1 | 0.755 | 7.820 |'
+- en: "| PIQA | 1 | 0.755 | 7.820 |"
   id: totrans-154
   prefs: []
   type: TYPE_TB
   zh: '| PIQA | 1 | 0.755 | 7.820 |'
-- en: '| 5 | 0.778 | 6.797 |'
+- en: "| 5 | 0.778 | 6.797 |"
   id: totrans-155
   prefs: []
   type: TYPE_TB
   zh: '| 5 | 0.778 | 6.797 |'
-- en: '| MathQA | 1 | 0.276 | 7.633 |'
+- en: "| MathQA | 1 | 0.276 | 7.633 |"
   id: totrans-156
   prefs: []
   type: TYPE_TB
   zh: '| MathQA | 1 | 0.276 | 7.633 |'
-- en: '| 5 | 0.284 | 7.331 |'
+- en: "| 5 | 0.284 | 7.331 |"
   id: totrans-157
   prefs: []
   type: TYPE_TB
   zh: '| 5 | 0.284 | 7.331 |'
-- en: '| LLaMA 2-13B | HellaSwag | 1 | 0.766 | 7.583 |'
+- en: "| LLaMA 2-13B | HellaSwag | 1 | 0.766 | 7.583 |"
   id: totrans-158
   prefs: []
   type: TYPE_TB
   zh: '| LLaMA 2-13B | HellaSwag | 1 | 0.766 | 7.583 |'
-- en: '| 5 | 0.772 | 7.340 |'
+- en: "| 5 | 0.772 | 7.340 |"
   id: totrans-159
   prefs: []
   type: TYPE_TB
   zh: '| 5 | 0.772 | 7.340 |'
-- en: '| PIQA | 1 | 0.788 | 7.692 |'
+- en: "| PIQA | 1 | 0.788 | 7.692 |"
   id: totrans-160
   prefs: []
   type: TYPE_TB
   zh: '| PIQA | 1 | 0.788 | 7.692 |'
-- en: '| 5 | 0.794 | 6.802 |'
+- en: "| 5 | 0.794 | 6.802 |"
   id: totrans-161
   prefs: []
   type: TYPE_TB
   zh: '| 5 | 0.794 | 6.802 |'
-- en: '| MathQA | 1 | 0.283 | 7.588 |'
+- en: "| MathQA | 1 | 0.283 | 7.588 |"
   id: totrans-162
   prefs: []
   type: TYPE_TB
   zh: '| MathQA | 1 | 0.283 | 7.588 |'
-- en: '| 5 | 0.295 | 7.321 |'
+- en: "| 5 | 0.295 | 7.321 |"
   id: totrans-163
   prefs: []
   type: TYPE_TB
   zh: '| 5 | 0.295 | 7.321 |'
-- en: 'Table 3: The ablation result of attention window in QAQ.'
+- en: "Table 3: The ablation result of attention window in QAQ."
   id: totrans-164
   prefs: []
   type: TYPE_NORMAL
@@ -1219,9 +1219,9 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 参考文献
-- en: 'Amini et al. [2019] Aida Amini, Saadia Gabriel, Peter Lin, Rik Koncel-Kedziorski,
+- en: "Amini et al. [2019] Aida Amini, Saadia Gabriel, Peter Lin, Rik Koncel-Kedziorski,
     Yejin Choi, and Hannaneh Hajishirzi. MathQA: Towards interpretable math word problem
-    solving with operation-based formalisms. arXiv preprint arXiv:1905.13319, 2019.'
+    solving with operation-based formalisms. arXiv preprint arXiv:1905.13319, 2019."
   id: totrans-168
   prefs:
   - PREF_UL
@@ -1239,10 +1239,10 @@
   zh: Beeching 等人 [2023] Edward Beeching、Clémentine Fourrier、Nathan Habib、Sheon Han、Nathan
     Lambert、Nazneen Rajani、Omar Sanseviero、Lewis Tunstall 和 Thomas Wolf。开放 LLM 排行榜。
     [https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard)，2023。
-- en: 'Bisk et al. [2020] Yonatan Bisk, Rowan Zellers, Jianfeng Gao, Yejin Choi, et al.
+- en: "Bisk et al. [2020] Yonatan Bisk, Rowan Zellers, Jianfeng Gao, Yejin Choi, et al.
     PIQA: Reasoning about physical commonsense in natural language. In Proceedings
     of the AAAI conference on artificial intelligence, volume 34, pages 7432–7439,
-    2020.'
+    2020."
   id: totrans-170
   prefs:
   - PREF_UL
@@ -1284,27 +1284,27 @@
   type: TYPE_NORMAL
   zh: Child 等人 [2019] Rewon Child、Scott Gray、Alec Radford 和 Ilya Sutskever。使用稀疏转换器生成长序列。arXiv
     预印本 arXiv:1904.10509，2019。
-- en: 'Dettmers et al. [2022] Tim Dettmers, Mike Lewis, Younes Belkada, and Luke Zettlemoyer.
+- en: "Dettmers et al. [2022] Tim Dettmers, Mike Lewis, Younes Belkada, and Luke Zettlemoyer.
     Llm. int8 (): 8-bit matrix multiplication for transformers at scale. arXiv preprint
-    arXiv:2208.07339, 2022.'
+    arXiv:2208.07339, 2022."
   id: totrans-174
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Dettmers 等人 [2022] Tim Dettmers、Mike Lewis、Younes Belkada 和 Luke Zettlemoyer。Llm.
     int8 (): 大规模转换器的 8 位矩阵乘法。arXiv 预印本 arXiv:2208.07339，2022。'
-- en: 'Frantar et al. [2022a] Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and
+- en: "Frantar et al. [2022a] Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and
     Dan Alistarh. Gptq: Accurate post-training quantization for generative pre-trained
-    transformers. arXiv preprint arXiv:2210.17323, 2022.'
+    transformers. arXiv preprint arXiv:2210.17323, 2022."
   id: totrans-175
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: Frantar 等人 [2022a] Elias Frantar、Saleh Ashkboos、Torsten Hoefler 和 Dan Alistarh。Gptq：生成预训练转换器的准确后训练量化。arXiv
     预印本 arXiv:2210.17323，2022。
-- en: 'Frantar et al. [2022b] Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and
+- en: "Frantar et al. [2022b] Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and
     Dan Alistarh. Optq: Accurate quantization for generative pre-trained transformers.
-    In The Eleventh International Conference on Learning Representations, 2022.'
+    In The Eleventh International Conference on Learning Representations, 2022."
   id: totrans-176
   prefs:
   - PREF_UL
@@ -1321,37 +1321,37 @@
   zh: Gao et al. [2021] Leo Gao, Jonathan Tow, Stella Biderman, Sid Black, Anthony
     DiPofi, Charles Foster, Laurence Golding, Jeffrey Hsu, Kyle McDonell, Niklas Muennighoff
     等. 少样本语言模型评估框架。版本 v0\. 0.1\. 2021年9月。
-- en: 'Ge et al. [2023] Suyu Ge, Yunan Zhang, Liyuan Liu, Minjia Zhang, Jiawei Han,
+- en: "Ge et al. [2023] Suyu Ge, Yunan Zhang, Liyuan Liu, Minjia Zhang, Jiawei Han,
     and Jianfeng Gao. Model tells you what to discard: Adaptive kv cache compression
-    for LLMs. arXiv preprint arXiv:2310.01801, 2023.'
+    for LLMs. arXiv preprint arXiv:2310.01801, 2023."
   id: totrans-178
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: Ge et al. [2023] Suyu Ge, Yunan Zhang, Liyuan Liu, Minjia Zhang, Jiawei Han
     和 Jianfeng Gao. 模型告诉你该丢弃什么：针对 LLM 的自适应 KV 缓存压缩。arXiv 预印本 arXiv:2310.01801, 2023。
-- en: 'Lee et al. [2023] Changhun Lee, Jungyu Jin, Taesu Kim, Hyungjun Kim, and Eunhyeok
+- en: "Lee et al. [2023] Changhun Lee, Jungyu Jin, Taesu Kim, Hyungjun Kim, and Eunhyeok
     Park. OWQ: Lessons learned from activation outliers for weight quantization in
-    large language models. arXiv preprint arXiv:2306.02272, 2023.'
+    large language models. arXiv preprint arXiv:2306.02272, 2023."
   id: totrans-179
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Lee et al. [2023] Changhun Lee, Jungyu Jin, Taesu Kim, Hyungjun Kim 和 Eunhyeok
     Park. OWQ: 从激活异常中获得的权重量化经验教训。arXiv 预印本 arXiv:2306.02272, 2023。'
-- en: 'Lin et al. [2023] Ji Lin, Jiaming Tang, Haotian Tang, Shang Yang, Xingyu Dang,
+- en: "Lin et al. [2023] Ji Lin, Jiaming Tang, Haotian Tang, Shang Yang, Xingyu Dang,
     and Song Han. Awq: Activation-aware weight quantization for llm compression and
-    acceleration. arXiv preprint arXiv:2306.00978, 2023.'
+    acceleration. arXiv preprint arXiv:2306.00978, 2023."
   id: totrans-180
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Lin et al. [2023] Ji Lin, Jiaming Tang, Haotian Tang, Shang Yang, Xingyu Dang
     和 Song Han. Awq: 激活感知的权重量化用于 LLM 压缩和加速。arXiv 预印本 arXiv:2306.00978, 2023。'
-- en: 'Liu et al. [2023] Zichang Liu, Aditya Desai, Fangshuo Liao, Weitao Wang, Victor
+- en: "Liu et al. [2023] Zichang Liu, Aditya Desai, Fangshuo Liao, Weitao Wang, Victor
     Xie, Zhaozhuo Xu, Anastasios Kyrillidis, and Anshumali Shrivastava. Scissorhands:
     Exploiting the persistence of importance hypothesis for LLM KV cache compression
-    at test time. arXiv preprint arXiv:2305.17118, 2023.'
+    at test time. arXiv preprint arXiv:2305.17118, 2023."
   id: totrans-181
   prefs:
   - PREF_UL
@@ -1377,10 +1377,10 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: Seltman [2012] Howard Seltman. 比率的均值和方差的近似。未出版的笔记, 2012。
-- en: 'Touvron et al. [2023] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+- en: "Touvron et al. [2023] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
     Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
     Eric Hambro, Faisal Azhar, et al. LLaMA: Open and efficient foundation language
-    models. arXiv preprint arXiv:2302.13971, 2023.'
+    models. arXiv preprint arXiv:2302.13971, 2023."
   id: totrans-184
   prefs:
   - PREF_UL
@@ -1388,10 +1388,10 @@
   zh: 'Touvron et al. [2023] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
     Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
     Eric Hambro, Faisal Azhar 等. LLaMA: 开放而高效的基础语言模型。arXiv 预印本 arXiv:2302.13971, 2023。'
-- en: 'Yao et al. [2022] Zhewei Yao, Reza Yazdani Aminabadi, Minjia Zhang, Xiaoxia
+- en: "Yao et al. [2022] Zhewei Yao, Reza Yazdani Aminabadi, Minjia Zhang, Xiaoxia
     Wu, Conglong Li, and Yuxiong He. Zeroquant: Efficient and affordable post-training
     quantization for large-scale transformers. Advances in Neural Information Processing
-    Systems, 35:27168–27183, 2022.'
+    Systems, 35:27168–27183, 2022."
   id: totrans-185
   prefs:
   - PREF_UL
@@ -1399,19 +1399,19 @@
   zh: 'Yao et al. [2022] Zhewei Yao, Reza Yazdani Aminabadi, Minjia Zhang, Xiaoxia
     Wu, Conglong Li 和 Yuxiong He. Zeroquant: 大规模转换器的高效且经济的后训练量化。神经信息处理系统进展, 35:27168–27183,
     2022。'
-- en: 'Zellers et al. [2019] Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi,
+- en: "Zellers et al. [2019] Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi,
     and Yejin Choi. Hellaswag: Can a machine really finish your sentence? arXiv preprint
-    arXiv:1905.07830, 2019.'
+    arXiv:1905.07830, 2019."
   id: totrans-186
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Zellers et al. [2019] Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi
     和 Yejin Choi. Hellaswag: 机器真的能完成你的句子吗？arXiv 预印本 arXiv:1905.07830, 2019。'
-- en: 'Zhang et al. [2022] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe,
+- en: "Zhang et al. [2022] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe,
     Moya Chen, Shuohui Chen, Christopher Dewan, Mona Diab, Xian Li, Xi Victoria Lin,
     et al. OPT: Open pre-trained transformer language models. arXiv preprint arXiv:2205.01068,
-    2022.'
+    2022."
   id: totrans-187
   prefs:
   - PREF_UL
@@ -1419,10 +1419,10 @@
   zh: 'Zhang et al. [2022] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe,
     Moya Chen, Shuohui Chen, Christopher Dewan, Mona Diab, Xian Li, Xi Victoria Lin
     等. OPT: 开放的预训练转换器语言模型。arXiv 预印本 arXiv:2205.01068, 2022。'
-- en: 'Zhang et al. [2023] Zhenyu Zhang, Ying Sheng, Tianyi Zhou, Tianlong Chen, Lianmin
+- en: "Zhang et al. [2023] Zhenyu Zhang, Ying Sheng, Tianyi Zhou, Tianlong Chen, Lianmin
     Zheng, Ruisi Cai, Zhao Song, Yuandong Tian, Christopher Ré, Clark Barrett, et al.
     H[2]O: Heavy-hitter oracle for efficient generative inference of large language
-    models. arXiv preprint arXiv:2306.14048, 2023.'
+    models. arXiv preprint arXiv:2306.14048, 2023."
   id: totrans-188
   prefs:
   - PREF_UL

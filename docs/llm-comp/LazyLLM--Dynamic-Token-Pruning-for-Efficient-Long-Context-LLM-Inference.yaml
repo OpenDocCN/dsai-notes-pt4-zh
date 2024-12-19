@@ -3,12 +3,12 @@
   prefs: []
   type: TYPE_NORMAL
   zh: <!--yml
-- en: 'category: 未分类'
+- en: "category: 未分类"
   id: totrans-1
   prefs: []
   type: TYPE_NORMAL
   zh: 'category: 未分类'
-- en: 'date: 2024-09-08 19:04:24'
+- en: "date: 2024-09-08 19:04:24"
   id: totrans-2
   prefs: []
   type: TYPE_NORMAL
@@ -18,7 +18,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: -->
-- en: 'LazyLLM: Dynamic Token Pruning for Efficient Long Context LLM Inference'
+- en: "LazyLLM: Dynamic Token Pruning for Efficient Long Context LLM Inference"
   id: totrans-4
   prefs:
   - PREF_H1
@@ -43,7 +43,7 @@
   - PREF_H6
   type: TYPE_NORMAL
   zh: 摘要
-- en: 'The inference of transformer-based large language models consists of two sequential
+- en: "The inference of transformer-based large language models consists of two sequential
     stages: 1) a *prefilling* stage to compute the KV cache of prompts and generate
     the first token, and 2) a *decoding* stage to generate subsequent tokens. For
     long prompts, the KV cache must be computed for all tokens during the *prefilling*
@@ -60,7 +60,7 @@
     can be seamlessly integrated with existing language models to significantly accelerate
     the generation without fine-tuning. For instance, in the multi-document question-answering
     task, *LazyLLM* accelerates the *prefilling* stage of the LLama 2 7B model by
-    $2.34\times$ while maintaining accuracy.'
+    $2.34\times$ while maintaining accuracy."
   id: totrans-8
   prefs: []
   type: TYPE_NORMAL
@@ -72,14 +72,14 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 1 引言
-- en: 'Standard prompt-based LLM inference has two sequential stages: *prefilling*
+- en: "Standard prompt-based LLM inference has two sequential stages: *prefilling*
     and *decoding*, as shown in [Figure 1](#S1.F1 "In 1 Introduction ‣ LazyLLM: Dynamic
     Token Pruning for Efficient Long Context LLM Inference"). During the *prefilling*
     stage, the model computes and saves the KV cache of each token from the prompt,
     and predicts the first token. We refer to the time taken during *prefilling* stage
     as “time-to-first-token” (*TTFT*). Following the *prefilling* stage is the *decoding*
     stage, where the model reuses cached KVs to decode the next token iteratively
-    until the stop criteria are met.'
+    until the stop criteria are met."
   id: totrans-10
   prefs: []
   type: TYPE_NORMAL
@@ -98,7 +98,7 @@
   type: TYPE_NORMAL
   zh: 在*预填充*阶段，提示中的所有标记都被所有变换器层使用。对于长提示，*TTFT*可能较慢，因为最先进的变换器基础LLMs既深又宽（Pope等，[2023](#bib.bib26)；Kim等，[2023](#bib.bib16)；Aminabadi等，[2022](#bib.bib2)），并且计算注意力的成本随着提示中标记数量的增加呈平方关系。例如，Llama
     2（Touvron等，[2023](#bib.bib28)），具有70亿个参数，堆叠了32层变换器，模型维度为4096。在这种情况下，*TTFT*需要$21\times$的标记（Bai等，[2023](#bib.bib4)）。因此，优化*TTFT*是实现高效LLM推理的关键路径（NVIDIA，[2024](#bib.bib25)）。
-- en: 'While optimizing LLM inference is an active area of research, many methods
+- en: "While optimizing LLM inference is an active area of research, many methods
     (Leviathan et al., [2023](#bib.bib18); Cai et al., [2024](#bib.bib7); Zhang et al.,
     [2024](#bib.bib31); Bhendawade et al., [2024](#bib.bib6); Li et al., [2024](#bib.bib20))
     have focused on improving inference speed during the *decoding* stage. Yet, there
@@ -109,26 +109,26 @@
     [2023](#bib.bib14); Dao et al., [2022](#bib.bib9)) investigates how *TTFT* can
     be improved given a static transformer architecture. Within this line of research,
     a natural question arises: Are all prompt tokens essential for generating the
-    first token?'
+    first token?"
   id: totrans-12
   prefs: []
   type: TYPE_NORMAL
   zh: 尽管优化LLM推理是一个活跃的研究领域，但许多方法（Leviathan等，[2023](#bib.bib18)；Cai等，[2024](#bib.bib7)；Zhang等，[2024](#bib.bib31)；Bhendawade等，[2024](#bib.bib6)；Li等，[2024](#bib.bib20)）已专注于改进*解码*阶段的推理速度。然而，对*TTFT*的改进关注较少。我们注意到一些基于压缩的研究通过减小LLMs的规模（Frantar等，[2022](#bib.bib12)；Sun等，[2023](#bib.bib27)；Ma等，[2023](#bib.bib21)）间接提高了*TTFT*。然而，另一类研究（Li等，[2023](#bib.bib19)；Jiang等，[2023](#bib.bib14)；Dao等，[2022](#bib.bib9)）探讨了在静态变换器架构下如何改进*TTFT*。在这一研究方向上，出现了一个自然的问题：生成第一个标记时，所有提示标记是否都必不可少？
-- en: '![Refer to caption](img/c8265491916632562842c341b75efe84.png)'
+- en: "![Refer to caption](img/c8265491916632562842c341b75efe84.png)"
   id: totrans-13
   prefs: []
   type: TYPE_IMG
   zh: '![参见说明文字](img/c8265491916632562842c341b75efe84.png)'
-- en: 'Figure 1: Prompt-based LLM inference can be divided into two sequential stages:
+- en: "Figure 1: Prompt-based LLM inference can be divided into two sequential stages:
     *prefilling* and *decoding*. For long prompts, the first token generation during
     *prefilling* stage could be slow. As an example, for Llama 2 7B model (Touvron
     et al., [2023](#bib.bib28)), on average, the time to generate the first token
-    requires $21\times$ of the total generation time in the LongBench benchmark.'
+    requires $21\times$ of the total generation time in the LongBench benchmark."
   id: totrans-14
   prefs: []
   type: TYPE_NORMAL
   zh: 图1：基于提示的LLM推理可以分为两个连续阶段：*预填充*和*解码*。对于长提示，*预填充*阶段的第一个标记生成可能较慢。例如，对于Llama 2 7B模型（Touvron等，[2023](#bib.bib28)），在LongBench基准测试中，生成第一个标记的时间平均需要$21\times$的总生成时间。
-- en: 'LLM profiling on the LongBench benchmark (Bai et al., [2023](#bib.bib4)) in
+- en: "LLM profiling on the LongBench benchmark (Bai et al., [2023](#bib.bib4)) in
     [Figure 2](#S1.F2 "In 1 Introduction ‣ LazyLLM: Dynamic Token Pruning for Efficient
     Long Context LLM Inference") reveals that the attention scores of input tokens
     w.r.t. to the first generated token are very sparse, indicating that many tokens
@@ -149,7 +149,7 @@
     at generation step $t$. To avoid such repetitive computation, we employ an additional
     caching mechanism, *Aux Cache*, to cache the hidden states of pruned tokens. This
     enables a computationally efficient pathway to revive pruned tokens, and ensures
-    that the worst runtime of *LazyLLM* is never slower than the baseline.'
+    that the worst runtime of *LazyLLM* is never slower than the baseline."
   id: totrans-15
   prefs: []
   type: TYPE_NORMAL
@@ -161,29 +161,29 @@
     等，[2023](#bib.bib14)；Xu 等，[2023](#bib.bib29)）相比，这些方法会永久性地减少所有后续生成步骤的提示，我们的方法允许模型恢复先前剪枝的令牌，我们发现这对于保持准确性至关重要。将渐进的令牌剪枝扩展到所有生成步骤并非易事。具体来说，如果一个令牌在生成步骤
     $t$ 时被剪枝。为了避免重复计算，我们采用了额外的缓存机制 *Aux Cache*，以缓存剪枝令牌的隐藏状态。这使得恢复剪枝令牌成为计算上高效的过程，并确保
     *LazyLLM* 的最差运行时间从未比基线慢。
-- en: '![Refer to caption](img/54450a998b61941f2e6a2a8eea419e26.png)'
+- en: "![Refer to caption](img/54450a998b61941f2e6a2a8eea419e26.png)"
   id: totrans-16
   prefs: []
   type: TYPE_IMG
   zh: '![参见说明](img/54450a998b61941f2e6a2a8eea419e26.png)'
-- en: 'Figure 2: We visualize the attention scores of input tokens in the prompt w.r.t.
+- en: "Figure 2: We visualize the attention scores of input tokens in the prompt w.r.t.
     to the next token for each layer of Llama 2 7BTouvron et al. ([2023](#bib.bib28)).
     We also plot the distribution of the average attention score across all transformer
     layers. Result reveals that the attention scores of input tokens w.r.t. to the
     next token are very sparse, indicating that many tokens in the input prompt are
-    redundant and can be safely removed without affecting the next token prediction.'
+    redundant and can be safely removed without affecting the next token prediction."
   id: totrans-17
   prefs: []
   type: TYPE_NORMAL
   zh: 图 2：我们可视化了 Llama 2 7B（Touvron 等，[2023](#bib.bib28)）中每一层的输入令牌相对于下一个令牌的注意力分数。我们还绘制了所有
     Transformer 层平均注意力分数的分布。结果表明，输入令牌相对于下一个令牌的注意力分数非常稀疏，表明输入提示中的许多令牌是多余的，可以安全地移除而不会影响下一个令牌的预测。
-- en: 'In summary, the advantages of *LazyLLM* are: (1) Universal: *LazyLLM* can be
+- en: "In summary, the advantages of *LazyLLM* are: (1) Universal: *LazyLLM* can be
     seamlessly integrated with any existing transformer-based LLM to improve inference
     speed, (2) Training-free: *LazyLLM* doesn’t require any finetuning and can be
     directly integrated without any parameter modification, (3) Effective: Empirical
     results on 16 standard datasets across 6 different language tasks shows *LazyLLM*
     can improve the inference speed of the LLM during both *prefilling* and *decoding*
-    stages.'
+    stages."
   id: totrans-18
   prefs: []
   type: TYPE_NORMAL
@@ -196,7 +196,7 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 2 相关工作
-- en: 'The increase in the scale of large language models (LLMs) has greatly enhanced
+- en: "The increase in the scale of large language models (LLMs) has greatly enhanced
     their performance but also introduced challenges with respect to their inference
     efficiency. The inference of generative LLMs consists of two distinct stages as
     depicted in [Figure 1](#S1.F1 "In 1 Introduction ‣ LazyLLM: Dynamic Token Pruning
@@ -204,7 +204,7 @@
     is needed under long context scenarios to calculate the full KV cache during the
     *prefilling* stage, resulting in a long time-to-first-token (*TTFT*). This delay
     causes users to wait several seconds after submitting a prompt before receiving
-    any response from the agent, leading to a poor user experience.'
+    any response from the agent, leading to a poor user experience."
   id: totrans-20
   prefs: []
   type: TYPE_NORMAL
@@ -260,12 +260,12 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 3 *LazyLLM*
-- en: '![Refer to caption](img/cf40bab5072e97eb7576d52bb932d7df.png)'
+- en: "![Refer to caption](img/cf40bab5072e97eb7576d52bb932d7df.png)"
   id: totrans-24
   prefs: []
   type: TYPE_IMG
   zh: '![参见说明](img/cf40bab5072e97eb7576d52bb932d7df.png)'
-- en: 'Figure 3: Comparison between standard LLM and *LazyLLM*. Instead of computing
+- en: "Figure 3: Comparison between standard LLM and *LazyLLM*. Instead of computing
     the KV cache of all input tokens at the *prefilling* stage, *LazyLLM* only selectively
     computes the tokens that are important to the next token prediction, deferring
     the computation of remaining tokens to later steps. *LazyLLM* significantly optimizes
@@ -273,7 +273,7 @@
     some tokens in the prompt are never selected by *LazyLLM* during the whole generation
     process (even though theoretically the model could use all tokens in the prompt),
     *LazyLLM* also reduces the total amount of computation and accelerates the overall
-    generation.'
+    generation."
   id: totrans-25
   prefs: []
   type: TYPE_NORMAL
@@ -284,7 +284,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 3.1 LLM推理背景
-- en: 'Generative LLM inference consists of two stages: *prefilling* and *decoding*
+- en: "Generative LLM inference consists of two stages: *prefilling* and *decoding*
     (see [Figure 1](#S1.F1 "In 1 Introduction ‣ LazyLLM: Dynamic Token Pruning for
     Efficient Long Context LLM Inference")). In the *prefilling* stage, the model
     receives the prompt (a sequence of tokens) $\mathcal{T}=\{t_{i}\}_{i=1}^{N}$ to
@@ -292,7 +292,7 @@
     repeatedly performed until the stop criteria are met. While the formula of each
     decoding step is similar to *prefilling*, the amount of its computation is significantly
     lower thanks to the KV cache. Specifically, with saved KV cache from *prefilling*,
-    all the previous tokens do not need to pass any linear layers in the model.'
+    all the previous tokens do not need to pass any linear layers in the model."
   id: totrans-27
   prefs: []
   type: TYPE_NORMAL
@@ -303,7 +303,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 3.2 使用*LazyLLM*进行推理
-- en: 'The overview of the proposed *LazyLLM* framework is illustrated in [Figure 4](#S3.F4
+- en: "The overview of the proposed *LazyLLM* framework is illustrated in [Figure 4](#S3.F4
     "In 3.2 Inference with LazyLLM ‣ 3 LazyLLM ‣ LazyLLM: Dynamic Token Pruning for
     Efficient Long Context LLM Inference"). *LazyLLM* starts with the full context
     and progressively prunes tokens to gradually reduce the number of computations
@@ -311,7 +311,7 @@
     subsets of tokens from the context in different generation steps, even though
     some of them may be pruned in previous steps. Compared to static pruning which
     prunes all the tokens at once, dynamic pruning optimizes the next token prediction
-    in each generation step, which is crucial to retaining the performance.'
+    in each generation step, which is crucial to retaining the performance."
   id: totrans-29
   prefs: []
   type: TYPE_NORMAL
@@ -340,7 +340,7 @@
   type: TYPE_NORMAL
   zh: 相比之下，*LazyLLM*仅在推理的第一次迭代（*预填充*步骤）中“懒惰地”计算对预测下一个令牌重要的令牌。修剪第一次迭代中的令牌的一个关键挑战是确定它们的重要性。受到早期退出工作（Elhoushi等，[2024](#bib.bib11)）的启发，该工作显示令牌隐藏状态通过变换器层逐渐演变，我们在每个生成步骤中应用逐层令牌修剪。具体而言，我们使用层$A^{l}\in\mathcal{R}^{H\times
     N\times N}$的注意力图来预测下一个令牌。
-- en: '|  | $s_{i}^{l}=\frac{1}{H}\sum_{h=1}^{H}A^{l}_{h,i,N}$ |  | (1) |'
+- en: "|  | $s_{i}^{l}=\frac{1}{H}\sum_{h=1}^{H}A^{l}_{h,i,N}$ |  | (1) |"
   id: totrans-32
   prefs: []
   type: TYPE_TB
@@ -361,7 +361,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 在计算令牌的置信度分数后，确定修剪令牌的阈值具有挑战性。具体而言，阈值可能会随着注意力分数在不同层和不同任务之间的分布变化而变化。我们通过使用输入令牌中的前$k$百分位来解决这个问题。一旦令牌被修剪，它将被排除在所有后续层的计算之外。换句话说，后层使用的令牌将是前层的子集。
-- en: 'Our study in [Section 5.4](#S5.SS4 "5.4 Drop Rate in Different Layers ‣ 5 Experiments
+- en: "Our study in [Section 5.4](#S5.SS4 "5.4 Drop Rate in Different Layers ‣ 5 Experiments
     ‣ LazyLLM: Dynamic Token Pruning for Efficient Long Context LLM Inference") shows
     the performance changes with different locations of pruning layers and the number
     of tokens pruned. In particular, when pruning at the same transformer layer, the
@@ -372,22 +372,22 @@
     "In 3.2 Inference with LazyLLM ‣ 3 LazyLLM ‣ LazyLLM: Dynamic Token Pruning for
     Efficient Long Context LLM Inference"), we apply progressive pruning that keeps
     more tokens at earlier transformer layers and gradually reduces the number of
-    tokens towards the end of the transformer.'
+    tokens towards the end of the transformer."
   id: totrans-35
   prefs: []
   type: TYPE_NORMAL
   zh: 我们在[第5.4节](#S5.SS4 "5.4 不同层中的丢弃率 ‣ 5 实验 ‣ LazyLLM：动态令牌修剪以提高长上下文LLM推理的效率")中的研究显示了在不同修剪层的位置和修剪的令牌数量下性能的变化。特别是，当在相同的变换器层进行修剪时，模型的性能随着保留的令牌数量减少而逐渐下降。我们还发现，在后面的变换器层进行修剪的性能一致优于在早期层进行修剪，这表明后层对令牌修剪的敏感度较低。为了实现速度和准确性的更好平衡，如[图4](#S3.F4
     "在3.2 LazyLLM推理 ‣ 3 LazyLLM ‣ LazyLLM：动态令牌修剪以提高长上下文LLM推理的效率")所示，我们应用了渐进式修剪，即在早期的变换器层保留更多的令牌，并逐渐减少到变换器末端的令牌数量。
-- en: '![Refer to caption](img/7fca38505a7abefe072633fe28c6f984.png)'
+- en: "![Refer to caption](img/7fca38505a7abefe072633fe28c6f984.png)"
   id: totrans-36
   prefs: []
   type: TYPE_IMG
   zh: '![参考说明](img/7fca38505a7abefe072633fe28c6f984.png)'
-- en: 'Figure 4: Overview of the *LazyLLM* framework. *LazyLLM* starts with the full
+- en: "Figure 4: Overview of the *LazyLLM* framework. *LazyLLM* starts with the full
     context and progressively prunes tokens to gradually reduce the number of computations
     towards the end of the model. *LazyLLM* allows the model to select different subsets
     of tokens from the context in different generation steps, which is crucial to
-    retaining the performance.'
+    retaining the performance."
   id: totrans-37
   prefs: []
   type: TYPE_NORMAL
@@ -464,12 +464,12 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 5 实验
-- en: 'We examine our method using two large language models: Llama 2 7B and XGen
+- en: "We examine our method using two large language models: Llama 2 7B and XGen
     7B. We compare our method with baselines using the same publicly released pretrained
     checkpoints, without employing any additional training. We perform experiments
     using LongBench, a multi-task benchmark for long content understanding. The LongBench
     comprises 16 datasets and covers 6 tasks including single-doc QA, multi-doc QA,
-    summarization, few-shot learning, synthetic tasks, and code completion.'
+    summarization, few-shot learning, synthetic tasks, and code completion."
   id: totrans-44
   prefs: []
   type: TYPE_NORMAL
@@ -490,171 +490,171 @@
   zh: 对于度量标准，我们主要评估每种方法在 *TTFT* 加速与准确率权衡中的有效性和效率。根据 LongBench，准确率（*分数*）表示每个任务中跨数据集的宏平均分数。*TTFT*
     加速比测量生成第一个 token 时相对于基线的墙时间改进。在分析中，我们还评估我们的方法对 *$\%$ 的提示 token 计算* 的影响，这度量了生成结束时计算的提示
     token 的累计百分比，表示节省的总计算量。*生成* 加速比测量完成整个生成过程时相对于基线的墙时间变化。
-- en: '| Tasks | Method | Llama 2 |  | XGen |'
+- en: "| Tasks | Method | Llama 2 |  | XGen |"
   id: totrans-46
   prefs: []
   type: TYPE_TB
   zh: '| 任务 | 方法 | Llama 2 |  | XGen |'
-- en: '| Score | TTFT Speedup ($\times$) |'
+- en: "| Score | TTFT Speedup ($\times$) |"
   id: totrans-47
   prefs: []
   type: TYPE_TB
   zh: '| 分数 | TTFT 加速比 ($\times$) |'
-- en: '| Single-Document QA | Baseline | $\mathbf{25.79}$ |'
+- en: "| Single-Document QA | Baseline | $\mathbf{25.79}$ |"
   id: totrans-48
   prefs: []
   type: TYPE_TB
   zh: '| 单文档问答 | 基线 | $\mathbf{25.79}$ |'
-- en: '| Random Token Drop | $20.05$ |'
+- en: "| Random Token Drop | $20.05$ |"
   id: totrans-49
   prefs: []
   type: TYPE_TB
   zh: '| 随机 token 丢弃 | $20.05$ |'
-- en: '| Static Token Pruning | $21.89$ |'
+- en: "| Static Token Pruning | $21.89$ |"
   id: totrans-50
   prefs: []
   type: TYPE_TB
   zh: '| 静态 token 剪枝 | $21.89$ |'
-- en: '| Prompt Compression | $22.88$ |'
+- en: "| Prompt Compression | $22.88$ |"
   id: totrans-51
   prefs: []
   type: TYPE_TB
   zh: '| 提示压缩 | $22.88$ |'
-- en: '| *LazyLLM (Ours)* | $25.59$ |'
+- en: "| *LazyLLM (Ours)* | $25.59$ |"
   id: totrans-52
   prefs: []
   type: TYPE_TB
   zh: '| *LazyLLM（我们的方法）* | $25.59$ |'
-- en: '| Multi-Document QA | Baseline | $\mathbf{22.43}$ |'
+- en: "| Multi-Document QA | Baseline | $\mathbf{22.43}$ |"
   id: totrans-53
   prefs: []
   type: TYPE_TB
   zh: '| 多文档问答 | 基线 | $\mathbf{22.43}$ |'
-- en: '| Random Token Drop | $16.77$ |'
+- en: "| Random Token Drop | $16.77$ |"
   id: totrans-54
   prefs: []
   type: TYPE_TB
   zh: '| 随机令牌丢弃 | $16.77$ |'
-- en: '| Static Token Pruning | $19.93$ |'
+- en: "| Static Token Pruning | $19.93$ |"
   id: totrans-55
   prefs: []
   type: TYPE_TB
   zh: '| 静态令牌修剪 | $19.93$ |'
-- en: '| Prompt Compression | $8.42$ |'
+- en: "| Prompt Compression | $8.42$ |"
   id: totrans-56
   prefs: []
   type: TYPE_TB
   zh: '| 提示压缩 | $8.42$ |'
-- en: '| *LazyLLM (Ours)* | $22.31$ |'
+- en: "| *LazyLLM (Ours)* | $22.31$ |"
   id: totrans-57
   prefs: []
   type: TYPE_TB
   zh: '| *LazyLLM（我们的）* | $22.31$ |'
-- en: '| Summarization | Baseline | $24.65$ |'
+- en: "| Summarization | Baseline | $24.65$ |"
   id: totrans-58
   prefs: []
   type: TYPE_TB
   zh: '| 总结 | 基线 | $24.65$ |'
-- en: '| Random Token Drop | $24.39$ |'
+- en: "| Random Token Drop | $24.39$ |"
   id: totrans-59
   prefs: []
   type: TYPE_TB
   zh: '| 随机令牌丢弃 | $24.39$ |'
-- en: '| Static Token Pruning | $24.59$ |'
+- en: "| Static Token Pruning | $24.59$ |"
   id: totrans-60
   prefs: []
   type: TYPE_TB
   zh: '| 静态令牌修剪 | $24.59$ |'
-- en: '| Prompt Compression | $25.16$ |'
+- en: "| Prompt Compression | $25.16$ |"
   id: totrans-61
   prefs: []
   type: TYPE_TB
   zh: '| 提示压缩 | $25.16$ |'
-- en: '| *LazyLLM (Ours)* | $\mathbf{24.75}$ |'
+- en: "| *LazyLLM (Ours)* | $\mathbf{24.75}$ |"
   id: totrans-62
   prefs: []
   type: TYPE_TB
   zh: '| *LazyLLM（我们的）* | $\mathbf{24.75}$ |'
-- en: '| Few-shot Learning | Baseline | $\mathbf{62.90}$ |'
+- en: "| Few-shot Learning | Baseline | $\mathbf{62.90}$ |"
   id: totrans-63
   prefs: []
   type: TYPE_TB
   zh: '| 少样本学习 | 基线 | $\mathbf{62.90}$ |'
-- en: '| Random Token Drop | $53.93$ |'
+- en: "| Random Token Drop | $53.93$ |"
   id: totrans-64
   prefs: []
   type: TYPE_TB
   zh: '| 随机令牌丢弃 | $53.93$ |'
-- en: '| Static Token Pruning | $56.54$ |'
+- en: "| Static Token Pruning | $56.54$ |"
   id: totrans-65
   prefs: []
   type: TYPE_TB
   zh: '| 静态令牌修剪 | $56.54$ |'
-- en: '| Prompt Compression | $24.18$ |'
+- en: "| Prompt Compression | $24.18$ |"
   id: totrans-66
   prefs: []
   type: TYPE_TB
   zh: '| 提示压缩 | $24.18$ |'
-- en: '| *LazyLLM (Ours)* | $62.81$ |'
+- en: "| *LazyLLM (Ours)* | $62.81$ |"
   id: totrans-67
   prefs: []
   type: TYPE_TB
   zh: '| *LazyLLM（我们的）* | $62.81$ |'
-- en: '| Synthetic | Baseline | $4.97$ |'
+- en: "| Synthetic | Baseline | $4.97$ |"
   id: totrans-68
   prefs: []
   type: TYPE_TB
   zh: '| 合成 | 基线 | $4.97$ |'
-- en: '| Random Token Drop | $3.57$ |'
+- en: "| Random Token Drop | $3.57$ |"
   id: totrans-69
   prefs: []
   type: TYPE_TB
   zh: '| 随机令牌丢弃 | $3.57$ |'
-- en: '| Static Token Pruning | $2.81$ |'
+- en: "| Static Token Pruning | $2.81$ |"
   id: totrans-70
   prefs: []
   type: TYPE_TB
   zh: '| 静态令牌修剪 | $2.81$ |'
-- en: '| Prompt Compression | $3.20$ |'
+- en: "| Prompt Compression | $3.20$ |"
   id: totrans-71
   prefs: []
   type: TYPE_TB
   zh: '| 提示压缩 | $3.20$ |'
-- en: '| *LazyLLM (Ours)* | $\mathbf{4.98}$ |'
+- en: "| *LazyLLM (Ours)* | $\mathbf{4.98}$ |"
   id: totrans-72
   prefs: []
   type: TYPE_TB
   zh: '| *LazyLLM（我们的）* | $\mathbf{4.98}$ |'
-- en: '| Code Completion | Baseline | $\mathbf{55.18}$ |'
+- en: "| Code Completion | Baseline | $\mathbf{55.18}$ |"
   id: totrans-73
   prefs: []
   type: TYPE_TB
   zh: '| 代码补全 | 基线 | $\mathbf{55.18}$ |'
-- en: '| Random Token Drop | $44.92$ |'
+- en: "| Random Token Drop | $44.92$ |"
   id: totrans-74
   prefs: []
   type: TYPE_TB
   zh: '| 随机令牌丢弃 | $44.92$ |'
-- en: '| Static Token Pruning | $37.51$ |'
+- en: "| Static Token Pruning | $37.51$ |"
   id: totrans-75
   prefs: []
   type: TYPE_TB
   zh: '| 静态令牌修剪 | $37.51$ |'
-- en: '| Prompt Compression | $17.45$ |'
+- en: "| Prompt Compression | $17.45$ |"
   id: totrans-76
   prefs: []
   type: TYPE_TB
   zh: '| 提示压缩 | $17.45$ |'
-- en: '| *LazyLLM (Ours)* | $53.30$ |'
+- en: "| *LazyLLM (Ours)* | $53.30$ |"
   id: totrans-77
   prefs: []
   type: TYPE_TB
   zh: '| *LazyLLM（我们的）* | $53.30$ |'
-- en: 'Table 1: Comparisons of *TTFT* speedup *vs*. accuracy on various tasks. Without
+- en: "Table 1: Comparisons of *TTFT* speedup *vs*. accuracy on various tasks. Without
     requiring any training/finetuning, *LazyLLM* consistently achieves better *TTFT*
     speedup with negligible accuracy drop. Note that the prompt compression approach
     fails at improving *TTFT* because the overhead of running LLMs to compress the
-    prompt is very computationally expensive.'
+    prompt is very computationally expensive."
   id: totrans-78
   prefs: []
   type: TYPE_NORMAL
@@ -666,7 +666,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.1 结果
-- en: '[Table 1](#S5.T1 "In 5 Experiments ‣ LazyLLM: Dynamic Token Pruning for Efficient
+- en: "[Table 1](#S5.T1 "In 5 Experiments ‣ LazyLLM: Dynamic Token Pruning for Efficient
     Long Context LLM Inference") presents the *TTFT* speedup *vs*. accuracy comparisons
     between *LazyLLM*, standard LLM, and other baselines. In the table, the “baseline”
     refers to the standard LLM inference. The “random token drop” baseline is based
@@ -682,7 +682,7 @@
     is worth noting that the overhead of running LLMs to compress the prompt is very
     computationally expensive. Even though the inference on the reduced prompt is
     faster, the actual *TTFT* of the “prompt compression” baseline is longer than
-    the baseline.'
+    the baseline."
   id: totrans-80
   prefs: []
   type: TYPE_NORMAL
@@ -698,7 +698,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.2 *TTFT* 加速与准确度
-- en: 'The inference efficiency of *LazyLLM* is controlled using three parameters:
+- en: "The inference efficiency of *LazyLLM* is controlled using three parameters:
     1) the number of pruning layers, 2) the locations of these pruning layers, and
     3) the number of tokens pruned within these layers. Increasing the number of pruning
     layers and pruning more tokens optimize computation by processing fewer tokens,
@@ -706,21 +706,21 @@
     layers. Prompting these factors will give more overall computation reduction,
     and offer better *TTFT* speedup. As a side effect, excessively pruning tokens
     may cause information loss and eventually lead to performance degradation. Similarly,
-    the *TTFT* speedup and accuracy of baselines can vary with different hyperparameters.'
+    the *TTFT* speedup and accuracy of baselines can vary with different hyperparameters."
   id: totrans-82
   prefs: []
   type: TYPE_NORMAL
   zh: '*LazyLLM* 的推理效率通过三个参数进行控制：1) 剪枝层的数量，2) 这些剪枝层的位置，以及 3) 在这些层内剪枝的 token 数量。增加剪枝层的数量并剪枝更多的
     tokens 通过处理更少的 tokens 来优化计算，而在早期层剪枝 tokens 可以节省后续层的计算。调整这些因素将带来更多的整体计算减少，并提供更好的
     *TTFT* 加速。作为副作用，过度剪枝可能导致信息丢失，最终导致性能下降。同样，基线的 *TTFT* 加速和准确性可能会因不同的超参数而有所变化。'
-- en: 'We compare *TTFT* speedup *vs*. accuracy in [Figure 5](#S5.F5 "In 5.3 Impact
+- en: "We compare *TTFT* speedup *vs*. accuracy in [Figure 5](#S5.F5 "In 5.3 Impact
     on Overall Generation Speed ‣ 5 Experiments ‣ LazyLLM: Dynamic Token Pruning for
     Efficient Long Context LLM Inference") with different hyperparameters. The visualization
     shows that, without any training, the proposed *LazyLLM* retains the accuracy
     better than baselines under the same *TTFT* speedup. For example, our method can
     offer $2.34\times$ degradation in accuracy. On the other hand, baseline methods
     accuracy degrades significantly for similar *TTFT* speed-up. Note that the prompt
-    compression approaches fail at improving *TTFT* because of the compression overhead.'
+    compression approaches fail at improving *TTFT* because of the compression overhead."
   id: totrans-83
   prefs: []
   type: TYPE_NORMAL
@@ -742,60 +742,60 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 为了评估所提方法对整体生成过程的影响，我们还分析了 *计算的 Token 百分比*，这表明 *LazyLLM* 减少了总计算量，从而在各种任务中为整体生成过程提供了额外的加速。
-- en: '![Refer to caption](img/d204b790048ec6b030af8ac2d35df6b6.png)'
+- en: "![Refer to caption](img/d204b790048ec6b030af8ac2d35df6b6.png)"
   id: totrans-86
   prefs: []
   type: TYPE_IMG
   zh: '![参考标题](img/d204b790048ec6b030af8ac2d35df6b6.png)'
-- en: 'Figure 5: *TTFT* speedup *vs*. accuracy comparison for Llama 2 7B across different
-    tasks.'
+- en: "Figure 5: *TTFT* speedup *vs*. accuracy comparison for Llama 2 7B across different
+    tasks."
   id: totrans-87
   prefs: []
   type: TYPE_NORMAL
   zh: '图 5: *TTFT* 加速 *与* 准确性比较，针对 Llama 2 7B 在不同任务中。'
-- en: '| Tasks | $\%$ of Prompt Token Computed |  | Overall Generation Speedup |'
+- en: "| Tasks | $\%$ of Prompt Token Computed |  | Overall Generation Speedup |"
   id: totrans-88
   prefs: []
   type: TYPE_TB
   zh: '| 任务 | 提示 Token 计算的百分比 |  | 整体生成加速 |'
-- en: '| Llama 2 | XGen |  | Llama 2 | XGen |'
+- en: "| Llama 2 | XGen |  | Llama 2 | XGen |"
   id: totrans-89
   prefs: []
   type: TYPE_TB
   zh: '| Llama 2 | XGen |  | Llama 2 | XGen |'
-- en: '| Single-Document QA | $87.31$ |'
+- en: "| Single-Document QA | $87.31$ |"
   id: totrans-90
   prefs: []
   type: TYPE_TB
   zh: '| 单文档问答 | $87.31$ |'
-- en: '| Multi-Document QA | $63.94$ |'
+- en: "| Multi-Document QA | $63.94$ |"
   id: totrans-91
   prefs: []
   type: TYPE_TB
   zh: '| 多文档问答 | $63.94$ |'
-- en: '| Summarization | $99.59$ |'
+- en: "| Summarization | $99.59$ |"
   id: totrans-92
   prefs: []
   type: TYPE_TB
   zh: '| 摘要生成 | $99.59$ |'
-- en: '| Few-shot Learning | $69.98$ |'
+- en: "| Few-shot Learning | $69.98$ |"
   id: totrans-93
   prefs: []
   type: TYPE_TB
   zh: '| 少样本学习 | $69.98$ |'
-- en: '| Synthetic | $63.73$ |'
+- en: "| Synthetic | $63.73$ |"
   id: totrans-94
   prefs: []
   type: TYPE_TB
   zh: '| 合成 | $63.73$ |'
-- en: '| Code Completion | $68.57$ |'
+- en: "| Code Completion | $68.57$ |"
   id: totrans-95
   prefs: []
   type: TYPE_TB
   zh: '| 代码完成 | $68.57$ |'
-- en: 'Table 2: The *$\%$ of Token Computed* indicates *LazyLLM* reduces the total
+- en: "Table 2: The *$\%$ of Token Computed* indicates *LazyLLM* reduces the total
     computation, consequently offering additional speedup to the overall generation
-    process across diverse tasks.'
+    process across diverse tasks."
   id: totrans-96
   prefs: []
   type: TYPE_NORMAL
@@ -806,21 +806,21 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.4 不同层的丢弃率
-- en: 'In this section, we analyze the effect of the locations of pruning layers,
+- en: "In this section, we analyze the effect of the locations of pruning layers,
     and the number of tokens pruned. In particular, we report a series of experiments
     using a simplified version of *LazyLLM* that prunes tokens just once within the
     transformer. For each trial, we position the pruning layer at various levels of
     the transformer stack and apply different pruning ratios. We perform the experiments
     for both Llama 2 and XGen, and visualize the results in [Figure 6](#S5.F6 "In
     5.4 Drop Rate in Different Layers ‣ 5 Experiments ‣ LazyLLM: Dynamic Token Pruning
-    for Efficient Long Context LLM Inference").'
+    for Efficient Long Context LLM Inference")."
   id: totrans-98
   prefs: []
   type: TYPE_NORMAL
   zh: '在这一部分，我们分析了剪枝层的位置和剪枝的 token 数量的影响。特别是，我们报告了一系列使用 *LazyLLM* 简化版的实验，该版在 transformer
     内仅剪枝一次。在每次实验中，我们将剪枝层放置在 transformer 堆栈的不同层级，并应用不同的剪枝比率。我们对 Llama 2 和 XGen 进行了实验，并在
     [图 6](#S5.F6 "在 5.4 不同层的丢弃率 ‣ 5 实验 ‣ LazyLLM: 动态 Token 剪枝以提高长上下文 LLM 推理效率") 中可视化了结果。'
-- en: 'The results show both models share a similar trend. As expected, when pruning
+- en: "The results show both models share a similar trend. As expected, when pruning
     at the same transformer layer, the model’s performance gradually decreases as
     fewer tokens are kept. Furthermore, pruning at later transformer layers consistently
     yields better performance compared to pruning at earlier layers, suggesting that
@@ -829,42 +829,42 @@
     LazyLLM ‣ 3 LazyLLM ‣ LazyLLM: Dynamic Token Pruning for Efficient Long Context
     LLM Inference"), which strategically prunes more tokens in later layers while
     preserving more in the earlier layers, optimizing the balance between efficiency
-    and performance retention.'
+    and performance retention."
   id: totrans-99
   prefs: []
   type: TYPE_NORMAL
   zh: 结果显示，两种模型具有相似的趋势。正如预期的那样，在相同的变换器层进行修剪时，模型的性能随着保留的令牌减少而逐渐下降。此外，与在早期层进行修剪相比，在后续变换器层进行修剪通常会产生更好的性能，这表明后续层对令牌修剪的敏感性较低。基于这些观察结果，我们在[第
     3.2 节](#S3.SS2 "3.2 使用 LazyLLM 进行推理 ‣ 3 LazyLLM ‣ LazyLLM：高效长上下文 LLM 推理的动态令牌修剪")
     中提出了递进式令牌修剪，这一策略在后续层修剪更多令牌，同时在早期层保留更多令牌，从而优化效率与性能保持之间的平衡。
-- en: '![Refer to caption](img/a4f0a9266dac4b1b2f64b8b830a0b9bd.png)'
+- en: "![Refer to caption](img/a4f0a9266dac4b1b2f64b8b830a0b9bd.png)"
   id: totrans-100
   prefs: []
   type: TYPE_IMG
   zh: '![参见标题](img/a4f0a9266dac4b1b2f64b8b830a0b9bd.png)'
-- en: 'Figure 6: Effect of the locations of pruning layers, and the number of tokens
+- en: "Figure 6: Effect of the locations of pruning layers, and the number of tokens
     pruned. The results of both Llama 2 7B Touvron et al. ([2023](#bib.bib28)) and
     XGen 7B Nijkamp et al. ([2023](#bib.bib24)) share a similar trend: 1) when pruning
     at the same transformer layer, the model’s performance gradually decreases as
     fewer tokens are kept, and 2) Pruning at later transformer layers consistently
     has better performance than pruning at earlier layers, suggesting that later layers
-    are less sensitive to token pruning.'
+    are less sensitive to token pruning."
   id: totrans-101
   prefs: []
   type: TYPE_NORMAL
   zh: 图 6：修剪层的位置及修剪的令牌数量的影响。Llama 2 7B Touvron 等人 ([2023](#bib.bib28)) 和 XGen 7B Nijkamp
     等人 ([2023](#bib.bib24)) 的结果显示出类似的趋势：1) 在相同的变换器层进行修剪时，随着保留的令牌减少，模型的性能逐渐下降；2) 在后续变换器层进行修剪通常比在早期层进行修剪表现更好，表明后续层对令牌修剪的敏感性较低。
-- en: '![Refer to caption](img/724f5f3ad87c2a64772e8d31a2c779bb.png)'
+- en: "![Refer to caption](img/724f5f3ad87c2a64772e8d31a2c779bb.png)"
   id: totrans-102
   prefs: []
   type: TYPE_IMG
   zh: '![参见标题](img/724f5f3ad87c2a64772e8d31a2c779bb.png)'
-- en: 'Figure 7: Statistics on number of tokens processed during generation using
+- en: "Figure 7: Statistics on number of tokens processed during generation using
     our LazyLLM technique with Llama 2 7B (Touvron et al., [2023](#bib.bib28)). We
     visualize the statistics of 1000 samples randomly sampled from LongBench. The
     $x$-axis represents the number of prompt tokens processed at that time step (normalized
     by the prompt size). We visualize these statistics for various stages within the
     network. Note that cumulative token usage is upper-bounded by the baseline (evident
-    with early layers).'
+    with early layers)."
   id: totrans-103
   prefs: []
   type: TYPE_NORMAL
@@ -876,13 +876,13 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.5 递进式 KV 增长
-- en: 'In this section, we characterize the internals of the model with the token
+- en: "In this section, we characterize the internals of the model with the token
     pruning logic. Specifically, we seek to understand what fractions of prompt tokens
     are cumulatively used and, inversely, not used. This “cumulative token usage”
     can be equivalently defined as the KV cache size at each given step. [Figure 7](#S5.F7
     "In 5.4 Drop Rate in Different Layers ‣ 5 Experiments ‣ LazyLLM: Dynamic Token
     Pruning for Efficient Long Context LLM Inference") presents these cumulative prompt
-    token usage numbers for each of the stages of the LazyLLM.'
+    token usage numbers for each of the stages of the LazyLLM."
   id: totrans-105
   prefs: []
   type: TYPE_NORMAL
@@ -923,10 +923,10 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 参考文献
-- en: 'Adnan et al. (2024) Muhammad Adnan, Akhil Arunkumar, Gaurav Jain, Prashant J
+- en: "Adnan et al. (2024) Muhammad Adnan, Akhil Arunkumar, Gaurav Jain, Prashant J
     Nair, Ilya Soloveychik, and Purushotham Kamath. Keyformer: Kv cache reduction
     through key tokens selection for efficient generative inference. *arXiv preprint
-    arXiv:2403.09054*, 2024.'
+    arXiv:2403.09054*, 2024."
   id: totrans-110
   prefs:
   - PREF_UL
@@ -934,11 +934,11 @@
   zh: 'Adnan 等 (2024) Muhammad Adnan, Akhil Arunkumar, Gaurav Jain, Prashant J Nair,
     Ilya Soloveychik, 和 Purushotham Kamath. Keyformer: 通过关键令牌选择减少 KV 缓存，以实现高效的生成推理。*arXiv
     预印本 arXiv:2403.09054*，2024年。'
-- en: 'Aminabadi et al. (2022) Reza Yazdani Aminabadi, Samyam Rajbhandari, Ammar Ahmad
+- en: "Aminabadi et al. (2022) Reza Yazdani Aminabadi, Samyam Rajbhandari, Ammar Ahmad
     Awan, Cheng Li, Du Li, Elton Zheng, Olatunji Ruwase, Shaden Smith, Minjia Zhang,
     Jeff Rasley, et al. Deepspeed-inference: enabling efficient inference of transformer
     models at unprecedented scale. In *SC22: International Conference for High Performance
-    Computing, Networking, Storage and Analysis*, pp.  1–15\. IEEE, 2022.'
+    Computing, Networking, Storage and Analysis*, pp.  1–15\. IEEE, 2022."
   id: totrans-111
   prefs:
   - PREF_UL
@@ -956,10 +956,10 @@
   type: TYPE_NORMAL
   zh: Anagnostidis 等 (2024) Sotiris Anagnostidis, Dario Pavllo, Luca Biggio, Lorenzo
     Noci, Aurelien Lucchi, 和 Thomas Hofmann. 动态上下文剪枝用于高效且可解释的自回归转换器。*神经信息处理系统进展*，36，2024年。
-- en: 'Bai et al. (2023) Yushi Bai, Xin Lv, Jiajie Zhang, Hongchang Lyu, Jiankai Tang,
+- en: "Bai et al. (2023) Yushi Bai, Xin Lv, Jiajie Zhang, Hongchang Lyu, Jiankai Tang,
     Zhidian Huang, Zhengxiao Du, Xiao Liu, Aohan Zeng, Lei Hou, et al. Longbench:
     A bilingual, multitask benchmark for long context understanding. *arXiv preprint
-    arXiv:2308.14508*, 2023.'
+    arXiv:2308.14508*, 2023."
   id: totrans-113
   prefs:
   - PREF_UL
@@ -967,63 +967,63 @@
   zh: 'Bai 等 (2023) Yushi Bai, Xin Lv, Jiajie Zhang, Hongchang Lyu, Jiankai Tang,
     Zhidian Huang, Zhengxiao Du, Xiao Liu, Aohan Zeng, Lei Hou 等。Longbench: 一个双语、多任务基准，用于长上下文理解。*arXiv
     预印本 arXiv:2308.14508*，2023年。'
-- en: 'Beltagy et al. (2020) Iz Beltagy, Matthew E Peters, and Arman Cohan. Longformer:
-    The long-document transformer. *arXiv preprint arXiv:2004.05150*, 2020.'
+- en: "Beltagy et al. (2020) Iz Beltagy, Matthew E Peters, and Arman Cohan. Longformer:
+    The long-document transformer. *arXiv preprint arXiv:2004.05150*, 2020."
   id: totrans-114
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Beltagy 等 (2020) Iz Beltagy, Matthew E Peters, 和 Arman Cohan. Longformer: 长文档转换器。*arXiv
     预印本 arXiv:2004.05150*，2020年。'
-- en: 'Bhendawade et al. (2024) Nikhil Bhendawade, Irina Belousova, Qichen Fu, Henry
+- en: "Bhendawade et al. (2024) Nikhil Bhendawade, Irina Belousova, Qichen Fu, Henry
     Mason, Mohammad Rastegari, and Mahyar Najibi. Speculative streaming: Fast llm
-    inference without auxiliary models. *arXiv preprint arXiv:2402.11131*, 2024.'
+    inference without auxiliary models. *arXiv preprint arXiv:2402.11131*, 2024."
   id: totrans-115
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Bhendawade 等 (2024) Nikhil Bhendawade, Irina Belousova, Qichen Fu, Henry Mason,
     Mohammad Rastegari, 和 Mahyar Najibi. 推测流: 无需辅助模型的快速 LLM 推理。*arXiv 预印本 arXiv:2402.11131*，2024年。'
-- en: 'Cai et al. (2024) Tianle Cai, Yuhong Li, Zhengyang Geng, Hongwu Peng, Jason D
+- en: "Cai et al. (2024) Tianle Cai, Yuhong Li, Zhengyang Geng, Hongwu Peng, Jason D
     Lee, Deming Chen, and Tri Dao. Medusa: Simple llm inference acceleration framework
-    with multiple decoding heads. *arXiv preprint arXiv:2401.10774*, 2024.'
+    with multiple decoding heads. *arXiv preprint arXiv:2401.10774*, 2024."
   id: totrans-116
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Cai 等 (2024) Tianle Cai, Yuhong Li, Zhengyang Geng, Hongwu Peng, Jason D Lee,
     Deming Chen, 和 Tri Dao. Medusa: 简单的 LLM 推理加速框架，具有多个解码头。*arXiv 预印本 arXiv:2401.10774*，2024年。'
-- en: 'Chen et al. (2023) Yukang Chen, Shengju Qian, Haotian Tang, Xin Lai, Zhijian
+- en: "Chen et al. (2023) Yukang Chen, Shengju Qian, Haotian Tang, Xin Lai, Zhijian
     Liu, Song Han, and Jiaya Jia. Longlora: Efficient fine-tuning of long-context
-    large language models. *arXiv preprint arXiv:2309.12307*, 2023.'
+    large language models. *arXiv preprint arXiv:2309.12307*, 2023."
   id: totrans-117
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Chen 等 (2023) Yukang Chen, Shengju Qian, Haotian Tang, Xin Lai, Zhijian Liu,
     Song Han, 和 Jiaya Jia. Longlora: 高效的长上下文大型语言模型微调。*arXiv 预印本 arXiv:2309.12307*，2023年。'
-- en: 'Dao et al. (2022) Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and Christopher
+- en: "Dao et al. (2022) Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and Christopher
     Ré. Flashattention: Fast and memory-efficient exact attention with io-awareness.
-    *Advances in Neural Information Processing Systems*, 35:16344–16359, 2022.'
+    *Advances in Neural Information Processing Systems*, 35:16344–16359, 2022."
   id: totrans-118
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Dao 等 (2022) Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, 和 Christopher Ré.
     Flashattention: 快速且内存高效的精确注意力，具有 IO 关注。*神经信息处理系统进展*，35:16344–16359，2022年。'
-- en: 'Devlin et al. (2018) Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina
+- en: "Devlin et al. (2018) Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina
     Toutanova. Bert: Pre-training of deep bidirectional transformers for language
-    understanding. *arXiv preprint arXiv:1810.04805*, 2018.'
+    understanding. *arXiv preprint arXiv:1810.04805*, 2018."
   id: totrans-119
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Devlin et al. (2018) Jacob Devlin, Ming-Wei Chang, Kenton Lee, 和 Kristina Toutanova.
     Bert: 深度双向变换器的预训练用于语言理解。*arXiv 预印本 arXiv:1810.04805*，2018。'
-- en: 'Elhoushi et al. (2024) Mostafa Elhoushi, Akshat Shrivastava, Diana Liskovich,
+- en: "Elhoushi et al. (2024) Mostafa Elhoushi, Akshat Shrivastava, Diana Liskovich,
     Basil Hosmer, Bram Wasti, Liangzhen Lai, Anas Mahmoud, Bilge Acun, Saurabh Agarwal,
     Ahmed Roman, et al. Layer skip: Enabling early exit inference and self-speculative
-    decoding. *arXiv preprint arXiv:2404.16710*, 2024.'
+    decoding. *arXiv preprint arXiv:2404.16710*, 2024."
   id: totrans-120
   prefs:
   - PREF_UL
@@ -1031,27 +1031,27 @@
   zh: Elhoushi et al. (2024) Mostafa Elhoushi, Akshat Shrivastava, Diana Liskovich,
     Basil Hosmer, Bram Wasti, Liangzhen Lai, Anas Mahmoud, Bilge Acun, Saurabh Agarwal,
     Ahmed Roman 等. 层跳过：实现早期退出推理和自我推测解码。*arXiv 预印本 arXiv:2404.16710*，2024。
-- en: 'Frantar et al. (2022) Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and Dan
+- en: "Frantar et al. (2022) Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and Dan
     Alistarh. Gptq: Accurate post-training quantization for generative pre-trained
-    transformers. *arXiv preprint arXiv:2210.17323*, 2022.'
+    transformers. *arXiv preprint arXiv:2210.17323*, 2022."
   id: totrans-121
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Frantar et al. (2022) Elias Frantar, Saleh Ashkboos, Torsten Hoefler, 和 Dan
     Alistarh. Gptq: 生成预训练变换器的准确后训练量化。*arXiv 预印本 arXiv:2210.17323*，2022。'
-- en: 'He et al. (2021) Xuanli He, Iman Keivanloo, Yi Xu, Xiang He, Belinda Zeng,
+- en: "He et al. (2021) Xuanli He, Iman Keivanloo, Yi Xu, Xiang He, Belinda Zeng,
     Santosh Rajagopalan, and Trishul Chilimbi. Magic pyramid: Accelerating inference
-    with early exiting and token pruning. *arXiv preprint arXiv:2111.00230*, 2021.'
+    with early exiting and token pruning. *arXiv preprint arXiv:2111.00230*, 2021."
   id: totrans-122
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: He et al. (2021) Xuanli He, Iman Keivanloo, Yi Xu, Xiang He, Belinda Zeng, Santosh
     Rajagopalan, 和 Trishul Chilimbi. 魔法金字塔：通过早期退出和标记剪枝加速推理。*arXiv 预印本 arXiv:2111.00230*，2021。
-- en: 'Jiang et al. (2023) Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang,
+- en: "Jiang et al. (2023) Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang,
     and Lili Qiu. Llmlingua: Compressing prompts for accelerated inference of large
-    language models. *arXiv preprint arXiv:2310.05736*, 2023.'
+    language models. *arXiv preprint arXiv:2310.05736*, 2023."
   id: totrans-123
   prefs:
   - PREF_UL
@@ -1068,10 +1068,10 @@
   type: TYPE_NORMAL
   zh: Kim et al. (2022) Sehoon Kim, Sheng Shen, David Thorsley, Amir Gholami, Woosuk
     Kwon, Joseph Hassoun, 和 Kurt Keutzer. 变换器的学习型标记剪枝。在*第28届 ACM SIGKDD 知识发现与数据挖掘大会论文集*，第784–794页，2022。
-- en: 'Kim et al. (2023) Sehoon Kim, Coleman Hooper, Thanakul Wattanawong, Minwoo
+- en: "Kim et al. (2023) Sehoon Kim, Coleman Hooper, Thanakul Wattanawong, Minwoo
     Kang, Ruohan Yan, Hasan Genc, Grace Dinh, Qijing Huang, Kurt Keutzer, Michael W
     Mahoney, et al. Full stack optimization of transformer inference: a survey. *arXiv
-    preprint arXiv:2302.14017*, 2023.'
+    preprint arXiv:2302.14017*, 2023."
   id: totrans-125
   prefs:
   - PREF_UL
@@ -1079,8 +1079,8 @@
   zh: Kim et al. (2023) Sehoon Kim, Coleman Hooper, Thanakul Wattanawong, Minwoo Kang,
     Ruohan Yan, Hasan Genc, Grace Dinh, Qijing Huang, Kurt Keutzer, Michael W Mahoney
     等. 变换器推理的全栈优化：综述。*arXiv 预印本 arXiv:2302.14017*，2023。
-- en: 'Kitaev et al. (2020) Nikita Kitaev, Łukasz Kaiser, and Anselm Levskaya. Reformer:
-    The efficient transformer. *arXiv preprint arXiv:2001.04451*, 2020.'
+- en: "Kitaev et al. (2020) Nikita Kitaev, Łukasz Kaiser, and Anselm Levskaya. Reformer:
+    The efficient transformer. *arXiv preprint arXiv:2001.04451*, 2020."
   id: totrans-126
   prefs:
   - PREF_UL
@@ -1104,10 +1104,10 @@
   type: TYPE_NORMAL
   zh: Li et al. (2023) Yucheng Li, Bo Dong, Chenghua Lin, 和 Frank Guerin. 压缩上下文以增强大语言模型的推理效率。*arXiv
     预印本 arXiv:2310.06201*，2023。
-- en: 'Li et al. (2024) Yuhong Li, Yingbing Huang, Bowen Yang, Bharat Venkitesh, Acyr
+- en: "Li et al. (2024) Yuhong Li, Yingbing Huang, Bowen Yang, Bharat Venkitesh, Acyr
     Locatelli, Hanchen Ye, Tianle Cai, Patrick Lewis, and Deming Chen. Snapkv: Llm
     knows what you are looking for before generation. *arXiv preprint arXiv:2404.14469*,
-    2024.'
+    2024."
   id: totrans-129
   prefs:
   - PREF_UL
@@ -1115,26 +1115,26 @@
   zh: 'Li et al. (2024) Yuhong Li, Yingbing Huang, Bowen Yang, Bharat Venkitesh, Acyr
     Locatelli, Hanchen Ye, Tianle Cai, Patrick Lewis, 和 Deming Chen. Snapkv: Llm 知道你在生成之前正在寻找什么。*arXiv
     预印本 arXiv:2404.14469*，2024。'
-- en: 'Ma et al. (2023) Xinyin Ma, Gongfan Fang, and Xinchao Wang. Llm-pruner: On
+- en: "Ma et al. (2023) Xinyin Ma, Gongfan Fang, and Xinchao Wang. Llm-pruner: On
     the structural pruning of large language models. *Advances in neural information
-    processing systems*, 36:21702–21720, 2023.'
+    processing systems*, 36:21702–21720, 2023."
   id: totrans-130
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Ma et al. (2023) Xinyin Ma, Gongfan Fang, 和 Xinchao Wang. Llm-pruner: 关于大型语言模型的结构剪枝。*神经信息处理系统进展*，36:21702–21720，2023。'
-- en: 'Merth et al. (2024) Thomas Merth, Qichen Fu, Mohammad Rastegari, and Mahyar
+- en: "Merth et al. (2024) Thomas Merth, Qichen Fu, Mohammad Rastegari, and Mahyar
     Najibi. Superposition prompting: Improving and accelerating retrieval-augmented
-    generation. 2024. URL [https://api.semanticscholar.org/CorpusID:269033436](https://api.semanticscholar.org/CorpusID:269033436).'
+    generation. 2024. URL [https://api.semanticscholar.org/CorpusID:269033436](https://api.semanticscholar.org/CorpusID:269033436)."
   id: totrans-131
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: Merth et al. (2024) Thomas Merth, Qichen Fu, Mohammad Rastegari, 和 Mahyar Najibi.
     超级位置提示：改进和加速检索增强生成。2024。网址 [https://api.semanticscholar.org/CorpusID:269033436](https://api.semanticscholar.org/CorpusID:269033436)。
-- en: 'Nawrot et al. (2024) Piotr Nawrot, Adrian Łańcucki, Marcin Chochowski, David
+- en: "Nawrot et al. (2024) Piotr Nawrot, Adrian Łańcucki, Marcin Chochowski, David
     Tarjan, and Edoardo M Ponti. Dynamic memory compression: Retrofitting llms for
-    accelerated inference. *arXiv preprint arXiv:2403.09636*, 2024.'
+    accelerated inference. *arXiv preprint arXiv:2403.09636*, 2024."
   id: totrans-132
   prefs:
   - PREF_UL
@@ -1150,9 +1150,9 @@
   type: TYPE_NORMAL
   zh: Nijkamp 等 (2023) 埃里克·尼克坎普、田·谢、广桥·林、波·庞、从英·夏、陈·邢、杰西·维格、塞米赫·亚武兹、菲利普·拉班、本·克劳斯，等。Xgen-7b
     技术报告。*arXiv 预印本 arXiv:2309.03450*，2023年。
-- en: 'NVIDIA (2024) NVIDIA. NVIDIA L40S: Unparalleled AI and graphics performance
+- en: "NVIDIA (2024) NVIDIA. NVIDIA L40S: Unparalleled AI and graphics performance
     for the data center. [https://resources.nvidia.com/en-us-l40s/l40s-datasheet-28413](https://resources.nvidia.com/en-us-l40s/l40s-datasheet-28413),
-    2024. [Online; accessed 31-May-2024].'
+    2024. [Online; accessed 31-May-2024]."
   id: totrans-134
   prefs:
   - PREF_UL
@@ -1176,40 +1176,40 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: Sun 等 (2023) 孙明杰、庄刘、安娜·贝尔、和J·齐科·科尔特。大型语言模型的简单有效剪枝方法。*arXiv 预印本 arXiv:2306.11695*，2023年。
-- en: 'Touvron et al. (2023) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+- en: "Touvron et al. (2023) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
     Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
     Shruti Bhosale, et al. Llama 2: Open foundation and fine-tuned chat models. *arXiv
-    preprint arXiv:2307.09288*, 2023.'
+    preprint arXiv:2307.09288*, 2023."
   id: totrans-137
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Touvron 等 (2023) 雨果·图夫龙、路易斯·马丁、凯文·斯通、彼得·阿尔伯特、阿姆贾德·阿尔马黑里、雅斯敏·巴巴伊、尼古拉·巴什利科夫、索姆亚·巴特拉、普拉杰瓦尔·巴尔加瓦、舒丽提·博萨尔，等。Llama
     2: 开放基础和微调聊天模型。*arXiv 预印本 arXiv:2307.09288*，2023年。'
-- en: 'Xu et al. (2023) Zhaozhuo Xu, Zirui Liu, Beidi Chen, Yuxin Tang, Jue Wang,
+- en: "Xu et al. (2023) Zhaozhuo Xu, Zirui Liu, Beidi Chen, Yuxin Tang, Jue Wang,
     Kaixiong Zhou, Xia Hu, and Anshumali Shrivastava. Compress, then prompt: Improving
     accuracy-efficiency trade-off of llm inference with transferable prompt. *arXiv
-    preprint arXiv:2305.11186*, 2023.'
+    preprint arXiv:2305.11186*, 2023."
   id: totrans-138
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: Xu 等 (2023) 赵卓·徐、紫睿·刘、贝迪·陈、宇欣·唐、觉·王、凯雄·周、夏·胡、和安舒玛利·施里瓦斯塔瓦。压缩，然后提示：通过可转移提示提高LLM推理的准确性效率权衡。*arXiv
     预印本 arXiv:2305.11186*，2023年。
-- en: 'Yao et al. (2022) Zhewei Yao, Xiaoxia Wu, Conglong Li, Connor Holmes, Minjia
+- en: "Yao et al. (2022) Zhewei Yao, Xiaoxia Wu, Conglong Li, Connor Holmes, Minjia
     Zhang, Cheng Li, and Yuxiong He. Random-ltd: Random and layerwise token dropping
     brings efficient training for large-scale transformers. *arXiv preprint arXiv:2211.11586*,
-    2022.'
+    2022."
   id: totrans-139
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Yao 等 (2022) 赵威·姚、萧霞·吴、丛龙·李、康纳·霍尔姆斯、敏佳·张、程李、和宇雄·赫。Random-ltd: 随机和逐层令牌丢弃为大规模变换器带来高效训练。*arXiv
     预印本 arXiv:2211.11586*，2022年。'
-- en: 'Zhang et al. (2024) Zhenyu Zhang, Ying Sheng, Tianyi Zhou, Tianlong Chen, Lianmin
+- en: "Zhang et al. (2024) Zhenyu Zhang, Ying Sheng, Tianyi Zhou, Tianlong Chen, Lianmin
     Zheng, Ruisi Cai, Zhao Song, Yuandong Tian, Christopher Ré, Clark Barrett, et al.
     H2o: Heavy-hitter oracle for efficient generative inference of large language
-    models. *Advances in Neural Information Processing Systems*, 36, 2024.'
+    models. *Advances in Neural Information Processing Systems*, 36, 2024."
   id: totrans-140
   prefs:
   - PREF_UL

@@ -3,12 +3,12 @@
   prefs: []
   type: TYPE_NORMAL
   zh: <!--yml
-- en: 'category: 未分类'
+- en: "category: 未分类"
   id: totrans-1
   prefs: []
   type: TYPE_NORMAL
   zh: 类别：未分类
-- en: 'date: 2024-09-08 19:04:57'
+- en: "date: 2024-09-08 19:04:57"
   id: totrans-2
   prefs: []
   type: TYPE_NORMAL
@@ -18,7 +18,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: -->
-- en: 'ProPD: Dynamic Token Tree Pruning and Generation for LLM Parallel Decoding'
+- en: "ProPD: Dynamic Token Tree Pruning and Generation for LLM Parallel Decoding"
   id: totrans-4
   prefs:
   - PREF_H1
@@ -86,7 +86,7 @@
   type: TYPE_NORMAL
   zh: 近年来，生成性大语言模型（LLMs）（Brown 等人，[2020](#bib.bib3)）取得了革命性的进展，这些模型在包括摘要生成（Fabbri 等人，[2019](#bib.bib6)）、机器翻译（Hendy
     等人，[2023](#bib.bib7)）、问答（Zaib 等人，[2022](#bib.bib20)）等多个生成性自然语言任务中达到了最先进的结果。然而，由于其庞大的参数规模、复杂的架构和高计算要求，将这些LLMs应用于现实世界中极具挑战性。
-- en: 'Modern LLMs generally leverage an autoregressive decoding algorithm (Radford
+- en: "Modern LLMs generally leverage an autoregressive decoding algorithm (Radford
     et al., [2018](#bib.bib13), [2019](#bib.bib14); Brown et al., [2020](#bib.bib3)):
     they take as input a sequence of tokens and then, generate subsequent tokens one
     at a time as shown in Figure [1](#S1.F1 "Figure 1 ‣ 1\. Introduction ‣ ProPD:
@@ -96,7 +96,7 @@
     between tokens and preserve the context of the generated tokens, it suffers from
     suboptimal runtime performance and limited GPU utilization. This is because the
     degree of computation parallelism is very low and hence, resulting in severe memory
-    bottleneck(Kim et al., [2023](#bib.bib9)).'
+    bottleneck(Kim et al., [2023](#bib.bib9))."
   id: totrans-11
   prefs: []
   type: TYPE_NORMAL
@@ -104,7 +104,7 @@
     Brown et al., [2020](#bib.bib3))：它们将一系列标记作为输入，然后逐个生成后续标记，如图 [1](#S1.F1 "图 1 ‣
     1\. 引言 ‣ ProPD: LLM 并行解码的动态标记树修剪与生成") (a) 所示。每个新标记的生成都依赖于输入标记和之前生成的标记。虽然解码算法能够充分捕捉标记之间的依赖关系并保留生成标记的上下文，但它在运行时性能和
     GPU 利用率上存在不足。这是因为计算并行度非常低，从而导致严重的内存瓶颈 (Kim et al., [2023](#bib.bib9))。'
-- en: '![Refer to caption](img/cacb0f24c614e2c874761de41f368499.png)'
+- en: "![Refer to caption](img/cacb0f24c614e2c874761de41f368499.png)"
   id: totrans-12
   prefs: []
   type: TYPE_IMG
@@ -114,7 +114,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 图 1\. （a）自回归解码，（b）并行解码的工作流程。
-- en: 'To address the inefficiency in autoregressive token generation, parallel decoding,
+- en: "To address the inefficiency in autoregressive token generation, parallel decoding,
     e.g., Medusa (Cai et al., [2023](#bib.bib4)), has been proposed and demonstrates
     a promising speedup. Instead of decoding a single token each time, parallel decoding
     first generates a sequence of token candidates, and then, verifies all the candidates
@@ -126,26 +126,26 @@
     LLM decoding is mainly limited by the memory bandwidth and thus, the introduced
     computation incurs a small latency overhead; on the other hand, parallel decoding
     can opportunistically accept more tokens at each step, and hence, reduces the
-    overall number of iterations.'
+    overall number of iterations."
   id: totrans-14
   prefs: []
   type: TYPE_NORMAL
   zh: '为了解决自回归标记生成中的低效率问题，已提出并行解码方法，如 Medusa (Cai et al., [2023](#bib.bib4))，并展示了有前景的加速效果。并行解码并不是每次解码一个标记，而是首先生成一系列标记候选，然后并行验证所有候选，如图
     [1](#S1.F1 "图 1 ‣ 1\. 引言 ‣ ProPD: LLM 并行解码的动态标记树修剪与生成") (b) 所示。标记候选还可以进一步组织成树结构，以减少验证阶段的计算。尽管并行解码增加了计算量，但仍能实现约
     $2\times$ 的加速。这是因为，一方面，LLM 解码主要受内存带宽限制，因此引入的计算开销较小；另一方面，并行解码可以在每一步机会性地接受更多标记，从而减少整体迭代次数。'
-- en: 'However, we observe the existing parallel decoding method suffers from a high
+- en: "However, we observe the existing parallel decoding method suffers from a high
     latency overhead for batch decoding. Even for small batch sizes, e.g., 4, the
     speedup of parallel decoding quickly diminishes. We observe the inefficiency of
     parallel decoding mainly comes from two folds: 1) due to a lack of contextual
     relationships among the tokens generated in parallel, a large number of tokens
     need to be verified, especially for large batch sizes; 2) the generation pattern
     of the token candidates is static and cannot consider the impact of batch sizes,
-    sequence lengths, tasks, etc.'
+    sequence lengths, tasks, etc."
   id: totrans-15
   prefs: []
   type: TYPE_NORMAL
   zh: 然而，我们观察到现有的并行解码方法在批量解码时存在较高的延迟开销。即使是小批量大小，例如 4，并行解码的加速效果也迅速减小。我们观察到并行解码的低效率主要有两个方面：1）由于生成的标记之间缺乏上下文关系，特别是在大批量大小时，需要验证大量标记；2）标记候选的生成模式是静态的，无法考虑批量大小、序列长度、任务等的影响。
-- en: 'In this paper, we propose ProPD to enhance LLM parallel decoding with dynamic
+- en: "In this paper, we propose ProPD to enhance LLM parallel decoding with dynamic
     token tree pruning and generation. To reduce the verification overhead, we observe
     early LLM layers already demonstrate good predictive capabilities that can be
     leveraged to prune token candidates. Hence, we propose a dynamic token tree pruning
@@ -153,7 +153,7 @@
     number of accepted tokens. To improve the adaptability across different decoding
     conditions, we propose a dynamic token tree generation algorithm that enables
     to adapt the generated token tree in real-time during decoding. Our contributions
-    can be summarized as follows:'
+    can be summarized as follows:"
   id: totrans-16
   prefs: []
   type: TYPE_NORMAL
@@ -217,23 +217,23 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 2\. 初步
-- en: 'In this section, we introduce the existing parallel decoding algorithms and
+- en: "In this section, we introduce the existing parallel decoding algorithms and
     review the related works. As introduced in Section [1](#S1 "1\. Introduction ‣
     ProPD: Dynamic Token Tree Pruning and Generation for LLM Parallel Decoding"),
     parallel decoding mitigates the inefficiency of autoregressive decoding by generating
     and verifying token candidates in parallel. It generally has two phases, i.e.,
-    the prediction phase and the verification phase.'
+    the prediction phase and the verification phase."
   id: totrans-26
   prefs: []
   type: TYPE_NORMAL
   zh: '在本节中，我们介绍了现有的并行解码算法，并回顾了相关的工作。如第[1](#S1 "1\. 引言 ‣ ProPD: LLM并行解码的动态令牌树修剪和生成")节介绍的，并行解码通过并行生成和验证令牌候选项来缓解自回归解码的低效。它通常有两个阶段，即预测阶段和验证阶段。'
-- en: '![Refer to caption](img/c506cafc59415e5d83b8cd05c25a4423.png)'
+- en: "![Refer to caption](img/c506cafc59415e5d83b8cd05c25a4423.png)"
   id: totrans-27
   prefs: []
   type: TYPE_IMG
   zh: '![参见说明](img/c506cafc59415e5d83b8cd05c25a4423.png)'
-- en: 'Figure 2\. Example of parallel decoding: (a) model architecture, (b) token
-    tree, (c) part of token tree mask.'
+- en: "Figure 2\. Example of parallel decoding: (a) model architecture, (b) token
+    tree, (c) part of token tree mask."
   id: totrans-28
   prefs: []
   type: TYPE_NORMAL
@@ -244,7 +244,7 @@
   - PREF_H5
   type: TYPE_NORMAL
   zh: 预测
-- en: 'In the Prediction phase, sequences of token candidates are predicted with a
+- en: "In the Prediction phase, sequences of token candidates are predicted with a
     much lower cost compared to the baseline autoregressive decoding. Depending on
     how the token candidates are generated, existing works can be roughly classified
     into 2 categories. The first category of works leverages a much smaller LLM to
@@ -265,7 +265,7 @@
     their contextual dependency. This leads to an exponential increase in the generated
     token sequences with respect to the number of timesteps to predict and the number
     of candidates at each step. For example, if we have parallel heads for $n$ for
-    each timestep.'
+    each timestep."
   id: totrans-30
   prefs: []
   type: TYPE_NORMAL
@@ -283,7 +283,7 @@
   - PREF_H5
   type: TYPE_NORMAL
   zh: 验证
-- en: 'Once a set of candidate token sequences is generated, the next step is to leverage
+- en: "Once a set of candidate token sequences is generated, the next step is to leverage
     the full-scale LLM to verify each sequence. Due to the invocation of the full-scale
     LLM, the verification phase is usually more time-consuming compared to the generation
     phase. To improve the verification efficiency, existing methods(Cai et al., [2023](#bib.bib4);
@@ -298,7 +298,7 @@
     the same level. To manage this, attention masks are employed to allow each token
     to attend only to its appropriate context as shown in Figure [2](#S2.F2 "Figure
     2 ‣ 2\. Preliminary ‣ ProPD: Dynamic Token Tree Pruning and Generation for LLM
-    Parallel Decoding")(c).'
+    Parallel Decoding")(c)."
   id: totrans-32
   prefs: []
   type: TYPE_NORMAL
@@ -312,7 +312,7 @@
   - PREF_H2
   type: TYPE_NORMAL
   zh: 3\. 动机与观察
-- en: 'The effectiveness of parallel decoding is concurrently influenced by both the
+- en: "The effectiveness of parallel decoding is concurrently influenced by both the
     number of accepted token candidates (denoted as acceptance length) and the token
     tree verification overhead. While a large token tree size increases the acceptance
     length, it also drastically increases the verification iteration time. Hence,
@@ -325,13 +325,13 @@
     are generated in parallel, they have to be verified in sequences to capture the
     context. Hence, directly verifying all the potential sequences results in an exponential
     increase in computation complexity. We make the following observations that motivate
-    us to propose ProPD.'
+    us to propose ProPD."
   id: totrans-34
   prefs: []
   type: TYPE_NORMAL
   zh: '并行解码的有效性同时受到接受的令牌候选数量（记作接受长度）和令牌树验证开销的影响。虽然较大的令牌树尺寸增加了接受长度，但也会大幅提高验证迭代时间。因此，为了从并行解码中获得最大加速，有必要在这两个影响因素之间取得平衡。现有的并行解码算法由于缺乏序列中的上下文关系，无法很好地处理这两个因素（Stern
     等，[2018](#bib.bib17)；Cai 等，[2023](#bib.bib4)）。正如第[2](#S2 "2\. 初步 ‣ ProPD: 动态令牌树修剪和生成用于LLM并行解码")节中介绍的，虽然候选令牌是并行生成的，但它们必须按顺序进行验证以捕捉上下文。因此，直接验证所有潜在序列会导致计算复杂度呈指数级增长。我们做出了以下观察，这促使我们提出ProPD。'
-- en: 'Observation 1: early LLM layers demonstrate strong predictive capabilities.
+- en: "Observation 1: early LLM layers demonstrate strong predictive capabilities.
     Figure [3](#S3.F3 "Figure 3 ‣ 3\. Motivation and Observation ‣ ProPD: Dynamic
     Token Tree Pruning and Generation for LLM Parallel Decoding")(a) shows the prediction
     accuracy of the early layers by training their own heads. While the early layers
@@ -344,7 +344,7 @@
     are indeed effective in discerning a broad set of unlikely token candidates. Therefore,
     tokens falling outside an optimal Top-$k$ range can be pruned early, reducing
     the computational load in subsequent layers without significantly affecting the
-    overall predictive accuracy.'
+    overall predictive accuracy."
   id: totrans-35
   prefs: []
   type: TYPE_NORMAL
@@ -353,21 +353,21 @@
     显示了早期层通过训练其自身的头部的预测准确性。尽管早期层对其最上层预测（Top-1）的精度不高，但在较高的 Top-K 范围内显示出了显著的准确性提高。例如，在第
     2 层中，Top-1 准确率约为 37%，但当考虑前 50 个令牌时，这一准确性显著提高，暗示这些层具有筛选大量不可信令牌的能力。这一趋势支持了这样一个假设：早期层虽然未完全具备做出最终预测的能力，但确实在辨别一组不太可能的令牌候选项方面有效。因此，落在最优
     Top-$k$ 范围之外的令牌可以提前修剪，减少后续层的计算负担，而不会显著影响整体预测准确性。'
-- en: '![Refer to caption](img/097a58e9770cf9e7483fc7d1dc63a996.png)'
+- en: "![Refer to caption](img/097a58e9770cf9e7483fc7d1dc63a996.png)"
   id: totrans-36
   prefs: []
   type: TYPE_IMG
   zh: '![参考说明](img/097a58e9770cf9e7483fc7d1dc63a996.png)'
-- en: 'Figure 3\. Iteration time and acceptance length under different scenarios:
+- en: "Figure 3\. Iteration time and acceptance length under different scenarios:
     (a) Top-$k$ accuracy under different early layers, (b) average iteration time
     under different batch sizes and token tree sizes, (c) average iteration time under
-    different sequence lengths, (d) average acceptance length under different tasks.'
+    different sequence lengths, (d) average acceptance length under different tasks."
   id: totrans-37
   prefs: []
   type: TYPE_NORMAL
   zh: 图 3\. 在不同场景下的迭代时间和接受长度：(a) 不同早期层下的 Top-$k$ 准确率，(b) 不同批量大小和令牌树大小下的平均迭代时间，(c)
     不同序列长度下的平均迭代时间，(d) 不同任务下的平均接受长度。
-- en: 'Observation 2: the expected speedup of parallel decoding depends on inference
+- en: "Observation 2: the expected speedup of parallel decoding depends on inference
     batch size, sequence length, tasks, etc. As shown in Figure [3](#S3.F3 "Figure
     3 ‣ 3\. Motivation and Observation ‣ ProPD: Dynamic Token Tree Pruning and Generation
     for LLM Parallel Decoding")(b) to (d), given a fixed token tree size, the iteration
@@ -382,7 +382,7 @@
     and Generation for LLM Parallel Decoding")(b), we further observe the verification
     iteration time scales highly linearly with the token tree size. This is because
     the computation of a transformer block, including both the fully connected layers
-    and the attention, increases proportionally with the token tree size.'
+    and the attention, increases proportionally with the token tree size."
   id: totrans-38
   prefs: []
   type: TYPE_NORMAL
@@ -402,13 +402,13 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 考虑到批量大小相对稳定，而序列长度只逐渐变化，这种线性缩放使我们能够使用线性回归模型准确预测基于标记树大小的验证时间。这种预测能力使我们能够实时动态调整标记树大小，从而优化推理速度和计算效率。
-- en: '4\. ProPD: Parallel Decoding with Token Tree Pruning and Generation'
+- en: "4\. ProPD: Parallel Decoding with Token Tree Pruning and Generation"
   id: totrans-40
   prefs:
   - PREF_H2
   type: TYPE_NORMAL
   zh: 4\. ProPD：带标记树剪枝和生成的并行解码
-- en: 'The brief workflow of our framework is shown in [4](#S4.F4 "Figure 4 ‣ 4\.
+- en: "The brief workflow of our framework is shown in [4](#S4.F4 "Figure 4 ‣ 4\.
     ProPD: Parallel Decoding with Token Tree Pruning and Generation ‣ ProPD: Dynamic
     Token Tree Pruning and Generation for LLM Parallel Decoding"). Given the baseline
     parallel decoding framework, we first propose an early pruning algorithm to remove
@@ -417,14 +417,14 @@
     decoding and reduces the computation of the verification phase. Then, we further
     propose a dynamic token tree generation algorithm to enable real-time adjustment
     of ProPD and enables to adapt ProPD to varying trade-offs in different decoding
-    conditions.'
+    conditions."
   id: totrans-41
   prefs: []
   type: TYPE_NORMAL
   zh: '我们框架的简要工作流程如图[4](#S4.F4 "Figure 4 ‣ 4\. ProPD: Parallel Decoding with Token
     Tree Pruning and Generation ‣ ProPD: Dynamic Token Tree Pruning and Generation
     for LLM Parallel Decoding")所示。基于基线并行解码框架，我们首先提出了一个早期剪枝算法，用于去除在早期LLM层中不太可能的标记候选。所提出的早期剪枝算法有助于解决并行解码的上下文关系缺失问题，并减少验证阶段的计算。然后，我们进一步提出了一个动态标记树生成算法，以实现ProPD的实时调整，并使ProPD能够适应不同解码条件下的变化权衡。'
-- en: '![Refer to caption](img/4e2fb56ef0c6037d3337be1421505247.png)'
+- en: "![Refer to caption](img/4e2fb56ef0c6037d3337be1421505247.png)"
   id: totrans-42
   prefs: []
   type: TYPE_IMG
@@ -440,7 +440,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 4.1\. 早期剪枝算法
-- en: 'As introduced in Section [2](#S2 "2\. Preliminary ‣ ProPD: Dynamic Token Tree
+- en: "As introduced in Section [2](#S2 "2\. Preliminary ‣ ProPD: Dynamic Token Tree
     Pruning and Generation for LLM Parallel Decoding"), due to the lack of contextual
     relationships, existing parallel decoding algorithms suffer from an exponential
     increase in token tree size. While verifying the whole token tree naively incurs
@@ -451,7 +451,7 @@
     to reduce the computation in the verification phase. We focus on answering the
     following three questions concerning the early pruning algorithm: 1) how to select
     the token candidates for pruning; 2) what are the key design choices to make for
-    the pruning; 3) how to reduce the pruning overhead to reduce decoding latency.'
+    the pruning; 3) how to reduce the pruning overhead to reduce decoding latency."
   id: totrans-45
   prefs: []
   type: TYPE_NORMAL
@@ -465,11 +465,11 @@
   - PREF_H5
   type: TYPE_NORMAL
   zh: 剪枝标准
-- en: 'To select the pruning tokens, we add an early prediction head after a few LLM
+- en: "To select the pruning tokens, we add an early prediction head after a few LLM
     layers as shown in Figure [5](#S4.F5 "Figure 5 ‣ Implementation Optimization ‣
     4.1\. Early Pruning Algorithm ‣ 4\. ProPD: Parallel Decoding with Token Tree Pruning
     and Generation ‣ ProPD: Dynamic Token Tree Pruning and Generation for LLM Parallel
-    Decoding"). We consider the following two criteria: Top-$k$ criterion.'
+    Decoding"). We consider the following two criteria: Top-$k$ criterion."
   id: totrans-47
   prefs: []
   type: TYPE_NORMAL
@@ -482,8 +482,8 @@
   - PREF_H5
   type: TYPE_NORMAL
   zh: 剪枝过程
-- en: 'Let $n$ denote the number of LLM layers before the pruning. Then, the early
-    pruning process can now be described as follows:'
+- en: "Let $n$ denote the number of LLM layers before the pruning. Then, the early
+    pruning process can now be described as follows:"
   id: totrans-49
   prefs: []
   type: TYPE_NORMAL
@@ -494,7 +494,7 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: •
-- en: 'Prediction of successor tokens: after $n$.'
+- en: "Prediction of successor tokens: after $n$."
   id: totrans-51
   prefs:
   - PREF_IND
@@ -506,7 +506,7 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: •
-- en: 'Token pruning: the next token $x_{i+1}$ is deemed contextually implausible.'
+- en: "Token pruning: the next token $x_{i+1}$ is deemed contextually implausible."
   id: totrans-53
   prefs:
   - PREF_IND
@@ -518,8 +518,8 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: •
-- en: 'Branch elimination: collect all the tokens that fail the Top-$k$ criterion
-    and their associated token sequences are pruned from the token tree.'
+- en: "Branch elimination: collect all the tokens that fail the Top-$k$ criterion
+    and their associated token sequences are pruned from the token tree."
   id: totrans-55
   prefs:
   - PREF_IND
@@ -556,7 +556,7 @@
   type: TYPE_NORMAL
   zh: 在分支淘汰步骤中，令牌分支被淘汰，需要生成新的注意力掩码。我们通过经验发现，如果盲目实现，这一步骤在 GPU 上可能非常耗时，例如，每次修剪后重新生成掩码并将掩码张量从
     CPU 发送到 GPU。我们建议在 GPU 上缓存掩码，并从缓存的掩码中进行子采样，而不是生成新的掩码。这种简单的优化显著减少了延迟开销。
-- en: '![Refer to caption](img/febfb0a76457a44da3629be14c4883e4.png)'
+- en: "![Refer to caption](img/febfb0a76457a44da3629be14c4883e4.png)"
   id: totrans-59
   prefs: []
   type: TYPE_IMG
@@ -572,7 +572,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 4.2\. 动态令牌树生成
-- en: 'As analyzed in section [3](#S3 "3\. Motivation and Observation ‣ ProPD: Dynamic
+- en: "As analyzed in section [3](#S3 "3\. Motivation and Observation ‣ ProPD: Dynamic
     Token Tree Pruning and Generation for LLM Parallel Decoding"), the effectiveness
     of parallel decoding is influenced by both the acceptance length and the token
     tree verification overhead, which are impacted by the decoding conditions, including
@@ -580,7 +580,7 @@
     methodology to maximize decoding efficiency by balancing the length of accepted
     predictions and the computational overhead. We focus on answering the following
     two questions concerning the dynamic generation algorithm: 1) how to estimate
-    the computation overhead and 2) how to estimate the probable acceptance length.'
+    the computation overhead and 2) how to estimate the probable acceptance length."
   id: totrans-62
   prefs: []
   type: TYPE_NORMAL
@@ -592,11 +592,11 @@
   - PREF_H4
   type: TYPE_NORMAL
   zh: 4.2.1\. 验证开销估计
-- en: 'Building on Observation 2 in Section [3](#S3 "3\. Motivation and Observation
+- en: "Building on Observation 2 in Section [3](#S3 "3\. Motivation and Observation
     ‣ ProPD: Dynamic Token Tree Pruning and Generation for LLM Parallel Decoding"),
     which reveals a linear relationship between the token tree size and iteration
     time, our framework adopts a weighted regression model for real-time estimation
-    of this relationship.'
+    of this relationship."
   id: totrans-64
   prefs: []
   type: TYPE_NORMAL
@@ -619,7 +619,7 @@
   - PREF_H5
   type: TYPE_NORMAL
   zh: 估计过程
-- en: 'The estimation involves several steps:'
+- en: "The estimation involves several steps:"
   id: totrans-68
   prefs: []
   type: TYPE_NORMAL
@@ -630,14 +630,14 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: •
-- en: 'Update average iteration time: given newly collected data $(i,t_{i})$ as:'
+- en: "Update average iteration time: given newly collected data $(i,t_{i})$ as:"
   id: totrans-70
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
   zh: 更新平均迭代时间：给定新收集的数据 $(i,t_{i})$ 为：
-- en: '|  | $\displaystyle T_{perf}^{i}\leftarrow(1-\alpha)T_{perf}^{i}+\alpha t_{i},$
-    |  |'
+- en: "|  | $\displaystyle T_{perf}^{i}\leftarrow(1-\alpha)T_{perf}^{i}+\alpha t_{i},$
+    |  |"
   id: totrans-71
   prefs:
   - PREF_IND
@@ -656,14 +656,14 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: •
-- en: 'Weighted regression: Next, we compute the weight for each token tree size and
-    prioritize recent updates:'
+- en: "Weighted regression: Next, we compute the weight for each token tree size and
+    prioritize recent updates:"
   id: totrans-74
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
   zh: 加权回归：接下来，我们计算每个令牌树大小的权重，并优先考虑最近的更新：
-- en: '|  | $\displaystyle W_{i}=e^{-\lambda o_{i}}\quad\forall i\in S$ |  |'
+- en: "|  | $\displaystyle W_{i}=e^{-\lambda o_{i}}\quad\forall i\in S$ |  |"
   id: totrans-75
   prefs:
   - PREF_IND
@@ -682,14 +682,14 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: •
-- en: 'Solve the regression model: finally, the regression model parameters can be
-    determined as:'
+- en: "Solve the regression model: finally, the regression model parameters can be
+    determined as:"
   id: totrans-78
   prefs:
   - PREF_IND
   type: TYPE_NORMAL
   zh: 求解回归模型：最后，回归模型参数可以确定为：
-- en: '|  | $1$2 |  |'
+- en: "|  | $1$2 |  |"
   id: totrans-79
   prefs:
   - PREF_IND
@@ -708,45 +708,45 @@
   - PREF_H4
   type: TYPE_NORMAL
   zh: 4.2.2\. 概率估计
-- en: 'To estimate the probable acceptance length with a given token tree, we track
+- en: "To estimate the probable acceptance length with a given token tree, we track
     the output words from each head and record their accuracy in runtime. For each
     head, when a token is decoded, the framework collects how often the actual token
     was within the top-K predictions of that head, which is note as $P$ is finally
-    determined, the probability of the head i will be updated:'
+    determined, the probability of the head i will be updated:"
   id: totrans-82
   prefs: []
   type: TYPE_NORMAL
   zh: 为了估计给定令牌树的可能接受长度，我们跟踪每个头的输出词，并记录其运行时的准确性。对于每个头，当一个令牌被解码时，框架会收集实际令牌在该头的 Top-K
     预测中出现的频率，一旦 $P$ 最终确定，头 i 的概率将被更新：
-- en: '|  | $\displaystyle P_{i}^{k}\leftarrow(1-\alpha)\cdot P_{i}^{k}+\alpha\cdot\mathrm{1}(x_{i+1}^{t}\in\mathrm{TopK}(x_{i}^{t})),$
-    |  |'
+- en: "|  | $\displaystyle P_{i}^{k}\leftarrow(1-\alpha)\cdot P_{i}^{k}+\alpha\cdot\mathrm{1}(x_{i+1}^{t}\in\mathrm{TopK}(x_{i}^{t})),$
+    |  |"
   id: totrans-83
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle P_{i}^{k}\leftarrow(1-\alpha)\cdot P_{i}^{k}+\alpha\cdot\mathrm{1}(x_{i+1}^{t}\in\mathrm{TopK}(x_{i}^{t})),$
     |  |'
-- en: 'where $\mathrm{1}(\cdot)$:'
+- en: "where $\mathrm{1}(\cdot)$:"
   id: totrans-84
   prefs: []
   type: TYPE_NORMAL
   zh: 其中 $\mathrm{1}(\cdot)$：
-- en: '|  | $\displaystyle p_{i}^{k}=P_{i}^{k}-P_{i}^{k-1}$ |  |'
+- en: "|  | $\displaystyle p_{i}^{k}=P_{i}^{k}-P_{i}^{k-1}$ |  |"
   id: totrans-85
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle p_{i}^{k}=P_{i}^{k}-P_{i}^{k-1}$ |  |'
-- en: 'Given a random sequence seq = [$s_{0}^{k_{0}},s_{1}^{k_{1}},...s_{n}^{k_{n}}$
-    in sequence is:'
+- en: "Given a random sequence seq = [$s_{0}^{k_{0}},s_{1}^{k_{1}},...s_{n}^{k_{n}}$
+    in sequence is:"
   id: totrans-86
   prefs: []
   type: TYPE_NORMAL
   zh: 给定一个随机序列 seq = [$s_{0}^{k_{0}},s_{1}^{k_{1}},...s_{n}^{k_{n}}$ 的序列是：
-- en: '|  | $\displaystyle l(\text{seq})=\prod_{i=0}^{n}p_{i}^{k_{i}}$ |  |'
+- en: "|  | $\displaystyle l(\text{seq})=\prod_{i=0}^{n}p_{i}^{k_{i}}$ |  |"
   id: totrans-87
   prefs: []
   type: TYPE_TB
   zh: '|  | $\displaystyle l(\text{seq})=\prod_{i=0}^{n}p_{i}^{k_{i}}$ |  |'
-- en: 'in which $k_{i}$ token of head i. For example, in Figure [6](#S4.F6 "Figure
+- en: "in which $k_{i}$ token of head i. For example, in Figure [6](#S4.F6 "Figure
     6 ‣ 4.2.2\. Probability Estimation ‣ 4.2\. Dynamic Token Tree Generation ‣ 4\.
     ProPD: Parallel Decoding with Token Tree Pruning and Generation ‣ ProPD: Dynamic
     Token Tree Pruning and Generation for LLM Parallel Decoding"), the average probabilities
@@ -756,7 +756,7 @@
     its estimated acceptance length is 1.88 as shown in Figure [6](#S4.F6 "Figure
     6 ‣ 4.2.2\. Probability Estimation ‣ 4.2\. Dynamic Token Tree Generation ‣ 4\.
     ProPD: Parallel Decoding with Token Tree Pruning and Generation ‣ ProPD: Dynamic
-    Token Tree Pruning and Generation for LLM Parallel Decoding")(b).'
+    Token Tree Pruning and Generation for LLM Parallel Decoding")(b)."
   id: totrans-88
   prefs: []
   type: TYPE_NORMAL
@@ -765,13 +765,13 @@
     所示。然后，序列 ’ab’ 中令牌 ’b’ 的期望接受长度为 0.6，而序列 ’abe’ 中令牌 ’e’ 的期望接受长度为 0.06。如果我们选择 ’abd’
     和 ’ac’ 作为令牌树，则其估计的接受长度为 1.88，如图 [6](#S4.F6 "图 6 ‣ 4.2.2\. 概率估计 ‣ 4.2\. 动态令牌树生成
     ‣ 4\. ProPD：并行解码中的令牌树剪枝和生成 ‣ ProPD：LLM 并行解码的动态令牌树剪枝和生成")(b) 所示。
-- en: '![Refer to caption](img/f36b48f0f950090e38ebea9f90d71cdf.png)'
+- en: "![Refer to caption](img/f36b48f0f950090e38ebea9f90d71cdf.png)"
   id: totrans-89
   prefs: []
   type: TYPE_IMG
   zh: '![参考说明](img/f36b48f0f950090e38ebea9f90d71cdf.png)'
-- en: 'Figure 6\. Probability estimation of token tree: (a) Top-$k$ probability of
-    each head, (b) expected accuracy of each token.'
+- en: "Figure 6\. Probability estimation of token tree: (a) Top-$k$ probability of
+    each head, (b) expected accuracy of each token."
   id: totrans-90
   prefs: []
   type: TYPE_NORMAL
@@ -782,14 +782,14 @@
   - PREF_H4
   type: TYPE_NORMAL
   zh: 4.2.3\. 优化效率
-- en: 'With the verification overhead estimation and accept probability estimation,
+- en: "With the verification overhead estimation and accept probability estimation,
     we can calculate the estimated speed of parallel decoding for each token tree
-    size i:'
+    size i:"
   id: totrans-92
   prefs: []
   type: TYPE_NORMAL
   zh: 通过验证开销估计和接受概率估计，我们可以计算每个令牌树大小 i 的并行解码的估计速度：
-- en: '|  | $\displaystyle v=l(i)/T_{est}^{i}$ |  |'
+- en: "|  | $\displaystyle v=l(i)/T_{est}^{i}$ |  |"
   id: totrans-93
   prefs: []
   type: TYPE_TB
@@ -816,7 +816,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.1\. 实验设置
-- en: 'ProPD is implemented based on the Medusa framework (Cai et al., [2023](#bib.bib4)).
+- en: "ProPD is implemented based on the Medusa framework (Cai et al., [2023](#bib.bib4)).
     We benchmark our framework on the open-source LLM Vicuna models (Zheng et al.,
     [2023](#bib.bib21)), which is finetuned on LLAMA. We test the 7b, 13b, and 33b
     models to demonstrate the scalability of ProPD under different model sizes. We
@@ -830,7 +830,7 @@
     the real-world conversation trace. To make a fair comparison, all of the methods
     take greedy decoding to guarantee the same output with the large model. We follow
     (Cai et al., [2023](#bib.bib4)) and mainly evaluate the efficiency of ProPD based
-    on the number of generated tokens per second.'
+    on the number of generated tokens per second."
   id: totrans-97
   prefs: []
   type: TYPE_NORMAL
@@ -847,7 +847,7 @@
   - PREF_H3
   type: TYPE_NORMAL
   zh: 5.2\. 主要结果
-- en: '![Refer to caption](img/dda4a1319dd7018b43b909f2815a798f.png)'
+- en: "![Refer to caption](img/dda4a1319dd7018b43b909f2815a798f.png)"
   id: totrans-99
   prefs: []
   type: TYPE_IMG
@@ -868,7 +868,7 @@
   type: TYPE_NORMAL
   zh: 我们研究了 ProPD 在不同模型大小、数据集和批量大小上的生成性能。7b 模型的实验在 A6000 上进行，13b 和 33b 模型的实验在 A100
     上进行。为了满足内存限制，33b 模型在批量大小为 4 和 8 时通过 transformers 库以 4 位加载。
-- en: 'As shown in figure [7](#S5.F7 "Figure 7 ‣ 5.2\. Main Results ‣ 5\. Experimental
+- en: "As shown in figure [7](#S5.F7 "Figure 7 ‣ 5.2\. Main Results ‣ 5\. Experimental
     Results ‣ ProPD: Dynamic Token Tree Pruning and Generation for LLM Parallel Decoding"),
     the experimental results demonstrate the effectiveness of ProPD in enhancing the
     efficiency of parallel decoding in LLMs. The method not only accelerates the decoding
@@ -880,7 +880,7 @@
     5.2\. Main Results ‣ 5\. Experimental Results ‣ ProPD: Dynamic Token Tree Pruning
     and Generation for LLM Parallel Decoding") shows the average speedup of ProPD
     against the autoregressive decoding method under different batch sizes and model
-    sizes. ProPD can achieve 1.33-1.95$\times$ speedup under various scenarios.'
+    sizes. ProPD can achieve 1.33-1.95$\times$ speedup under various scenarios."
   id: totrans-102
   prefs: []
   type: TYPE_NORMAL
@@ -894,37 +894,37 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 表 1\. 相对于自回归解码的平均加速比。
-- en: '|  | Batch Size |'
+- en: "|  | Batch Size |"
   id: totrans-104
   prefs: []
   type: TYPE_TB
   zh: '|  | 批量大小 |'
-- en: '| --- | --- |'
+- en: "| --- | --- |"
   id: totrans-105
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- |'
-- en: '| Model Size | 1 | 2 | 4 | 8 | 16 |'
+- en: "| Model Size | 1 | 2 | 4 | 8 | 16 |"
   id: totrans-106
   prefs: []
   type: TYPE_TB
   zh: '| 模型大小 | 1 | 2 | 4 | 8 | 16 |'
-- en: '| --- | --- | --- | --- | --- | --- |'
+- en: "| --- | --- | --- | --- | --- | --- |"
   id: totrans-107
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- | --- | --- | --- | --- |'
-- en: '| 7b | 1.95$\times$ |'
+- en: "| 7b | 1.95$\times$ |"
   id: totrans-108
   prefs: []
   type: TYPE_TB
   zh: '| 7b | 1.95$\times$ |'
-- en: '| 13b | 1.67$\times$ |'
+- en: "| 13b | 1.67$\times$ |"
   id: totrans-109
   prefs: []
   type: TYPE_TB
   zh: '| 13b | 1.67$\times$ |'
-- en: '| 33b | 1.86$\times$ | / |'
+- en: "| 33b | 1.86$\times$ | / |"
   id: totrans-110
   prefs: []
   type: TYPE_TB
@@ -941,102 +941,102 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 表 2\. 不同层次和 Top-$k$ 选择下 BS=4 的早期剪枝率、准确率和生成速度。
-- en: '| Layer | Top-K | Prune Rate | AccLength | Speed |'
+- en: "| Layer | Top-K | Prune Rate | AccLength | Speed |"
   id: totrans-113
   prefs: []
   type: TYPE_TB
   zh: '| 层 | Top-K | 剪枝率 | 接受长度 | 速度 |'
-- en: '| --- | --- | --- | --- | --- |'
+- en: "| --- | --- | --- | --- | --- |"
   id: totrans-114
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- | --- | --- | --- |'
-- en: '| w/o pruning | - | - | 2.46 | 28.43 |'
+- en: "| w/o pruning | - | - | 2.46 | 28.43 |"
   id: totrans-115
   prefs: []
   type: TYPE_TB
   zh: '| w/o pruning | - | - | 2.46 | 28.43 |'
-- en: '| --- | --- | --- | --- | --- |'
+- en: "| --- | --- | --- | --- | --- |"
   id: totrans-116
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- | --- | --- | --- |'
-- en: '| 1 | 50 | 79.0% | 2.26 | 43.26 |'
+- en: "| 1 | 50 | 79.0% | 2.26 | 43.26 |"
   id: totrans-117
   prefs: []
   type: TYPE_TB
   zh: '| 1 | 50 | 79.0% | 2.26 | 43.26 |'
-- en: '| 100 | 73.0% | 2.32 | 43.19 |'
+- en: "| 100 | 73.0% | 2.32 | 43.19 |"
   id: totrans-118
   prefs: []
   type: TYPE_TB
   zh: '| 100 | 73.0% | 2.32 | 43.19 |'
-- en: '| 150 | 68.6% | 2.35 | 42.98 |'
+- en: "| 150 | 68.6% | 2.35 | 42.98 |"
   id: totrans-119
   prefs: []
   type: TYPE_TB
   zh: '| 150 | 68.6% | 2.35 | 42.98 |'
-- en: '| 200 | 64.7% | 2.41 | 42.87 |'
+- en: "| 200 | 64.7% | 2.41 | 42.87 |"
   id: totrans-120
   prefs: []
   type: TYPE_TB
   zh: '| 200 | 64.7% | 2.41 | 42.87 |'
-- en: '| 2 | 50 | 77.3% | 2.32 | 43.01 |'
+- en: "| 2 | 50 | 77.3% | 2.32 | 43.01 |"
   id: totrans-121
   prefs: []
   type: TYPE_TB
   zh: '| 2 | 50 | 77.3% | 2.32 | 43.01 |'
-- en: '| 100 | 70.9% | 2.37 | 42.94 |'
+- en: "| 100 | 70.9% | 2.37 | 42.94 |"
   id: totrans-122
   prefs: []
   type: TYPE_TB
   zh: '| 100 | 70.9% | 2.37 | 42.94 |'
-- en: '| 150 | 65.5% | 2.42 | 42.85 |'
+- en: "| 150 | 65.5% | 2.42 | 42.85 |"
   id: totrans-123
   prefs: []
   type: TYPE_TB
   zh: '| 150 | 65.5% | 2.42 | 42.85 |'
-- en: '| 200 | 61.5% | 2.44 | 42.67 |'
+- en: "| 200 | 61.5% | 2.44 | 42.67 |"
   id: totrans-124
   prefs: []
   type: TYPE_TB
   zh: '| 200 | 61.5% | 2.44 | 42.67 |'
-- en: '| 3 | 50 | 76.6% | 2.32 | 42.66 |'
+- en: "| 3 | 50 | 76.6% | 2.32 | 42.66 |"
   id: totrans-125
   prefs: []
   type: TYPE_TB
   zh: '| 3 | 50 | 76.6% | 2.32 | 42.66 |'
-- en: '| 100 | 68.3% | 2.44 | 42.69 |'
+- en: "| 100 | 68.3% | 2.44 | 42.69 |"
   id: totrans-126
   prefs: []
   type: TYPE_TB
   zh: '| 100 | 68.3% | 2.44 | 42.69 |'
-- en: '| 150 | 63.0% | 2.43 | 42.48 |'
+- en: "| 150 | 63.0% | 2.43 | 42.48 |"
   id: totrans-127
   prefs: []
   type: TYPE_TB
   zh: '| 150 | 63.0% | 2.43 | 42.48 |'
-- en: '| 200 | 59.0% | 2.46 | 42.28 |'
+- en: "| 200 | 59.0% | 2.46 | 42.28 |"
   id: totrans-128
   prefs: []
   type: TYPE_TB
   zh: '| 200 | 59.0% | 2.46 | 42.28 |'
-- en: '| 4 | 50 | 74.0% | 2.43 | 42.28 |'
+- en: "| 4 | 50 | 74.0% | 2.43 | 42.28 |"
   id: totrans-129
   prefs: []
   type: TYPE_TB
   zh: '| 4 | 50 | 74.0% | 2.43 | 42.28 |'
-- en: '| 100 | 66.9% | 2.45 | 42.20 |'
+- en: "| 100 | 66.9% | 2.45 | 42.20 |"
   id: totrans-130
   prefs: []
   type: TYPE_TB
   zh: '| 100 | 66.9% | 2.45 | 42.20 |'
-- en: '| 150 | 62.1% | 2.48 | 42.10 |'
+- en: "| 150 | 62.1% | 2.48 | 42.10 |"
   id: totrans-131
   prefs: []
   type: TYPE_TB
   zh: '| 150 | 62.1% | 2.48 | 42.10 |'
-- en: '| 200 | 57.6% | 2.49 | 41.94 |'
+- en: "| 200 | 57.6% | 2.49 | 41.94 |"
   id: totrans-132
   prefs: []
   type: TYPE_TB
@@ -1049,7 +1049,7 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 早期剪枝方法的目标是在剪枝大量分支的同时保持原始接受长度。这是我们方法有效性的关键方面，因为它在计算效率和生成的标记序列的完整性之间取得了平衡。
-- en: 'Table [2](#S5.T2 "Table 2 ‣ 5.3\. Early Pruning Accuracy ‣ 5\. Experimental
+- en: "Table [2](#S5.T2 "Table 2 ‣ 5.3\. Early Pruning Accuracy ‣ 5\. Experimental
     Results ‣ ProPD: Dynamic Token Tree Pruning and Generation for LLM Parallel Decoding")
     shows the pruning rate and acceptance length of ProPD under different pruning
     layers and topK choice. In the early layers, the acceptance length can remain
@@ -1057,7 +1057,7 @@
     acceptance length may increase after pruning, such as in layer 4 top 200\. This
     is because pruning may change the sequence of positions at which the model performs
     parallel decoding when it prune the correct tokens. It might end up generating
-    longer sequences at these certain positions.'
+    longer sequences at these certain positions."
   id: totrans-134
   prefs: []
   type: TYPE_NORMAL
@@ -1082,51 +1082,51 @@
   prefs: []
   type: TYPE_NORMAL
   zh: 表 3\. ProPD 的消融研究。
-- en: '| Early Pruning | Dynamic Generation | 7b | 13b | 33b |'
+- en: "| Early Pruning | Dynamic Generation | 7b | 13b | 33b |"
   id: totrans-138
   prefs: []
   type: TYPE_TB
   zh: '| 早期剪枝 | 动态生成 | 7b | 13b | 33b |'
-- en: '| --- | --- | --- | --- | --- |'
+- en: "| --- | --- | --- | --- | --- |"
   id: totrans-139
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- | --- | --- | --- |'
-- en: '| BS=1 | BS=2 | BS=4 | BS=8 | BS=16 | BS=2 | BS=2 |'
+- en: "| BS=1 | BS=2 | BS=4 | BS=8 | BS=16 | BS=2 | BS=2 |"
   id: totrans-140
   prefs: []
   type: TYPE_TB
   zh: '| BS=1 | BS=2 | BS=4 | BS=8 | BS=16 | BS=2 | BS=2 |'
-- en: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: "| --- | --- | --- | --- | --- | --- | --- |"
   id: totrans-141
   prefs: []
   type: TYPE_TB
   zh: '| --- | --- | --- | --- | --- | --- | --- |'
-- en: '| x | x | 1$\times$ |'
+- en: "| x | x | 1$\times$ |"
   id: totrans-142
   prefs: []
   type: TYPE_TB
   zh: '| x | x | 1$\times$ |'
-- en: '| ✓ | x | 0.99$\times$ |'
+- en: "| ✓ | x | 0.99$\times$ |"
   id: totrans-143
   prefs: []
   type: TYPE_TB
   zh: '| ✓ | x | 0.99$\times$ |'
-- en: '| x | ✓ | 1.04$\times$ |'
+- en: "| x | ✓ | 1.04$\times$ |"
   id: totrans-144
   prefs: []
   type: TYPE_TB
   zh: '| x | ✓ | 1.04$\times$ |'
-- en: '| ✓ | ✓ | 1.04$\times$ |'
+- en: "| ✓ | ✓ | 1.04$\times$ |"
   id: totrans-145
   prefs: []
   type: TYPE_TB
   zh: '| ✓ | ✓ | 1.04$\times$ |'
-- en: 'We further conduct a breakdown analysis of the benefit brought by each of ProPD’s
+- en: "We further conduct a breakdown analysis of the benefit brought by each of ProPD’s
     techniques. Performance was measured across different batch sizes (BS=1 to BS=16)
     and model sizes (7b, 13b, and 33b). The results are illustrated in figure [3](#S5.T3
     "Table 3 ‣ 5.4\. Ablation Study ‣ 5\. Experimental Results ‣ ProPD: Dynamic Token
-    Tree Pruning and Generation for LLM Parallel Decoding").'
+    Tree Pruning and Generation for LLM Parallel Decoding")."
   id: totrans-146
   prefs: []
   type: TYPE_NORMAL
@@ -1230,9 +1230,9 @@
   zh: Brown 等人（2020）Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
     Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
     Askell 等人。2020年。语言模型是少样本学习者。*神经信息处理系统进展* 33（2020），1877–1901。
-- en: 'Cai et al. (2023) Tianle Cai, Yuhong Li, Zhengyang Geng, Hongwu Peng, and Tri
+- en: "Cai et al. (2023) Tianle Cai, Yuhong Li, Zhengyang Geng, Hongwu Peng, and Tri
     Dao. 2023. Medusa: Simple framework for accelerating llm generation with multiple
-    decoding heads.'
+    decoding heads."
   id: totrans-159
   prefs:
   - PREF_UL
@@ -1247,10 +1247,10 @@
   type: TYPE_NORMAL
   zh: Chen 等人（2023）Charlie Chen, Sebastian Borgeaud, Geoffrey Irving, Jean-Baptiste
     Lespiau, Laurent Sifre, 和 John Jumper。2023年。通过推测采样加速大型语言模型解码。*arXiv 预印本 arXiv:2302.01318*（2023）。
-- en: 'Fabbri et al. (2019) Alexander R Fabbri, Irene Li, Tianwei She, Suyi Li, and
+- en: "Fabbri et al. (2019) Alexander R Fabbri, Irene Li, Tianwei She, Suyi Li, and
     Dragomir R Radev. 2019. Multi-news: A large-scale multi-document summarization
     dataset and abstractive hierarchical model. *arXiv preprint arXiv:1906.01749*
-    (2019).'
+    (2019)."
   id: totrans-161
   prefs:
   - PREF_UL
@@ -1268,19 +1268,19 @@
   zh: Hendy 等（2023） Amr Hendy、Mohamed Abdelrehim、Amr Sharaf、Vikas Raunak、Mohamed Gabr、Hitokazu
     Matsushita、Young Jin Kim、Mohamed Afify 和 Hany Hassan Awadalla。2023年。《GPT 模型在机器翻译中的表现如何？一项全面评估》。*arXiv
     预印本 arXiv:2302.09210*（2023年）。
-- en: 'Jiang et al. (2023) Yufan Jiang, Qiaozhi He, Xiaomin Zhuang, Zhihua Wu, Kunpeng
+- en: "Jiang et al. (2023) Yufan Jiang, Qiaozhi He, Xiaomin Zhuang, Zhihua Wu, Kunpeng
     Wang, Wenlai Zhao, and Guangwen Yang. 2023. RecycleGPT: An Autoregressive Language
-    Model with Recyclable Module. arXiv:2308.03421 [cs.CL]'
+    Model with Recyclable Module. arXiv:2308.03421 [cs.CL]"
   id: totrans-163
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: Jiang 等（2023） Yufan Jiang、Qiaozhi He、Xiaomin Zhuang、Zhihua Wu、Kunpeng Wang、Wenlai
     Zhao 和 Guangwen Yang。2023年。《RecycleGPT：具有可回收模块的自回归语言模型》。arXiv:2308.03421 [cs.CL]
-- en: 'Kim et al. (2023) Sehoon Kim, Coleman Hooper, Thanakul Wattanawong, Minwoo
+- en: "Kim et al. (2023) Sehoon Kim, Coleman Hooper, Thanakul Wattanawong, Minwoo
     Kang, Ruohan Yan, Hasan Genc, Grace Dinh, Qijing Huang, Kurt Keutzer, Michael W
     Mahoney, et al. 2023. Full stack optimization of transformer inference: a survey.
-    *arXiv preprint arXiv:2302.14017* (2023).'
+    *arXiv preprint arXiv:2302.14017* (2023)."
   id: totrans-164
   prefs:
   - PREF_UL
@@ -1296,10 +1296,10 @@
   - PREF_UL
   type: TYPE_NORMAL
   zh: Leviathan 等（2023） Yaniv Leviathan、Matan Kalman 和 Yossi Matias。2023年。《通过推测解码实现变压器的快速推理》。在*国际机器学习会议*上。PMLR，19274–19286。
-- en: 'Miao et al. (2023) Xupeng Miao, Gabriele Oliaro, Zhihao Zhang, Xinhao Cheng,
+- en: "Miao et al. (2023) Xupeng Miao, Gabriele Oliaro, Zhihao Zhang, Xinhao Cheng,
     Zeyu Wang, Rae Ying Yee Wong, Zhuoming Chen, Daiyaan Arfeen, Reyna Abhyankar,
     and Zhihao Jia. 2023. SpecInfer: Accelerating Generative LLM Serving with Speculative
-    Inference and Token Tree Verification. *arXiv preprint arXiv:2305.09781* (2023).'
+    Inference and Token Tree Verification. *arXiv preprint arXiv:2305.09781* (2023)."
   id: totrans-166
   prefs:
   - PREF_UL
@@ -1361,27 +1361,27 @@
   type: TYPE_NORMAL
   zh: Stern 等（2018） Mitchell Stern、Noam Shazeer 和 Jakob Uszkoreit。2018年。《深度自回归模型的块状并行解码》。*神经信息处理系统进展*
     31（2018年）。
-- en: 'Taori et al. (2023) Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois,
+- en: "Taori et al. (2023) Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois,
     Xuechen Li, Carlos Guestrin, Percy Liang, and Tatsunori B. Hashimoto. 2023. Stanford
-    Alpaca: An Instruction-following LLaMA model. [https://github.com/tatsu-lab/stanford_alpaca](https://github.com/tatsu-lab/stanford_alpaca).'
+    Alpaca: An Instruction-following LLaMA model. [https://github.com/tatsu-lab/stanford_alpaca](https://github.com/tatsu-lab/stanford_alpaca)."
   id: totrans-173
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: 'Taori等（2023）罗汉·塔奥里、伊尚·古尔拉贾尼、张天逸、扬·迪布瓦、李学辰、卡洛斯·古斯特林、佩西·梁和辰维·B·哈希莫托。2023年。《斯坦福Alpaca:
     一种遵循指令的LLaMA模型》。[https://github.com/tatsu-lab/stanford_alpaca](https://github.com/tatsu-lab/stanford_alpaca)。'
-- en: 'Xu et al. (2023) Daliang Xu, Wangsong Yin, Xin Jin, Ying Zhang, Shiyun Wei,
+- en: "Xu et al. (2023) Daliang Xu, Wangsong Yin, Xin Jin, Ying Zhang, Shiyun Wei,
     Mengwei Xu, and Xuanzhe Liu. 2023. LLMCad: Fast and Scalable On-device Large Language
-    Model Inference. *arXiv preprint arXiv:2309.04255* (2023).'
+    Model Inference. *arXiv preprint arXiv:2309.04255* (2023)."
   id: totrans-174
   prefs:
   - PREF_UL
   type: TYPE_NORMAL
   zh: '徐等（2023）徐大亮、尹旺松、金鑫、张颖、魏诗云、徐梦伟和刘轩哲。2023年。《LLMCad: 快速且可扩展的设备端大语言模型推理》。*arXiv
     预印本 arXiv:2309.04255*（2023年）。'
-- en: 'Zaib et al. (2022) Munazza Zaib, Wei Emma Zhang, Quan Z Sheng, Adnan Mahmood,
+- en: "Zaib et al. (2022) Munazza Zaib, Wei Emma Zhang, Quan Z Sheng, Adnan Mahmood,
     and Yang Zhang. 2022. Conversational question answering: A survey. *Knowledge
-    and Information Systems* 64, 12 (2022), 3151–3195.'
+    and Information Systems* 64, 12 (2022), 3151–3195."
   id: totrans-175
   prefs:
   - PREF_UL
