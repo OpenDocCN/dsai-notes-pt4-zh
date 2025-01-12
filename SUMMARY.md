@@ -1,6 +1,7 @@
 +   [DeepLearningAI 2025 笔记](docs/dlai25/README.md)
 +   [唐宇迪商品检测课程笔记](docs/goods-detect-tangyudi/README.md)
 +   [七月在线公开课笔记](docs/julyedu/README.md)
++   [大模型 Agent 论文翻译](docs/llm-agent/README.md)
 +   [唐宇迪 OpenCV+YOLO 课程笔记](docs/opencv-yolo-tangyudi/README.md)
 +   [RWKV 原理笔记](docs/rwkv/README.md)
 +   [斯坦福 CS25 Transformer 原理笔记](docs/stf-cs25-tfm/README.md)
