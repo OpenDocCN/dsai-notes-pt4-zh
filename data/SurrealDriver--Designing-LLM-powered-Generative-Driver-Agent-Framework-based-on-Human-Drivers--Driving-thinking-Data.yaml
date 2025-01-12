@@ -1,0 +1,1085 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 13:06:10'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:06:10
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'SurrealDriver: Designing LLM-powered Generative Driver Agent Framework based
+    on Human Drivers’ Driving-thinking Data'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: SurrealDriver：基于人类驾驶员驾驶思维数据设计的LLM驱动生成代理框架
+- en: 来源：[https://arxiv.org/html/2309.13193/](https://arxiv.org/html/2309.13193/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2309.13193/](https://arxiv.org/html/2309.13193/)
+- en: Ye Jin, Ruoxuan Yang, Zhijie Yi, Xiaoxi Shen, Huiling Peng, Xiaoan Liu, Jingli
+    Qin,
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 叶金，杨若轩，易智杰，沈晓熙，彭慧玲，刘小安，秦静莉，
+- en: 'Jiayang Li, Jintao Xie, Peizhong Gao, Guyue Zhou and Jiangtao Gong^(🖂) The
+    authors are with the Institute for AI Industry Research, Tsinghua University,
+    Beijing, China. Corresponding Email: gongjiangtao@air.tsinghua.edu.cn'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 李家扬，谢劲涛，高佩中，周顾悦，龚江涛^(🖂) 作者来自清华大学人工智能产业研究院，北京，中国。通讯邮箱：gongjiangtao@air.tsinghua.edu.cn
+- en: Abstract
+  id: totrans-8
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Leveraging advanced reasoning capabilities and extensive world knowledge of
+    large language models (LLMs) to construct generative agents for solving complex
+    real-world problems is a major trend. However, LLMs inherently lack embodiment
+    as humans, resulting in suboptimal performance in many embodied decision-making
+    tasks. In this paper, we introduce a framework for building human-like generative
+    driving agents using post-driving self-report driving-thinking data from human
+    drivers as both demonstration and feedback. To capture high-quality, natural language
+    data from drivers, we conducted urban driving experiments, recording drivers’
+    verbalized thoughts under various conditions to serve as chain-of-thought prompts
+    and demonstration examples for the LLM-Agent. The framework’s effectiveness was
+    evaluated through simulations and human assessments. Results indicate that incorporating
+    expert demonstration data significantly reduced collision rates by 81.04% and
+    increased human likeness by 50% compared to a baseline LLM-based agent. Our study
+    provides insights into using natural language-based human demonstration data for
+    embodied tasks. The driving-thinking dataset is available at https://github.com/AIR-DISCOVER/Driving-Thinking-Dataset.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用大语言模型（LLM）的高级推理能力和广泛的世界知识来构建生成代理，用于解决复杂的现实世界问题，是当前的主要趋势。然而，LLM本身缺乏类似人类的具象化能力，导致在许多具象化决策任务中的表现不尽如人意。本文介绍了一种构建类人生成驾驶代理的框架，使用来自人类驾驶员的驾驶后自报告驾驶思维数据作为示范和反馈。为了捕捉来自驾驶员的高质量自然语言数据，我们进行了城市驾驶实验，记录了驾驶员在不同条件下的口头思维，以作为LLM代理的思维链提示和示范示例。该框架的有效性通过仿真和人工评估进行了验证。结果表明，与基于LLM的基准代理相比，加入专家示范数据显著将碰撞率降低了81.04%，并使类人程度提高了50%。我们的研究为利用基于自然语言的人类示范数据处理具象任务提供了启示。驾驶思维数据集可在[https://github.com/AIR-DISCOVER/Driving-Thinking-Dataset](https://github.com/AIR-DISCOVER/Driving-Thinking-Dataset)获取。
+- en: I INTRODUCTION
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: I 引言
+- en: Recently, remarkable advancements have been achieved in large language models
+    (LLMs) known for their zero-shot prompting and common sense reasoning capabilities [[1](https://arxiv.org/html/2309.13193v2#bib.bib1),
+    [2](https://arxiv.org/html/2309.13193v2#bib.bib2), [3](https://arxiv.org/html/2309.13193v2#bib.bib3),
+    [4](https://arxiv.org/html/2309.13193v2#bib.bib4), [5](https://arxiv.org/html/2309.13193v2#bib.bib5)].
+    In addition to natural language tasks, LLMs, when equipped with specific sensory
+    and control modules [[6](https://arxiv.org/html/2309.13193v2#bib.bib6), [7](https://arxiv.org/html/2309.13193v2#bib.bib7)],
+    can act as the decision-making core in executing embodied tasks, such as robotics
+    and autonomous driving [[8](https://arxiv.org/html/2309.13193v2#bib.bib8), [9](https://arxiv.org/html/2309.13193v2#bib.bib9),
+    [10](https://arxiv.org/html/2309.13193v2#bib.bib10)]. Previous research has validated
+    the effectiveness of LLMs’ advanced reasoning and extensive knowledge in embodied
+    tasks [[9](https://arxiv.org/html/2309.13193v2#bib.bib9), [10](https://arxiv.org/html/2309.13193v2#bib.bib10)],
+    but has also highlighted limitations in complex scenarios, like generating implausible
+    sequences [[11](https://arxiv.org/html/2309.13193v2#bib.bib11), [12](https://arxiv.org/html/2309.13193v2#bib.bib12)]
+    and a lack of operational experience [[13](https://arxiv.org/html/2309.13193v2#bib.bib13)].
+    However, traditional demonstrations of embodied tasks are seldom suitable as examples
+    for few-shot learning. Current approaches primarily involve adjusting or constraining
+    the LLM’s task scope [[12](https://arxiv.org/html/2309.13193v2#bib.bib12)] and
+    enabling the LLM Agent to independently accumulate experience through environmental
+    interactions [[13](https://arxiv.org/html/2309.13193v2#bib.bib13), [14](https://arxiv.org/html/2309.13193v2#bib.bib14)].
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，基于零-shot提示和常识推理能力的大型语言模型（LLMs）取得了显著进展[[1](https://arxiv.org/html/2309.13193v2#bib.bib1),
+    [2](https://arxiv.org/html/2309.13193v2#bib.bib2), [3](https://arxiv.org/html/2309.13193v2#bib.bib3),
+    [4](https://arxiv.org/html/2309.13193v2#bib.bib4), [5](https://arxiv.org/html/2309.13193v2#bib.bib5)]。除了自然语言任务外，当配备了特定的感知和控制模块[[6](https://arxiv.org/html/2309.13193v2#bib.bib6),
+    [7](https://arxiv.org/html/2309.13193v2#bib.bib7)]，LLMs还能作为执行具身任务（如机器人和自动驾驶）的决策核心[[8](https://arxiv.org/html/2309.13193v2#bib.bib8),
+    [9](https://arxiv.org/html/2309.13193v2#bib.bib9), [10](https://arxiv.org/html/2309.13193v2#bib.bib10)]。先前的研究验证了LLMs在具身任务中先进推理和广泛知识的有效性[[9](https://arxiv.org/html/2309.13193v2#bib.bib9),
+    [10](https://arxiv.org/html/2309.13193v2#bib.bib10)]，但也突出了在复杂场景中的局限性，例如生成不合理的序列[[11](https://arxiv.org/html/2309.13193v2#bib.bib11),
+    [12](https://arxiv.org/html/2309.13193v2#bib.bib12)]以及缺乏操作经验[[13](https://arxiv.org/html/2309.13193v2#bib.bib13)]。然而，传统的具身任务示范往往不适合作为少量示范学习的例子。目前的方法主要包括调整或限制LLM的任务范围[[12](https://arxiv.org/html/2309.13193v2#bib.bib12)]，并通过与环境的互动使LLM
+    Agent独立积累经验[[13](https://arxiv.org/html/2309.13193v2#bib.bib13), [14](https://arxiv.org/html/2309.13193v2#bib.bib14)]。
+- en: In the context of autonomous driving, agents analyze multimodal data, such as
+    vectors [[15](https://arxiv.org/html/2309.13193v2#bib.bib15)] and images [[16](https://arxiv.org/html/2309.13193v2#bib.bib16)],
+    to make end-to-end driving decisions, demonstrated by projects like Driving with
+    LLMs [[15](https://arxiv.org/html/2309.13193v2#bib.bib15)] and DriveGPT4 [[16](https://arxiv.org/html/2309.13193v2#bib.bib16)].
+    Compared to traditional fine-tuning, prompt-based methods with LLMs offer cost-effective
+    and generalizable solutions [[17](https://arxiv.org/html/2309.13193v2#bib.bib17)].
+    Approaches like Drive As You Speak [[18](https://arxiv.org/html/2309.13193v2#bib.bib18)]
+    and DiLu [[19](https://arxiv.org/html/2309.13193v2#bib.bib19)] integrate memory
+    for coherent decision-making, and Drive Like a Human [[20](https://arxiv.org/html/2309.13193v2#bib.bib20)]
+    incorporate expert feedback to enhance performance. However, these so-called human-like
+    driving behaviors primarily rely on the human common sense inherent in LLMs. LLMs
+    acquire this common sense non-embodiedly from the noisy text corpus of the internet,
+    lacking integration of professional, task-specific human data for embodied tasks [[21](https://arxiv.org/html/2309.13193v2#bib.bib21)].
+    For LLM-based agents, employing human demonstrations [[22](https://arxiv.org/html/2309.13193v2#bib.bib22)]
+    and feedback [[23](https://arxiv.org/html/2309.13193v2#bib.bib23)] for reinforcement
+    learning in embodied tasks such as driving proves prohibitively expensive. A persistent
+    challenge in this field is the lack of high-quality demonstrations and supervised
+    human data.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在自动驾驶背景下，代理分析多模态数据，如向量[[15](https://arxiv.org/html/2309.13193v2#bib.bib15)]和图像[[16](https://arxiv.org/html/2309.13193v2#bib.bib16)]，以做出端到端的驾驶决策，体现了“驾驶与LLMs”[[15](https://arxiv.org/html/2309.13193v2#bib.bib15)]和“DriveGPT4”[[16](https://arxiv.org/html/2309.13193v2#bib.bib16)]等项目。与传统的微调方法相比，基于大语言模型的提示方法提供了具有成本效益且可推广的解决方案[[17](https://arxiv.org/html/2309.13193v2#bib.bib17)]。像“Drive
+    As You Speak”[[18](https://arxiv.org/html/2309.13193v2#bib.bib18)]和“DiLu”[[19](https://arxiv.org/html/2309.13193v2#bib.bib19)]等方法通过整合记忆来实现连贯的决策，而“Drive
+    Like a Human”[[20](https://arxiv.org/html/2309.13193v2#bib.bib20)]则通过引入专家反馈来增强性能。然而，这些所谓的类人驾驶行为主要依赖于大语言模型中固有的人类常识。大语言模型从互联网的噪声文本语料库中非具象地获得这些常识，缺乏将专业的、任务特定的人类数据融入到具象任务中的能力[[21](https://arxiv.org/html/2309.13193v2#bib.bib21)]。对于基于大语言模型的代理来说，在具象任务（如驾驶）中使用人类演示[[22](https://arxiv.org/html/2309.13193v2#bib.bib22)]和反馈[[23](https://arxiv.org/html/2309.13193v2#bib.bib23)]进行强化学习，成本过高。该领域的一个持续挑战是缺乏高质量的演示和监督性人类数据。
+- en: 'To this end, in this paper, we innovatively leverage post-driving self-reports
+    from human drivers, analyzing their thought processes as chain-of-thought prompts
+    to enhance driving performance and human alignment in LLM-based agents. This approach
+    offers new insights for aligning LLM-based agents with human drivers in embodied
+    driving tasks. We collected post-driving self-reports from 24 real-world drivers,
+    detailing their considerations and decision-making processes during driving. We
+    then designed ’SurrealDriver,’ an LLM-based framework for urban driving, grounded
+    in four design considerations: a basic driving pipeline, a safety and memory mechanism,
+    and human-aligned long-term driving guidelines, informed by demonstrations of
+    human driving thought processes. Our framework was evaluated through simulation
+    experiments and human assessments, confirming its design efficiency.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，本文创新性地利用了人类驾驶员的驾驶后自我报告，分析他们的思维过程作为链式思维提示，以增强基于大语言模型的代理的驾驶性能和与人类的对齐。这一方法为将基于大语言模型的代理与人类驾驶员对齐提供了新的视角，特别是在具象的驾驶任务中。我们收集了24位现实世界驾驶员的驾驶后自我报告，详细描述了他们在驾驶过程中所考虑的因素和决策过程。随后，我们设计了“SurrealDriver”——一个基于大语言模型的城市驾驶框架，基于四个设计考虑因素：基本驾驶流程、安全性和记忆机制，以及通过人类驾驶思维过程的演示来指导的长期驾驶准则。通过仿真实验和人工评估，我们对框架进行了评估，验证了其设计的高效性。
+- en: 'Therefore, the contributions of this paper are as follows:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，本文的贡献如下：
+- en: •
+  id: totrans-15
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The first high-quality human drivers’ natural language-type driving-thinking
+    dataset collected through an urban driving experiment;
+  id: totrans-16
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通过城市驾驶实验收集的首个高质量人类驾驶员自然语言类型的驾驶思维数据集；
+- en: •
+  id: totrans-17
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A generative driver agent framework designed based on LLMs with human drivers’
+    driving-thinking data as chain-of-thought prompts and implemented in Carla Simulator;
+  id: totrans-18
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 基于大语言模型（LLMs）设计的生成型驾驶代理框架，以人类驾驶员的驾驶思维数据作为链式思维提示，并在Carla Simulator中实现；
+- en: •
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: An empirical validation of the effectiveness of our framework through simulation
+    ablation experiments and human evaluation.
+  id: totrans-20
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通过仿真消融实验和人工评估，对我们框架的有效性进行了实证验证。
+- en: II Driving-thinking Dataset
+  id: totrans-21
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: II 驾驶思维数据集
+- en: II-A Driving Experiment and data collections
+  id: totrans-22
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-A 驾驶实验与数据收集
+- en: To collect high-quality human drivers’ language-type demonstration data, we
+    invited 24 drivers (10 expert drivers and 14 novice drivers) to this driving-thinking
+    Data collection session. Ten expert drivers were recruited through a formal career
+    recruitment platform. They had extensive driving experience, ranging from 12 to
+    28 years, and their ages ranged from 35 to 48 years (M = 39.9, SD = 4.18). Novice
+    drivers were recruited through social media, resulting in a group of 14 individuals
+    aged between 20 and 25 years (M = 21.93, SD =1.49), with driving experience ranging
+    from 1 to 4 years. This study was approved by the Institutional Review Board of
+    the authors’ institution. Before the experiment, all participants were ensured
+    informed consent, acknowledging potential risks and their right to discontinue
+    the study. To preserve participant confidentiality, all personal and confidential
+    information has been anonymized, and the research results presented below have
+    been subjected to de-identification.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了收集高质量的驾驶员语言类型示范数据，我们邀请了24名驾驶员（10名专家驾驶员和14名新手驾驶员）参与此次驾驶思维数据收集环节。10名专家驾驶员通过正式的职业招聘平台招募，他们拥有丰富的驾驶经验，经验年限从12年到28年不等，年龄从35岁到48岁（M
+    = 39.9, SD = 4.18）。新手驾驶员则通过社交媒体招募，结果组成了一个14人的小组，年龄介于20岁至25岁之间（M = 21.93, SD =
+    1.49），驾驶经验范围为1年到4年。该研究获得了作者所在机构的伦理委员会批准。在实验前，所有参与者都已确保知情同意，确认了潜在风险并知晓他们有权随时中止研究。为了保护参与者的隐私，所有个人和机密信息均已匿名化，以下呈现的研究结果已经过去身份识别处理。
+- en: To ensure the consistency between the collected natural language demonstrations
+    and actual driving behaviors, we first had them participate in an actual complex
+    urban road driving experiment and then we conducted post-driving interviews to
+    collect their thinking-aloud data for safety reasons. For reviewing the driving
+    experiment details in interview sessions, we recorded the driving process using
+    multiple in-car cameras, including the driver’s eye-tracking device (Tobii Glass
+    3¹¹1https://www.tobii.com/products/eye-trackers/wearables/tobii-pro-glasses-3),
+    roof-mounted 360-degree panoramic camera (Insta360 X3²²2https://www.insta360.com/product/insta360-x3),
+    and in-car motion camera (Dji OSMO Action 3³³3https://store.dji.com/hk-en/product/osmo-action-3).
+    During the interviews, the drivers vocalized their decision-making process behind
+    each driving behaviour as they reviewed the recorded footage. Besides, drivers
+    were asked to contemplate the potential reasons behind their judgments and driving
+    actions in complex driving scenarios during the experiment.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了确保收集到的自然语言示范与实际驾驶行为之间的一致性，我们首先让驾驶员参与了实际的复杂城市道路驾驶实验，然后出于安全考虑，我们进行了驾驶后访谈，收集他们的思维过程数据。在访谈过程中回顾驾驶实验细节时，我们使用多台车载摄像头记录了驾驶过程，包括驾驶员的眼动追踪设备（Tobii
+    Glass 3¹¹1https://www.tobii.com/products/eye-trackers/wearables/tobii-pro-glasses-3）、车顶安装的360度全景摄像头（Insta360
+    X3²²2https://www.insta360.com/product/insta360-x3）以及车内运动摄像头（Dji OSMO Action 3³³3https://store.dji.com/hk-en/product/osmo-action-3）。在访谈过程中，驾驶员在回顾录制的影像时，阐述了每个驾驶行为背后的决策过程。此外，驾驶员被要求在实验过程中思考复杂驾驶场景中自己判断和驾驶行为背后的潜在原因。
+- en: II-B Data Analysis and Dataset Construction
+  id: totrans-25
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-B 数据分析与数据集构建
+- en: Our data consists of 24 driver interview videos, with a duration ranging from
+    1.5 to 2 hours. We transcribed the audio recordings into written documents and
+    organized the participants’ descriptions of their driving decision processes for
+    each scenario encountered during the experiments. Each participant’s data was
+    processed by two to three trained coders, and a coding consistency check was performed.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的数据包括24段驾驶员访谈视频，时长为1.5小时至2小时不等。我们将音频录音转录成书面文档，并整理了参与者描述他们在实验中遇到的每个场景的驾驶决策过程的数据。每位参与者的数据由两到三名训练有素的编码员处理，并进行了编码一致性检查。
+- en: From our findings, an expert human driver doesn’t just exhibit good driving
+    behaviors by chance or intuition but continuously summarizes rules and patterns
+    of driving behaviors. The construction of a thought chain progresses from strategic-level
+    thinking to tactical-level decision-making and further to operational-level execution.
+    For example, most expert drivers reported that they observed different directions
+    systematically while turning, no matter which direction they went in. As D11 (expert)
+    shared,
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据我们的研究发现，专家级人类驾驶员并非凭借偶然或直觉展现出良好的驾驶行为，而是持续总结驾驶行为的规则和模式。思维链的构建从战略层面的思考开始，逐步过渡到战术层面的决策，再到操作层面的执行。例如，大多数专家驾驶员表示，他们在转弯时系统性地观察不同的方向，无论他们驶向哪个方向。正如D11（专家）所分享的，
+- en: 'D11 (expert): ”No matter right or left, I must look at the direction that I
+    turn to first because that’s the road that I will take. However, I also look in
+    the opposite direction. Basically, I look twice. The first time is to look at
+    both sides; the second time is to confirm. Then I take the turns.”'
+  id: totrans-28
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: D11（专家）：“无论是右转还是左转，我必须首先看我要转向的方向，因为那是我将要走的道路。不过，我也会看反方向。基本上，我会看两次。第一次是看两边，第二次是确认。然后我就开始转弯。”
+- en: Moreover, the expert drivers also had systematic, well-developed behavioral
+    patterns when they interacted with other road users. For example, before entering
+    the main road, the expert drivers evaluated the status of cars on the main road
+    to decide when and how they got onto the main road.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，专家驾驶员在与其他道路使用者互动时，也有系统化且成熟的行为模式。例如，在进入主干道之前，专家驾驶员会评估主干道上车辆的状况，以决定何时以及如何进入主干道。
+- en: 'D06 (expert): ”Look at the left rearview mirror first, mainly about the speed
+    of the back car. If the speed is slow, I can step on gases and go directly. If
+    the speed is fast, I can pause and wait. I can go after they pass by.”'
+  id: totrans-30
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: D06（专家）：“首先看左后视镜，主要是观察后方车辆的速度。如果速度较慢，我可以加速直接行驶。如果速度较快，我可以暂停等待，等他们通过后我再驶入。”
+- en: We can see the thought chain of expert drivers is composed of multiple interconnected
+    decision points, each based on the current traffic conditions and anticipated
+    future changes. Such patterns not only enable human drivers to form muscle memory
+    through repeated practice but can also be summarized into explicit chains of thought
+    to teach autonomous driving algorithms based on LLMs. Thus, we think that by using
+    the driving-thinking data of expert drivers as prompts, these excellent driving
+    behavior patterns can be expanded and generalized through LLMs. We compiled the
+    ”driving-thinking” data, along with demographic information and driving-related
+    questionnaire data from the participants, into a dataset. This facilitates future
+    research on driving behavior and the development of autonomous driving algorithms.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以看到，专家驾驶员的思维链由多个相互关联的决策点组成，每个决策点都基于当前的交通状况和预计的未来变化。这种模式不仅使人类驾驶员通过反复练习形成肌肉记忆，还可以总结成明确的思维链，来教导基于LLM的自动驾驶算法。因此，我们认为，通过将专家驾驶员的驾驶-思维数据作为提示，这些优秀的驾驶行为模式可以通过LLM进行扩展和泛化。我们将“驾驶-思维”数据、参与者的个人信息以及与驾驶相关的问卷数据编制成数据集，以促进未来对驾驶行为的研究和自动驾驶算法的发展。
+- en: '![Refer to caption](img/a74943f0ba8c00f06617ac6e1bc37875.png)'
+  id: totrans-32
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见标题说明](img/a74943f0ba8c00f06617ac6e1bc37875.png)'
+- en: 'Figure 1: The framework of SurrealDriver.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：SurrealDriver框架。
+- en: III SurrealDriver Framework
+  id: totrans-34
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: III SurrealDriver框架
+- en: III-A Framework Design
+  id: totrans-35
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-A 框架设计
+- en: 'Designing an agent capable of driving requires it to comprehend the complexity
+    and diversity of driving environments, execute a continuous series of intricate
+    operations, ensure safety, and harmonize with other human-driven vehicles. Based
+    on these considerations, we have established the following framework as shown
+    in Fig. [1](https://arxiv.org/html/2309.13193v2#S2.F1 "Figure 1 ‣ II-B Data Analysis
+    and Dataset Construction ‣ II Driving-thinking Dataset ‣ SurrealDriver: Designing
+    LLM-powered Generative Driver Agent Framework based on Human Drivers’ Driving-thinking
+    Data"):'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '设计一个能够驾驶的代理需要它理解驾驶环境的复杂性和多样性，执行一系列复杂的操作，确保安全，并与其他人类驾驶的车辆和谐共存。基于这些考虑，我们建立了如下框架，如图[1](https://arxiv.org/html/2309.13193v2#S2.F1
+    "图1 ‣ II-B 数据分析与数据集构建 ‣ II 驾驶-思维数据集 ‣ SurrealDriver: 基于人类驾驶员驾驶-思维数据的LLM驱动生成驾驶代理框架")所示：'
+- en: 'III-A1 Perception: Atomic Scene and Atomic Actions.'
+  id: totrans-37
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-A1 感知：原子场景与原子行为。
+- en: Human driving scenarios are diverse, requiring agents to understand complex
+    situations in detail. Traditional driving simulation methods train across a wide
+    range of scenarios, which is costly. Our approach breaks down driving scenarios
+    into discrete parameters for the LLMs. These parameters help the agent assess
+    situations using common sense. We also simplify driving actions in the simulator
+    into basic operations, enabling the agent to combine these for complex driving
+    behaviors.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 人类驾驶场景多种多样，要求代理详细理解复杂的情况。传统的驾驶仿真方法需要在各种场景下进行训练，这成本很高。我们的方法将驾驶场景分解为离散参数供大型语言模型（LLMs）使用。这些参数帮助代理运用常识评估情况。我们还将模拟器中的驾驶行为简化为基本操作，使代理能够将这些操作组合起来执行复杂的驾驶行为。
+- en: 'III-A2 Execution: Short-Term Driving Memory.'
+  id: totrans-39
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-A2 执行：短期驾驶记忆。
+- en: Effective car driving demands seamless and continuous actions, minimizing abrupt
+    braking or sharp turns whenever feasible. Additionally, actions such as overtaking
+    and following entail a fusion of fundamental maneuvers (e.g., acceleration, lane
+    changing), rendering driving actions relatively intricate. To maintain smooth
+    driving, we capture the agent’s recent driving behavior over a few steps in the
+    short-term driving memory module. These short-term driving memories aid the agent
+    in sustaining consistency in decision-making. Moreover, the agent can employ these
+    driving memories to amalgamate several basic driving operations for executing
+    complex driving behaviors.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有效的汽车驾驶需要无缝且连续的操作，尽可能避免突然刹车或急转弯。此外，超车和跟车等操作需要融合基本的驾驶操作（例如，加速、变道），使得驾驶行为相对复杂。为了保持平稳驾驶，我们在短期驾驶记忆模块中捕捉代理最近的驾驶行为。这些短期驾驶记忆帮助代理保持决策的一致性。此外，代理可以利用这些驾驶记忆将若干基本驾驶操作结合起来，执行复杂的驾驶行为。
+- en: 'III-A3 Planning: Long-Term Human-like Driving Guidelines.'
+  id: totrans-41
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-A3 规划：长期类人驾驶指南。
+- en: The agent must align its planning with that of human drivers. This module facilitates
+    the agent in emulating the process by which humans learn from expert drivers to
+    amass expertise and continually enhance their driving skills. To this end, we
+    designed CoachAgent to assess the DriverAgent’s driving behaviors and impart guidelines
+    that must be adhered to. These guidelines are consistently integrated, contributing
+    to the ongoing enhancement of the DriverAgent’s driving proficiency.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代理必须使其规划与人类驾驶员的规划保持一致。此模块帮助代理模拟人类如何从专家驾驶员那里学习，积累经验，并不断提升其驾驶技能。为此，我们设计了CoachAgent来评估DriverAgent的驾驶行为，并传授必须遵守的指南。这些指南始终被整合，促进DriverAgent驾驶能力的持续提升。
+- en: 'III-A4 Overall Process: Strict Safety Criteria.'
+  id: totrans-43
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-A4 总体流程：严格的安全标准。
+- en: Ensuring safety is the most critical requirement for driving behavior simulation.
+    Any simulated driving system must prioritize safety and establish rules within
+    its framework to ensure the agent’s safety.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确保安全是驾驶行为仿真的最关键要求。任何模拟驾驶系统必须优先考虑安全，并在其框架内制定规则，以确保代理的安全。
+- en: Thus, throughout the entire driving process, safety should be consistently ensured
+    through safety redundancy mechanisms. The agent is provided with stringent safety
+    criteria to ensure the fundamental safety of the driving process.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，在整个驾驶过程中，安全应通过安全冗余机制持续得到保障。为确保驾驶过程的基本安全，代理被赋予了严格的安全标准。
+- en: III-B Implementation
+  id: totrans-46
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-B 实现
+- en: '![Refer to caption](img/665a2b065cbef5c27aa00bd4581d6c55.png)'
+  id: totrans-47
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/665a2b065cbef5c27aa00bd4581d6c55.png)'
+- en: 'Figure 2: The Details of DriverAgent.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：DriverAgent的详细信息。
+- en: We built the SurrealDriver framework in the CARLA simulator [[24](https://arxiv.org/html/2309.13193v2#bib.bib24)],
+    including the basic driving pipeline, the memory and safety mechanism, and the
+    human-aligned long-term driving guidelines.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在CARLA模拟器中构建了SurrealDriver框架[[24](https://arxiv.org/html/2309.13193v2#bib.bib24)]，包括基本驾驶流程、记忆与安全机制，以及与人类对齐的长期驾驶指南。
+- en: III-B1 Basic Driving Pipeline.
+  id: totrans-50
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-B1 基本驾驶流程。
+- en: 'As shown in Fig. [2](https://arxiv.org/html/2309.13193v2#S3.F2 "Figure 2 ‣
+    III-B Implementation ‣ III SurrealDriver Framework ‣ SurrealDriver: Designing
+    LLM-powered Generative Driver Agent Framework based on Human Drivers’ Driving-thinking
+    Data"), the basic driving pipeline consists of three main processes: perception,
+    decision-making, and control. In perception, DriverAgent receives and integrates
+    vehicle and environmental data from the CARLA simulator. This data, provided as
+    parameters, is analyzed based on predefined prompts and common sense, enabling
+    DriverAgent to understand the vehicle’s current situation. Following perception,
+    DriverAgent decides on the next steps, prioritizing safety and efficiency. It
+    then proceeds to the control phase, where it sends JSON-formatted commands to
+    CARLA, choosing from actions like stopping, maintaining speed, lane changing,
+    or adjusting speed. These atomic actions allow DriverAgent to execute complex
+    maneuvers based on the scenario.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图[2](https://arxiv.org/html/2309.13193v2#S3.F2 "图 2 ‣ III-B 实现 ‣ III 超现实驾驶员框架
+    ‣ 超现实驾驶员：基于人类驾驶员驾驶思维数据设计的LLM驱动生成驾驶员代理框架")所示，基本的驾驶流程包含三个主要过程：感知、决策和控制。在感知阶段，DriverAgent接收并整合来自CARLA模拟器的车辆和环境数据。这些数据以参数形式提供，基于预定义的提示和常识进行分析，使DriverAgent能够理解车辆的当前状况。感知后，DriverAgent决定下一步的行动，优先考虑安全性和效率。随后进入控制阶段，DriverAgent向CARLA发送JSON格式的指令，选择如停车、保持车速、变道或调整车速等动作。这些原子动作使DriverAgent能够基于场景执行复杂的操作。
+- en: III-B2 Memory and Safety Mechanisms
+  id: totrans-52
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-B2 内存和安全机制
+- en: 'The memory and safety mechanisms are built on top of the basic driving pipeline
+    to store the information needed by the DriverAgent. It consists of three modules:
+    Safety criteria and Short-term memory.'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 内存和安全机制建立在基本驾驶流程之上，用于存储DriverAgent所需的信息。它由三个模块组成：安全标准和短期记忆。
+- en: 'Safety Criteria: We implemented stringent safety criteria set to prevent hazardous
+    maneuvers. The safety redundancy mechanism has two tiers. The first, mandatory
+    tier, mandates actions like stopping if a vehicle or pedestrian is within 10 meters
+    or at a red traffic light. The second, optional but recommended tier, includes
+    decelerating when nearing vehicles or pedestrians within 20 meters, slowing down
+    at intersections, keeping a minimum distance of 1 meter from moving cars, and
+    optimizing energy use by reducing unnecessary speed changes.'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安全标准：我们实施了严格的安全标准，旨在防止危险操作。安全冗余机制分为两个层级。第一个强制性层级要求在车辆或行人距离小于10米时，或者在红灯时，必须采取停车等行动。第二个可选但推荐的层级包括：在接近20米内的车辆或行人时减速，在交叉口减速，与行驶中的汽车保持至少1米的安全距离，以及通过减少不必要的车速变化来优化能量使用。
+- en: 'Short-term Memory: To ensure the continuity and complexity of driving, we will
+    store the driving behaviors of the current agent from the past few iterations
+    and continuously update them, replacing the oldest with the latest to maintain
+    a certain number of stored behaviors. These behaviors will then be provided to
+    the DriverAgent again, becoming part of its perception.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 短期记忆：为了确保驾驶的连续性和复杂性，我们将存储当前代理在过去几个迭代中的驾驶行为，并不断更新，用最新的行为替换最旧的行为，保持一定数量的已存储行为。这些行为将再次提供给DriverAgent，成为其感知的一部分。
+- en: III-B3 Human aligned Long-term Driving Guideline
+  id: totrans-56
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-B3 人类对齐的长期驾驶指南
+- en: 'To better align SurrealDriver with human drivers, we utilize the driving-thinking
+    data of expert drivers collected in Section LABEL:Thnking-aloud a chain-of-thought
+    prompt. While designing examples, we followed a three-dimensional approach: situation,
+    reasoning, and action as shown in Fig. [3](https://arxiv.org/html/2309.13193v2#S3.F3
+    "Figure 3 ‣ III-B3 Human aligned Long-term Driving Guideline ‣ III-B Implementation
+    ‣ III SurrealDriver Framework ‣ SurrealDriver: Designing LLM-powered Generative
+    Driver Agent Framework based on Human Drivers’ Driving-thinking Data"). Situation
+    provided specific road conditions during driver operations, and for each comparison
+    case, we set the same road conditions, referencing the road conditions real drivers
+    faced during their interviews. Reasoning was designed based on the content of
+    driver interviews, with irrelevant information removed to make our examples concise
+    and efficient in demonstrating human thinking and guiding the agent to learn human
+    thought patterns.'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更好地将SurrealDriver与人类驾驶员对齐，我们利用了在“思维链式提示”部分收集的专家驾驶员驾驶思维数据。在设计示例时，我们采用了三维方法：情境、推理和行动，如图[3](https://arxiv.org/html/2309.13193v2#S3.F3
+    "图3 ‣ III-B3 人类对齐的长期驾驶指南 ‣ III-B 实施 ‣ III SurrealDriver框架 ‣ SurrealDriver：基于人类驾驶员驾驶思维数据设计LLM驱动的生成驾驶员代理框架")所示。情境提供了驾驶员操作期间的具体道路条件，对于每个比较案例，我们设置了相同的道路条件，参考了真实驾驶员在面试中所面对的道路条件。推理是基于驾驶员面试内容设计的，去除了不相关的信息，使我们的示例简洁高效，能够展示人类思维并指导代理学习人类的思维模式。
+- en: '![Refer to caption](img/574b6df36881bd3d7576988beaaf510f.png)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/574b6df36881bd3d7576988beaaf510f.png)'
+- en: 'Figure 3: The CoachAgent for human alignment.'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：用于人类对齐的CoachAgent。
+- en: IV Evaluation
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: IV 评估
+- en: 'We conducted driving experiments using agents from different frameworks in
+    the same scenario, analyzing variations in their behaviors to understand how directives
+    from different frameworks influence their driving. We evaluated the agents based
+    on two primary dimensions: safety-driving capability and human-likeness. Safety-driving
+    capability was assessed using an algorithmic experiment, while human-likeness
+    was assessed through a human experiment.'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在相同场景下使用来自不同框架的代理进行了驾驶实验，分析它们行为上的差异，以理解不同框架的指令如何影响它们的驾驶。我们根据两个主要维度评估了这些代理：安全驾驶能力和类人性。安全驾驶能力通过算法实验评估，而类人性则通过人类实验进行评估。
+- en: IV-A Algorithm Experiment
+  id: totrans-62
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-A 算法实验
+- en: IV-A1 Experiment Environment Set-up
+  id: totrans-63
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-A1 实验环境设置
+- en: The experimental setup on a ThundeRobot Zero desktop computer. The simulation
+    environment was built upon the CARLA simulator version 0.9.14 [[24](https://arxiv.org/html/2309.13193v2#bib.bib24)]
+    and operated on Python 3.7 with Unreal Engine 4\. The simulated environment was
+    chosen to be Town10, and the Audi TT was the designated vehicle for all experiments,
+    with fixed starting and continuously, randomly generated ending points for its
+    path. Upon reaching the endpoint, another endpoint is randomly generated for continuous
+    experiments. This process continues until the required number of driving rounds
+    are completed. We leverage OpenAI’s GPT-4 APIs for simulating drivers’ driving
+    decisions and solving related problems in a simulated environment. However, it
+    takes several seconds for GPT-4 to make a decision, which is too long in a driving
+    context for making immediate decisions. Therefore, we slowed down CARLA’s simulation
+    time based on the required token count by setting a fixed time step of 0.0006-0.0015
+    seconds.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实验在一台ThundeRobot Zero台式计算机上进行。仿真环境是基于CARLA仿真器版本0.9.14 [[24](https://arxiv.org/html/2309.13193v2#bib.bib24)]
+    构建的，并在Python 3.7和虚幻引擎4上运行。选定的仿真环境为Town10，Audi TT是所有实验的指定车辆，路径的起点固定，终点则是随机生成且连续变化的。在到达终点后，系统会随机生成新的终点以进行持续实验。此过程将持续进行，直到完成所需的驾驶回合数。我们利用OpenAI的GPT-4
+    API来模拟驾驶员的驾驶决策并解决仿真环境中的相关问题。然而，GPT-4做出决策需要几秒钟，这在驾驶场景中处理即时决策时显得过长。因此，我们根据所需的令牌数量，通过设置固定的时间步长0.0006-0.0015秒来减慢CARLA的仿真时间。
+- en: IV-A2 Results
+  id: totrans-65
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-A2 结果
+- en: 'The overall experiment lasted 108405.90s (30.11 hours); the average experiment
+    time for each condition was 7079.67s, 13730.6s, 23870.28s, and 63725.35s, respectively.
+    We conducted statistical analyses separately for collision rates per unit distance
+    and collision rates per unit time. The detailed results are shown in Table [I](https://arxiv.org/html/2309.13193v2#S4.T1
+    "TABLE I ‣ IV-A2 Results ‣ IV-A Algorithm Experiment ‣ IV Evaluation ‣ SurrealDriver:
+    Designing LLM-powered Generative Driver Agent Framework based on Human Drivers’
+    Driving-thinking Data"). Notably, we adjusted the algorithms controlling other
+    vehicles and pedestrians to make them more prone to sudden maneuvers (e.g. abrupt
+    lane changes, running red lights). These edge cases aim to increase the risk level
+    of the driving environment for the agent vehicle, making its driving performance
+    more observable.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '整体实验持续了108405.90秒（30.11小时）；每个条件下的平均实验时间分别为7079.67秒、13730.6秒、23870.28秒和63725.35秒。我们分别对每单位距离和每单位时间的碰撞率进行了统计分析。详细结果请见表格[I](https://arxiv.org/html/2309.13193v2#S4.T1
+    "TABLE I ‣ IV-A2 Results ‣ IV-A Algorithm Experiment ‣ IV Evaluation ‣ SurrealDriver:
+    Designing LLM-powered Generative Driver Agent Framework based on Human Drivers’
+    Driving-thinking Data")。值得注意的是，我们调整了控制其他车辆和行人的算法，使它们更容易进行突发性操作（例如急刹车、突然变道、闯红灯）。这些极端情况旨在提高驾驶环境的风险级别，从而使代理车辆的驾驶表现更为可观察。'
+- en: 'TABLE I: Collision Rate of Algorithm Experiment'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 I：算法实验的碰撞率
+- en: '| Framework |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| 框架 |'
+- en: '&#124; Collision Rate by &#124;'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 按距离的碰撞率 &#124;'
+- en: '&#124; Distance (per meter) &#124;'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124;（每米）&#124;'
+- en: '|'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Collision Rate by &#124;'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 按碰撞率 &#124;'
+- en: '&#124; Time (per second) &#124;'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 时间（每秒）&#124;'
+- en: '|'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '|'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; w/o safety criteria, &#124;'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无安全标准，&#124;'
+- en: '&#124; w/o short-term memory, &#124;'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无短期记忆，&#124;'
+- en: '&#124; w/o long-term guidelines &#124;'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无长期指导 &#124;'
+- en: '| 0.01453958 | 0.041315485 |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.01453958 | 0.041315485 |'
+- en: '|'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; with safety criteria, &#124;'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 有安全标准，&#124;'
+- en: '&#124; w/o short-term memory, &#124;'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无短期记忆，&#124;'
+- en: '&#124; w/o long-term guidelines &#124;'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无长期指导 &#124;'
+- en: '| 0.00923361 | 0.02366976 |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.00923361 | 0.02366976 |'
+- en: '|'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; with safety criteria, &#124;'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 有安全标准，&#124;'
+- en: '&#124; with short-term memory, &#124;'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 有短期记忆，&#124;'
+- en: '&#124; w/o long-term guidelines &#124;'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无长期指导 &#124;'
+- en: '| 0.005046864 | 0.009530682 |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.005046864 | 0.009530682 |'
+- en: '| Full framework | 0.002757353 | 0.005100011 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| 完整框架 | 0.002757353 | 0.005100011 |'
+- en: For the Safety Module, collision rate data shows that the framework with the
+    safety module has a collision rate 57.46% lower than the one without it. For example,
+    in the absence of Safety Criteria, when the vehicle was at a distance of 5 meters
+    from the preceding vehicle, the DriverAgent initiated a lane change, leading to
+    a collision with the front vehicle. However, when running a framework with Safety
+    Criteria, the vehicle encountered a situation where the distance to the preceding
+    vehicle was 7 meters. Based on the information provided by the safety criteria,
+    it initiated a stop behavior, safely coming to a halt behind the lead vehicle.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于安全模块，碰撞率数据显示，采用安全模块的框架与未采用安全模块的框架相比，碰撞率降低了57.46%。例如，在没有安全标准的情况下，当车辆与前车的距离为5米时，DriverAgent发起了变道，导致与前车发生碰撞。然而，在运行带有安全标准的框架时，车辆与前车的距离为7米。基于安全标准提供的信息，车辆发起了停车行为，安全地停在了前车后方。
+- en: 'For the Short-term Memory Module, collision rate data shows that the framework
+    with Short-term Memory has a collision rate 82.96% lower than the one without
+    it. We found that short-term memory plays an important role in enhancing the continuity
+    of the agent’s driving decisions. For example, in one experimental trial, the
+    vehicle initially accelerated for a few steps, and when DriverAgent had to decide
+    its next action, it had two options: to continue accelerating or to maintain its
+    current speed. Considering its previous acceleration actions, it chose to maintain
+    its current speed.'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于短期记忆模块，碰撞率数据显示，带有短期记忆的框架相比于没有短期记忆的框架，碰撞率降低了82.96%。我们发现短期记忆在增强代理驾驶决策的连续性方面起到了重要作用。例如，在某次实验中，车辆最初加速了几步，当DriverAgent需要决定下一步操作时，它有两个选择：继续加速或保持当前速度。考虑到之前的加速行为，它选择保持当前速度。
+- en: For the Long-term Guidelines Module, collision rate data shows that the framework
+    with Long-term Guidelines has a collision rate 83.03% lower than the one without
+    them. With long-term guidelines, the DriverAgent demonstrated an improvement in
+    driving skills. For example, in one experimental trial, CoachAgent analyzed the
+    initial driving behaviors and classified them as ’Bad.’ The reason for this assessment
+    was the excessive frequency of stopping. A guideline was generated that ’Maintain
+    a consistent and safe speed.’, which made the agent perform more human-like driving
+    behaviour.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于长期指导模块，碰撞率数据表明，使用长期指导的框架相比没有使用的框架，碰撞率降低了83.03%。使用长期指导后，DriverAgent的驾驶技能有所提升。例如，在一次实验中，CoachAgent分析了初始的驾驶行为并将其评为“差”。评定的原因是频繁停车。系统生成了一个指导意见“保持一致且安全的速度”，这使得代理表现出更具人类特征的驾驶行为。
+- en: IV-B Human Evaluation Experiment
+  id: totrans-94
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-B 人类评估实验
+- en: 'A single-factor within-subjects design was used to investigate how people rate
+    each framework used in the algorithm experiment (see in Section [IV-A](https://arxiv.org/html/2309.13193v2#S4.SS1
+    "IV-A Algorithm Experiment ‣ IV Evaluation ‣ SurrealDriver: Designing LLM-powered
+    Generative Driver Agent Framework based on Human Drivers’ Driving-thinking Data")).'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '使用单因素组内设计来调查人们如何评定算法实验中使用的每个框架（请参见[IV-A](https://arxiv.org/html/2309.13193v2#S4.SS1
+    "IV-A Algorithm Experiment ‣ IV Evaluation ‣ SurrealDriver: Designing LLM-powered
+    Generative Driver Agent Framework based on Human Drivers’ Driving-thinking Data")部分）。'
+- en: IV-B1 Experiment Design and Materials
+  id: totrans-96
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-B1 实验设计和材料
+- en: 'The independent variable was the framework, which included the “w/o safety,
+    memory, or guideline framework” without safety criteria, short-term memory, or
+    long-term guidelines; the “w/o memory or guideline framework” with safety criteria
+    only; the “w/o guideline framework” with both safety criteria and short-term memory;
+    and the “full framework” with safety criteria, short-term memory, and long-term
+    guidelines. Therefore, the guideline framework was the full framework of SurrealDriver.
+    The video of each framework was created by recording experiments in the algorithm
+    experiment (see in Section [IV-A](https://arxiv.org/html/2309.13193v2#S4.SS1 "IV-A
+    Algorithm Experiment ‣ IV Evaluation ‣ SurrealDriver: Designing LLM-powered Generative
+    Driver Agent Framework based on Human Drivers’ Driving-thinking Data")). The length
+    of each video is around 30 seconds.'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '自变量是框架，包括“没有安全性、记忆或指导框架”——没有安全标准、短期记忆或长期指导；“没有记忆或指导框架”——仅有安全标准；“没有指导框架”——同时具有安全标准和短期记忆；以及“完整框架”——包括安全标准、短期记忆和长期指导。因此，指导框架就是SurrealDriver的完整框架。每个框架的视频是通过记录算法实验中的实验过程制作的（请参见[IV-A](https://arxiv.org/html/2309.13193v2#S4.SS1
+    "IV-A Algorithm Experiment ‣ IV Evaluation ‣ SurrealDriver: Designing LLM-powered
+    Generative Driver Agent Framework based on Human Drivers’ Driving-thinking Data")部分）。每个视频的时长大约为30秒。'
+- en: IV-B2 Participants and Procedures
+  id: totrans-98
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-B2 参与者和程序
+- en: We invited another 24 adult participants (aged 29.3±4.9, male = 17, no overlap
+    with participants in the Driving-thinking data collection experiment) with legal
+    driving licenses to our human evaluation experiment. The experiment was conducted
+    through online surveys. The survey started with demographic information questions
+    including participants’ age, gender, phone number, driving silence status, years
+    of driving experience, and kilometers of driving per month. Then the survey guided
+    participants to watch videos embedded in the survey. All participants watched
+    the videos in random order. After watching each video, they rate items that measure
+    human likeness by asking whether the driver demonstrated driving operations like
+    those conducted by human drivers using a 5-point Likert scale where 1 represented
+    “not at all” and 5 presented “almost all.”
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们邀请了另外24名成年人（年龄29.3±4.9岁，男性 = 17，无与驾驶思维数据收集实验的参与者重叠）参与我们的人工评估实验，所有参与者均持有合法驾驶执照。实验通过在线调查进行。调查从一些人口统计信息问题开始，包括参与者的年龄、性别、电话号码、是否驾车沉默、驾驶经验年限以及每月驾驶的公里数。然后，调查引导参与者观看嵌入在调查中的视频。所有参与者按随机顺序观看这些视频。每观看完一个视频后，参与者需要根据一个5点Likert量表对视频中的人类相似性进行评分，量表1表示“完全不”，5表示“几乎完全”。
+- en: IV-B3 Results
+  id: totrans-100
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-B3 结果
+- en: 'A one-way repeated measure ANOVAs were conducted to compare ratings among the
+    four frameworks. For human-likeness, the Huynh-Feldt correction was used because
+    Mauchly’s test of sphericity was significant with epsilon values larger than 0.75\.
+    We found significant differences among the four frameworks: $F(2.5,57.4)=4.353$,
+    $\textit{p}=0.01$. The Bonferroni post hoc test revealed that the scores of the
+    guideline framework were significantly higher than those of the w/o safety, memory,
+    or guideline framework, $\textit{p}=0.009$.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 进行了单因素重复测量方差分析（ANOVA），比较了四个框架之间的评分。对于人类相似度，采用了Huynh-Feldt校正，因为Mauchly球形检验结果显著，$\epsilon$值大于0.75。我们发现四个框架之间存在显著差异：$F(2.5,57.4)=4.353$，$\textit{p}=0.01$。Bonferroni事后检验显示，指南框架的评分显著高于不含安全、记忆或指南框架的评分，$\textit{p}=0.009$。
+- en: V Conclusion
+  id: totrans-102
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: V 结论
+- en: In our research, we developed SurrealDriver, an LLM-based driver agent framework.
+    The results of both algorithm experiments and human evaluation indicate that this
+    LLM-based driver agent framework offers better performance than the basic approach
+    for driver simulations, bringing driver agent behavior closer to human-like driving
+    and, consequently, simulating more realistic traffic environments. By integrating
+    human Driving-thinking data with LLMs, agents can utilize natural language and
+    examples to add rules more conveniently, allowing for easier rule adjustments.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的研究中，我们开发了SurrealDriver，这是一个基于LLM（大型语言模型）的驾驶员智能体框架。无论是算法实验结果还是人工评估都表明，这个基于LLM的驾驶员智能体框架在驾驶模拟中表现优于传统方法，使得驾驶员智能体的行为更接近人类驾驶，从而模拟出更真实的交通环境。通过将人类驾驶思维数据与LLM结合，智能体可以更方便地使用自然语言和示例来添加规则，使得规则调整更加容易。
+- en: Thus, we provide the agent with the driving-thinking data of real drivers’ behaviors
+    obtained through interviews conducted during real vehicle experiments. The agent
+    uses its capabilities based on LLMs to autonomously assess the quality of its
+    driving behavior compared to detailed driving behaviour reasoning. It then enhances
+    its driving skills based on the behavior of expert drivers. This approach differs
+    from traditional reinforcement learning and other training methods by enabling
+    the agent to learn directly from driver transcripts, similar to humans, without
+    the need for translation into code. Our research provided valuable insights for
+    future human-aligned agent generation.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们向智能体提供了通过在实际车辆实验中进行访谈获得的真实驾驶员行为数据。智能体基于LLM的能力，能够自主评估其驾驶行为的质量，并与详细的驾驶行为推理进行比较。然后，它基于专家驾驶员的行为提升其驾驶技能。这一方法不同于传统的强化学习和其他训练方法，它使得智能体能够直接从驾驶员的记录中学习，类似人类，无需将其转化为代码。我们的研究为未来人类对齐的智能体生成提供了宝贵的见解。
+- en: References
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, and Y. Cao, “React:
+    Synergizing reasoning and acting in language models,” *arXiv preprint arXiv:2210.03629*,
+    2022.'
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, 和 Y. Cao，“React：在语言模型中协同推理与行为，”
+    *arXiv预印本 arXiv:2210.03629*，2022年。'
+- en: '[2] H. Liu, D. Tam, M. Muqeeth, J. Mohta, T. Huang, M. Bansal, and C. A. Raffel,
+    “Few-shot parameter-efficient fine-tuning is better and cheaper than in-context
+    learning,” *Advances in Neural Information Processing Systems*, vol. 35, pp. 1950–1965,
+    2022.'
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] H. Liu, D. Tam, M. Muqeeth, J. Mohta, T. Huang, M. Bansal, 和 C. A. Raffel，“少量样本的参数高效微调优于上下文学习，”
+    *神经信息处理系统进展*，第35卷，第1950-1965页，2022年。'
+- en: '[3] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A. Neelakantan,
+    P. Shyam, G. Sastry, A. Askell, *et al.*, “Language models are few-shot learners,”
+    *Advances in neural information processing systems*, vol. 33, pp. 1877–1901, 2020.'
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A.
+    Neelakantan, P. Shyam, G. Sastry, A. Askell, *等*，“语言模型是少量样本学习者，” *神经信息处理系统进展*，第33卷，第1877-1901页，2020年。'
+- en: '[4] S. Hao, Y. Gu, H. Ma, J. J. Hong, Z. Wang, D. Z. Wang, and Z. Hu, “Reasoning
+    with language model is planning with world model,” *arXiv preprint arXiv:2305.14992*,
+    2023.'
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] S. Hao, Y. Gu, H. Ma, J. J. Hong, Z. Wang, D. Z. Wang, 和 Z. Hu，“与语言模型推理即是使用世界模型进行规划，”
+    *arXiv预印本 arXiv:2305.14992*，2023年。'
+- en: '[5] Z. Xi, W. Chen, X. Guo, W. He, Y. Ding, B. Hong, M. Zhang, J. Wang, S. Jin,
+    E. Zhou, *et al.*, “The rise and potential of large language model based agents:
+    A survey,” *arXiv preprint arXiv:2309.07864*, 2023.'
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Z. Xi, W. Chen, X. Guo, W. He, Y. Ding, B. Hong, M. Zhang, J. Wang, S.
+    Jin, E. Zhou, *等*，“基于大型语言模型的智能体的崛起与潜力：一项调查，” *arXiv预印本 arXiv:2309.07864*，2023年。'
+- en: '[6] J. Huang, S. Yong, X. Ma, X. Linghu, P. Li, Y. Wang, Q. Li, S.-C. Zhu,
+    B. Jia, and S. Huang, “An embodied generalist agent in 3d world,” *arXiv preprint
+    arXiv:2311.12871*, 2023.'
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] J. Huang, S. Yong, X. Ma, X. Linghu, P. Li, Y. Wang, Q. Li, S.-C. Zhu,
+    B. Jia, 和 S. Huang, “3D世界中的具身通用体智能体，” *arXiv 预印本 arXiv:2311.12871*, 2023。'
+- en: '[7] P. Chen, X. Sun, H. Zhi, R. Zeng, T. H. Li, G. Liu, M. Tan, and C. Gan,
+    “$ a^ 2$ nav: Action-aware zero-shot robot navigation by exploiting vision-and-language
+    ability of foundation models,” *arXiv preprint arXiv:2308.07997*, 2023.'
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] P. Chen, X. Sun, H. Zhi, R. Zeng, T. H. Li, G. Liu, M. Tan, 和 C. Gan, “$a^2$
+    nav: 利用基础模型的视觉与语言能力进行行动感知的零样本机器人导航，” *arXiv 预印本 arXiv:2308.07997*, 2023。'
+- en: '[8] L. Chen, Y. Zhang, S. Ren, H. Zhao, Z. Cai, Y. Wang, P. Wang, T. Liu, and
+    B. Chang, “Towards end-to-end embodied decision making via multi-modal large language
+    model: Explorations with gpt4-vision and beyond,” *arXiv preprint arXiv:2310.02071*,
+    2023.'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] L. Chen, Y. Zhang, S. Ren, H. Zhao, Z. Cai, Y. Wang, P. Wang, T. Liu, 和
+    B. Chang, “通过多模态大语言模型推动端到端具身决策：基于gpt4-vision及其后续探索，” *arXiv 预印本 arXiv:2310.02071*,
+    2023。'
+- en: '[9] A. Rajvanshi, K. Sikka, X. Lin, B. Lee, H.-P. Chiu, and A. Velasquez, “Saynav:
+    Grounding large language models for dynamic planning to navigation in new environments,”
+    *arXiv preprint arXiv:2309.04077*, 2023.'
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] A. Rajvanshi, K. Sikka, X. Lin, B. Lee, H.-P. Chiu, 和 A. Velasquez, “Saynav:
+    基于大语言模型的动态规划与新环境导航的基础方法，” *arXiv 预印本 arXiv:2309.04077*, 2023。'
+- en: '[10] C. H. Song, J. Wu, C. Washington, B. M. Sadler, W.-L. Chao, and Y. Su,
+    “Llm-planner: Few-shot grounded planning for embodied agents with large language
+    models,” in *Proceedings of the IEEE/CVF International Conference on Computer
+    Vision*, 2023, pp. 2998–3009.'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] C. H. Song, J. Wu, C. Washington, B. M. Sadler, W.-L. Chao, 和 Y. Su, “LLM-planner:
+    基于少量示例的具身智能体规划方法，结合大语言模型，” 收录于 *IEEE/CVF计算机视觉国际会议论文集*，2023，第2998-3009页。'
+- en: '[11] Z. Wu, Z. Wang, X. Xu, J. Lu, and H. Yan, “Embodied task planning with
+    large language models,” *arXiv preprint arXiv:2307.01848*, 2023.'
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] Z. Wu, Z. Wang, X. Xu, J. Lu, 和 H. Yan, “结合大语言模型的具身任务规划，” *arXiv 预印本 arXiv:2307.01848*,
+    2023。'
+- en: '[12] Y. Wu, S. Y. Min, Y. Bisk, R. Salakhutdinov, A. Azaria, Y. Li, T. Mitchell,
+    and S. Prabhumoye, “Plan, eliminate, and track–language models are good teachers
+    for embodied agents,” *arXiv preprint arXiv:2305.02412*, 2023.'
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] Y. Wu, S. Y. Min, Y. Bisk, R. Salakhutdinov, A. Azaria, Y. Li, T. Mitchell,
+    和 S. Prabhumoye, “计划、消除与跟踪——语言模型是具身智能体的良师益友，” *arXiv 预印本 arXiv:2305.02412*, 2023。'
+- en: '[13] G. Wang, Y. Xie, Y. Jiang, A. Mandlekar, C. Xiao, Y. Zhu, L. Fan, and
+    A. Anandkumar, “Voyager: An open-ended embodied agent with large language models,”
+    *arXiv preprint arXiv:2305.16291*, 2023.'
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] G. Wang, Y. Xie, Y. Jiang, A. Mandlekar, C. Xiao, Y. Zhu, L. Fan, 和 A.
+    Anandkumar, “Voyager: 一个开放式的具身智能体，结合大语言模型，” *arXiv 预印本 arXiv:2305.16291*, 2023。'
+- en: '[14] A. Zhao, D. Huang, Q. Xu, M. Lin, Y.-J. Liu, and G. Huang, “Expel: Llm
+    agents are experiential learners,” 2023.'
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] A. Zhao, D. Huang, Q. Xu, M. Lin, Y.-J. Liu, 和 G. Huang, “Expel: LLM智能体是经验学习者，”
+    2023。'
+- en: '[15] L. Chen, O. Sinavski, J. Hünermann, A. Karnsund, A. J. Willmott, D. Birch,
+    D. Maund, and J. Shotton, “Driving with llms: Fusing object-level vector modality
+    for explainable autonomous driving,” *arXiv preprint arXiv:2310.01957*, 2023.'
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] L. Chen, O. Sinavski, J. Hünermann, A. Karnsund, A. J. Willmott, D. Birch,
+    D. Maund, 和 J. Shotton, “与LLM共同驾驶：融合面向对象的向量模态以实现可解释的自动驾驶，” *arXiv 预印本 arXiv:2310.01957*,
+    2023。'
+- en: '[16] Z. Xu, Y. Zhang, E. Xie, Z. Zhao, Y. Guo, K. K. Wong, Z. Li, and H. Zhao,
+    “Drivegpt4: Interpretable end-to-end autonomous driving via large language model,”
+    *arXiv preprint arXiv:2310.01412*, 2023.'
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] Z. Xu, Y. Zhang, E. Xie, Z. Zhao, Y. Guo, K. K. Wong, Z. Li, 和 H. Zhao,
+    “Drivegpt4: 基于大语言模型的可解释端到端自动驾驶，” *arXiv 预印本 arXiv:2310.01412*, 2023。'
+- en: '[17] B. Chen, Z. Zhang, N. Langrené, and S. Zhu, “Unleashing the potential
+    of prompt engineering in large language models: a comprehensive review,” *arXiv
+    preprint arXiv:2310.14735*, 2023.'
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] B. Chen, Z. Zhang, N. Langrené, 和 S. Zhu, “释放大语言模型中提示工程的潜力：一项全面回顾，” *arXiv
+    预印本 arXiv:2310.14735*, 2023。'
+- en: '[18] C. Cui, Y. Ma, X. Cao, W. Ye, and Z. Wang, “Drive as you speak: Enabling
+    human-like interaction with large language models in autonomous vehicles,” in
+    *Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision*,
+    2024, pp. 902–909.'
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] C. Cui, Y. Ma, X. Cao, W. Ye, 和 Z. Wang, “像说话一样驾驶：在人类智能与大语言模型之间实现自动驾驶汽车的交互，”
+    收录于 *IEEE/CVF计算机视觉应用冬季会议论文集*，2024，第902-909页。'
+- en: '[19] L. Wen, D. Fu, X. Li, X. Cai, T. Ma, P. Cai, M. Dou, B. Shi, L. He, and
+    Y. Qiao, “Dilu: A knowledge-driven approach to autonomous driving with large language
+    models,” *arXiv preprint arXiv:2309.16292*, 2023.'
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[19] L. Wen, D. Fu, X. Li, X. Cai, T. Ma, P. Cai, M. Dou, B. Shi, L. He, 和
+    Y. Qiao, “Dilu: 一种基于大语言模型的知识驱动自动驾驶方法，” *arXiv 预印本 arXiv:2309.16292*, 2023。'
+- en: '[20] D. Fu, X. Li, L. Wen, M. Dou, P. Cai, B. Shi, and Y. Qiao, “Drive like
+    a human: Rethinking autonomous driving with large language models,” in *Proceedings
+    of the IEEE/CVF Winter Conference on Applications of Computer Vision*, 2024, pp.
+    910–919.'
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[20] D. Fu, X. Li, L. Wen, M. Dou, P. Cai, B. Shi, 和 Y. Qiao，“像人类一样驾驶：用大型语言模型重新思考自动驾驶，”发表于*IEEE/CVF冬季计算机视觉应用会议论文集*，2024年，第910-919页。'
+- en: '[21] M. Shanahan, K. McDonell, and L. Reynolds, “Role play with large language
+    models,” *Nature*, vol. 623, no. 7987, pp. 493–498, 2023.'
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[21] M. Shanahan, K. McDonell, 和 L. Reynolds，“与大型语言模型进行角色扮演，”*自然*，第623卷，第7987期，第493-498页，2023年。'
+- en: '[22] M. Luo, X. Xu, Z. Dai, P. Pasupat, M. Kazemi, C. Baral, V. Imbrasaite,
+    and V. Y. Zhao, “Dr. icl: Demonstration-retrieved in-context learning,” *arXiv
+    preprint arXiv:2305.14128*, 2023.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[22] M. Luo, X. Xu, Z. Dai, P. Pasupat, M. Kazemi, C. Baral, V. Imbrasaite,
+    和 V. Y. Zhao，“Dr. icl：通过演示获取的上下文学习，”*arXiv预印本arXiv:2305.14128*，2023年。'
+- en: '[23] L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C. Zhang,
+    S. Agarwal, K. Slama, A. Ray, *et al.*, “Training language models to follow instructions
+    with human feedback,” *Advances in neural information processing systems*, vol. 35,
+    pp. 27 730–27 744, 2022.'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[23] L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C.
+    Zhang, S. Agarwal, K. Slama, A. Ray, *等人*，“训练语言模型按照指令进行操作并结合人类反馈，”*神经信息处理系统进展*，第35卷，第27,730-27,744页，2022年。'
+- en: '[24] A. Dosovitskiy, G. Ros, F. Codevilla, A. Lopez, and V. Koltun, “Carla:
+    An open urban driving simulator,” in *Conference on robot learning*.   PMLR, 2017,
+    pp. 1–16.'
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[24] A. Dosovitskiy, G. Ros, F. Codevilla, A. Lopez, 和 V. Koltun，“Carla：一个开放的城市驾驶模拟器，”发表于*机器人学习会议*。PMLR,
+    2017, 第1-16页。'

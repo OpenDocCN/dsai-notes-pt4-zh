@@ -1,0 +1,2255 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:08:20'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:08:20
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Seeker：基于LLM的多智能体方法提升代码中的异常处理
+- en: 来源：[https://arxiv.org/html/2410.06949/](https://arxiv.org/html/2410.06949/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2410.06949/](https://arxiv.org/html/2410.06949/)
+- en: Xuanming Zhang^(1,2) ¹¹1Equal contribution., Yuxuan Chen¹ ¹¹1Equal contribution.,
+    Yuan Yuan³ ²²2Equal Advising., Minlie Huang¹ ²²2Equal Advising.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许安名^(1,2) ¹¹1平等贡献，陈宇轩¹ ¹¹1平等贡献，袁远³ ²²2平等指导，黄敏利¹ ²²2平等指导。
+- en: ¹The CoAI Group, Tsinghua University
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹清华大学CoAI团队
+- en: ²ByteDance
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ²字节跳动
+- en: ³Beihang University
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ³北京航空航天大学
+- en: '{zhangxuanming.1}@bytedance.com'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{zhangxuanming.1}@bytedance.com'
+- en: '{chenyuxu21}@mails.tsinghua.edu.cn'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{chenyuxu21}@mails.tsinghua.edu.cn'
+- en: '{yuan21}@buaa.edu.cn'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{yuan21}@buaa.edu.cn'
+- en: '{aihuang}@tsinghua.edu.cn'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{aihuang}@tsinghua.edu.cn'
+- en: Abstract
+  id: totrans-14
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'In real-world software development, improper or missing exception handling
+    can severely impact the robustness and reliability of code. Exception handling
+    mechanisms require developers to detect, capture, and manage exceptions according
+    to high standards, but many developers struggle with these tasks, leading to fragile
+    code. This problem is particularly evident in open-source projects and impacts
+    the overall quality of the software ecosystem. To address this challenge, we explore
+    the use of large language models (LLMs) to improve exception handling in code.
+    Through extensive analysis, we identify three key issues: Insensitive Detection
+    of Fragile Code, Inaccurate Capture of Exception Types, and Distorted Handling
+    Solutions. These problems are widespread across real-world repositories, suggesting
+    that robust exception handling practices are often overlooked or mishandled. In
+    response, we propose *Seeker*, a multi-agent framework inspired by expert developer
+    strategies for exception handling. Seeker uses agents—Scanner, Detector, Predator,
+    Ranker, and Handler—to assist LLMs in detecting, capturing, and resolving exceptions
+    more effectively. Our work is the first systematic study on leveraging LLMs to
+    enhance exception handling practices, providing valuable insights for future improvements
+    in code reliability.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在现实世界的软件开发中，不当或缺失的异常处理可能严重影响代码的健壮性和可靠性。异常处理机制要求开发者根据高标准检测、捕获和管理异常，但许多开发者在这些任务上面临困难，导致代码脆弱。这个问题在开源项目中尤为明显，影响着软件生态系统的整体质量。为了解决这一挑战，我们探索了使用大型语言模型（LLM）来改善代码中的异常处理。通过广泛的分析，我们识别出了三个关键问题：脆弱代码的敏感度不足、异常类型捕获不准确以及处理方案失真。这些问题在现实世界的代码库中普遍存在，表明健壮的异常处理实践常常被忽视或处理不当。对此，我们提出了*Seeker*，一个多智能体框架，灵感来源于专家开发者的异常处理策略。Seeker使用多个智能体——扫描器（Scanner）、检测器（Detector）、捕食者（Predator）、排序器（Ranker）和处理器（Handler）——来帮助LLM更有效地检测、捕获和解决异常。我们的工作是首个系统性研究利用LLM增强异常处理实践的尝试，为未来的代码可靠性提升提供了宝贵的见解。
+- en: 1 Introduction
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: In the era of code large-scale pre-trained language models (code LLMs) such
+    as DeepSeek-Coder (Guo et al., [2024](https://arxiv.org/html/2410.06949v2#bib.bib10)),
+    Code-Llama (Rozière et al., [2023](https://arxiv.org/html/2410.06949v2#bib.bib26)),
+    and StarCoder (Li et al., [2023](https://arxiv.org/html/2410.06949v2#bib.bib18)),
+    the functional correctness of code generation has become the main method for evaluating
+    the quality of these models. For example, HumanEval(Chen et al., [2021](https://arxiv.org/html/2410.06949v2#bib.bib1))
+    first proposed to let LLM generating code based on human-written natural language
+    programming problem descriptions, and measured the model’s code generation ability
+    based on the Pass@k metric of the rate k times of generating that pass all test
+    cases. In addition, CoderEval (Yu et al., [2024](https://arxiv.org/html/2410.06949v2#bib.bib30))
+    and DevEval (Li et al., [2024a](https://arxiv.org/html/2410.06949v2#bib.bib15))
+    introduced repo-level code generation tasks by sampling real code repositories
+    according to distribution, while also hoped to evaluate the performance of code
+    LLM in real development scenarios based on Pass@k and Acc@k metrics.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 DeepSeek-Coder（Guo 等人， [2024](https://arxiv.org/html/2410.06949v2#bib.bib10)）、Code-Llama（Rozière
+    等人， [2023](https://arxiv.org/html/2410.06949v2#bib.bib26)）和 StarCoder（Li 等人， [2023](https://arxiv.org/html/2410.06949v2#bib.bib18)）等代码大规模预训练语言模型（code
+    LLMs）时代，代码生成的功能正确性已成为评估这些模型质量的主要方法。例如，HumanEval（Chen 等人， [2021](https://arxiv.org/html/2410.06949v2#bib.bib1)）首次提出让
+    LLM 根据人类编写的自然语言编程问题描述生成代码，并基于通过所有测试用例的次数的 Pass@k 指标来衡量模型的代码生成能力。此外，CoderEval（Yu
+    等人， [2024](https://arxiv.org/html/2410.06949v2#bib.bib30)）和 DevEval（Li 等人， [2024a](https://arxiv.org/html/2410.06949v2#bib.bib15)）通过根据分布采样真实的代码仓库，引入了仓库级别的代码生成任务，同时也希望基于
+    Pass@k 和 Acc@k 指标评估代码 LLM 在实际开发场景中的表现。
+- en: As the functional correctness of code LLM continues to gain attention and improve,
+    more research focuses on the reliable solutions of LLM-generated code to existing
+    defects. For example, SWE-bench (Jimenez et al., [2024](https://arxiv.org/html/2410.06949v2#bib.bib14))
+    evaluates the ability of LLM to generate maintenance patch code based on real
+    software issues on GitHub, while SecurityEval (Siddiq & Santos, [2022](https://arxiv.org/html/2410.06949v2#bib.bib27))
+    uses 75 vulnerability types defined by CWE as prompts to induce LLM to generate
+    vulnerable code, aiming to evaluate the jailbreak risk of LLM code generation.
+    In terms of methods, He & Vechev ([2023b](https://arxiv.org/html/2410.06949v2#bib.bib12))
+    leverages property-specific continuous vectors based on a high-quality code dataset
+    to guide code generation towards the given property, achieving the repair of CWE
+    vulnerabilities. In order to enhance the generalization of LLM itself for code
+    vulnerable safety, Li et al. ([2024c](https://arxiv.org/html/2410.06949v2#bib.bib17))
+    explored the direction of fine-tuning LLM to generate code avoiding 11 common
+    CWE vulnerabilities. Recently, Ren et al. ([2023](https://arxiv.org/html/2410.06949v2#bib.bib25))
+    conducted an in-depth study on the performance of LLM-generated code in code robustness
+    represented by exception handling mechanisms, which opened up new explorations
+    for LLM to predict and handle potential risks of generated code itself before
+    a vulnerability occurs.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着代码 LLM 功能正确性的持续关注与提升，越来越多的研究开始关注 LLM 生成的代码在修复现有缺陷方面的可靠解决方案。例如，SWE-bench（Jimenez
+    等人， [2024](https://arxiv.org/html/2410.06949v2#bib.bib14)）评估了 LLM 在基于 GitHub 上实际软件问题生成维护补丁代码的能力，而
+    SecurityEval（Siddiq & Santos， [2022](https://arxiv.org/html/2410.06949v2#bib.bib27)）使用
+    CWE 定义的 75 种漏洞类型作为提示，诱导 LLM 生成易受攻击的代码，旨在评估 LLM 代码生成的越狱风险。在方法方面，He & Vechev（[2023b](https://arxiv.org/html/2410.06949v2#bib.bib12)）利用基于高质量代码数据集的特定属性连续向量，指导代码生成朝向给定的属性，成功修复了
+    CWE 漏洞。为了增强 LLM 本身在代码安全性上的泛化能力，Li 等人（[2024c](https://arxiv.org/html/2410.06949v2#bib.bib17)）探索了微调
+    LLM 以生成避免 11 种常见 CWE 漏洞的代码的方向。最近，Ren 等人（[2023](https://arxiv.org/html/2410.06949v2#bib.bib25)）对
+    LLM 生成的代码在异常处理机制等代码鲁棒性方面的表现进行了深入研究，这为 LLM 在漏洞发生前预测和处理生成代码的潜在风险开辟了新的探索方向。
+- en: 'Although exception detection (and handling) techniques based on static analysis
+    or neural networks have made great progress, little attention has been paid to
+    the standardization of the mechanism, especially the private paradigms of various
+    exception types including custom exceptions and exception rules in the long tail
+    area. At the same time, we believe that interpretable and generalizable fragile
+    code detection and exception handling strategies are crucial but underestimated
+    attributes in real code development, thus the exception mechanism requires extremely
+    high programming literacy from developers, which significantly affects the robustness
+    of the code in the main peak area (especially Java projects), further affects
+    the quality of the code LLM training data and the quality of the generated code.
+    This paper explores these neglected aspects and raises a research question: “Do
+    we need to enhance the standardization, interpretability and generalizability
+    of exception handling in real code development scenarios?” To the best of our
+    knowledge, there is currently no work studying this issue.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管基于静态分析或神经网络的异常检测（和处理）技术取得了巨大进展，但对机制的标准化关注甚少，特别是在长尾领域中各种异常类型的私有范式（包括自定义异常和异常规则）。与此同时，我们认为，可解释和可泛化的脆弱代码检测和异常处理策略是实际代码开发中至关重要但被低估的属性，因此异常机制对开发者的编程素养要求极高，这显著影响了代码在主峰区域的鲁棒性（尤其是Java项目），进而影响了代码LLM训练数据的质量和生成代码的质量。本文探讨了这些被忽视的方面，并提出了一个研究问题：“在实际代码开发场景中，是否需要增强异常处理的标准化、可解释性和泛化能力？”据我们所知，目前尚无研究关注这一问题。
+- en: '![Refer to caption](img/fd074cf525744f42c6a864bfe6b6c79f.png)'
+  id: totrans-20
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/fd074cf525744f42c6a864bfe6b6c79f.png)'
+- en: (a) Our preliminary tendency.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 我们的初步倾向。
+- en: '![Refer to caption](img/0d272bf8dc1b3025e8c4ce2e9649ba17.png)'
+  id: totrans-22
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/0d272bf8dc1b3025e8c4ce2e9649ba17.png)'
+- en: (b) a schematic diagram of human developers who well-performed in exception
+    handling.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 在异常处理方面表现优异的人类开发者示意图。
+- en: 'Figure 1: Preliminary on exception handling performance by LLM and human. Prompt1,
+    Prompt2, Prompt3 and Prompt4 in (a) indicate General prompting, Coarse-grained
+    Knowledge-driven prompting, Fine-grained Knowledge-driven prompting and Fine-grained
+    Knowledge-driven with handling logic prompting respectively'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：LLM和人类在异常处理性能方面的初步比较。图(a)中的Prompt1、Prompt2、Prompt3和Prompt4分别表示通用提示、粗粒度知识驱动提示、细粒度知识驱动提示和细粒度知识驱动与处理逻辑提示。
+- en: 'In order to thoroughly study the role of intuitive interpretability and rule
+    generalization of exception mechanisms on human developers or LLMs in exception
+    handling, we optimized and expanded the preliminary experiment conducted by Ren
+    et al. ([2023](https://arxiv.org/html/2410.06949v2#bib.bib25)), and introduced
+    four sets of prompts for human developers and LLMs based on 100 fragile Java code
+    slices from real projects, namely Coarse-grained Reminding prompting, Fine-grained
+    Reminding prompting, Fine-grained Inspiring prompting, and Fine-grained Guiding
+    prompting, which successively added intuitive interpretability and rule generalization
+    of exceptions to change the in-context learning of code writers. Through four
+    sets of in-context learning in parallel with two objects, we found a consistent
+    phenomenon: the code generated by the Fine-grained Guiding prompt has a great
+    performance of exception handling, while the lack of intuitive interpretability
+    (specific exception type, current code scenario) or rule generalization (exception
+    handling strategies) will reduce the exception handling performance, as shown
+    in figure [1(a)](https://arxiv.org/html/2410.06949v2#S1.F1.sf1 "In Figure 1 ‣
+    1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach").'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了深入研究直观可解释性和规则泛化在异常机制对人类开发者或LLM在异常处理中的作用，我们优化并扩展了Ren等人于([2023](https://arxiv.org/html/2410.06949v2#bib.bib25))进行的初步实验，并基于来自真实项目的100个脆弱Java代码片段，分别为人类开发者和LLM引入了四组提示：粗粒度提醒提示、细粒度提醒提示、细粒度启发提示和细粒度引导提示，逐步加入了异常的直观可解释性和规则泛化，从而改变了代码编写者的上下文学习方式。通过四组并行的上下文学习与两个对象的实验，我们发现了一个一致的现象：细粒度引导提示生成的代码在异常处理上表现优异，而缺乏直观可解释性（特定异常类型、当前代码场景）或规则泛化（异常处理策略）则会降低异常处理性能，如图[1(a)](https://arxiv.org/html/2410.06949v2#S1.F1.sf1
+    "图1 ‣ 1介绍 ‣ 寻求者：基于LLM的多代理方法增强代码中的异常处理")所示。
+- en: 'Figure [1(b)](https://arxiv.org/html/2410.06949v2#S1.F1.sf2 "In Figure 1 ‣
+    1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach") explores the Chain-of-Thought used by senior human developers
+    under the Fine-grained Guiding prompt. It is worth noting that compared with common
+    exception types such as IOException and NullPointerException, some rare exceptions
+    such as BrokenBarrierException, AccessControlException also cause high program
+    risks, but are not well handled in low-level experiments. In addition, we observed
+    that good exception handling practices pay more attention to the specificity of
+    exceptions and tend to accurately capture exception types moving down the class
+    hierarchy. For example, the exception SQLClientInfoException inherits the properties
+    of its parent class SQLException. Capturing SQLClientInfoException will provide
+    additional information about the error by obtaining detailed information about
+    the SQL client properties, beyond what the superclass SQLException provides. This
+    is based on the fact that each exception is an object, and exceptions thrown at
+    a lower level can also be caught by its superclass, but Exception handlers that
+    are too general can make code more error-prone by catching and handling exceptions
+    that were not anticipated by the programmer and for which the handler was not
+    intended. Osman et al. ([2017](https://arxiv.org/html/2410.06949v2#bib.bib24))
+    further demonstrates that capturing accurate fine-grained exceptions can help
+    developers quickly identify the source of the problem, effectively improve the
+    readability and maintainability of the code, and avoid mishandling different types
+    of errors. However, due to the lack of good handling paradigm experience for long-tail,
+    domain-specific, or customized exception types, combining with the complex inheritance
+    relationship and the multi-pattern of exception handling, it is still challenging
+    to accurately achieve this goal.'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图[1(b)](https://arxiv.org/html/2410.06949v2#S1.F1.sf2 "在图1 ‣ 1 引言 ‣ Seeker：利用基于LLM的多智能体方法增强代码中的异常处理")探讨了在细粒度引导提示下，资深开发人员使用的思维链。值得注意的是，与常见的异常类型如IOException和NullPointerException相比，一些较为罕见的异常类型，如BrokenBarrierException和AccessControlException，也会引发较高的程序风险，但在低级实验中处理得并不好。此外，我们观察到，良好的异常处理实践更加关注异常的具体性，并倾向于准确捕捉类层次结构向下的异常类型。例如，异常SQLClientInfoException继承了其父类SQLException的属性。捕捉SQLClientInfoException将通过获取SQL客户端属性的详细信息，提供比父类SQLException更多的错误信息。这基于每个异常都是一个对象的事实，低级别抛出的异常也可以被其父类捕捉，但过于泛化的异常处理程序可能通过捕捉和处理程序员未预料到的异常，甚至是处理程序员本意并不打算处理的异常，使代码更容易出错。Osman等人([2017](https://arxiv.org/html/2410.06949v2#bib.bib24))进一步证明，捕捉准确的细粒度异常可以帮助开发人员快速识别问题来源，有效提高代码的可读性和可维护性，并避免误处理不同类型的错误。然而，由于缺乏处理长尾、特定领域或定制异常类型的良好范式经验，加上异常处理的复杂继承关系和多种模式，准确实现这一目标仍然具有挑战性。
+- en: In order to improve the robustness of the code by leveraging the best exception
+    handling practices of senior human developers, we propose a method called Seeker,
+    which disassembles the Chain-of-Thought of senior human developers and divides
+    the exception mechanism into five tasks, which are respectively handled by Scanner,
+    Detector, Predator, Ranker, and Handler agents. We combine a large amount of trusted
+    external experience documents with exception practices to build Common Exception
+    Enumeration (CEE) to retrieve and enhance the detection, capture, and handling
+    tasks where the original LLM performs poorly. This method can be easily integrated
+    into the existing code LLM in aim to generate highly robust code, among with CEE
+    has promising community contribution and maintenance value which helps developers
+    further understand the ideal practice of exception mechanisms. After adopting
+    the high-concurrency interface we designed, the additional computing time overhead
+    is constant when facing any level of code volume, also totally controllable in
+    complexity. However, still taking Java exceptions as an example, even if only
+    the built-in exception types are considered, the exception relationship inheritance
+    tree contains 433 nodes, 62 branches, and 5 layers. Directly building documents
+    and calling either LLM or human developer for retrieval may degrade performance
+    because it may not be able to distinguish the exception specificity on the same
+    branch for node selection, cannot adapt to multiple handling patterns of exceptions,
+    and the cost of each query round is very high.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了通过借鉴高级开发者的最佳异常处理实践提高代码的鲁棒性，我们提出了一种名为Seeker的方法，该方法拆解了高级开发者的思维链，并将异常机制分解为五个任务，分别由Scanner、Detector、Predator、Ranker和Handler代理进行处理。我们将大量可信的外部经验文档与异常处理实践相结合，构建了通用异常枚举（CEE），以增强原LLM在检测、捕捉和处理任务中的表现，特别是在原LLM表现较差的情况下。该方法可以轻松集成到现有的代码LLM中，旨在生成高鲁棒性的代码，同时CEE具有良好的社区贡献和维护价值，帮助开发者进一步理解异常机制的理想实践。在采用我们设计的高并发接口后，面对任何级别的代码量时，额外的计算时间开销是常数，复杂度也完全可控。然而，仍以Java异常为例，即便仅考虑内置异常类型，异常关系继承树包含433个节点、62个分支和5个层级。直接构建文档并调用LLM或人工开发者进行检索可能会导致性能下降，因为它可能无法区分同一分支上节点选择的异常特异性，无法适应多种异常处理模式，并且每次查询的成本非常高。
+- en: To solve this problem, a deep retrieval-augmented generation(Deep-RAG) algorithm
+    for complex inheritance relationships is proposed as an improved alternative to
+    traditional RAG. Specifically, a development scenario label is assigned to each
+    branch according to the inheritance relationship to identify several exception
+    branches that may correspond to a piece of fragile code. The few-sample verification
+    step provides detection pass rate and capture accuracy feedback after the automatic
+    generation of labels, and then fine-tunes the specific granularity and general
+    description of the labels based on the regularization prompts of failed samples.
+    This can identify the risk scenarios where fragile codes are located and the corresponding
+    exception branches that are triggered, and then selectively perform node evaluation
+    on these branches by depth, ultimately improving retrieval performance and overhead.
+    A large number of experiments show that the proposed Seeker method helps LLM optimize
+    or generate highly robust code, further improving the performance of LLM in various
+    code tasks.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这个问题，提出了一种针对复杂继承关系的深度检索增强生成（Deep-RAG）算法，作为传统RAG的改进替代方案。具体来说，根据继承关系为每个分支分配一个开发场景标签，以识别可能对应脆弱代码的多个异常分支。少量样本验证步骤在自动生成标签后提供检测通过率和捕捉精度反馈，然后根据失败样本的正则化提示对标签的具体粒度和一般描述进行微调。这可以识别脆弱代码所在的风险场景及其触发的相应异常分支，然后按深度对这些分支进行选择性节点评估，最终提高检索性能和开销。大量实验表明，所提出的Seeker方法有助于LLM优化或生成高鲁棒性的代码，进一步提升LLM在各类代码任务中的表现。
+- en: 2 Preliminary
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 初步研究
+- en: 'In this section, we study how the standardization, interpretability, and generalizability
+    of exceptions affect the exception handling performance of code developers and
+    determine the mitigation effect of poor exception handling. To achieve this, we
+    conduct extensive comparative experiments by controlling the standardization of
+    exception types, the interpretability of risk scenarios, and the generalization
+    of handling strategies, respectively, applying the four sets of in-context learning
+    prompt proposed in figure [4](https://arxiv.org/html/2410.06949v2#A1.F4 "Figure
+    4 ‣ A.1.2 Common Exception Enumeration ‣ A.1 Method Details ‣ Appendix A Appendix
+    ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach")
+    and [5](https://arxiv.org/html/2410.06949v2#A1.F5 "Figure 5 ‣ A.1.2 Common Exception
+    Enumeration ‣ A.1 Method Details ‣ Appendix A Appendix ‣ Seeker: Enhancing Exception
+    Handling in Code with a LLM-based Multi-Agent Approach") (i.e., Coarse-grained
+    Reminding prompting, Fine-grained Reminding prompting, Fine-grained Inspiring
+    prompting, and Fine-grained Guiding prompting).'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在本节中，我们研究了异常的标准化、可解释性和普适性如何影响代码开发者的异常处理表现，并确定了不良异常处理的缓解效果。为此，我们通过分别控制异常类型的标准化、风险场景的可解释性和处理策略的普适性，进行广泛的对比实验，应用了图[4](https://arxiv.org/html/2410.06949v2#A1.F4
+    "图4 ‣ A.1.2 常见异常枚举 ‣ A.1方法细节 ‣ 附录A ‣ Seeker: 基于LLM的多代理方法增强代码中的异常处理")和[5](https://arxiv.org/html/2410.06949v2#A1.F5
+    "图5 ‣ A.1.2 常见异常枚举 ‣ A.1方法细节 ‣ 附录A ‣ Seeker: 基于LLM的多代理方法增强代码中的异常处理")中提出的四组上下文学习提示（即粗粒度提示、细粒度提示、细粒度启发提示和细粒度引导提示）。'
+- en: 'Specifically, based on the preliminary exploration of Ren et al. ([2023](https://arxiv.org/html/2410.06949v2#bib.bib25)),
+    we screened several well-maintained codebases, combined manual and automatic code
+    reviews to filter out high-quality also important exception handling therefore
+    obtain the fragile code that is in serious situation in real development scenarios.
+    Then we allowed code developers to familiarize with these filtered codebases and
+    record the methods and processes they used when handling exceptions. In order
+    to reduce the difficulty of the entire task and simulate the developer’s thought
+    about exception handling during the development process, we set up four prompt
+    links to provide developers with progressive exception handling information. The
+    implementation results can be found in figure [1(a)](https://arxiv.org/html/2410.06949v2#S1.F1.sf1
+    "In Figure 1 ‣ 1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with
+    a LLM-based Multi-Agent Approach").'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '具体来说，基于Ren等人（[2023](https://arxiv.org/html/2410.06949v2#bib.bib25)）的初步探索，我们筛选了几个维护良好的代码库，结合手动和自动代码审查，筛选出高质量且重要的异常处理，进而获得了在真实开发场景中处于严重状态的脆弱代码。随后，我们让代码开发者熟悉这些筛选后的代码库，并记录他们在处理异常时使用的方法和流程。为了减少整个任务的难度并模拟开发过程中开发者对异常处理的思考，我们设置了四个提示链接，提供逐步的异常处理信息。实施结果可以在图[1(a)](https://arxiv.org/html/2410.06949v2#S1.F1.sf1
+    "在图1 ‣ 1介绍 ‣ Seeker: 基于LLM的多代理方法增强代码中的异常处理")中找到。'
+- en: 'The comparative experiment reveals an interesting phenomenon: prompts without
+    effective guidance information are not helpful for both human developers and LLMs,
+    while adding type normative information about exception mechanisms will slightly
+    improve developers’ vague perception of the source of code fragility, but cannot
+    accurately locate and handle them due to the unfamiliarity with the exception,
+    which is easy to cause insensitive detection. Increasing the interpretability
+    information of the development scenario will greatly improve developers’ understanding
+    of the code itself and potential fragility, which is beneficial to the accuracy
+    of exception capture. Increasing the generalization information of handling strategies
+    further improves developers’ ability to analyze the source of fragility and improve
+    the quality of handling block. The phenomenon that the above information bring
+    significant gains in exception handling tasks is called the mitigation effect.
+    This phenomenon answers the research questions raised in Section [1](https://arxiv.org/html/2410.06949v2#S1
+    "1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach") by revealing the mitigation effect by specific prompt information,
+    impacting the quality of code developers’ exception handling practices. It also
+    inspires the proposed $Seeker$ method to combine external document information
+    to align the generated prompts with fine-grained guidance standards. In addition,
+    Section [3.2](https://arxiv.org/html/2410.06949v2#S3.SS2 "3.2 Rules of Good Practice
+    ‣ 3 Methodology ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach") provides a reasonable explanation for the occurrence of
+    the mitigation effect, providing data and insights on the effectiveness of the
+    proposed method. We believe that our findings can provide valuable insights for
+    future research related with reliable code generation, laying the foundation for
+    potential RAG code agent progress.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '比较实验揭示了一个有趣的现象：没有有效引导信息的提示对人类开发者和LLM（大语言模型）都没有帮助，而添加关于异常机制的类型规范信息可以稍微改善开发者对代码脆弱性来源的模糊感知，但由于对异常机制的不熟悉，无法准确定位和处理它们，这容易导致不敏感的检测。增加开发场景的可解释性信息将大大提高开发者对代码本身和潜在脆弱性的理解，这有助于提高异常捕获的准确性。增加处理策略的泛化信息则进一步提高了开发者分析脆弱性来源的能力，并改善了处理模块的质量。上述信息在异常处理任务中带来显著提升的现象称为缓解效应。该现象通过揭示特定提示信息的缓解效应，回答了[第1节](https://arxiv.org/html/2410.06949v2#S1
+    "1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach")中提出的研究问题，影响了代码开发者异常处理实践的质量。它也启发了提出的$Seeker$方法，通过结合外部文档信息将生成的提示与细粒度指导标准对齐。此外，[第3.2节](https://arxiv.org/html/2410.06949v2#S3.SS2
+    "3.2 Rules of Good Practice ‣ 3 Methodology ‣ Seeker: Enhancing Exception Handling
+    in Code with a LLM-based Multi-Agent Approach")为缓解效应的发生提供了合理的解释，提供了关于所提方法有效性的数据显示和见解。我们相信我们的发现可以为未来与可靠代码生成相关的研究提供宝贵的见解，为潜在的RAG代码代理进展奠定基础。'
+- en: 3 Methodology
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 方法论
+- en: In this section, we introduce the proposed Seeker method. We first review the
+    historical observations of developers on exception handling issues, and then introduce
+    three exception handling pitfalls, Insensitive-Detection of Fragile Code, Inaccurate-Capture
+    of Exception Type and Distorted-Solution of Handling Block. Finally, we introduce
+    the method’s dependency construction and the entire method.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节将介绍提出的Seeker方法。我们首先回顾开发者在异常处理问题上的历史观察，然后介绍三种异常处理的陷阱：脆弱代码的不敏感检测、异常类型的捕获不准确以及处理模块的扭曲解决方案。最后，我们介绍该方法的依赖构建和整个方法的流程。
+- en: 3.1 A Revisit of Human Empiricals
+  id: totrans-35
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 人类经验的再审视
+- en: Over the years, there have been numerous empirical studies and practical discussions
+    on exception handling, but what is common is that exception handling has been
+    repeatedly emphasized as an important mechanism directly related to code robustness.
+    Nakshatri et al. ([2016](https://arxiv.org/html/2410.06949v2#bib.bib20)) points
+    out that exception handling is a necessary and powerful mechanism to distinguish
+    error handling code from normal code, so that the software can do its best to
+    run in a normal state. Weimer & Necula ([2004](https://arxiv.org/html/2410.06949v2#bib.bib29))
+    points out that the exception mechanism ensures that unexpected errors do not
+    damage the stability or security of the system, prevents resource leakage, ensures
+    data integrity, and ensures that the program still runs correctly when unforeseen
+    errors occur. In addition, Jacobs & Piessens ([2009](https://arxiv.org/html/2410.06949v2#bib.bib13))
+    points out that exception handling also involves solving potential errors in the
+    program flow, which can mitigate or eliminate defects that may cause program failure
+    or unpredictable behavior.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多年来，关于异常处理的经验研究和实践讨论不计其数，但共同之处在于，异常处理被一再强调为与代码健壮性直接相关的重要机制。Nakshatri 等人（[2016](https://arxiv.org/html/2410.06949v2#bib.bib20)）指出，异常处理是区分错误处理代码和正常代码的必要且强大的机制，从而使软件能够尽可能在正常状态下运行。Weimer
+    & Necula（[2004](https://arxiv.org/html/2410.06949v2#bib.bib29)）指出，异常机制确保了意外错误不会破坏系统的稳定性或安全性，防止资源泄漏，确保数据完整性，并确保程序在发生不可预见的错误时仍能正常运行。此外，Jacobs
+    & Piessens（[2009](https://arxiv.org/html/2410.06949v2#bib.bib13)）指出，异常处理还涉及解决程序流程中的潜在错误，这可以减轻或消除可能导致程序故障或不可预测行为的缺陷。
+- en: 'Although the exception mechanism is an important solution to code robustness,
+    developers have always shown difficulties in dealing with it due to its complex
+    inheritance relationship and processing methods. de Pádua & Shang ([2017](https://arxiv.org/html/2410.06949v2#bib.bib3))
+    points out that various programming language projects show a long-tail distribution
+    of exception types when facing exception handling, which means that developers
+    may only have a simple understanding of the frequently occurring exception types.
+    However, according to section[1](https://arxiv.org/html/2410.06949v2#S1 "1 Introduction
+    ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach"),
+    good exception practices rely on developers to perform fine-grained specific capturing.
+    Nguyen et al. ([2020b](https://arxiv.org/html/2410.06949v2#bib.bib22)) also points
+    out multi-pattern effect of exception handling. For example, even for peer code,
+    capturing different exception types will play different maintenance functions,
+    so exception handling is often not generalized or single-mapped. These complex
+    exception mechanism practice skills have high requirements for developers’ programming
+    literacy. de Sousa et al. ([2020](https://arxiv.org/html/2410.06949v2#bib.bib4))
+    manually reviewed and counted the exception handling of a large number of open
+    source projects, and believed that up to 62.91% of the exception handling blocks
+    have violations such as capturing general exceptions and destructive wrapping.
+    This seriously violates the starting point of the exception mechanism. de Pádua
+    & Shang ([2017](https://arxiv.org/html/2410.06949v2#bib.bib3)) emphasizes the
+    urgent need and importance of automated exception handling suggestion tools.'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '尽管异常机制是提高代码健壮性的一个重要解决方案，但开发者一直在处理它时遇到困难，原因在于其复杂的继承关系和处理方式。de Pádua & Shang（[2017](https://arxiv.org/html/2410.06949v2#bib.bib3)）指出，各种编程语言项目在面对异常处理时，表现出长尾分布的异常类型，这意味着开发者可能仅对频繁发生的异常类型有简单的理解。然而，根据[1](https://arxiv.org/html/2410.06949v2#S1
+    "1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach")节的内容，良好的异常处理实践依赖于开发者进行细粒度的具体捕捉。Nguyen 等人（[2020b](https://arxiv.org/html/2410.06949v2#bib.bib22)）也指出了异常处理的多模式效应。例如，即便是同级别的代码，捕捉不同的异常类型会发挥不同的维护功能，因此异常处理通常不会被概括或单一映射。这些复杂的异常机制实践技能对开发者的编程素养提出了较高的要求。de
+    Sousa 等人（[2020](https://arxiv.org/html/2410.06949v2#bib.bib4)）手动审查并统计了大量开源项目的异常处理情况，认为高达62.91%的异常处理块存在违规情况，如捕捉一般异常和破坏性包装。这严重违反了异常机制的出发点。de
+    Pádua & Shang（[2017](https://arxiv.org/html/2410.06949v2#bib.bib3)）强调了自动化异常处理建议工具的迫切需求和重要性。'
+- en: The failure of human developers in the exception handling mechanism seriously
+    affects the quality of LLM’s code training data (He & Vechev ([2023a](https://arxiv.org/html/2410.06949v2#bib.bib11))),
+    which further leads to LLM’s inability to understand the usage skills of maintenance
+    functions (Wang et al. ([2024](https://arxiv.org/html/2410.06949v2#bib.bib28))).
+    To solve the above problems, we first proposed $Seeker-Java$ for the Java language.
+    This is because the Java language has a more urgent need for exception handling
+    and is completely mapped to the robustness of Java programs. Ebert et al. ([2020](https://arxiv.org/html/2410.06949v2#bib.bib5))
+    pointed out that as a fully object-oriented language, Java’s exception handling
+    is more complex than other languages, and it has a higher degree of integration
+    into language structures. Therefore, Java projects are more seriously troubled
+    by exception handling bugs. In addition, Java relies heavily on exceptions as
+    a mechanism for handling exceptional events. In contrast, other languages may
+    use different methods or have less strict exception handling mechanisms. It is
+    worth mentioning that $Seeker$’s collaborative solution based on an inherent multi-agent
+    framework plus an external knowledge base, they can quickly migrate multiple languages
+    by maintaining documents for different languages. We will also maintain $Seeker-Python$
+    and $Seeker-C\#$ in the future to provide robustness guarantees for the development
+    of more programming languages.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 人类开发者在异常处理机制中的失误严重影响了LLM代码训练数据的质量（He & Vechev ([2023a](https://arxiv.org/html/2410.06949v2#bib.bib11)))，进而导致LLM无法理解维护函数的使用技巧（Wang
+    et al. ([2024](https://arxiv.org/html/2410.06949v2#bib.bib28)))。为了解决上述问题，我们首先为Java语言提出了$Seeker-Java$。这是因为Java语言对异常处理的需求更为迫切，并且它完全映射了Java程序的稳健性。Ebert
+    et al. ([2020](https://arxiv.org/html/2410.06949v2#bib.bib5))指出，作为一门完全面向对象的语言，Java的异常处理比其他语言更为复杂，并且与语言结构的集成度更高。因此，Java项目更容易受到异常处理漏洞的困扰。此外，Java在处理异常事件时严重依赖异常机制。而其他语言可能使用不同的方法或有较为宽松的异常处理机制。值得一提的是，$Seeker$基于固有的多代理框架加上外部知识库的协作解决方案，它们可以通过维护不同语言的文档，迅速迁移多种语言。我们还将在未来维护$Seeker-Python$和$Seeker-C\#$，为更多编程语言的开发提供稳健性保障。
+- en: 3.2 Rules of Good Practice
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 良好实践的规则
+- en: 'In this section, we introduce four prompt settings: Coarse-grained Reminding
+    prompting, Fine-grained Reminding prompting, Fine-grained Inspiring prompting
+    and Fine-grained Guiding prompting, which can be used to demonstrate the mitigation
+    effect of bad practices on developers when facing exception handling tasks. For
+    Coarse-grained Reminding prompting, we use “pay attention to potential exceptions”
+    to remind developers of the exception mechanism, and let developers find the fragile
+    parts of the target code slice and handle them according to their own practical
+    experience. As shown in figure [1(a)](https://arxiv.org/html/2410.06949v2#S1.F1.sf1
+    "In Figure 1 ‣ 1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with
+    a LLM-based Multi-Agent Approach") , figure [4](https://arxiv.org/html/2410.06949v2#A1.F4
+    "Figure 4 ‣ A.1.2 Common Exception Enumeration ‣ A.1 Method Details ‣ Appendix
+    A Appendix ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent
+    Approach") and figure [5](https://arxiv.org/html/2410.06949v2#A1.F5 "Figure 5
+    ‣ A.1.2 Common Exception Enumeration ‣ A.1 Method Details ‣ Appendix A Appendix
+    ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach"),
+    although developers will consciously start screening for exception handling, given
+    the difficulties mentioned in Section [3.1](https://arxiv.org/html/2410.06949v2#S3.SS1
+    "3.1 A Revisit of Human Empiricals ‣ 3 Methodology ‣ Seeker: Enhancing Exception
+    Handling in Code with a LLM-based Multi-Agent Approach"), both humans and LLM
+    developers are very insensitive to identifying fragile code. Ren et al. ([2023](https://arxiv.org/html/2410.06949v2#bib.bib25))
+    also found this phenomenon and summarized this series of bad practices as Incorrect
+    exception handling. For Fine-grained Reminding prompting, we provide developers
+    with fine-grained reminders of specific exception types based on the fragile code
+    scenario, and let developers understand the source of code fragility and handle
+    it in a standardized manner based on the exception. Although developers will consciously
+    learn from external documents or examples, the information in these documents
+    is often too abstract to be interpreted, and as for the examples, most of the
+    time there is no standardized quality assurance or generalization. Therefore,
+    developers tend to catch exceptions inaccurately, and do not fundamentally solve
+    the potential risks of the program. Related studies have shown that the bad practice
+    of Abuse of try-catch often appears in this experimental benchmark. For Fine-grained
+    Inspiring prompting, we additionally provide a code-level scenario analysis of
+    the fragile code. Although developers still rely on their own understanding of
+    the code, the intuitive and interpretable natural language significantly improves
+    developers’ insight and analysis capabilities for exceptions in this scenario.
+    Related studies also show that for standalone function-level fragile code optimization,
+    this experimental settings can achieve relatively stable good exception handling
+    practices. However, in the face of real development scenarios with complex dependencies,
+    how to generate high-quality handling blocks with generalization is still a challenge.
+    Zhang et al. ([2023](https://arxiv.org/html/2410.06949v2#bib.bib31)) pointed out
+    that exception handling code is prone to errors in real projects. For Fine-grained
+    Guiding prompting, we additionally give a generalized handling strategy for the
+    exception. Based on the stable exception detection performance of the above experimental
+    benchmarks, developers finally achieve high-quality exception handling practices.
+    de Pádua & Shang ([2017](https://arxiv.org/html/2410.06949v2#bib.bib3)) also strongly
+    recommended that developers should use generalizable exception handling strategies,
+    because it is difficult for developers to perform higher-quality optimization
+    before fully mastering the information of an exception type. In essence, these
+    four prompt settings can be regarded as information progression for exception
+    type standarization, fragile interpretability, and handling generalization, thereby
+    changing the developer’s in-context learning. By changing the prompts, the robustness
+    of the code generated by the developer will be affected, thereby affecting the
+    quality of the final project. Note that the four sets of prompt we proposed can
+    be applied to any code-based in-context learning, thereby promoting research on
+    the impact of prompt specifications on LLM code generation performance.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们介绍了四种提示设置：粗粒度提醒提示、细粒度提醒提示、细粒度启发提示和细粒度引导提示，旨在展示在面对异常处理任务时，缓解不良实践对开发者的影响。对于粗粒度提醒提示，我们使用“注意潜在的异常”来提醒开发者异常机制，并让开发者根据自己的实际经验找出目标代码片段中脆弱的部分并进行处理。如图[1(a)](https://arxiv.org/html/2410.06949v2#S1.F1.sf1
+    "图 1 ‣ 1 介绍 ‣ Seeker：基于LLM的多代理方法提升代码异常处理")、图[4](https://arxiv.org/html/2410.06949v2#A1.F4
+    "图 4 ‣ A.1.2 常见异常列举 ‣ A.1 方法细节 ‣ 附录 A 附录 ‣ Seeker：基于LLM的多代理方法提升代码异常处理")和图[5](https://arxiv.org/html/2410.06949v2#A1.F5
+    "图 5 ‣ A.1.2 常见异常列举 ‣ A.1 方法细节 ‣ 附录 A 附录 ‣ Seeker：基于LLM的多代理方法提升代码异常处理")所示，尽管开发者会自觉地开始筛查异常处理，但考虑到[3.1节](https://arxiv.org/html/2410.06949v2#S3.SS1
+    "3.1 人类经验的回顾 ‣ 3 方法论 ‣ Seeker：基于LLM的多代理方法提升代码异常处理")中提到的困难，无论是人类开发者还是LLM开发者对识别脆弱代码都非常迟钝。Ren等人（[2023](https://arxiv.org/html/2410.06949v2#bib.bib25)）也发现了这一现象，并将这一系列不良实践总结为不正确的异常处理。对于细粒度提醒提示，我们根据脆弱代码场景为开发者提供具体异常类型的细粒度提醒，让开发者理解代码脆弱的来源，并根据异常以标准化的方式进行处理。尽管开发者会自觉地借鉴外部文档或示例，但这些文档中的信息通常过于抽象，难以解读，而对于示例，大多数情况下没有标准化的质量保证或泛化。因此，开发者往往会错误地捕获异常，无法从根本上解决程序的潜在风险。相关研究表明，在这一实验基准中，不良实践“滥用try-catch”经常出现。对于细粒度启发提示，我们额外提供了脆弱代码的代码级场景分析。尽管开发者仍依赖自己对代码的理解，但直观且可解释的自然语言大大提升了开发者对该场景中异常的洞察力和分析能力。相关研究还表明，对于独立函数级脆弱代码优化，这一实验设置可以实现相对稳定的良好异常处理实践。然而，面对具有复杂依赖关系的真实开发场景，如何生成具有泛化性的高质量处理块仍然是一个挑战。Zhang等人（[2023](https://arxiv.org/html/2410.06949v2#bib.bib31)）指出，在真实项目中，异常处理代码容易出错。对于细粒度引导提示，我们还为异常提供了一个标准化的处理策略。基于上述实验基准的稳定异常检测表现，开发者最终实现了高质量的异常处理实践。de
+    Pádua & Shang（[2017](https://arxiv.org/html/2410.06949v2#bib.bib3)）也强烈建议开发者使用可泛化的异常处理策略，因为开发者很难在完全掌握异常类型信息之前进行更高质量的优化。从本质上讲，这四种提示设置可以视为异常类型标准化、脆弱性可解释性和处理泛化的信息进展，从而改变开发者的上下文学习。通过改变提示，开发者生成的代码的鲁棒性会受到影响，从而影响最终项目的质量。值得注意的是，我们提出的这四种提示设置可以应用于任何基于代码的上下文学习，从而推动关于提示规范对LLM代码生成性能影响的研究。
+- en: Note that for most programming languages, there are three ways to handle exceptions.
+    Exceptions thrown using throws keyword in the method signature, Exceptions thrown
+    using throw keyword in the method body, and Exceptions caught in a try-catch block
+    of a method. Nakshatri et al. ([2016](https://arxiv.org/html/2410.06949v2#bib.bib20))
+    points out that the first method may not provide the real situation, because the
+    exceptions thrown using throws in the method signature will be incorrectly added
+    to the method’s call stack, thereby propagating the exception until it is caught.
+    In addition, the exceptions thrown using the second method will eventually be
+    caught by the caller using a try catch block. Therefore, the third method is the
+    most efficient and common exception practice. In our method, we only take the
+    third exception handling way as the best practice when optimize the target.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，对于大多数编程语言，处理异常有三种方式。通过方法签名中的`throws`关键字抛出的异常、通过方法体中的`throw`关键字抛出的异常，以及在方法的`try-catch`块中捕获的异常。Nakshatri等人（[2016](https://arxiv.org/html/2410.06949v2#bib.bib20)）指出，第一种方法可能无法提供真实的情况，因为通过方法签名中的`throws`抛出的异常会被错误地添加到方法的调用栈中，从而传播异常，直到被捕获。此外，使用第二种方法抛出的异常最终会被调用者使用`try-catch`块捕获。因此，第三种方法是最有效且最常见的异常处理实践。在我们的方法中，优化目标时，我们仅采用第三种异常处理方式作为最佳实践。
+- en: '![Refer to caption](img/6254d308ac6646410906aa1baad0b02a.png)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/6254d308ac6646410906aa1baad0b02a.png)'
+- en: 'Figure 2: Distribution of Exception Type. Human practice may be far from good
+    practice, thus we conduct data and info processing to align user distribution
+    to good practice.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：异常类型分布。人类的实践可能远未达到最佳实践，因此我们进行数据和信息处理，以将用户分布对齐到最佳实践。
+- en: 3.3 The RAG-Agent Method
+  id: totrans-44
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 RAG-Agent方法
+- en: '![Refer to caption](img/6dcd6283d48883d9094b42cc040eb171.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/6dcd6283d48883d9094b42cc040eb171.png)'
+- en: 'Figure 3: Seeker Work Flow. The workflow consists of four agents: Planner,
+    Detector, Ranker, and Handler, collaborating to manage exception handling in code.
+    The color circle indicates the info passing along the pipeline or used by agents.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：Seeker工作流。工作流由四个代理组成：Planner、Detector、Ranker和Handler，它们协同管理代码中的异常处理。彩色圆圈表示信息在管道中传递或由代理使用。
+- en: 'To enhance the standardization, interpretability, and generalizability of exception
+    handling in real code development scenarios, we propose a method called $Seeker$.
+    Seeker disassembles the chain-of-thought processes of senior human developers
+    and divides the exception mechanism into five specialized tasks, each handled
+    by a dedicated agent: $Planner$, $Detector$, $Predator$, $Ranker$, and $Handler$.
+    By integrating a large amount of trusted external experience documents with exception
+    practices, we build the $Common$ $Exception$ $Enumeration$ $(CEE)$. CEE is a comprehensive
+    and standardized document providing a structured and exhaustive repository of
+    exception information, encompassing scenarios, properties, and recommended handling
+    strategies for each exception type. The foundation of CEE is detailed in Appendix[A.1.2](https://arxiv.org/html/2410.06949v2#A1.SS1.SSS2
+    "A.1.2 Common Exception Enumeration ‣ A.1 Method Details ‣ Appendix A Appendix
+    ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach").
+    With the help of CEE, Seeker retrieves and enhances the detection, capture, and
+    handling tasks where the original LLM performs poorly. This method can be easily
+    integrated into existing code LLMs to generate highly robust code, and CEE has
+    promising community contribution and maintenance value, helping developers further
+    understand the ideal practices of exception mechanisms.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了增强在实际代码开发场景中异常处理的标准化、可解释性和普适性，我们提出了一种名为$Seeker$的方法。Seeker拆解了高级开发人员的思维链，并将异常机制分解为五个专门的任务，每个任务由一个专门的代理处理：$Planner$、$Detector$、$Predator$、$Ranker$和$Handler$。通过将大量可信的外部经验文档与异常处理实践结合，我们构建了$Common$
+    $Exception$ $Enumeration$（CEE）。CEE是一个全面且标准化的文档，提供了异常信息的结构化和详尽的存储库，涵盖了每种异常类型的场景、属性和推荐的处理策略。CEE的基础内容详见附录[A.1.2](https://arxiv.org/html/2410.06949v2#A1.SS1.SSS2
+    "A.1.2 Common Exception Enumeration ‣ A.1 Method Details ‣ Appendix A Appendix
+    ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach")。借助CEE，Seeker能够提升原始LLM在检测、捕获和处理任务中的表现。该方法可以轻松集成到现有的代码LLM中，生成高度稳健的代码，CEE也具有良好的社区贡献和维护价值，帮助开发人员进一步理解异常机制的理想实践。'
+- en: 'Input: Codebase $C$Output: Optimized code $C^{\prime}$ with robust exception
+    handling1 Segment the codebase $C$ into manageable units $U=\{u_{1},u_{2},\dots,u_{N}\}$;2
+    foreach *code segment $u_{i}$ in $C$* do3       if *(length of $u_{i}$ is within
+    predefined limit) and (function nesting level is low) and (logical flow is clear)* then4            
+    Add $u_{i}$ to $U$;5            6      7Initialize optimized units $U^{\prime}=\{\}$;8
+    foreach *unit $u_{i}$ in $U$* do       // Detection Phase9       Initialize potential
+    exception set $E_{i}=\{\}$;10       Use the Detector agent to analyze unit $u_{i}$;      
+    In parallel do { // Static Analysis11       Generate control flow graph $CFG_{i}$
+    and exception propagation graph $EPG_{i}$ for $u_{i}$;12       Identify sensitive
+    code segments $S_{i}^{\text{static}}=\{s_{i1}^{\text{static}},s_{i2}^{\text{static}},\dots\}$
+    in $u_{i}$;       // Scenario and Property Matching13       Perform scenario and
+    property matching on $u_{i}$;14       Identify sensitive code segments $S_{i}^{\text{match}}=\{s_{i1}^{\text{match}},s_{i2}^{\text{match}},\dots\}$
+    in $u_{i}$;15       } Combine sensitive code segments: $S_{i}=S_{i}^{\text{static}}\cup
+    S_{i}^{\text{match}}$;16       foreach *segment $s_{ij}$ in $S_{i}$* do17            
+    Detect potential exception branches $E_{bij}$ in $s_{ij}$;18             $E_{bi}\leftarrow
+    E_{bi}\cup E_{bij}$;19            20            // Retrieval Phase21       Use
+    the Predator agent to retrieve fragile code and try-catch blocks;22       Summarize
+    unit $u_{i}$ at the function level to obtain code summary $F_{i}$;23       Perform
+    Deep-RAG using $F_{i}$ and exception branches $E_{bi}$, get exception nodes $E_{ni}$;24      
+    Mapping relevant exception handling strategies $H_{i}=\{h_{i1},h_{i2},\dots\}$
+    from CEE;       // Ranking Phase25       Use the Ranker agent to assign grades
+    to exceptions in $E_{ni}$;26       foreach *exception $e_{ik}$ in $E_{ni}$* do27            
+    Calculate exception likelihood score $l_{ik}$ based on $e_{ik}$ attribute and
+    impact;28             Calculate suitability score $u_{ik}$ of handling strategy
+    $h_{ik}$;29             Compute overall grade $g_{ik}=\alpha\cdot l_{ik}+\beta\cdot
+    u_{ik}$;30            31      Rank exceptions in $E_{ni}$ based on grades $g_{ik}$
+    in descending order to get ranked list $E_{ni}^{\prime}$;       // Handling Phase32      
+    Use the Handler agent to generate optimized code $u_{i}^{\prime}$;33       foreach *exception
+    $e_{ik}$ of $E_{ni}^{\prime}$ if $g_{ik}>\gamma$* do34             Mapping handling
+    strategy $h_{ik}$ from $H_{i}$;35             Apply $h_{ik}$ to code segment(s)
+    related to $e_{ik}$ in $u_{i}$;36            37      $U^{\prime}\leftarrow U^{\prime}\cup\{u_{i}^{\prime}\}$;38      39Combine
+    optimized units $U^{\prime}$ to produce the final optimized code $C^{\prime}$;'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输入：代码库 $C$ 输出：优化后的代码 $C^{\prime}$，具有健壮的异常处理1 将代码库 $C$ 划分为可管理的单元 $U=\{u_{1},u_{2},\dots,u_{N}\}$；2
+    对每个 *代码段 $u_{i}$ 在 $C$ 中* 执行3       如果 *($u_{i}$ 的长度在预定义限制内) 且 (函数嵌套层次较低) 且 (逻辑流清晰)*，则4            
+    将 $u_{i}$ 添加到 $U$；5            6      7初始化优化后的单元 $U^{\prime}=\{\}$；8 对每个 *单元 $u_{i}$
+    在 $U$ 中* 执行     // 检测阶段9       初始化潜在异常集合 $E_{i}=\{\}$；10       使用探测器代理分析单元 $u_{i}$；      
+    同时执行 { // 静态分析11       生成控制流图 $CFG_{i}$ 和异常传播图 $EPG_{i}$，用于 $u_{i}$；12       在
+    $u_{i}$ 中识别敏感代码段 $S_{i}^{\text{static}}=\{s_{i1}^{\text{static}},s_{i2}^{\text{static}},\dots\}$；      
+    // 场景与属性匹配13       对 $u_{i}$ 执行场景与属性匹配；14       在 $u_{i}$ 中识别敏感代码段 $S_{i}^{\text{match}}=\{s_{i1}^{\text{match}},s_{i2}^{\text{match}},\dots\}$；15      
+    } 合并敏感代码段：$S_{i}=S_{i}^{\text{static}}\cup S_{i}^{\text{match}}$；16       对每个
+    *段 $s_{ij}$ 在 $S_{i}$ 中* 执行17             检测 $s_{ij}$ 中潜在的异常分支 $E_{bij}$；18            
+    $E_{bi}\leftarrow E_{bi}\cup E_{bij}$；19            20            // 检索阶段21      
+    使用捕食者代理检索易碎代码和 try-catch 块；22       在函数层面汇总单元 $u_{i}$，获得代码摘要 $F_{i}$；23      
+    使用 $F_{i}$ 和异常分支 $E_{bi}$ 执行深度 RAG，获取异常节点 $E_{ni}$；24       从 CEE 映射相关的异常处理策略
+    $H_{i}=\{h_{i1},h_{i2},\dots\}$；       // 排序阶段25       使用排序器代理为 $E_{ni}$ 中的异常分配分数；26      
+    对每个 *异常 $e_{ik}$ 在 $E_{ni}$ 中* 执行27             根据 $e_{ik}$ 的属性和影响计算异常可能性得分 $l_{ik}$；28            
+    计算处理策略 $h_{ik}$ 的适用性得分 $u_{ik}$；29             计算总体评分 $g_{ik}=\alpha\cdot l_{ik}+\beta\cdot
+    u_{ik}$；30            31      根据评分 $g_{ik}$ 对 $E_{ni}$ 中的异常进行降序排序，得到排序后的列表 $E_{ni}^{\prime}$；      
+    // 处理阶段32       使用处理器代理生成优化后的代码 $u_{i}^{\prime}$；33       对每个 *异常 $e_{ik}$ 如果
+    $g_{ik}>\gamma$ 在 $E_{ni}^{\prime}$ 中* 执行34             从 $H_{i}$ 映射处理策略 $h_{ik}$；35            
+    将 $h_{ik}$ 应用到与 $e_{ik}$ 相关的代码段(s) 中，在 $u_{i}$ 中；36            37      $U^{\prime}\leftarrow
+    U^{\prime}\cup\{u_{i}^{\prime}\}$；38      39合并优化后的单元 $U^{\prime}$，生成最终优化后的代码 $C^{\prime}$；
+- en: Algorithm 1 Seeker Framework
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 Seeker 框架
+- en: Generally, given a piece of code, we first use a planner agent to segment it
+    into manageable units such as function blocks, class blocks, and file blocks.
+    The planner employs a thoughtful approach to segmentation by considering factors
+    such as the overall code volume, dependency levels, and requirement relationships.
+    This strategy helps mitigate the pressure on processing, particularly regarding
+    context window limitations and complex dependency chains, ensuring that no single
+    unit overwhelms the analysis agents. By balancing the granularity of segmentation,
+    we can avoid overly fine divisions that may introduce high complexity, thus maintaining
+    clarity and efficiency in handling large and intricate codebases.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一般来说，给定一段代码，我们首先使用计划代理将其划分为可管理的单元，如函数块、类块和文件块。计划代理通过考虑整体代码量、依赖关系和需求关系等因素，采用深思熟虑的分段方法。这一策略有助于减轻处理压力，特别是在处理上下文窗口限制和复杂依赖链时，确保没有单一单元会压倒分析代理。通过平衡分段的粒度，我们可以避免过细的划分引入过高的复杂度，从而在处理庞大而复杂的代码库时保持清晰和高效。
+- en: 'For the $Detector$ agent, it simultaneously performs scenario and property
+    matching alongside static analysis to identify fragile areas in the code that
+    are likely to lead to errors or crashes. These two approaches run in parallel,
+    each contributing their strengths to the detection process. Scenario and property
+    matching offers shallow-level analysis, capturing vulnerabilities based on semantic
+    cues and contextual scenarios that static analysis might overlook due to its challenges
+    in achieving high coverage for exception handling issues. Conversely, static analysis
+    excels in uncovering complex dependencies and deep-level defects, providing insights
+    that shallow analysis may miss. By combining the results from both methods—taking
+    their union—the $Detector$ agent covers both shallow and deep-level risks, effectively
+    detecting potential exceptions with equal consideration for long-tail, domain-specific,
+    or customized exception types. However, as discussed in section [1](https://arxiv.org/html/2410.06949v2#S1
+    "1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach"), detecting exceptions without considering the complex inheritance
+    relationships between exception types may not yield optimal results, as it could
+    lead to inaccurate exception specificity in the exception hierarchy.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于$Detector$代理，它同时执行场景和属性匹配以及静态分析，以识别代码中可能导致错误或崩溃的脆弱区域。这两种方法并行运行，各自发挥其在检测过程中的优势。场景和属性匹配提供浅层分析，基于语义线索和上下文场景捕获漏洞，而静态分析可能由于在实现高覆盖率异常处理问题时的挑战而忽视这些漏洞。相反，静态分析擅长发现复杂的依赖关系和深层缺陷，提供浅层分析可能遗漏的见解。通过结合这两种方法的结果——取其并集——$Detector$代理能够涵盖浅层和深层风险，有效检测潜在的异常，同时同等考虑长尾、领域特定或定制的异常类型。然而，正如在[1](https://arxiv.org/html/2410.06949v2#S1
+    "1 Introduction ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach")节中所讨论的那样，若不考虑异常类型之间复杂的继承关系进行异常检测，可能无法获得最佳结果，因为这可能导致异常层级中的异常特异性不准确。'
+- en: 'Therefore, it is necessary to incorporate external knowledge to guide the capture
+    and analysis processes. To achieve this, we integrate the CEE into the $Predator$
+    agent. Similar to Retrieval-Augmented Generation (RAG) models, the $Predator$
+    agent summarizes the code at the function level and queries the CEE for relevant
+    exception attributes. It performs multi-layered deep searches to retrieve information
+    that can be applied to the detected issues, providing valuable context for exception
+    handling. Crucially, during few-shot testing phases, the environment supplies
+    feedback on both the accuracy and coverage of the retrieved information. This
+    feedback is integral to the agent’s learning process, enabling it to refine its
+    search strategies and improve the relevance of the information it retrieves. We
+    propose a Deep Retrieval-Augmented Generation (Deep-RAG) algorithm to handle the
+    complex inheritance relationships in exception types as further detailed in Appendix
+    [A.1.1](https://arxiv.org/html/2410.06949v2#A1.SS1.SSS1 "A.1.1 Deep-RAG Algorithm
+    ‣ A.1 Method Details ‣ Appendix A Appendix ‣ Seeker: Enhancing Exception Handling
+    in Code with a LLM-based Multi-Agent Approach").'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '因此，有必要结合外部知识来指导捕获和分析过程。为此，我们将 CEE 集成到 $Predator$ 代理中。类似于检索增强生成（RAG）模型，$Predator$
+    代理在函数级别总结代码，并查询 CEE 获取相关的异常属性。它进行多层次的深度检索，以获取可以应用于检测到的问题的信息，为异常处理提供有价值的上下文信息。关键是在少量示例测试阶段，环境会反馈检索信息的准确性和覆盖度。这一反馈对于代理的学习过程至关重要，帮助其优化搜索策略并提高检索信息的相关性。我们提出了一种深度检索增强生成（Deep-RAG）算法，以处理异常类型中的复杂继承关系，详见附录
+    [A.1.1](https://arxiv.org/html/2410.06949v2#A1.SS1.SSS1 "A.1.1 Deep-RAG Algorithm
+    ‣ A.1 Method Details ‣ Appendix A Appendix ‣ Seeker: Enhancing Exception Handling
+    in Code with a LLM-based Multi-Agent Approach")。'
+- en: By combining the outputs from the $Detector$ and $Predator$ agents, the $Ranker$
+    assigns grades to the detected exceptions based on their likelihood and the suitability
+    of the handling strategies retrieved from the CEE. This grading system ensures
+    that $Seeker$ prioritizes the most critical exceptions for immediate handling.
+    The $Ranker$ considers factors such as the likelihood of the exception occurring,
+    the potential impact on the program, and the specificity of the exception type
+    within the inheritance hierarchy. It gives feedback to $Detector$ and $Predator$
+    agents along with the node selection steps through score ranking and judge, ensuring
+    the agents learning from the actual code environment.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过结合 $Detector$ 和 $Predator$ 代理的输出，$Ranker$ 根据异常的发生可能性及从 CEE 检索到的处理策略的适用性，为检测到的异常分配等级。这个评分系统确保
+    $Seeker$ 优先处理最关键的异常。$Ranker$ 会考虑诸如异常发生的可能性、对程序的潜在影响，以及异常类型在继承层次结构中的特异性等因素。它通过评分排序和判断反馈给
+    $Detector$ 和 $Predator$ 代理，以及节点选择步骤，确保代理能够从实际代码环境中学习。
+- en: Analyzing the ranked exceptions, the $Handler$ agent generates optimized code
+    that incorporates robust handling strategies. It utilizes templates and logic
+    patterns derived from the CEE to ensure that the generated code is functionally
+    correct. The Handler focuses on capturing accurate fine-grained exceptions, moving
+    down the class hierarchy to provide additional information about errors, beyond
+    what the superclass exceptions provide. This approach helps developers quickly
+    identify the source of the problem, effectively improve the readability and maintainability
+    of the code, and avoid mishandling different types of errors.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分析排名异常时，$Handler$ 代理生成优化的代码，融合了强大的处理策略。它利用从 CEE（代码环境模型）中提取的模板和逻辑模式，确保生成的代码在功能上是正确的。Handler
+    主要集中于捕捉精确的细粒度异常，沿着类层次结构向下推进，提供超出父类异常所能提供的额外错误信息。这种方法帮助开发人员快速识别问题的来源，有效提升代码的可读性和可维护性，避免不同类型错误的误处理。
+- en: 'However, integrating such a comprehensive exception handling mechanism introduces
+    challenges in computational overhead, especially when dealing with a large number
+    of exception types and complex inheritance relationships. To address this, we
+    designed a high-concurrency interface that keeps the additional computing time
+    overhead constant, regardless of the code volume level. This ensures that the
+    method is scalable and the complexity is controllable when facing any codebase
+    size. We discuss the time costs of Seeker in detail in Appendix [A.2.3](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS3
+    "A.2.3 Computation Cost Analysis ‣ A.2 Experimental Details ‣ Appendix A Appendix
+    ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach").'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，集成如此全面的异常处理机制会带来计算开销的挑战，特别是在处理大量异常类型和复杂继承关系时。为了解决这个问题，我们设计了一个高并发接口，确保无论代码量级如何，额外的计算时间开销保持恒定。这保证了方法具有可扩展性，并且在面对任何代码库大小时，复杂度可控。我们在附录[A.2.3](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS3
+    "A.2.3 计算开销分析 ‣ A.2 实验细节 ‣ 附录 A 附录 ‣ Seeker：基于LLM的多代理方法提升代码异常处理")中详细讨论了Seeker的时间成本。
+- en: 4 Experiments
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验
+- en: In this section, we evaluate the performance of our proposed method, Seeker,
+    on the task of exception handling code generation. We compare our approach with
+    the state-of-the-art method KPC (Ren et al., [2023](https://arxiv.org/html/2410.06949v2#bib.bib25)),
+    traditional Retrieval-Augmented Generation (RAG), and General Prompting methods.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们评估了我们提出的方法Seeker在异常处理代码生成任务上的表现。我们将我们的方法与最先进的方法KPC（Ren等人，[2023](https://arxiv.org/html/2410.06949v2#bib.bib25)）、传统的检索增强生成（RAG）方法和通用提示方法进行了比较。
+- en: 'To comprehensively assess the effectiveness of our method, we employ six metrics:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了全面评估我们方法的有效性，我们采用了六个指标：
+- en: 1\. Automated Code Review Score (ACRS)
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 自动化代码审查得分（ACRS）
+- en: Based on an automated code review model, this metric evaluates the overall quality
+    of the generated code in terms of adherence to coding standards and best practices.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于自动化代码审查模型，该指标评估生成代码在遵循编码标准和最佳实践方面的整体质量。
+- en: '|  | $\text{ACRS}=\text{CodeReviewModel}(\text{GeneratedCode})$ |  |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{ACRS}=\text{CodeReviewModel}(\text{GeneratedCode})$ |  |'
+- en: 'Explanation: A higher ACRS indicates better code quality, reflecting well-structured
+    and maintainable code.'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解释：较高的ACRS表示更好的代码质量，反映了良好结构化和易维护的代码。
+- en: 2\. Coverage (COV)
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. 覆盖率（COV）
+- en: This metric measures the coverage of sensitive code detected by the Detector
+    agent compared to the actual sensitive code.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该指标衡量了Detector代理检测到的敏感代码与实际敏感代码的覆盖率。
+- en: '|  | $\text{COV}=\frac{&#124;\text{Correct Detected Sensitive Code}&#124;}{&#124;\text{Actual
+    % Sensitive Code}&#124;}$ |  |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{COV}=\frac{&#124;\text{Correct Detected Sensitive Code}&#124;}{&#124;\text{Actual
+    % Sensitive Code}&#124;}$ |  |'
+- en: 'Explanation: It quantifies the proportion of actual sensitive code that our
+    method successfully detects. Over-detection (marking more code than necessary)
+    is not penalized.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解释：它量化了我们的方法成功检测到的实际敏感代码的比例。过度检测（标记多于必要的代码）不会受到惩罚。
+- en: 3\. Coverage Pass (COV-P)
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 覆盖通过（COV-P）
+- en: This metric assesses the coverage relation between the try-blocks detected by
+    the Predator agent and the actual code that requires try-catch blocks.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该指标评估Predator代理检测到的try-blocks与实际需要try-catch块的代码之间的覆盖关系。
+- en: '|  | $\text{COV\text{-}P}=\frac{&#124;\text{Correct Try\text{-}Blocks}&#124;}{&#124;\text{Actual
+    % Try\text{-}Blocks}&#124;}$ |  |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{COV\text{-}P}=\frac{&#124;\text{Correct Try\text{-}Blocks}&#124;}{&#124;\text{Actual
+    % Try\text{-}Blocks}&#124;}$ |  |'
+- en: 'Explanation: A try-block is considered correct if it exactly matches the actual
+    code lines. Over-marking or under-marking is counted as incorrect. Over-detection
+    is penalized in this metric by including the incorrectly detected try-catch blocks
+    in the denominator while counting them as incorrect (zero) in the numerator, thus
+    reducing the overall Coverage Pass score.'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解释：如果try-block与实际代码行完全匹配，则认为它是正确的。过度标记或标记不足都算作不正确。在这个指标中，过度检测会受到惩罚，方法是将错误检测到的try-catch块计入分母，并在分子中视为不正确（零），从而降低整体覆盖通过得分。
+- en: 4\. Accuracy (ACC)
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4\. 准确性（ACC）
+- en: This metric evaluates the correctness of the exception types identified by the
+    Predator agent compared to the actual exception types.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该指标评估Predator代理识别的异常类型与实际异常类型的正确性。
+- en: '|  | $\text{ACC}=\frac{&#124;\text{Correct Exception Types}&#124;}{&#124;\text{Total
+    Exception % Types Identified}&#124;}$ |  |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{ACC}=\frac{&#124;\text{Correct Exception Types}&#124;}{&#124;\text{Total
+    Exception % Types Identified}&#124;}$ |  |'
+- en: 'Explanation: An exception type is considered correct if it matches the actual
+    exception or is a reasonable subclass of the actual exception type.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 说明：如果异常类型与实际异常匹配，或是实际异常类型的合理子类，则该异常类型被认为是正确的。
+- en: 5\. Edit Similarity (ES)
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 5. 编辑相似度（ES）
+- en: This metric computes the text similarity between the generated try-catch blocks
+    after processing by the Handler agent and the actual try-catch blocks.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该指标计算了经过处理的Handler代理生成的try-catch代码块与实际try-catch代码块之间的文本相似度。
+- en: '|  | $\text{ES}=\text{Similarity}(\text{Generated Try\text{-}Catch},\text{Actual
+    Try% \text{-}Catch})$ |  |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{ES}=\text{相似度}(\text{生成的Try\text{-}Catch},\text{实际Try\text{-}Catch})$
+    |  |'
+- en: 'Explanation: We use the Levenshtein distance to measure similarity. A higher
+    ES indicates that the generated code closely matches the actual code.'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 说明：我们使用Levenshtein距离来衡量相似度。较高的ES表示生成的代码与实际代码的匹配度较高。
+- en: 6\. Code Review Score (CRS)
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 6. 代码审查得分（CRS）
+- en: 'This metric involves submitting the generated try-catch blocks to GPT-4o for
+    evaluation. The language model provides a binary assessment: *good* or *bad*.'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该指标涉及将生成的try-catch代码块提交给GPT-4o进行评估。语言模型提供二元评估：*良好* 或 *差*。
+- en: '|  | $\text{CRS}=\frac{&#124;\text{Good Evaluations}&#124;}{&#124;\text{Total
+    Evaluations}&#124;}$ |  |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{CRS}=\frac{&#124;\text{良好评估}&#124;}{&#124;\text{总评估}&#124;}$ |  |'
+- en: 'Explanation: CRS reflects the proportion of generated exception handling implementations
+    that are considered good according to engineering best practices.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 说明：CRS反映了根据工程最佳实践，生成的异常处理实现中被认为是良好的比例。
+- en: 'We conducted experiments using GPT-4o as the agent’s internal large model.
+    Our dataset consists of 750 fragile Java code snippets extracted from real-world
+    projects, following the rule as shown in Appendix [A.2.1](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS1
+    "A.2.1 Datasets ‣ A.2 Experimental Details ‣ Appendix A Appendix ‣ Seeker: Enhancing
+    Exception Handling in Code with a LLM-based Multi-Agent Approach"). We compare
+    our method against KPC (Ren et al., [2023](https://arxiv.org/html/2410.06949v2#bib.bib25)),
+    traditional RAG, and General Prompting methods. The performance comparison is
+    presented in Table [1](https://arxiv.org/html/2410.06949v2#S4.T1 "Table 1 ‣ 4
+    Experiments ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent
+    Approach").'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用GPT-4o作为代理的内部大型模型进行实验。我们的数据集包含从真实项目中提取的750个易损Java代码片段，遵循附录[A.2.1](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS1
+    "A.2.1 数据集 ‣ A.2 实验细节 ‣ 附录A 附录 ‣ Seeker：基于LLM的多代理方法增强代码中的异常处理")中所示的规则。我们将我们的方法与KPC（Ren等人，[2023](https://arxiv.org/html/2410.06949v2#bib.bib25)）、传统RAG和通用提示方法进行了比较。性能比较见表[1](https://arxiv.org/html/2410.06949v2#S4.T1
+    "表1 ‣ 4 实验 ‣ Seeker：基于LLM的多代理方法增强代码中的异常处理")。
+- en: 'Table 1: Comparison of Exception Handling Code Generation Methods'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：异常处理代码生成方法的比较
+- en: '| Method | ACRS | COV (%) | COV-P (%) | ACC (%) | ES | CRS (%) |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | ACRS | COV（%） | COV-P（%） | ACC（%） | ES | CRS（%） |'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '| General Prompting | 0.21 | 13 | 9 | 8 | 0.15 | 24 |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 通用提示 | 0.21 | 13 | 9 | 8 | 0.15 | 24 |'
+- en: '| Traditional RAG | 0.35 | 35 | 31 | 29 | 0.24 | 31 |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| 传统RAG | 0.35 | 35 | 31 | 29 | 0.24 | 31 |'
+- en: '| KPC Ren et al. ([2023](https://arxiv.org/html/2410.06949v2#bib.bib25)) |
+    0.26 | 14 | 11 | 8 | 0.17 | 27 |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| KPC Ren等人（[2023](https://arxiv.org/html/2410.06949v2#bib.bib25)） | 0.26 |
+    14 | 11 | 8 | 0.17 | 27 |'
+- en: '| Our Method | 0.85 | 91 | 81 | 79 | 0.64 | 92 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 | 0.85 | 91 | 81 | 79 | 0.64 | 92 |'
+- en: 'As shown in Table [1](https://arxiv.org/html/2410.06949v2#S4.T1 "Table 1 ‣
+    4 Experiments ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach"), our method outperforms the baselines across all metrics.
+    Specifically, we achieve:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如表[1](https://arxiv.org/html/2410.06949v2#S4.T1 "表1 ‣ 4 实验 ‣ Seeker：基于LLM的多代理方法增强代码中的异常处理")所示，我们的方法在所有指标上均优于基准方法。具体来说，我们达成了：
+- en: '- A higher ACRS, indicating superior overall code quality. - Greater Coverage
+    (COV) and Coverage Pass (COV-P), demonstrating our method’s effectiveness in detecting
+    and correctly wrapping sensitive code regions. - Higher Accuracy (ACC) in identifying
+    the correct exception types, including recognizing subclass relationships. - An
+    improved Edit Similarity (ES), showing that our generated code closely matches
+    the actual exception handling code. - A higher Code Review Score (CRS), confirming
+    that our implementations are more frequently deemed good by the LLM reviewer.'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 更高的ACRS，表明整体代码质量更优。 - 更大的覆盖率（COV）和覆盖通过率（COV-P），展示我们方法在检测和正确包裹敏感代码区域方面的有效性。
+    - 更高的准确性（ACC），能够正确识别异常类型，包括识别子类关系。 - 改进的编辑相似度（ES），表明我们生成的代码与实际的异常处理代码高度匹配。 - 更高的代码审查评分（CRS），确认我们的实现更频繁地被LLM审阅者认为是优质的。'
+- en: 'Our method’s superior performance can be attributed to several factors:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们方法的卓越表现可归因于多个因素：
+- en: '1\. Comprehensive Exception Knowledge: By incorporating the Common Exception
+    Enumeration (CEE), our method benefits from extensive exception scenarios, properties,
+    and handling logic, enabling more accurate detection and handling.'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 综合异常知识：通过结合常见异常枚举（CEE），我们的方法得益于广泛的异常场景、属性和处理逻辑，从而实现更准确的检测和处理。
+- en: '2\. Specialized Agent Framework: The Seeker framework decomposes the task into
+    specialized agents (Scanner, Detector, Predator, Ranker, Handler), each focusing
+    on specific aspects, leading to improved overall performance.'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. 专业化代理框架：Seeker框架将任务分解为多个专业化代理（扫描器、检测器、捕猎者、排序器、处理器），每个代理专注于特定方面，从而提升整体性能。
+- en: '3\. Integration of Best Practices: Leveraging trusted external documents and
+    industry best practices ensures that the generated code adheres to high standards,
+    improving both quality and maintainability.'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 最佳实践的整合：利用可靠的外部文档和行业最佳实践，确保生成的代码符合高标准，从而提升代码质量和可维护性。
+- en: 'We further evaluate our method using different open-source and closed-source
+    model, which is detailed in Appendix[A.2.4](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS4
+    "A.2.4 Further Results on different LLMS ‣ A.2 Experimental Details ‣ Appendix
+    A Appendix ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent
+    Approach").'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们进一步使用不同的开源和闭源模型评估了我们的方法，详细内容见附录[A.2.4](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS4
+    "A.2.4 Further Results on different LLMS ‣ A.2 Experimental Details ‣ Appendix
+    A Appendix ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent
+    Approach")。'
+- en: Our experiments demonstrate that Seeker achieves state-of-the-art performance
+    in exception handling code generation. By effectively combining comprehensive
+    exception knowledge with a specialized agent framework, our method addresses the
+    complexities of exception handling in code generation. The superior performance
+    across all metrics highlights the importance of integrating domain-specific knowledge
+    and best practices into code generation models.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验表明，Seeker在异常处理代码生成方面达到了业界领先水平。通过有效地将全面的异常知识与专业化代理框架相结合，我们的方法解决了代码生成中异常处理的复杂性。各项指标的卓越表现突显了将特定领域知识和最佳实践集成到代码生成模型中的重要性。
+- en: 5 Conclusion
+  id: totrans-99
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结论
+- en: 'In this paper, we extend the study of the impact of prompt specifications on
+    the robustness of LLM generated code. We conduct extensive comparative experiments
+    using four sets of prompt settings and further confirm the mitigating effect of
+    developers’ poor exception handling practices. To exploit this phenomenon, we
+    introduce the Seeker method, a multi-agent collaboration framework that provides
+    LLM with the prompt information required for mitigation effects with the support
+    of CEE documents and Deep-RAG algorithms. The upper bound model achieves SOTA
+    performance on exception handling tasks. In general, Seeker can be integrated
+    into any base model, extended to multiple programming languages, and even generalized
+    to knowledge analysis and reasoning of general inheritance relations, such as
+    requirements engineering [A.3](https://arxiv.org/html/2410.06949v2#A1.SS3 "A.3
+    Other Applicable Scenarios Analysis ‣ Appendix A Appendix ‣ Seeker: Enhancing
+    Exception Handling in Code with a LLM-based Multi-Agent Approach"). We hope that
+    our findings and proposed methods can provide new insights and promote future
+    research in these areas. The source code of this paper is available at [https://github.com/XMZhangAI/Seeker](https://github.com/XMZhangAI/Seeker).'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在本文中，我们扩展了关于提示规范对大语言模型生成代码的鲁棒性影响的研究。我们使用四组提示设置进行了广泛的对比实验，并进一步确认了开发者不良异常处理实践的缓解作用。为了利用这一现象，我们引入了Seeker方法，这是一种多智能体协作框架，借助CEE文档和Deep-RAG算法为LLM提供缓解效果所需的提示信息。上限模型在异常处理任务上达到了SOTA性能。总体而言，Seeker可以集成到任何基础模型中，扩展到多种编程语言，甚至可以推广到知识分析和一般继承关系的推理，如需求工程
+    [A.3](https://arxiv.org/html/2410.06949v2#A1.SS3 "A.3 其他适用场景分析 ‣ 附录 A 附录 ‣ Seeker:
+    基于LLM的多智能体方法增强代码中的异常处理")。我们希望我们的发现和提出的方法能够为这些领域提供新的见解并促进未来的研究。本文的源代码可在 [https://github.com/XMZhangAI/Seeker](https://github.com/XMZhangAI/Seeker)
+    获取。'
+- en: References
+  id: totrans-101
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Chen et al. (2021) Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde
+    de Oliveira Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph, Greg
+    Brockman, et al. Evaluating large language models trained on code. *arXiv preprint
+    arXiv:2107.03374*, 2021.
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2021）Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde
+    de Oliveira Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph, Greg
+    Brockman 等人。评估训练有素的代码大语言模型。*arXiv 预印本 arXiv:2107.03374*，2021。
+- en: Clade (2023) Clade. 2023. URL [https://www.anthropic.com/index/claude-2](https://www.anthropic.com/index/claude-2).
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Clade（2023）Clade. 2023. URL [https://www.anthropic.com/index/claude-2](https://www.anthropic.com/index/claude-2)。
+- en: de Pádua & Shang (2017) Guilherme B. de Pádua and Weiyi Shang. Revisiting exception
+    handling practices with exception flow analysis. In *SCAM*, 2017.
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: de Pádua & Shang（2017）Guilherme B. de Pádua 和 Weiyi Shang。通过异常流分析重新审视异常处理实践。发表于
+    *SCAM*，2017。
+- en: de Sousa et al. (2020) Dêmora Bruna Cunha de Sousa, Paulo Henrique M. Maia,
+    Lincoln S. Rocha, and Windson Viana. Studying the evolution of exception handling
+    anti-patterns in a long-lived large-scale project. *J. Braz. Comput. Soc.*, 2020.
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: de Sousa 等人（2020）Dêmora Bruna Cunha de Sousa, Paulo Henrique M. Maia, Lincoln
+    S. Rocha, 和 Windson Viana。研究长期大型项目中异常处理反模式的演变。*J. Braz. Comput. Soc.*, 2020。
+- en: Ebert et al. (2020) Felipe Ebert, Fernando Castor, and Alexander Serebrenik.
+    A reflection on ”an exploratory study on exception handling bugs in java programs”.
+    In *SANER*, 2020.
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ebert 等人（2020）Felipe Ebert, Fernando Castor 和 Alexander Serebrenik。对“关于Java程序中的异常处理bug的探索性研究”的反思。发表于
+    *SANER*，2020。
+- en: GPT-3 (2022) GPT-3. 2022. URL [https://platform.openai.com/docs/models/gpt-base](https://platform.openai.com/docs/models/gpt-base).
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: GPT-3（2022）GPT-3. 2022. URL [https://platform.openai.com/docs/models/gpt-base](https://platform.openai.com/docs/models/gpt-base)。
+- en: GPT-3.5 (2023) GPT-3.5. 2023. URL [https://platform.openai.com/docs/models/gpt-base](https://platform.openai.com/docs/models/gpt-base).
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: GPT-3.5 (2023) GPT-3.5. 2023. URL [https://platform.openai.com/docs/models/gpt-base](https://platform.openai.com/docs/models/gpt-base)。
+- en: GPT-4 (2023) GPT-4. 2023. URL [https://platform.openai.com/docs/models/gpt-3-5](https://platform.openai.com/docs/models/gpt-3-5).
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: GPT-4（2023）GPT-4. 2023. URL [https://platform.openai.com/docs/models/gpt-3-5](https://platform.openai.com/docs/models/gpt-3-5)。
+- en: GPT-4o (2024) GPT-4o. 2024. URL [https://platform.openai.com/docs/models/gpt-4o](https://platform.openai.com/docs/models/gpt-4o).
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: GPT-4o (2024) GPT-4o. 2024. URL [https://platform.openai.com/docs/models/gpt-4o](https://platform.openai.com/docs/models/gpt-4o)。
+- en: 'Guo et al. (2024) Daya Guo, Qihao Zhu, Dejian Yang, Zhenda Xie, Kai Dong, Wentao
+    Zhang, Guanting Chen, Xiao Bi, Y. Wu, Y. K. Li, et al. Deepseek-coder: When the
+    large language model meets programming - the rise of code intelligence. *arXiv
+    preprint arXiv:2401.14196*, 2024.'
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Guo 等人 (2024) Daya Guo, Qihao Zhu, Dejian Yang, Zhenda Xie, Kai Dong, Wentao
+    Zhang, Guanting Chen, Xiao Bi, Y. Wu, Y. K. Li 等人. Deepseek-coder: 当大规模语言模型遇到编程——代码智能的崛起.
+    *arXiv 预印本 arXiv:2401.14196*, 2024。'
+- en: 'He & Vechev (2023a) Jingxuan He and Martin T. Vechev. Large language models
+    for code: Security hardening and adversarial testing. In *CCS*, 2023a.'
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: He & Vechev (2023a) Jingxuan He 和 Martin T. Vechev. 用于代码的大规模语言模型：安全加固与对抗性测试.
+    见于 *CCS*, 2023a。
+- en: 'He & Vechev (2023b) Jingxuan He and Martin T. Vechev. Large language models
+    for code: Security hardening and adversarial testing. In *CCS*, 2023b.'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: He & Vechev (2023b) Jingxuan He 和 Martin T. Vechev. 用于代码的大规模语言模型：安全加固与对抗性测试.
+    见于 *CCS*, 2023b。
+- en: 'Jacobs & Piessens (2009) Bart Jacobs and Frank Piessens. Failboxes: Provably
+    safe exception handling. In *ECOOP*, 2009.'
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Jacobs & Piessens (2009) Bart Jacobs 和 Frank Piessens. Failboxes: 可证明安全的异常处理.
+    见于 *ECOOP*, 2009。'
+- en: 'Jimenez et al. (2024) Carlos E. Jimenez, John Yang, Alexander Wettig, Shunyu
+    Yao, Kexin Pei, Ofir Press, and Karthik R. Narasimhan. Swe-bench: Can language
+    models resolve real-world github issues? In *ICLR*, 2024.'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Jimenez 等人 (2024) Carlos E. Jimenez, John Yang, Alexander Wettig, Shunyu Yao,
+    Kexin Pei, Ofir Press 和 Karthik R. Narasimhan. Swe-bench: 语言模型能否解决现实中的 GitHub
+    问题？ 见于 *ICLR*, 2024。'
+- en: 'Li et al. (2024a) Jia Li, Ge Li, Yunfei Zhao, Yongmin Li, Huanyu Liu, Hao Zhu,
+    Lecheng Wang, Kaibo Liu, Zheng Fang, Lanshen Wang, et al. Deveval: A manually-annotated
+    code generation benchmark aligned with real-world code repositories. In *ACL(Findings)*,
+    2024a.'
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li 等人 (2024a) Jia Li, Ge Li, Yunfei Zhao, Yongmin Li, Huanyu Liu, Hao Zhu,
+    Lecheng Wang, Kaibo Liu, Zheng Fang, Lanshen Wang 等人. Deveval: 一种与真实代码库对齐的人工标注代码生成基准.
+    见于 *ACL(Findings)*, 2024a。'
+- en: Li et al. (2024b) Junjie Li, Fazle Rabbi, Cheng Cheng, Aseem Sangalay, Yuan
+    Tian, and Jinqiu Yang. An exploratory study on fine-tuning large language models
+    for secure code generation. *arXiv preprint 2408.09078*, 2024b.
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人 (2024b) Junjie Li, Fazle Rabbi, Cheng Cheng, Aseem Sangalay, Yuan Tian
+    和 Jinqiu Yang. 关于对大规模语言模型进行微调以生成安全代码的探索性研究. *arXiv 预印本 2408.09078*, 2024b。
+- en: Li et al. (2024c) Junjie Li, Aseem Sangalay, Cheng Cheng, Yuan Tian, and Jinqiu
+    Yang. Fine tuning large language model for secure code generation. In *FORGE*,
+    2024c.
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人 (2024c) Junjie Li, Aseem Sangalay, Cheng Cheng, Yuan Tian 和 Jinqiu Yang.
+    微调大规模语言模型以生成安全代码. 见于 *FORGE*, 2024c。
+- en: 'Li et al. (2023) Raymond Li, Loubna Ben Allal, Yangtian Zi, Niklas Muennighoff,
+    Denis Kocetkov, Chenghao Mou, Marc Marone, Christopher Akiki, Jia Li, Jenny Chim,
+    et al. Starcoder: may the source be with you! *TMLR*, 2023.'
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li 等人 (2023) Raymond Li, Loubna Ben Allal, Yangtian Zi, Niklas Muennighoff,
+    Denis Kocetkov, Chenghao Mou, Marc Marone, Christopher Akiki, Jia Li, Jenny Chim
+    等人. Starcoder: 愿源代码与你同在！*TMLR*, 2023。'
+- en: 'Luo et al. (2024) Ziyang Luo, Can Xu, Pu Zhao, Qingfeng Sun, Xiubo Geng, Wenxiang
+    Hu, Chongyang Tao, Jing Ma, Qingwei Lin, and Daxin Jiang. Wizardcoder: Empowering
+    code large language models with evol-instruct. In *ICLR*, 2024.'
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Luo 等人 (2024) Ziyang Luo, Can Xu, Pu Zhao, Qingfeng Sun, Xiubo Geng, Wenxiang
+    Hu, Chongyang Tao, Jing Ma, Qingwei Lin 和 Daxin Jiang. Wizardcoder: 通过 evol-instruct
+    赋能大规模语言模型生成代码. 见于 *ICLR*, 2024。'
+- en: 'Nakshatri et al. (2016) Suman Nakshatri, Maithri Hegde, and Sahithi Thandra.
+    Analysis of exception handling patterns in java projects: an empirical study.
+    In *MSR*, 2016.'
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nakshatri 等人 (2016) Suman Nakshatri, Maithri Hegde 和 Sahithi Thandra. Java 项目中异常处理模式的分析：一项实证研究.
+    见于 *MSR*, 2016。
+- en: Nguyen et al. (2020a) Tam Nguyen, Phong Vu, and Tung Nguyen. Code recommendation
+    for exception handling. In *ESEC/FSE*, 2020a.
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nguyen 等人 (2020a) Tam Nguyen, Phong Vu 和 Tung Nguyen. 异常处理的代码推荐. 见于 *ESEC/FSE*,
+    2020a。
+- en: Nguyen et al. (2020b) Tam Nguyen, Phong Vu, and Tung Nguyen. Code recommendation
+    for exception handling. In *ESEC/FSE*, 2020b.
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nguyen 等人 (2020b) Tam Nguyen, Phong Vu 和 Tung Nguyen. 异常处理的代码推荐. 见于 *ESEC/FSE*,
+    2020b。
+- en: o1 (2024) OpenAI o1. 2024. URL [https://platform.openai.com/docs/models/o1](https://platform.openai.com/docs/models/o1).
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: o1 (2024) OpenAI o1. 2024. 网址 [https://platform.openai.com/docs/models/o1](https://platform.openai.com/docs/models/o1)。
+- en: Osman et al. (2017) Haidar Osman, Andrei Chis, Jakob Schaerer, Mohammad Ghafari,
+    and Oscar Nierstrasz. On the evolution of exception usage in java projects. In
+    *SANER*, 2017.
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Osman 等人 (2017) Haidar Osman, Andrei Chis, Jakob Schaerer, Mohammad Ghafari
+    和 Oscar Nierstrasz. Java 项目中异常使用的演变. 见于 *SANER*, 2017。
+- en: 'Ren et al. (2023) Xiaoxue Ren, Xinyuan Ye, Dehai Zhao, Zhenchang Xing, and
+    Xiaohu Yang. From misuse to mastery: Enhancing code generation with knowledge-driven
+    AI chaining. In *ASE*, 2023.'
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ren 等人 (2023) Xiaoxue Ren, Xinyuan Ye, Dehai Zhao, Zhenchang Xing 和 Xiaohu
+    Yang. 从误用到精通: 通过知识驱动的 AI 链接增强代码生成. 见于 *ASE*, 2023。'
+- en: 'Rozière et al. (2023) Baptiste Rozière, Jonas Gehring, Fabian Gloeckle, Sten
+    Sootla, Itai Gat, Xiaoqing Ellen Tan, Yossi Adi, Jingyu Liu, Tal Remez, Jérémy
+    Rapin, et al. Code llama: Open foundation models for code. *arXiv preprint arXiv:2308.12950*,
+    2023.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Rozière et al. (2023) Baptiste Rozière, Jonas Gehring, Fabian Gloeckle, Sten
+    Sootla, Itai Gat, Xiaoqing Ellen Tan, Yossi Adi, Jingyu Liu, Tal Remez, Jérémy
+    Rapin 等人。《Code llama：开放代码基础模型》。*arXiv 预印本 arXiv:2308.12950*，2023年。
+- en: 'Siddiq & Santos (2022) Mohammed Latif Siddiq and Joanna C. S. Santos. Securityeval
+    dataset: Mining vulnerability examples to evaluate machine learning-based code
+    generation techniques. In *MSR4P&S*, 2022.'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Siddiq & Santos (2022) Mohammed Latif Siddiq 和 Joanna C. S. Santos。《Securityeval
+    数据集：挖掘漏洞实例以评估基于机器学习的代码生成技术》。发表于*MSR4P&S*，2022年。
+- en: 'Wang et al. (2024) Yanlin Wang, Tianyue Jiang, Mingwei Liu, Jiachi Chen, and
+    Zibin Zheng. Beyond functional correctness: Investigating coding style inconsistencies
+    in large language models. *arXiv preprint 2407.00456*, 2024.'
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2024) Yanlin Wang, Tianyue Jiang, Mingwei Liu, Jiachi Chen, 和 Zibin
+    Zheng。《超越功能正确性：研究大型语言模型中的编码风格不一致性》。*arXiv 预印本 2407.00456*，2024年。
+- en: Weimer & Necula (2004) Westley Weimer and George C. Necula. Finding and preventing
+    run-time error handling mistakes. In *OOPSLA*, 2004.
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Weimer & Necula (2004) Westley Weimer 和 George C. Necula。《发现和防止运行时错误处理错误》。发表于*OOPSLA*，2004年。
+- en: 'Yu et al. (2024) Hao Yu, Bo Shen, Dezhi Ran, Jiaxin Zhang, Qi Zhang, Yuchi
+    Ma, Guangtai Liang, Ying Li, Qianxiang Wang, and Tao Xie. Codereval: A benchmark
+    of pragmatic code generation with generative pre-trained models. In *ICSE*, 2024.'
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yu et al. (2024) Hao Yu, Bo Shen, Dezhi Ran, Jiaxin Zhang, Qi Zhang, Yuchi Ma,
+    Guangtai Liang, Ying Li, Qianxiang Wang, 和 Tao Xie。《Codereval：基于生成预训练模型的实用代码生成基准》。发表于*ICSE*，2024年。
+- en: Zhang et al. (2023) Hao Zhang, Ji Luo, Mengze Hu, Jun Yan, Jian Zhang, and Zongyan
+    Qiu. Detecting exception handling bugs in C++ programs. In *ICSE*, 2023.
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang et al. (2023) Hao Zhang, Ji Luo, Mengze Hu, Jun Yan, Jian Zhang, 和 Zongyan
+    Qiu。《检测 C++ 程序中的异常处理错误》。发表于*ICSE*，2023年。
+- en: Zhang et al. (2020) Jian Zhang, Xu Wang, Hongyu Zhang, Hailong Sun, Yanjun Pu,
+    and Xudong Liu. Learning to handle exceptions. In *ASE*, 2020.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang et al. (2020) Jian Zhang, Xu Wang, Hongyu Zhang, Hailong Sun, Yanjun Pu,
+    和 Xudong Liu。《学习处理异常》。发表于*ASE*，2020年。
+- en: Zhang et al. (2024) Yifan Zhang, Yang Yuan, and Andrew Chi-Chih Yao. On the
+    diagram of thought. *arXiv preprint 2409.10038*, 2024.
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang et al. (2024) Yifan Zhang, Yang Yuan, 和 Andrew Chi-Chih Yao。《思维图示》。*arXiv
+    预印本 2409.10038*，2024年。
+- en: Zheng et al. (2023) Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang,
+    Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing, et al.
+    Judging llm-as-a-judge with mt-bench and chatbot arena. In *NeurIPS*, 2023.
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zheng et al. (2023) Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang,
+    Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing 等人。《通过
+    mt-bench 和 chatbot arena 判断 llm 作为法官的表现》。发表于*NeurIPS*，2023年。
+- en: Appendix A Appendix
+  id: totrans-136
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 附录
+- en: A.1 Method Details
+  id: totrans-137
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 方法细节
+- en: A.1.1 Deep-RAG Algorithm
+  id: totrans-138
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.1.1 深度-RAG 算法
+- en: 'Input: Knowledge hierarchy tree $T$, unit summary $F_{i}$, detected queries
+    $Q_{i}$, environment context $Env$Output: Relevant information retrievals $R_{i}$1
+    Initialize relevant knowledge branches set $B=\{\}$;2 Assign knowledge scenario
+    labels $L=\{l_{1},l_{2},\dots\}$ to branches of $T$;3 foreach *query $q_{ik}$
+    in $Q_{i}$* do4       Identify branches $B_{ik}$ in $T$ related to $q_{ik}$ based
+    on labels $L$;5       $B\leftarrow B\cup B_{ik}$;6      7foreach *branch $b_{m}$
+    in $B$* do       // Verification Step8       Select few-sample document examples
+    $X_{m}=\{x_{m1},x_{m2},\dots\}$ associated with branch $b_{m}$;9       foreach *example
+    $x_{mj}$ in $X_{m}$* do10             Perform query matching to obtain pass rate
+    $p_{mj}$ and capture accuracy $a_{mj}$;11             if *$p_{mj}$ or $a_{mj}$
+    below threshold $\theta$* then12                   Record failure pattern $fp_{mj}$
+    based on $Env$;13                   Update environment context $Env$ with $fp_{mj}$;14                  15            16      Compute
+    average pass rate $\bar{p}_{m}$ and accuracy $\bar{a}_{m}$ for branch $b_{m}$;17      
+    if *$\bar{p}_{m}$ or $\bar{a}_{m}$ below threshold $\theta$* then18            
+    Fine-tune labels $L$ for branch $b_{m}$ based on aggregated feedback from $Env$;19            20      21Initialize
+    information retrievals set $R_{i}=\{\}$;22 foreach *branch $b_{m}$ in $B$* do23      
+    Select depth level $D$ for node evaluation;24       for *$d=1$ to $D$* do25            
+    foreach *node $n_{ml}$ at depth $d$ in branch $b_{m}$* do26                  
+    Evaluate relevance score $r_{ml}$ to summary $F_{i}$ and queries $Q_{i}$;27                  
+    if *$r_{ml}>\delta$* then28                         Retrieve information $r_{ml}$
+    from knowledge base;29                         $R_{i}\leftarrow R_{i}\cup\{r_{ml}\}$;30                        31                  32            33'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输入：知识层次树 $T$，单元总结 $F_{i}$，检测到的查询 $Q_{i}$，环境上下文 $Env$ 输出：相关信息检索 $R_{i}$ 1 初始化相关知识分支集合
+    $B=\{\}$；2 为 $T$ 的分支分配知识场景标签 $L=\{l_{1},l_{2},\dots\}$；3 对于每个 *查询 $q_{ik}$ 在 $Q_{i}$
+    中*，执行：4       基于标签 $L$ 识别与 $q_{ik}$ 相关的分支 $B_{ik}$；5       $B\leftarrow B\cup
+    B_{ik}$；6      7 对于每个 *分支 $b_{m}$ 在 $B$ 中*，执行：// 验证步骤 8       选择与分支 $b_{m}$ 相关的少量样本文档
+    $X_{m}=\{x_{m1},x_{m2},\dots\}$；9       对于每个 *示例 $x_{mj}$ 在 $X_{m}$ 中*，执行：10            
+    执行查询匹配，获取通过率 $p_{mj}$ 和捕获准确度 $a_{mj}$；11             如果 *$p_{mj}$ 或 $a_{mj}$ 低于阈值
+    $\theta$*，则：12                   根据 $Env$ 记录失败模式 $fp_{mj}$；13                  
+    使用 $fp_{mj}$ 更新环境上下文 $Env$；14                  15            16      计算分支 $b_{m}$
+    的平均通过率 $\bar{p}_{m}$ 和准确度 $\bar{a}_{m}$；17       如果 *$\bar{p}_{m}$ 或 $\bar{a}_{m}$
+    低于阈值 $\theta$*，则：18             根据来自 $Env$ 的聚合反馈，微调分支 $b_{m}$ 的标签 $L$；19            20      21
+    初始化信息检索集合 $R_{i}=\{\}$；22 对于每个 *分支 $b_{m}$ 在 $B$ 中*，执行：23       选择节点评估的深度级别 $D$；24      
+    对于 *$d=1$ 到 $D$*，执行：25             对于每个 *节点 $n_{ml}$ 在深度 $d$ 的分支 $b_{m}$ 中*，执行：26                  
+    评估与总结 $F_{i}$ 和查询 $Q_{i}$ 的相关性得分 $r_{ml}$；27                   如果 *$r_{ml}>\delta$*，则：28                        
+    从知识库中检索信息 $r_{ml}$；29                         $R_{i}\leftarrow R_{i}\cup\{r_{ml}\}$；30                        31                  32            33
+- en: Algorithm 2 Deep Retrieval-Augmented Generation (Deep-RAG)
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 2 深度检索增强生成（Deep-RAG）
+- en: 'In the Deep-RAG algorithm, we assign development scenario labels to each branch
+    of the exception inheritance tree based on their inheritance relationships, enabling
+    the identification of branches that may correspond to specific information of
+    fragile code segments. Acting as an intelligent agent, the algorithm interacts
+    dynamically with its operational environment by leveraging feedback from detection
+    pass rates and capture accuracies obtained during the few-shot verification step.
+    This feedback mechanism allows the system to refine the granularity and descriptions
+    of the scenario labels through regularization prompts derived from failed samples.
+    As a result, Deep-RAG can accurately identify the risk scenarios where fragile
+    codes are located and the corresponding knowledge branches that are activated.
+    Subsequently, the algorithm selectively performs node evaluations on these branches
+    by depth, thereby enhancing retrieval performance and optimizing computational
+    overhead. Additionally, we have designed the algorithm interface to be highly
+    general, ensuring its applicability across a wide range of RAG scenarios beyond
+    exception handling. This generality allows Deep-RAG to support diverse applications,
+    as further detailed in Appendix [A.3](https://arxiv.org/html/2410.06949v2#A1.SS3
+    "A.3 Other Applicable Scenarios Analysis ‣ Appendix A Appendix ‣ Seeker: Enhancing
+    Exception Handling in Code with a LLM-based Multi-Agent Approach"). By integrating
+    environmental feedback and maintaining a flexible, agent-based interaction model,
+    Deep-RAG not only improves retrieval accuracy and efficiency but also adapts seamlessly
+    to various domains and information retrieval tasks, demonstrating its versatility
+    and robustness in enhancing the performance of large language models.'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在 Deep-RAG 算法中，我们根据异常继承树的继承关系，为每个分支分配开发场景标签，从而能够识别可能对应于脆弱代码片段特定信息的分支。作为智能代理，该算法通过利用在少量验证步骤中获得的检测通过率和捕获准确度反馈，动态地与其操作环境进行交互。这一反馈机制使系统能够通过从失败样本中提取的正则化提示来精炼场景标签的粒度和描述。因此，Deep-RAG
+    可以准确识别脆弱代码所在的风险场景及其激活的相应知识分支。随后，算法通过深度选择性地对这些分支执行节点评估，从而提升检索性能并优化计算开销。此外，我们设计的算法接口具有高度通用性，确保其在广泛的
+    RAG 场景中适用，超越了异常处理的范围。这种通用性使得 Deep-RAG 支持多种应用，详细信息请参见附录 [A.3](https://arxiv.org/html/2410.06949v2#A1.SS3
+    "A.3 Other Applicable Scenarios Analysis ‣ Appendix A Appendix ‣ Seeker: Enhancing
+    Exception Handling in Code with a LLM-based Multi-Agent Approach")。通过整合环境反馈并保持灵活的基于代理的交互模型，Deep-RAG
+    不仅提高了检索的准确性和效率，而且能够无缝适应各种领域和信息检索任务，展现了其在提升大语言模型性能方面的多功能性和鲁棒性。'
+- en: A.1.2 Common Exception Enumeration
+  id: totrans-142
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.1.2 常见异常枚举
+- en: 'In this section, we introduce the framework for constructing the CEE, which
+    serves as a foundational resource for enhancing the reliability of exception handling
+    in code generation by developers. Without a comprehensive and standardized document
+    like CEE, developers may struggle to accurately detect and handle these exceptions,
+    leading to either overly generic or improperly specific exception management.
+    CEE addresses these challenges by providing a structured and exhaustive repository
+    of exception information, encompassing scenarios, properties, and recommended
+    handling strategies for each exception type. The construction of CEE is guided
+    by three essential rules, each aimed at addressing the complexities of exception
+    management within Java development. First and foremost, we establish a robust
+    standard documentation base, drawing from the Java Development Kit (JDK) to identify
+    and compile a comprehensive set of exception nodes and their descriptions. This
+    foundational layer comprises a total of 433 nodes, organized into 62 branches
+    and spanning five layers within the Java exception hierarchy. By utilizing the
+    standardized documentation from the JDK, we ensure that the CEE is grounded in
+    official, authoritative sources, providing a reliable reference point for exception
+    handling practices. Next, we enhance the CEE by integrating insights from real-world
+    human practices. This involves gathering a range of resources, including enterprise-level
+    Java development documentation and analyzing mature open-source Java projects
+    hosted on platforms like GitHub. By examining exemplary Java code, particularly
+    focusing on effective exception handling practices, we can enrich each exception
+    node in the CEE with detailed contextual information. Specifically, we define
+    three key components for each exception node: Scenario, Property, and Handling
+    Logic.'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们介绍了构建CEE的框架，它作为提高开发人员在代码生成中处理异常可靠性的基础资源。没有像CEE这样的全面和标准化文档，开发人员可能会在准确检测和处理这些异常时遇到困难，导致异常管理过于泛化或不恰当。CEE通过提供结构化且详尽的异常信息库，涵盖每种异常类型的场景、属性和推荐处理策略，解决了这些问题。CEE的构建遵循三项基本规则，旨在解决Java开发中异常管理的复杂性。首先，我们建立了一个强大的标准文档基础，借助Java开发工具包（JDK）来识别和整理一套全面的异常节点及其描述。这一基础层包括总共433个节点，分为62个分支，涵盖Java异常层级中的五个层次。通过利用JDK的标准化文档，我们确保CEE建立在官方权威的基础上，为异常处理实践提供可靠的参考。接下来，我们通过融入现实世界的实践经验，进一步增强CEE。这包括收集各种资源，诸如企业级Java开发文档，并分析托管在GitHub等平台上的成熟开源Java项目。通过研究典型的Java代码，特别是关注有效的异常处理实践，我们可以为CEE中的每个异常节点补充详细的上下文信息。具体来说，我们为每个异常节点定义了三个关键组成部分：场景、属性和处理逻辑。
+- en: •
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Scenario: This component describes the specific coding situations or environments
+    in which an exception is likely to occur. By analyzing real-world applications
+    and common coding patterns, we can create realistic scenarios that help developers
+    understand when to anticipate particular exceptions. This contextual understanding
+    is critical for effective exception handling, as it allows developers to write
+    more accurate and responsive code.'
+  id: totrans-145
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 场景：这一部分描述了可能发生异常的特定编码情境或环境。通过分析实际应用和常见的编码模式，我们可以创建出有现实意义的场景，帮助开发人员理解何时可能遇到特定的异常。这种上下文理解对于有效的异常处理至关重要，它使得开发人员能够编写更加准确和响应迅速的代码。
+- en: •
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Property: This aspect outlines the characteristics and attributes of each exception.
+    Understanding the properties of an exception, such as its severity, possible causes,
+    and the context of its occurrence, they are vital for appropriate handling. This
+    detailed information allows developers to make informed decisions on how to respond
+    to exceptions based on their inherent properties.'
+  id: totrans-147
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 属性：这一部分概述了每个异常的特征和属性。理解异常的属性，如其严重性、可能的原因以及发生的上下文，对于恰当处理异常至关重要。这些详细信息使开发人员能够根据异常的固有属性做出知情决策，决定如何响应异常。
+- en: •
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Handling Logic: For each exception node, we define best practices for handling
+    the exception. This includes recommended coding strategies, such as specific try-catch
+    blocks, logging mechanisms, and fallback strategies. By incorporating proven handling
+    logic derived from both successful enterprise practices and open-source contributions,
+    we provide a comprehensive guide that assists developers in implementing effective
+    exception management.'
+  id: totrans-149
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 处理逻辑：对于每个异常节点，我们定义了处理该异常的最佳实践。这包括推荐的编码策略，如特定的 try-catch 块、日志记录机制和回退策略。通过结合来自成功企业实践和开源贡献的经过验证的处理逻辑，我们提供了一个全面的指南，帮助开发者实施有效的异常管理。
+- en: 'The third rule emphasizes the need for fine-grained control over the matching
+    and handling of exceptions through the use of few-shot samples. To ensure that
+    the CEE maintains high accuracy in matching exceptions with the appropriate handling
+    logic, we establish a testing framework comprising a variety of small-scale testing
+    libraries. These libraries are designed to cover a wide range of exceptions, providing
+    high coverage rates for various scenarios. We leverage the CEE in conjunction
+    with these testing libraries to conduct detailed evaluations of exception matching.
+    By analyzing the performance of the CEE in identifying and matching exceptions,
+    we can identify instances of false positives (incorrect matches) and false negatives
+    (missed matches). Based on this analysis, we iteratively refine the information
+    associated with each exception node, adjusting the granularity of the descriptions
+    until we achieve a high accuracy in matching rates. This continuous feedback loop
+    allows us to optimize the CEE for real-world application, ensuring that developers
+    can rely on it to provide accurate and contextually relevant exception handling
+    guidance. By adhering to these rules, the CEE is positioned as a powerful resource
+    that enhances the quality of exception handling in code generated by LLMs. The
+    combination of authoritative documentation from the JDK, insights from real-world
+    practices, and rigorous testing mechanisms creates a comprehensive framework that
+    not only improves the robustness of generated code but also empowers developers
+    with the knowledge and tools they need to manage exceptions effectively. It is
+    worth mentioning that CEE, as a knowledge base, has the value of free expansion
+    and supporting community contributions. We will continue to be responsible for
+    the version updates and iterations of CEE. An excerpt sample of CEE can be found
+    in Appendix [A.2.2](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS2 "A.2.2 Prompt
+    and Document ‣ A.2 Experimental Details ‣ Appendix A Appendix ‣ Seeker: Enhancing
+    Exception Handling in Code with a LLM-based Multi-Agent Approach")'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '第三条规则强调通过使用少量样本进行精细化控制，以匹配和处理异常。为了确保 CEE 在匹配异常与适当的处理逻辑时保持高准确性，我们建立了一个测试框架，其中包含多种小规模的测试库。这些库旨在覆盖各种异常情况，为不同场景提供高覆盖率。我们将
+    CEE 与这些测试库结合使用，进行异常匹配的详细评估。通过分析 CEE 在识别和匹配异常时的表现，我们可以发现假阳性（错误匹配）和假阴性（漏匹配）的情况。基于此分析，我们将反复细化与每个异常节点相关的信息，调整描述的粒度，直到匹配率达到高准确性。这个持续的反馈循环使我们能够优化
+    CEE 以适应实际应用，确保开发者可以依赖它提供准确且具有上下文相关性的异常处理指导。通过遵循这些规则，CEE 被定位为一个强大的资源，增强了 LLM 生成的代码中异常处理的质量。JDK
+    的权威文档、来自实际实践的见解以及严格的测试机制的结合，创建了一个全面的框架，不仅提高了生成代码的健壮性，还为开发者提供了管理异常所需的知识和工具。值得一提的是，作为知识库的
+    CEE 具有自由扩展和支持社区贡献的价值。我们将继续负责 CEE 的版本更新和迭代。CEE 的摘录示例可以在附录 [A.2.2](https://arxiv.org/html/2410.06949v2#A1.SS2.SSS2
+    "A.2.2 Prompt and Document ‣ A.2 Experimental Details ‣ Appendix A Appendix ‣
+    Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach")
+    中找到。'
+- en: '![Refer to caption](img/744fe8193b37472c04aaf708597df0ed.png)'
+  id: totrans-151
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/744fe8193b37472c04aaf708597df0ed.png)'
+- en: 'Figure 4: A schematic diagram of Preliminary Phenomenon, highlight what information
+    will boost LLM EH performance, and small scale preliminary data'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：初步现象的示意图，突出显示哪些信息能够提高 LLM 异常处理性能，以及小规模的初步数据
+- en: '![Refer to caption](img/57952fb2803ac5854f91ea1de9b79f1f.png)'
+  id: totrans-153
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/57952fb2803ac5854f91ea1de9b79f1f.png)'
+- en: 'Figure 5: A schematic diagram of Preliminary Phenomenon, highlight what information
+    will boost human EH performance, and small scale preliminary data'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：初步现象的示意图，突出显示哪些信息能够提高人类异常处理性能，以及小规模的初步数据
+- en: A.2 Experimental Details
+  id: totrans-155
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 实验细节
+- en: A.2.1 Datasets
+  id: totrans-156
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.2.1 数据集
+- en: To ensure the quality and representativeness of the dataset, we carefully selected
+    projects on GitHub that are both active and large in scale. We applied stringent
+    selection criteria, including the number of stars, forks, and exception handling
+    repair suggestions in the project (Nguyen et al., [2020b](https://arxiv.org/html/2410.06949v2#bib.bib22)),
+    to ensure that the dataset comprehensively covers the exception handling practices
+    of modern open-source projects. By automating the collection of project metadata
+    and commit history through the GitHub API, and manually filtering commit records
+    related to exception handling, we have constructed a high-quality, representative
+    dataset for exception handling that provides a solid foundation for evaluating
+    Seeker.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了确保数据集的质量和代表性，我们精心选择了在 GitHub 上既活跃又规模较大的项目。我们应用了严格的筛选标准，包括项目的星标数、分叉数以及异常处理修复建议（Nguyen
+    等， [2020b](https://arxiv.org/html/2410.06949v2#bib.bib22)），以确保数据集全面涵盖现代开源项目的异常处理实践。通过
+    GitHub API 自动收集项目元数据和提交历史，并手动筛选与异常处理相关的提交记录，我们构建了一个高质量、具有代表性的数据集，作为评估 Seeker 的坚实基础。
+- en: 'Table 2: The Excerpt Data source'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：摘录数据来源
+- en: '| Repo | Commits | Stars | Forks | Issue Fix | Doc | Under Maintenance |'
+  id: totrans-159
+  prefs: []
+  type: TYPE_TB
+  zh: '| 仓库 | 提交 | 星标 | 分叉 | 问题修复 | 文档 | 维护中 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Anki-Android | 18410 | 8500 | 2200 | 262 | Y | Y |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| Anki-Android | 18410 | 8500 | 2200 | 262 | 是 | 是 |'
+- en: '| AntennaPod | 6197 | 6300 | 1400 | 295 | Y | Y |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| AntennaPod | 6197 | 6300 | 1400 | 295 | 是 | 是 |'
+- en: '| connectbot | 1845 | 2480 | 629 | 321 | N/A | Y |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| connectbot | 1845 | 2480 | 629 | 321 | 不适用 | 是 |'
+- en: '| FairEmail | 30259 | 3073 | 640 | N/A | Y | Y |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| FairEmail | 30259 | 3073 | 640 | 不适用 | 是 | 是 |'
+- en: '| FBReaderJ | 7159 | 1832 | 802 | 248 | Y | N/A |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| FBReaderJ | 7159 | 1832 | 802 | 248 | 是 | 不适用 |'
+- en: '| FP2-Launcher | 1179 | 25 | 2 | 16 | Y | N/A |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| FP2-Launcher | 1179 | 25 | 2 | 16 | 是 | 不适用 |'
+- en: '| NewsBlur | 19603 | 6800 | 995 | 158 | Y | Y |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| NewsBlur | 19603 | 6800 | 995 | 158 | 是 | 是 |'
+- en: '| Launcher3 | 2932 | 91 | 642 | 2 | N/A | Y |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| Launcher3 | 2932 | 91 | 642 | 2 | 不适用 | 是 |'
+- en: '| Lawnchair-V1 | 4400 | 93 | 43 | 394 | Y | Y |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| Lawnchair-V1 | 4400 | 93 | 43 | 394 | 是 | 是 |'
+- en: '| MozStumbler | 1727 | 619 | 212 | 203 | Y | N/A |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| MozStumbler | 1727 | 619 | 212 | 203 | 是 | 不适用 |'
+- en: We quantify the quality of datasets in the context of code generation and exception
+    handling using multiple dimensions, encompassing project popularity, community
+    engagement, codebase quality, security posture, documentation integrity and dynamic
+    maintenance. To provide a holistic assessment, we propose a Composite Quality
+    Metric (CQM) that aggregates these dimensions into a single quantitative indicator.
+    Open source code repositories that perform well under this metric enter our semi-automated
+    review process to screen high-quality exception handling blocks for few-shot,
+    CEE building, or testing.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过多个维度来量化数据集在代码生成和异常处理中的质量，这些维度包括项目受欢迎程度、社区参与度、代码库质量、安全性态势、文档完整性和动态维护。为了提供全面的评估，我们提出了一个综合质量指标（CQM），将这些维度汇总为一个单一的量化指标。表现良好的开源代码仓库将进入我们的半自动化审查流程，以筛选出高质量的异常处理模块，供少样本、CEE
+    构建或测试使用。
+- en: To avoid data leakage, we also performed a round of variations on the test set.
+    Considering that our method does not directly rely on data but fully utilizes
+    the LLM’s ability to understand and reason about code, the evaluation results
+    are consistent with our predictions, and the impact of data leakage on the credibility
+    of our method is negligible.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了避免数据泄漏，我们还对测试集进行了多轮变体处理。考虑到我们的方法不直接依赖数据，而是充分利用大语言模型（LLM）理解和推理代码的能力，评估结果与我们的预测一致，数据泄漏对我们方法的可信度影响可以忽略不计。
+- en: A.2.2 Prompt and Document
+  id: totrans-173
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.2.2 提示与文档
+- en: CEE Prompt
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CEE 提示
+- en: '[PRE0]'
+  id: totrans-175
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Planner Prompt
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规划者提示
+- en: '[PRE1]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Detector Prompt
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 检测器提示
+- en: '[PRE2]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Predator Prompt
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 捕食者提示
+- en: '[PRE3]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Ranker Prompt
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 排名者提示
+- en: '[PRE4]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Handler Prompt
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理器提示
+- en: '[PRE5]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Sample CEE Node
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例 CEE 节点
+- en: '[PRE6]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: A.2.3 Computation Cost Analysis
+  id: totrans-188
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.2.3 计算成本分析
+- en: Integrating a comprehensive exception handling mechanism like Seeker introduces
+    potential challenges in computational overhead, especially when dealing with a
+    large number of exception types and complex inheritance relationships. To address
+    this, we designed a high-concurrency interface that keeps the additional computing
+    time overhead constant, regardless of the code volume level. This ensures scalability
+    and controllable complexity when processing any size of codebase.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 集成像Seeker这样的全面异常处理机制可能会引入计算开销，尤其是在处理大量异常类型和复杂继承关系时。为了解决这个问题，我们设计了一种高并发接口，使得额外的计算时间开销在任何代码量级下都保持恒定。这确保了处理任何大小的代码库时具有可扩展性和可控的复杂度。
+- en: To evaluate the efficiency of our high-concurrency interface, we conducted experiments
+    on 100 Java code files both before and after implementing parallel processing.
+    For each code file, we executed the exception handling process and recorded the
+    time taken. In the parallelized version, while the processing between different
+    code files remained sequential, the processing within each code file—specifically,
+    the CEE retrieval involving branch and layered processing—was parallelized.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们高并发接口的效率，我们对100个Java代码文件进行了实验，测试了实现并行处理前后的表现。对于每个代码文件，我们执行了异常处理过程并记录了所用时间。在并行化版本中，虽然不同代码文件之间的处理仍然是顺序进行的，但每个代码文件内部的处理——特别是涉及分支和分层处理的CEE检索——已被并行化。
+- en: 'The results are summarized in Table [3](https://arxiv.org/html/2410.06949v2#A1.T3
+    "Table 3 ‣ A.2.3 Computation Cost Analysis ‣ A.2 Experimental Details ‣ Appendix
+    A Appendix ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent
+    Approach"). After applying parallel processing, the average time per code file
+    was reduced to approximately 19.4 seconds, which is about $\frac{1}{15}$ of the
+    time taken with sequential processing. This significant reduction demonstrates
+    the effectiveness of our parallelization strategy.'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '结果总结见表[3](https://arxiv.org/html/2410.06949v2#A1.T3 "Table 3 ‣ A.2.3 Computation
+    Cost Analysis ‣ A.2 Experimental Details ‣ Appendix A Appendix ‣ Seeker: Enhancing
+    Exception Handling in Code with a LLM-based Multi-Agent Approach")。应用并行处理后，每个代码文件的平均处理时间降至约19.4秒，大约是顺序处理时间的$\frac{1}{15}$。这一显著的减少展示了我们并行化策略的有效性。'
+- en: 'Table 3: Computation Time Before and After Parallelization'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：并行化前后的计算时间
+- en: '| Processing Method | Average Time per Code File (s) | Speedup Factor |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| 处理方法 | 每个代码文件的平均时间（秒） | 加速因子 |'
+- en: '| --- | --- | --- |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Sequential Processing | 291.0 | 1x |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| 顺序处理 | 291.0 | 1倍 |'
+- en: '| Parallel Processing (Seeker) | 19.4 | 15x |'
+  id: totrans-196
+  prefs: []
+  type: TYPE_TB
+  zh: '| 并行处理（Seeker） | 19.4 | 15倍 |'
+- en: Notably, the size of the code files did not affect the processing time, indicating
+    that our method efficiently handles codebases of varying sizes without compromising
+    on speed. This stability ensures that Seeker can perform consistent and efficient
+    exception handling across any code, making it highly suitable for practical applications.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值得注意的是，代码文件的大小并未影响处理时间，这表明我们的方法能够高效地处理各种规模的代码库而不影响速度。这种稳定性确保了Seeker能够在任何代码上执行一致且高效的异常处理，使其非常适用于实际应用。
+- en: A.2.4 Further Results on different LLMS
+  id: totrans-198
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.2.4 关于不同LLMS的进一步结果
+- en: 'We use different open-source (e.g. Code Llama-34B (Rozière et al., [2023](https://arxiv.org/html/2410.06949v2#bib.bib26)),
+    WizardCoder-34B (Luo et al., [2024](https://arxiv.org/html/2410.06949v2#bib.bib19)),
+    Vicuna-13B (Zheng et al., [2023](https://arxiv.org/html/2410.06949v2#bib.bib34)))
+    and closed-source(e.g. Claude-2 (Clade, [2023](https://arxiv.org/html/2410.06949v2#bib.bib2)),
+    GPT-3-davinci (GPT-3, [2022](https://arxiv.org/html/2410.06949v2#bib.bib6)), GPT-3.5-turbo
+    (GPT-3.5, [2023](https://arxiv.org/html/2410.06949v2#bib.bib7)), GPT-4-turbo (GPT-4,
+    [2023](https://arxiv.org/html/2410.06949v2#bib.bib8)), GPT-4o (GPT-4o, [2024](https://arxiv.org/html/2410.06949v2#bib.bib9)))
+    LLMs as the agent’s internal model to further analyze models’ ability for exception
+    handling. The results are summarized in Table [4](https://arxiv.org/html/2410.06949v2#A1.T4
+    "Table 4 ‣ A.2.4 Further Results on different LLMS ‣ A.2 Experimental Details
+    ‣ Appendix A Appendix ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach").'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们使用不同的开源模型（例如 Code Llama-34B（Rozière 等，[2023](https://arxiv.org/html/2410.06949v2#bib.bib26)），WizardCoder-34B（Luo
+    等，[2024](https://arxiv.org/html/2410.06949v2#bib.bib19)），Vicuna-13B（Zheng 等，[2023](https://arxiv.org/html/2410.06949v2#bib.bib34)））以及闭源模型（例如
+    Claude-2（Clade，[2023](https://arxiv.org/html/2410.06949v2#bib.bib2)），GPT-3-davinci（GPT-3，[2022](https://arxiv.org/html/2410.06949v2#bib.bib6)），GPT-3.5-turbo（GPT-3.5，[2023](https://arxiv.org/html/2410.06949v2#bib.bib7)），GPT-4-turbo（GPT-4，[2023](https://arxiv.org/html/2410.06949v2#bib.bib8)），GPT-4o（GPT-4o，[2024](https://arxiv.org/html/2410.06949v2#bib.bib9)））作为代理的内部模型，进一步分析模型在异常处理方面的能力。结果总结在表[4](https://arxiv.org/html/2410.06949v2#A1.T4
+    "Table 4 ‣ A.2.4 Further Results on different LLMS ‣ A.2 Experimental Details
+    ‣ Appendix A Appendix ‣ Seeker: Enhancing Exception Handling in Code with a LLM-based
+    Multi-Agent Approach")中。'
+- en: 'Table 4: Performance of Different Models on Exception Handling Code Generation'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4：不同模型在异常处理代码生成中的性能
+- en: '| Model | ACRS | COV (%) | COV-P (%) | ACC (%) | ES | CRS (%) |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | ACRS | COV (%) | COV-P (%) | ACC (%) | ES | CRS (%) |'
+- en: '| Open-Source Models |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '| 开源模型 |'
+- en: '| Code Llama-34B | 0.31 | 37 | 35 | 32 | 0.25 | 34 |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '| Code Llama-34B | 0.31 | 37 | 35 | 32 | 0.25 | 34 |'
+- en: '| WizardCoder-34B | 0.37 | 35 | 31 | 29 | 0.28 | 35 |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '| WizardCoder-34B | 0.37 | 35 | 31 | 29 | 0.28 | 35 |'
+- en: '| Vicuna-13B | 0.23 | 15 | 9 | 11 | 0.19 | 26 |'
+  id: totrans-205
+  prefs: []
+  type: TYPE_TB
+  zh: '| Vicuna-13B | 0.23 | 15 | 9 | 11 | 0.19 | 26 |'
+- en: '| Closed-Source Models |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '| 闭源模型 |'
+- en: '| Claude-2 | 0.42 | 64 | 59 | 54 | 0.40 | 54 |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| Claude-2 | 0.42 | 64 | 59 | 54 | 0.40 | 54 |'
+- en: '| GPT-3-davinci | 0.56 | 78 | 68 | 60 | 0.48 | 58 |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3-davinci | 0.56 | 78 | 68 | 60 | 0.48 | 58 |'
+- en: '| GPT-3.5-turbo | 0.63 | 79 | 72 | 66 | 0.52 | 71 |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-turbo | 0.63 | 79 | 72 | 66 | 0.52 | 71 |'
+- en: '| GPT-4-turbo | 0.84 | 91 | 83 | 77 | 0.63 | 89 |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4-turbo | 0.84 | 91 | 83 | 77 | 0.63 | 89 |'
+- en: '| GPT-4o | 0.85 | 91 | 81 | 79 | 0.64 | 92 |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o | 0.85 | 91 | 81 | 79 | 0.64 | 92 |'
+- en: 'The performance variations among different models can be explained by:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不同模型之间的性能差异可以通过以下几个方面来解释：
+- en: '- Pre-training Data: Models pre-trained on larger and more diverse code datasets
+    (e.g., GPT-4o) have a better understanding of programming constructs and exception
+    handling patterns.'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 预训练数据：在更大、更具多样性的代码数据集上进行预训练的模型（例如GPT-4o）能更好地理解编程构造和异常处理模式。'
+- en: '- Model Architecture: Advanced architectures with higher capacities and more
+    layers (e.g., GPT-4) capture complex patterns more effectively.'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 模型架构：具有更高容量和更多层次的先进架构（例如GPT-4）能够更有效地捕捉复杂的模式。'
+- en: '- RAG Performance: Models that efficiently integrate retrieval-augmented generation,
+    effectively utilizing external knowledge (as in our method), perform better.'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- RAG性能：高效集成检索增强生成的模型，能够有效利用外部知识（如我们的方法），表现更好。'
+- en: '- Understanding Capability: Models with superior comprehension abilities can
+    accurately detect sensitive code regions and predict appropriate exception handling
+    strategies.'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 理解能力：具有较强理解能力的模型能够准确检测敏感代码区域，并预测合适的异常处理策略。'
+- en: Open-source models, while valuable, may lack the extensive training data and
+    architectural sophistication of closed-source models, leading to lower performance.
+    Closed-source models like GPT-4o and GPT-4 benefit from advanced training techniques
+    and larger datasets, enabling them to excel in tasks requiring nuanced understanding
+    and generation of code, such as exception handling.
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管开源模型具有一定的价值，但可能缺乏闭源模型那样广泛的训练数据和架构复杂性，导致其性能较低。像GPT-4o和GPT-4这样的闭源模型受益于先进的训练技术和更大的数据集，使其在需要细致理解和生成代码的任务中表现优异，例如异常处理。
+- en: A.3 Other Applicable Scenarios Analysis
+  id: totrans-218
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 其他适用场景分析
+- en: '![Refer to caption](img/ffbf346429957e5eaa33967e810dbcb3.png)'
+  id: totrans-219
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/ffbf346429957e5eaa33967e810dbcb3.png)'
+- en: 'Figure 6: A schematic diagram of APP requirement engineering, highlight seeker’s
+    generalizability.'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：APP需求工程的示意图，突出展示了求解器的泛化能力。
+- en: 'Figure [6](https://arxiv.org/html/2410.06949v2#A1.F6 "Figure 6 ‣ A.3 Other
+    Applicable Scenarios Analysis ‣ Appendix A Appendix ‣ Seeker: Enhancing Exception
+    Handling in Code with a LLM-based Multi-Agent Approach") shows the migration application
+    of Seeker multi-agent framework in APP requirement engineering that also includes
+    parent-child inheritance relationship. We have reason to believe that Seeker framework
+    can try to be compatible with more complex inheritance relationship, being responsible
+    for reasoning representation, while having high performance and interpretability.
+    The above achievements are not easy to accomplish based on graphs or traditional
+    algorithms.'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图[6](https://arxiv.org/html/2410.06949v2#A1.F6 "Figure 6 ‣ A.3 Other Applicable
+    Scenarios Analysis ‣ Appendix A Appendix ‣ Seeker: Enhancing Exception Handling
+    in Code with a LLM-based Multi-Agent Approach")展示了Seeker多智能体框架在APP需求工程中的迁移应用，涵盖了父子继承关系。我们有充分的理由相信，Seeker框架能够兼容更复杂的继承关系，负责推理表示，同时保持高性能和可解释性。基于图表或传统算法的方式，要实现上述成就并不容易。'
+- en: To validate the general applicability of our system in diverse scenarios, we
+    evaluated Seeker on standard code generation benchmarks, including SWE-bench and
+    CoderEval. We present comparative results demonstrating the incremental improvements
+    achieved by our method.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证我们系统在不同场景中的通用性，我们在标准的代码生成基准测试中评估了Seeker，包括SWE-bench和CoderEval。我们展示了比较结果，表明我们的方法实现了渐进的改进。
+- en: SWE-bench is an evaluation framework comprising 2,294 software engineering problems
+    derived from real GitHub issues and corresponding pull requests across 12 popular
+    Python repositories(Jimenez et al., [2024](https://arxiv.org/html/2410.06949v2#bib.bib14)).
+    It challenges language models to edit a given codebase to resolve specified issues,
+    often requiring understanding and coordinating changes across multiple functions,
+    classes, and files simultaneously. This goes beyond traditional code generation
+    tasks, demanding interaction with execution environments, handling extremely long
+    contexts, and performing complex reasoning.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SWE-bench是一个评估框架，由2,294个软件工程问题组成，这些问题来自12个流行的Python仓库中的实际GitHub问题和对应的拉取请求（Jimenez等，[2024](https://arxiv.org/html/2410.06949v2#bib.bib14)）。它挑战语言模型编辑给定的代码库以解决指定的问题，通常需要理解并协调多个函数、类和文件之间的更改。这超越了传统的代码生成任务，要求与执行环境交互，处理极长的上下文，并进行复杂的推理。
+- en: For our experiments, we selected 50 issues related to exception handling from
+    the SWE-bench Lite dataset. Using GPT-4o as the internal large model, the SweAgent
+    coupled with GPT-4o achieved a 19% *resolve rate* and a 43% *apply rate*. In contrast,
+    our Seeker framework attained a 26% resolve rate and a 61% apply rate, indicating
+    a significant improvement.
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们从SWE-bench Lite数据集选择了50个与异常处理相关的问题。使用GPT-4o作为内部大模型，SweAgent与GPT-4o结合，达到了19%的*解决率*和43%的*应用率*。相比之下，我们的Seeker框架达到了26%的解决率和61%的应用率，显示出显著的改进。
+- en: 'Table 5: Performance on SWE-bench Lite Exception Handling Issues'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表5：SWE-bench Lite异常处理问题的性能
+- en: '| Method | Resolve Rate (%) | Apply Rate (%) |'
+  id: totrans-226
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 解决率 (%) | 应用率 (%) |'
+- en: '| --- | --- | --- |'
+  id: totrans-227
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| SweAgent + GPT-4o | 19 | 43 |'
+  id: totrans-228
+  prefs: []
+  type: TYPE_TB
+  zh: '| SweAgent + GPT-4o | 19 | 43 |'
+- en: '| Seeker + GPT-4o | 26 | 61 |'
+  id: totrans-229
+  prefs: []
+  type: TYPE_TB
+  zh: '| Seeker + GPT-4o | 26 | 61 |'
+- en: CoderEval is a benchmark designed to assess the performance of models on pragmatic
+    code generation tasks, moving beyond generating standalone functions to handling
+    code that invokes or accesses custom functions and libraries Yu et al. ([2024](https://arxiv.org/html/2410.06949v2#bib.bib30)).
+    It evaluates a model’s ability to generate functional code in real-world settings,
+    similar to open-source or proprietary projects.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CoderEval是一个基准测试，旨在评估模型在务实的代码生成任务中的表现，不仅仅是生成独立的函数，还包括处理调用或访问自定义函数和库的代码（Yu等，[2024](https://arxiv.org/html/2410.06949v2#bib.bib30)）。它评估模型在现实世界环境中生成功能性代码的能力，类似于开源或专有项目。
+- en: In the Java code generation tasks on CoderEval, using Codex directly yielded
+    a Pass@1 score of 27.83%. When integrating our Seeker framework with Codex, the
+    Pass@1 score increased to 38.16%, demonstrating a substantial enhancement in code
+    generation performance.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在CoderEval上的Java代码生成任务中，直接使用Codex的Pass@1得分为27.83%。当将我们的Seeker框架与Codex结合使用时，Pass@1得分提高到38.16%，显示出代码生成性能的显著提升。
+- en: 'Table 6: Performance on CoderEval Java Code Generation Tasks'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表6：CoderEval Java代码生成任务性能
+- en: '| Method | Pass@1 (%) |'
+  id: totrans-233
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | Pass@1 (%) |'
+- en: '| --- | --- |'
+  id: totrans-234
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Codex | 27.83 |'
+  id: totrans-235
+  prefs: []
+  type: TYPE_TB
+  zh: '| Codex | 27.83 |'
+- en: '| Seeker + Codex | 38.16 |'
+  id: totrans-236
+  prefs: []
+  type: TYPE_TB
+  zh: '| Seeker + Codex | 38.16 |'
+- en: These experiments conclusively demonstrate that our Seeker framework can achieve
+    significant incremental improvements across different scenarios and benchmarks.
+    By effectively handling exception-related tasks and enhancing code robustness,
+    Seeker proves to be a valuable addition to existing code generation models, improving
+    their practical applicability in real-world software engineering problems.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些实验充分证明了我们的 Seeker 框架能够在不同场景和基准测试中实现显著的增量改进。通过有效处理与异常相关的任务并增强代码的健壮性，Seeker
+    证明了其作为现有代码生成模型的重要补充，提升了这些模型在实际软件工程问题中的应用性。
+- en: Inspired by OpenAI o1 (o1, [2024](https://arxiv.org/html/2410.06949v2#bib.bib23))
+    and DoT (Zhang et al., [2024](https://arxiv.org/html/2410.06949v2#bib.bib33)),
+    we found that Seeker framework has more room for development in LLM reasoning.
+    Through pre-deduction in tree inference, LLM is expected to enter the problem-solving
+    ideas more efficiently and optimize its reasoning actions through interaction
+    with the external environment. In the future, we will continue to explore research
+    in this direction.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 受到 OpenAI o1 (o1, [2024](https://arxiv.org/html/2410.06949v2#bib.bib23)) 和 DoT
+    (Zhang 等人, [2024](https://arxiv.org/html/2410.06949v2#bib.bib33)) 启发，我们发现 Seeker
+    框架在 LLM 推理方面有更大的发展空间。通过在树形推理中的预推导，LLM 预计能更高效地进入问题解决思路，并通过与外部环境的互动优化其推理行为。未来，我们将继续探索该方向的研究。
+- en: Appendix B Related Work
+  id: totrans-239
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B 相关工作
+- en: At present, machine learning has been widely integrated in the field of software
+    engineering, especially in code generation tasks. In this section, we will discuss
+    the progress of Seeker-related work from the latest progress of automatic exception
+    handling tools. These methods have contributed to the robustness or productivity
+    of software engineering, but they also have limitations, which is also the focus
+    of Seeker.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，机器学习已广泛应用于软件工程领域，特别是在代码生成任务中。本节将讨论 Seeker 相关工作的进展，重点是自动异常处理工具的最新发展。这些方法在提升软件工程的健壮性或生产力方面做出了贡献，但也存在一定的局限性，这也是
+    Seeker 关注的重点。
+- en: B.1 Automatic Exception Handling Tools
+  id: totrans-241
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.1 自动异常处理工具
+- en: Zhang et al. ([2020](https://arxiv.org/html/2410.06949v2#bib.bib32)) introduced
+    a neural network approach for automated exception handling in Java, which predicts
+    try block locations and generates complete catch blocks in relatively high accuracy.
+    However, the approach is limited to Java and may not generalize well to other
+    programming languages without retraining. Additionally, the reliance on GitHub
+    data could introduce biases based on the types of projects and code quality present
+    in the dataset.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Zhang 等人 ([2020](https://arxiv.org/html/2410.06949v2#bib.bib32)) 引入了一种用于 Java
+    中自动异常处理的神经网络方法，该方法能够较高精度地预测 try 块的位置并生成完整的 catch 块。然而，该方法仅限于 Java，对于其他编程语言，若没有重新训练，可能无法很好地泛化。此外，依赖
+    GitHub 数据可能引入基于项目类型和代码质量的偏差。
+- en: Li et al. ([2024b](https://arxiv.org/html/2410.06949v2#bib.bib16)) conducted
+    an exploratory study on fine-tuning LLM for secure code generation. Their results
+    showed that after fine-tuning issue fixing commits, the secure code generation
+    rate was slightly improved. The best performance was achieved by fine-tuning using
+    function-level and block-level datasets. However, the limitation of this study
+    is that it is targeted at C/C++ and is not directly applicable to other languages.
+    In addition, the quality of training data directly affects the performance of
+    the fine-tuned model, and the generalization between different datasets may be
+    inconsistent. finish also pointed out that in terms of automatic vulnerability
+    detection, the use of traditional fine-tuning methods may not fully utilize the
+    domain knowledge in the pre-trained language model, and may overfit to a specific
+    dataset, resulting in misclassification, excessive false positives and false negatives.
+    Its performance is not as good as emerging methods such as prompt-based learning.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Li 等人 ([2024b](https://arxiv.org/html/2410.06949v2#bib.bib16)) 进行了关于为安全代码生成微调大型语言模型（LLM）的探索性研究。研究结果表明，在修复问题的提交后，安全代码生成率略有提高。通过使用函数级和块级数据集进行微调，达到了最佳表现。然而，该研究的局限性在于其仅针对
+    C/C++，不能直接应用于其他语言。此外，训练数据的质量直接影响微调模型的表现，不同数据集之间的泛化性可能不一致。finish 还指出，在自动漏洞检测方面，传统的微调方法可能无法充分利用预训练语言模型中的领域知识，且可能过拟合到特定数据集，导致误分类、过多的假阳性和假阴性。其表现不如基于提示学习等新兴方法。
+- en: Ren et al. ([2023](https://arxiv.org/html/2410.06949v2#bib.bib25)) proposed
+    the Knowledge-driven Prompt Chaining (KPC) approach to improve code generation
+    by chaining fine-grained knowledge-driven prompts. Their evaluation with 3,079
+    code generation tasks from Java API documentation showed significant improvements
+    in exception handling. However, the approach’s efficiency relies heavily on the
+    inquiry about built-in exceptions for each built-in JDK, and its practical application
+    may be limited if the codebase is complex.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Ren等人（[2023](https://arxiv.org/html/2410.06949v2#bib.bib25)）提出了知识驱动的提示链（KPC）方法，通过链式精细化的知识驱动提示来改进代码生成。他们在3,079个来自Java
+    API文档的代码生成任务中进行的评估显示，异常处理方面有显著改进。然而，该方法的效率在很大程度上依赖于对每个内置JDK内建异常的查询，如果代码库复杂，其实际应用可能受到限制。
+- en: Nguyen et al. ([2020a](https://arxiv.org/html/2410.06949v2#bib.bib21)) developed
+    FuzzyCatch, a tool for recommending exception handling code for Android Studio
+    based on fuzzy logic. It achieved impressive accuracy in recommending exceptions
+    to catch and methods to call when an exception occurs. However, the performance
+    of FuzzyCatch depends on the quality and relevance of the training data. In addition,
+    the tool may not perform well for less common exceptions or domains that are not
+    well represented in the training data.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Nguyen等人（[2020a](https://arxiv.org/html/2410.06949v2#bib.bib21)）开发了FuzzyCatch，一种基于模糊逻辑的工具，用于推荐适用于Android
+    Studio的异常处理代码。该工具在推荐捕获异常和发生异常时调用的方法方面取得了令人印象深刻的准确性。然而，FuzzyCatch的性能依赖于训练数据的质量和相关性。此外，对于不常见的异常或训练数据中未充分表示的领域，该工具的表现可能不佳。
+- en: '![Refer to caption](img/68f464b8bfb684378d586a8950b3a998.png)'
+  id: totrans-246
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/68f464b8bfb684378d586a8950b3a998.png)'
+- en: 'Figure 7: Comparison of experimental metrics between our method and baselines.'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图7：我们的方法与基准方法之间实验指标的比较。
+- en: 'A common limitation of these studies is that the training data they rely on
+    may not fully represent all possible coding scenarios. This may result in a model
+    that is effective in specific situations, but may not generalize well to other
+    situations. In addition, the complexity of exception handling in real-world applications
+    may exceed the capabilities of models trained on more common or simpler cases,
+    so it is crucial to call on the understanding and reasoning capabilities of the
+    model itself. The interpretability of exception handling also provides a guarantee
+    for the improvement of developers’ programming literacy. The comparison between
+    the above methods and Seeker is shown in figure [7](https://arxiv.org/html/2410.06949v2#A2.F7
+    "Figure 7 ‣ B.1 Automatic Exception Handling Tools ‣ Appendix B Related Work ‣
+    Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach").'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这些研究的一个常见限制是，它们依赖的训练数据可能未能充分代表所有可能的编码场景。这可能导致一个在特定情境下有效的模型，但可能无法很好地推广到其他情境。此外，现实应用中异常处理的复杂性可能超出基于更常见或简单案例训练的模型的能力，因此，调用模型本身的理解和推理能力至关重要。异常处理的可解释性也为提升开发者的编程素养提供了保障。上述方法与Seeker的比较如图[7](https://arxiv.org/html/2410.06949v2#A2.F7
+    "Figure 7 ‣ B.1 Automatic Exception Handling Tools ‣ Appendix B Related Work ‣
+    Seeker: Enhancing Exception Handling in Code with a LLM-based Multi-Agent Approach")所示。'

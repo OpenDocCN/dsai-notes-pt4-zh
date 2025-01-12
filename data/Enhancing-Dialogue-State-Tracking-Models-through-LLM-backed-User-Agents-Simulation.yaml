@@ -1,0 +1,2912 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '类别: 未分类'
+- en: 'date: 2025-01-11 12:38:48'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '日期: 2025-01-11 12:38:48'
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Enhancing Dialogue State Tracking Models through LLM-backed User-Agents Simulation
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 通过基于LLM的用户代理模拟增强对话状态跟踪模型
+- en: 来源：[https://arxiv.org/html/2405.13037/](https://arxiv.org/html/2405.13037/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2405.13037/](https://arxiv.org/html/2405.13037/)
+- en: Cheng Niu NewsBreak Xingguang Wang NewsBreak Xuxin Cheng NewsBreak Juntong Song
+    NewsBreak Tong Zhang University of Illinois Urbana-Champaign
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Cheng Niu NewsBreak Xingguang Wang NewsBreak Xuxin Cheng NewsBreak Juntong Song
+    NewsBreak Tong Zhang 伊利诺伊大学香槟分校
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Dialogue State Tracking (DST) is designed to monitor the evolving dialogue state
+    in the conversations and plays a pivotal role in developing task-oriented dialogue
+    systems. However, obtaining the annotated data for the DST task is usually a costly
+    endeavor. In this paper, we focus on employing LLMs to generate dialogue data
+    to reduce dialogue collection and annotation costs. Specifically, GPT-4 is used
+    to simulate the user and agent interaction, generating thousands of dialogues
+    annotated with DST labels. Then a two-stage fine-tuning on LLaMA 2 is performed
+    on the generated data and the real data for the DST prediction. Experimental results
+    on two public DST benchmarks show that with the generated dialogue data, our model
+    performs better than the baseline trained solely on real data. In addition, our
+    approach is also capable of adapting to the dynamic demands in real-world scenarios,
+    generating dialogues in new domains swiftly. After replacing dialogue segments
+    in any domain with the corresponding generated ones, the model achieves comparable
+    performance to the model trained on real data.¹¹1All the source code, models,
+    and generated dialogue data will be released after review for reproducibility.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对话状态跟踪（DST）旨在监控对话过程中不断变化的对话状态，并在开发任务导向对话系统中发挥重要作用。然而，获得DST任务的标注数据通常是一项昂贵的工作。在本文中，我们专注于利用LLM生成对话数据，以减少对话收集和标注的成本。具体而言，我们使用GPT-4来模拟用户和代理的交互，生成成千上万条带有DST标签的对话。然后，对生成的数据和真实数据进行两阶段的LLaMA
+    2微调，以进行DST预测。基于两个公共DST基准的实验结果表明，利用生成的对话数据，我们的模型比仅用真实数据训练的基准模型表现更好。此外，我们的方法还能够适应现实场景中的动态需求，快速生成新领域的对话。通过将任何领域中的对话片段替换为相应的生成片段，模型的表现可以与在真实数据上训练的模型相媲美。¹¹1所有源代码、模型和生成的对话数据将在审核后发布，以便复现。
+- en: Enhancing Dialogue State Tracking Models through LLM-backed User-Agents Simulation
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过基于LLM的用户代理模拟增强对话状态跟踪模型
+- en: 1 Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Dialogue state tracking (DST) is a critical component of task-oriented dialogue
+    systems, serving to track users’ goals and system actions in the conversation
+    and facilitate precise information handling for communicating with external APIs Henderson
+    et al. ([2014](https://arxiv.org/html/2405.13037v1#bib.bib14)); Mrkšić et al.
+    ([2017](https://arxiv.org/html/2405.13037v1#bib.bib30)); Zhang et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib53));
+    Hudeček and Dušek ([2023](https://arxiv.org/html/2405.13037v1#bib.bib16)). DST
+    usually takes the form of key-value pairs, where the keys are denoted as slots
+    which are defined in the system schema, outlining the specific information that
+    the system aims to track or extract during the whole conversation Ren et al. ([2018](https://arxiv.org/html/2405.13037v1#bib.bib34)).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对话状态跟踪（DST）是任务导向对话系统中的关键组件，用于跟踪用户的目标和系统在对话中的行动，并促进与外部API的精确信息处理 Henderson et al.
+    ([2014](https://arxiv.org/html/2405.13037v1#bib.bib14)); Mrkšić et al. ([2017](https://arxiv.org/html/2405.13037v1#bib.bib30));
+    Zhang et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib53)); Hudeček
+    和 Dušek ([2023](https://arxiv.org/html/2405.13037v1#bib.bib16))。DST通常以键值对的形式存在，其中键表示在系统模式中定义的槽位，概述了系统在整个对话中旨在跟踪或提取的特定信息 Ren
+    et al. ([2018](https://arxiv.org/html/2405.13037v1#bib.bib34))。
+- en: The design of DST models could be broadly categorized into two main types, classification-based
+    DST models and generation-based DST models. Classification-based models select
+    slot values from a set of candidates Ma et al. ([2019](https://arxiv.org/html/2405.13037v1#bib.bib29));
+    Ye et al. ([2021](https://arxiv.org/html/2405.13037v1#bib.bib51)), assuming that
+    the dialogue ontology is pre-defined and hence lacking generalization capability Chen
+    et al. ([2020](https://arxiv.org/html/2405.13037v1#bib.bib5)); Wang et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib45)).
+    Generation-based models directly generate the slot values to handle unseen domains
+    and values Gao et al. ([2019](https://arxiv.org/html/2405.13037v1#bib.bib10),
+    [2020](https://arxiv.org/html/2405.13037v1#bib.bib9)); Lin et al. ([2020](https://arxiv.org/html/2405.13037v1#bib.bib27));
+    Peng et al. ([2021](https://arxiv.org/html/2405.13037v1#bib.bib33)). Recently,
+    Feng et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib8)) proposes a
+    new DST framework LDST based on LLaMA Touvron et al. ([2023a](https://arxiv.org/html/2405.13037v1#bib.bib41)).
+    By using an instruction tuning method, LDST achieves performance on par with ChatGPT OpenAI
+    ([2023](https://arxiv.org/html/2405.13037v1#bib.bib31)).
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: DST 模型的设计大致可以分为两种主要类型：基于分类的 DST 模型和基于生成的 DST 模型。基于分类的模型从一组候选值中选择槽位值 Ma 等人 ([2019](https://arxiv.org/html/2405.13037v1#bib.bib29));
+    Ye 等人 ([2021](https://arxiv.org/html/2405.13037v1#bib.bib51))，假设对话本体是预定义的，因此缺乏泛化能力 Chen
+    等人 ([2020](https://arxiv.org/html/2405.13037v1#bib.bib5)); Wang 等人 ([2022](https://arxiv.org/html/2405.13037v1#bib.bib45))。基于生成的模型直接生成槽位值，以处理未见过的领域和值
+    Gao 等人 ([2019](https://arxiv.org/html/2405.13037v1#bib.bib10), [2020](https://arxiv.org/html/2405.13037v1#bib.bib9));
+    Lin 等人 ([2020](https://arxiv.org/html/2405.13037v1#bib.bib27)); Peng 等人 ([2021](https://arxiv.org/html/2405.13037v1#bib.bib33))。最近，Feng
+    等人 ([2023](https://arxiv.org/html/2405.13037v1#bib.bib8)) 提出了一个基于 LLaMA 的新 DST
+    框架 LDST Touvron 等人 ([2023a](https://arxiv.org/html/2405.13037v1#bib.bib41))。通过使用指令调优方法，LDST
+    的性能与 ChatGPT OpenAI ([2023](https://arxiv.org/html/2405.13037v1#bib.bib31)) 相当。
+- en: Despite DST showing promising results, a significant challenge is that the annotation
+    of dialogues entails significant costs. Furthermore, the dynamic nature of real-world
+    demands highlights the urgent need to quickly generate utterances for new domains.
+    Compared to other types of NLP data, collecting authentic dialogue data is particularly
+    challenging. This difficulty is partly due to the dialogues frequently containing
+    personal or sensitive information, which complicates data collection and sharing
+    efforts. In response to these challenges, and inspired by the recent advancements
+    of large language models (LLMs) Touvron et al. ([2023b](https://arxiv.org/html/2405.13037v1#bib.bib42));
+    Significant-gravitas ([2023](https://arxiv.org/html/2405.13037v1#bib.bib37));
+    Jablonka et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib17)); Shen
+    et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib35)), we explore the
+    use of these models for generating annotated DST data for data augmentation. By
+    leveraging LLM’s cross-domain generation capability, we aim to create synthetic
+    dialogues that can serve as replacements for manually annotated data, significantly
+    reducing both financial cost and time constraints.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 DST 展现出了有前景的结果，但一个重大挑战是对话的注释需要显著的成本。此外，现实世界需求的动态性突显了快速生成新领域话语的迫切需要。与其他类型的
+    NLP 数据相比，收集真实对话数据尤其具有挑战性。这一难题部分源于对话中常包含个人或敏感信息，这使得数据收集和共享工作变得复杂。为了应对这些挑战，并受到近期大规模语言模型（LLMs）进展的启发 Touvron
+    等人 ([2023b](https://arxiv.org/html/2405.13037v1#bib.bib42)); Significant-gravitas
+    ([2023](https://arxiv.org/html/2405.13037v1#bib.bib37)); Jablonka 等人 ([2023](https://arxiv.org/html/2405.13037v1#bib.bib17));
+    Shen 等人 ([2023](https://arxiv.org/html/2405.13037v1#bib.bib35))，我们探索了利用这些模型生成注释过的
+    DST 数据以进行数据增强。通过利用 LLM 的跨领域生成能力，我们旨在创建能够替代手动注释数据的合成对话，从而显著降低财务成本和时间压力。
+- en: In this paper, we propose a LLM-backed User-Agents Simulation (LUAS) algorithm
+    to enhance DST. The process begins with the LLM generating a user profile that
+    details the individual’s preferences for various tasks. Following this initial
+    step, the LLM is prompted to simulate a conversation between the user and the
+    agent. In these simulations, the user simulator makes requests and seeks recommendations
+    or assistance, while the agent responds by understanding the user’s needs, providing
+    suggestions, and taking appropriate actions. Through iterative conversations between
+    the user and agent, complemented by a slot extractor also prompted by the LLM,
+    we generate a substantial corpus of labeled, multi-turn dialogue data.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文中，我们提出了一种基于LLM的用户代理模拟（LUAS）算法来增强DST。该过程首先由LLM生成一个用户档案，详细说明个体在各项任务中的偏好。接下来，LLM被提示模拟用户和代理之间的对话。在这些模拟中，用户模拟器发出请求并寻求建议或帮助，而代理通过理解用户需求、提供建议并采取适当的行动进行回应。通过用户和代理之间的迭代对话，并结合LLM提示的槽位提取器，我们生成了大量标注的多轮对话数据。
+- en: To verify the effectiveness of our approach and the quality of the generated
+    data, experiments are conducted on two public DST datasets, MultiWOZ 2.2 (Zang
+    et al., [2020](https://arxiv.org/html/2405.13037v1#bib.bib52)) and MultiWOZ 2.4 (Ye
+    et al., [2022](https://arxiv.org/html/2405.13037v1#bib.bib50)). Following  Touvron
+    et al. ([2023b](https://arxiv.org/html/2405.13037v1#bib.bib42)), LLaMa 2 is finetuned
+    with real data as a strong baseline. By using both the generated and the real
+    data, finetuning LLaMa 2 can further improve the performance. Besides, by replacing
+    dialogue segments of any domain with the generated data, the newly trained model
+    achieves comparable performance to the model trained on the real data, which shows
+    the capability of our method to meet the dynamic requirements of real-world scenarios,
+    generating dialogues in new domains and preserving the promising performance.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证我们方法的有效性和生成数据的质量，我们在两个公共的DST数据集上进行了实验：MultiWOZ 2.2（Zang等人，[2020](https://arxiv.org/html/2405.13037v1#bib.bib52)）和MultiWOZ
+    2.4（Ye等人，[2022](https://arxiv.org/html/2405.13037v1#bib.bib50)）。根据Touvron等人（[2023b](https://arxiv.org/html/2405.13037v1#bib.bib42)）的方法，LLaMa
+    2使用真实数据进行微调，作为强基准模型。通过同时使用生成数据和真实数据，微调LLaMa 2能够进一步提高性能。此外，通过用生成数据替换任何领域的对话片段，重新训练的模型能够达到与使用真实数据训练的模型相当的性能，这表明我们的方法具备满足现实场景动态需求的能力，能够在新领域生成对话并保持良好的性能。
+- en: 'In summary, the contributions of our work can be categorized into four aspects:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，我们工作的贡献可以分为四个方面：
+- en: •
+  id: totrans-17
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We propose a new framework that harnesses the power of GPT-4 to generate new
+    labeled dialogue data, effectively reducing dialogue data collection and annotation
+    costs.
+  id: totrans-18
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出了一个新的框架，利用GPT-4的强大功能生成新的标注对话数据，有效降低对话数据的收集和标注成本。
+- en: •
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Experiment results on two datasets show the positive impact of the generated
+    data on performance.
+  id: totrans-20
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 在两个数据集上的实验结果表明，生成数据对性能的积极影响。
+- en: •
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Our method can swiftly generate data in new domains while maintaining promising
+    performance.
+  id: totrans-22
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们的方法可以快速生成新领域的数据，同时保持良好的性能。
+- en: •
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We believe that our approach holds promise for extension to other dialogue-related
+    tasks.
+  id: totrans-24
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们相信，我们的方法有望扩展到其他与对话相关的任务。
+- en: 2 Related Work
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: 2.1 Dialogue State Tracking
+  id: totrans-26
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 对话状态追踪
+- en: Dialogue state tracking is an essential yet challenging task in task-oriented
+    dialogue systems (Mrkšić et al., [2017](https://arxiv.org/html/2405.13037v1#bib.bib30)).
+    Recent DST models (Lee et al., [2021](https://arxiv.org/html/2405.13037v1#bib.bib24);
+    Zhu et al., [2022](https://arxiv.org/html/2405.13037v1#bib.bib59); Yang et al.,
+    [2023b](https://arxiv.org/html/2405.13037v1#bib.bib49); Su et al., [2023](https://arxiv.org/html/2405.13037v1#bib.bib38);
+    Lesci et al., [2023](https://arxiv.org/html/2405.13037v1#bib.bib25)), leveraging
+    the different architectures and mechanisms, have convincingly demonstrated promising
+    performance on several datasets (Budzianowski et al., [2018](https://arxiv.org/html/2405.13037v1#bib.bib4);
+    Eric et al., [2020](https://arxiv.org/html/2405.13037v1#bib.bib7); Zang et al.,
+    [2020](https://arxiv.org/html/2405.13037v1#bib.bib52); Han et al., [2021](https://arxiv.org/html/2405.13037v1#bib.bib11);
+    Ye et al., [2022](https://arxiv.org/html/2405.13037v1#bib.bib50)). To ease the
+    burden of dialogue collection and annotation, Wu et al. ([2019](https://arxiv.org/html/2405.13037v1#bib.bib47));
+    Zhou et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib58)) use few-shot
+    learning to transfer to adapt existing models to the new domains. Drawn by the
+    recent achievement of LLMs, Feng et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib8))
+    leverages Low-Rank Adaptation (LoRA) Hu et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib15))
+    to fine-tune the foundation model, achieving the promising performance in DST.
+    In this paper, we utilize GPT-4 to simulate user-agent conversations, and the
+    obtained dialogue data significantly enhances DST.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对话状态追踪（DST）是任务导向对话系统中一项至关重要且具有挑战性的任务（Mrkšić 等，[2017](https://arxiv.org/html/2405.13037v1#bib.bib30)）。近期的DST模型（Lee
+    等，[2021](https://arxiv.org/html/2405.13037v1#bib.bib24)；Zhu 等，[2022](https://arxiv.org/html/2405.13037v1#bib.bib59)；Yang
+    等，[2023b](https://arxiv.org/html/2405.13037v1#bib.bib49)；Su 等，[2023](https://arxiv.org/html/2405.13037v1#bib.bib38)；Lesci
+    等，[2023](https://arxiv.org/html/2405.13037v1#bib.bib25)）通过利用不同的架构和机制，已在多个数据集上取得了令人信服的良好表现（Budzianowski
+    等，[2018](https://arxiv.org/html/2405.13037v1#bib.bib4)；Eric 等，[2020](https://arxiv.org/html/2405.13037v1#bib.bib7)；Zang
+    等，[2020](https://arxiv.org/html/2405.13037v1#bib.bib52)；Han 等，[2021](https://arxiv.org/html/2405.13037v1#bib.bib11)；Ye
+    等，[2022](https://arxiv.org/html/2405.13037v1#bib.bib50)）。为了减轻对话数据收集和标注的负担，Wu 等（[2019](https://arxiv.org/html/2405.13037v1#bib.bib47)）；Zhou
+    等（[2023](https://arxiv.org/html/2405.13037v1#bib.bib58)）使用少样本学习将现有模型转移并适应新领域。受到大规模语言模型（LLMs）近期成就的启发，Feng
+    等（[2023](https://arxiv.org/html/2405.13037v1#bib.bib8)）利用低秩适应（LoRA）技术（Hu 等，[2022](https://arxiv.org/html/2405.13037v1#bib.bib15)）对基础模型进行微调，在DST任务中取得了令人期待的表现。本文中，我们利用GPT-4模拟用户和代理之间的对话，所获得的对话数据显著提升了DST的效果。
+- en: 2.2 Data Augmentation by LLMs
+  id: totrans-28
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 基于大规模语言模型（LLMs）的数据增强
+- en: '| DST: [history], [user_utterance] $\rightarrow$ [service], [slot_key], [slot_val]
+    |'
+  id: totrans-29
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [用户发言] $\rightarrow$ [服务], [槽位键], [槽位值] |'
+- en: '| You are a local guide online, primarily handling the local services like
+    finding the user’s place (such as attraction, hotel, train, restaurant, or hospital),
+    calling taxis, contacting the police, or other convenient services. Your service
+    is efficient and of high quality, earning widespread praise from the local community.
+    Given the conversion history, your task is to help find what the user is looking
+    for based on the whole conversion. Please output the current_service based on
+    the user’s last utterance. And also please output all service information that
+    needs to be paid attention to from the whole conversion. Here are the “conversion
+    history”: {[history]} and the “user’s lastest utterance”: {[user_utterance]}.
+    The output should be JSON-formatted like “current_service”: {[service]}, “slots”:
+    {“[service]”: {“[slot_key]”: {[slot_val]}}}. |'
+  id: totrans-30
+  prefs: []
+  type: TYPE_TB
+  zh: '| 您是本地的在线向导，主要处理本地服务，如帮助查找用户的位置（如景点、酒店、火车、餐厅或医院）、打车、联系警察或其他便捷服务。您的服务高效且质量优良，赢得了当地社区的广泛赞誉。根据对话历史，您的任务是根据整个对话帮助用户找到他们需要的服务。请根据用户的最新发言输出当前的服务，并输出整个对话中需要注意的所有服务信息。以下是“对话历史”：{[history]}
+    和 “用户的最新发言”：{[user_utterance]}。输出应采用JSON格式，类似于“current_service”: {[service]}，“slots”:
+    {“[service]”: {“[slot_key]”: {[slot_val]}}}。 |'
+- en: '| Please give your decision: |'
+  id: totrans-31
+  prefs: []
+  type: TYPE_TB
+  zh: '| 请给出您的决定： |'
+- en: 'Table 1: Proposed prompts to guide LLaMA 2 to generate JSON-formatted dialogue
+    state predictions.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：用于指导LLaMA 2生成JSON格式对话状态预测的提示语。
+- en: Data augmentation has shown remarkable effectiveness in various domains, including
+    computer vision Krizhevsky et al. ([2012](https://arxiv.org/html/2405.13037v1#bib.bib22));
+    Shorten and Khoshgoftaar ([2019](https://arxiv.org/html/2405.13037v1#bib.bib36)),
+    text classification Zhang et al. ([2015](https://arxiv.org/html/2405.13037v1#bib.bib55));
+    Wei and Zou ([2019](https://arxiv.org/html/2405.13037v1#bib.bib46)), and speech
+    recognition Ko et al. ([2015](https://arxiv.org/html/2405.13037v1#bib.bib21));
+    Park et al. ([2019](https://arxiv.org/html/2405.13037v1#bib.bib32)).
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据增强在多个领域中已展示出显著的效果，包括计算机视觉Krizhevsky等人（[2012](https://arxiv.org/html/2405.13037v1#bib.bib22)）；Shorten和Khoshgoftaar（[2019](https://arxiv.org/html/2405.13037v1#bib.bib36)），文本分类Zhang等人（[2015](https://arxiv.org/html/2405.13037v1#bib.bib55)）；Wei和Zou（[2019](https://arxiv.org/html/2405.13037v1#bib.bib46)），以及语音识别Ko等人（[2015](https://arxiv.org/html/2405.13037v1#bib.bib21)）；Park等人（[2019](https://arxiv.org/html/2405.13037v1#bib.bib32)）。
+- en: In recent years, with the increasing prominence of LLMs, an increasing number
+    of studies have begun to utilize LLMs for data augmentation. Kaddour and Liu ([2024](https://arxiv.org/html/2405.13037v1#bib.bib18))
+    discovers that fine-tuning teacher LLMs to annotate unlabeled instances and generate
+    new data points can notably boost the performance of downstream models. Yang et al.
+    ([2023a](https://arxiv.org/html/2405.13037v1#bib.bib48)) generates truthful and
+    customized dialogues to reduce hallucation. Ulmer et al. ([2024](https://arxiv.org/html/2405.13037v1#bib.bib43))
+    compares the effectiveness of various filtering strategies for the generated dialogue
+    quality and introduces new methods to benchmark finetuned dialogue system. But
+    their work does not discuss the DST task. Li et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib26))
+    presented GPT-3 backed user-agent simulation system and showed positive results
+    on DST task when the real data size is extremely small. Unlike Li et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib26)),
+    we abstract the common intentions of users and agents, crafting intent-specific
+    prompts to ensure that the simulation adheres to task-oriented logic. This scheme
+    enables the simulation to operate within a zero-shot setup, enhancing our approach’s
+    adaptability to new domains. Moreover, by implementing a two-stage fine-tuning
+    process, our approach demonstrates superior performance compared to strong baselines,
+    even when trained with the full size of real data.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，随着大语言模型（LLMs）日益重要，越来越多的研究开始利用LLMs进行数据增强。Kaddour和Liu（[2024](https://arxiv.org/html/2405.13037v1#bib.bib18)）发现，微调教师LLMs以标注未标记的实例并生成新的数据点，显著提升了下游模型的性能。Yang等人（[2023a](https://arxiv.org/html/2405.13037v1#bib.bib48)）生成真实且定制化的对话，以减少幻觉现象。Ulmer等人（[2024](https://arxiv.org/html/2405.13037v1#bib.bib43)）比较了多种过滤策略对生成对话质量的有效性，并提出了新的方法来基准化微调的对话系统。但他们的工作没有讨论DST任务。Li等人（[2022](https://arxiv.org/html/2405.13037v1#bib.bib26)）提出了基于GPT-3的用户代理模拟系统，并在实际数据量极小的情况下展示了DST任务的积极效果。与Li等人（[2022](https://arxiv.org/html/2405.13037v1#bib.bib26)）不同，我们抽象了用户和代理的共通意图，设计了特定意图的提示，确保模拟遵循任务导向的逻辑。这一方案使得模拟能够在零样本设置下运行，增强了我们方法对新领域的适应性。此外，通过实施两阶段微调过程，我们的方法即便在使用全部真实数据训练时，也能表现出优于强基线的方法。
+- en: 3 Method
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 方法
+- en: In this section, we will begin with the basic problem definition ($\S\ref{Problem
+    Definition}$). Then, we introduce our proposed method, including fine-tuning LLaMA
+    2 to predict dialogue state ($\S\ref{Using LLaMA 2 to Predict Dialogue State}$)
+    and utilizing GPT-4 for user-agent conversation simulation ($\S\ref{Employing
+    GPT-4 to Simulate Comprehensive Dialogue Data}$). Finally, we present our two-stage
+    fine-tuning strategy to use both generated and real data for DST ($\S\ref{Two-stage
+    Fine-tuning Strategy}$).
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们将从基本问题定义开始（$\S\ref{Problem Definition}$）。接着，介绍我们提出的方法，包括微调LLaMA 2以预测对话状态（$\S\ref{Using
+    LLaMA 2 to Predict Dialogue State}$）和利用GPT-4进行用户-代理对话模拟（$\S\ref{Employing GPT-4
+    to Simulate Comprehensive Dialogue Data}$）。最后，我们展示了我们针对DST任务的两阶段微调策略，使用生成数据和真实数据（$\S\ref{Two-stage
+    Fine-tuning Strategy}$）。
+- en: 3.1 Problem Definition
+  id: totrans-37
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 问题定义
+- en: 'A task-oriented dialogue involves a multi-turn conversation between a user
+    $U$ and an agent $A$. Given a dialogue context $C_{t}=[U_{1},A_{1},...,U_{t},A_{t}]$
+    as the sequence of utterances up to turn $t$, the goal of DST is to predict the
+    dialogue state $y_{t}$, which is defined as a collection of (slot, value) pairs:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任务导向对话涉及用户$U$和代理$A$之间的多轮对话。给定一个对话上下文$C_{t}=[U_{1},A_{1},...,U_{t},A_{t}]$，即到第$t$轮的发言序列，DST的目标是预测对话状态$y_{t}$，它定义为一组（槽位，值）对：
+- en: '|  | $y_{t}=\{(s^{i}_{t},v^{i}_{t})\;&#124;\;C_{t}\;,\forall s^{i}\in\mathcal{S}\}$
+    |  |'
+  id: totrans-39
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $y_{t}=\{(s^{i}_{t},v^{i}_{t})\;&#124;\;C_{t}\;,\forall s^{i}\in\mathcal{S}\}$
+    |  |'
+- en: where $\mathcal{S}$ denotes the set of the possible slots predefined in an ontology
+    or schema. Following previous work Wang et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib44)),
+    the final slot is represented as the concatenation of the corresponding task domain
+    and original slot, e.g., “<hotel-area>”. The slots associated with each domain
+    could be either categorical with a set of candidate values (e.g. <hotel-parking>
+    = “True” / “False”), or non-categorical, where the value is a span in the dialogue
+    context (e.g. <hotel-name> = “Alexander”). Note that if no information is provided
+    in the dialogue regarding a specific slot, the associated value for that slot
+    is set to “NONE”.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$\mathcal{S}$ 表示本体或模式中预定义的可能槽位集合。参考先前的工作 Wang 等人 ([2023](https://arxiv.org/html/2405.13037v1#bib.bib44))，最终的槽位表示为相应任务领域与原始槽位的连接，例如：“<hotel-area>”。每个领域相关的槽位可以是类别型的，具有一组候选值（例如
+    <hotel-parking> = “True” / “False”），也可以是非类别型的，其中值是对话上下文中的一个范围（例如 <hotel-name>
+    = “Alexander”）。注意，如果对话中没有提供特定槽位的信息，则该槽位的相关值设为 “NONE”。
+- en: 3.2 Using LLaMA 2 to Predict Dialogue State
+  id: totrans-41
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 使用 LLaMA 2 预测对话状态
+- en: '![Refer to caption](img/1089aec438083dd23c4f4b2092d74f11.png)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/1089aec438083dd23c4f4b2092d74f11.png)'
+- en: 'Figure 1: The simulation process of our approach. The blue boxes are intentions
+    for the user and the agent, the ‘[RECOM]’, ‘[EOF]’, and ‘[EOD]’ are control identifiers.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：我们方法的仿真过程。蓝色框表示用户和代理的意图，‘[RECOM]’，‘[EOF]’ 和 ‘[EOD]’ 是控制标识符。
+- en: We employ full-parameter fine-tuning on LLaMA 2 to predict dialogue states and
+    employ pre-designed prompts to guide the LLaMA 2 model in generating predictions
+    formatted in JSON. As demonstrated in Table [1](https://arxiv.org/html/2405.13037v1#S2.T1
+    "Table 1 ‣ 2.2 Data Augmentation by LLMs ‣ 2 Related Work ‣ Enhancing Dialogue
+    State Tracking Models through LLM-backed User-Agents Simulation"), dialogue history
+    and the user’s latest utterance are fed into LLaMA 2, which then conducts the
+    prediction of the entire conversation’s intents and slot values. Specifically,
+    predicted intents must fall within a predefined set, and predicted slots must
+    align with the designated slots for the respective intents. We implement a schema
+    to prevent the generation model from producing incoherent outputs and to enhance
+    the overall quality and reliability of the outputs of LLaMA 2\. The optimization
+    is conducted through the utilization of cross-entropy.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在 LLaMA 2 上进行全参数微调，以预测对话状态，并采用预设计的提示语引导 LLaMA 2 模型生成格式为 JSON 的预测结果。如表格 [1](https://arxiv.org/html/2405.13037v1#S2.T1
+    "Table 1 ‣ 2.2 Data Augmentation by LLMs ‣ 2 Related Work ‣ Enhancing Dialogue
+    State Tracking Models through LLM-backed User-Agents Simulation") 所示，历史对话和用户的最新发言被输入
+    LLaMA 2，LLaMA 2 随后对整个对话的意图和槽值进行预测。具体而言，预测的意图必须属于预定义的集合，预测的槽位必须与各自意图的指定槽位相对应。我们实现了一个方案，以防止生成模型产生不一致的输出，并提高
+    LLaMA 2 输出的整体质量和可靠性。优化通过交叉熵实现。
+- en: 3.3 User-Agent Dialogue Simulation backed by GPT-4
+  id: totrans-45
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 基于 GPT-4 的用户代理对话仿真
+- en: As illustrated in Figure [1](https://arxiv.org/html/2405.13037v1#S3.F1 "Figure
+    1 ‣ 3.2 Using LLaMA 2 to Predict Dialogue State ‣ 3 Method ‣ Enhancing Dialogue
+    State Tracking Models through LLM-backed User-Agents Simulation"), the dialogue
+    simulation framework based on GPT-4 involves a multi-stage approach for producing
+    labeled multi-turn dialogue data. In this arrangement, GPT-4 prompts two simulators,
+    including the user simulator and the agent simulator, to engage in conversations
+    aimed at completing specific dialogue tasks. Concurrently, GPT-4 also prompts
+    a slot extractor to identify and extract all relevant slots throughout the entire
+    conversation simulation process.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图 [1](https://arxiv.org/html/2405.13037v1#S3.F1 "Figure 1 ‣ 3.2 Using LLaMA
+    2 to Predict Dialogue State ‣ 3 Method ‣ Enhancing Dialogue State Tracking Models
+    through LLM-backed User-Agents Simulation") 所示，基于 GPT-4 的对话仿真框架涉及一个多阶段的过程，用于生成带标签的多轮对话数据。在这个框架中，GPT-4
+    提示两个模拟器，包括用户模拟器和代理模拟器，进行旨在完成特定对话任务的对话。同时，GPT-4 还提示一个槽位提取器，在整个对话仿真过程中识别并提取所有相关的槽位。
+- en: The details of the simulation generation process are outlined below, with all
+    the prompts included in the appendix for reference.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仿真生成过程的详细信息如下所述，所有提示语均在附录中提供供参考。
+- en: 3.3.1 Simulation Process Overview
+  id: totrans-48
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.1 仿真过程概述
+- en: Before initiating the dialogue, GPT-4 is prompted to create a user profile that
+    outlines the individual’s preferences across various tasks such as travel, accommodations,
+    dining, and more. Each preference includes specific details like budget, travel
+    distance, and other criteria. Following this setup, the user simulator begins
+    interacting with the agent, presenting its requests and seeking recommendations
+    or assistance with bookings and purchases. The agent, in turn, is prompted to
+    delve into the user’s needs, conduct searches for pertinent information, offer
+    suggestions, and execute necessary actions. After each interaction, the user simulator
+    evaluates how well their needs have been met, deciding whether to continue the
+    conversation.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在启动对话之前，GPT-4会被提示创建一个用户档案，概述个人在各项任务（如旅行、住宿、餐饮等）中的偏好。每个偏好包括预算、旅行距离等具体细节。设置完毕后，用户模拟器开始与代理进行互动，提出请求并寻求推荐或协助进行预订和购买。代理则根据提示深入了解用户需求，进行相关信息搜索，提供建议，并执行必要的行动。在每次互动后，用户模拟器会评估其需求是否得到满足，并决定是否继续对话。
+- en: 3.3.2 User/Agent Intentions
+  id: totrans-50
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.2 用户/代理意图
+- en: To effectively navigate the simulators through interactive tasks, we encounter
+    the challenge of encoding complex dialogue logic within a single prompt. This
+    task is demanding for both the user and the agent simulator. To simplify, we abstract
+    the common intentions of users and agents, and craft prompts specifically for
+    each unique intention of the user or agent. The detailed prompts of different
+    intentions are shown in Appendix [A](https://arxiv.org/html/2405.13037v1#A1 "Appendix
+    A Prompts for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed
+    User-Agents Simulation").
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了通过交互式任务有效地导航模拟器，我们面临在单一提示中编码复杂对话逻辑的挑战。这个任务对用户和代理模拟器都是一个考验。为简化起见，我们抽象出用户和代理的共同意图，并为用户或代理的每个独特意图精心设计提示。不同意图的详细提示见附录[A](https://arxiv.org/html/2405.13037v1#A1
+    "附录 A 模拟提示 ‣ 通过大语言模型支持的用户代理模拟增强对话状态跟踪模型")。
+- en: 'The user intentions are listed below:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户的意图如下所示：
+- en: •
+  id: totrans-53
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Inform Requirement, the user informs their requirement to the agent.
+  id: totrans-54
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通知需求，用户将需求告知代理。
+- en: •
+  id: totrans-55
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Update Requirement, the user may update their requirements if the search result
+    does not meet their criteria.
+  id: totrans-56
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 更新需求，如果搜索结果不符合用户的标准，用户可以更新需求。
+- en: •
+  id: totrans-57
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Ask for Recommendation, the user asks for a recommendation given a few candidates
+    meeting their criteria.
+  id: totrans-58
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 请求推荐，用户根据几个符合其标准的候选项请求推荐。
+- en: •
+  id: totrans-59
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Inquire Properties, the user asks for some properties (e.g. address, etc.) of
+    the candidates.
+  id: totrans-60
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 询问属性，用户询问候选项的某些属性（例如地址等）。
+- en: •
+  id: totrans-61
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Ask for Action, the user requires action after receiving the recommendation
+    (e.g. making a reservation, etc.).
+  id: totrans-62
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 请求行动，用户在收到推荐后要求采取行动（例如，进行预订等）。
+- en: •
+  id: totrans-63
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: General Chat, other scenarios in the simulation, e.g. greeting or showing gratitude.
+  id: totrans-64
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一般聊天，模拟中的其他场景，例如问候或表示感谢。
+- en: 'The agent intentions are listed below:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代理意图如下所示：
+- en: •
+  id: totrans-66
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Inquire, ask the user’s need and preference or seek the user’s approval or confirmation.
+  id: totrans-67
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 询问，询问用户的需求和偏好，或征求用户的批准或确认。
+- en: •
+  id: totrans-68
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Report Search Results, based on the user’s preference, search the database and
+    then make inquiries, recommendations, or reservations.
+  id: totrans-69
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 根据用户的偏好，搜索数据库并报告搜索结果，然后进行查询、推荐或预订。
+- en: •
+  id: totrans-70
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Recommendation, when more than one candidate meets users’ search criteria, select
+    the top candidate to recommend.
+  id: totrans-71
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 推荐，当多个候选项符合用户的搜索标准时，选择最合适的候选项进行推荐。
+- en: •
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Answer, answer the user’s inquiry about a recommendation from the agent.
+  id: totrans-73
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 回答，回答用户关于代理推荐的询问。
+- en: •
+  id: totrans-74
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Report Action Result, take action per the user’s request and report the outcome
+    of the action.
+  id: totrans-75
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 报告行动结果，根据用户的请求采取行动并报告行动结果。
+- en: •
+  id: totrans-76
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: General Chat, other scenarios in the simulation, e.g. greetings or asking if
+    there are any additional requirements to be addressed.
+  id: totrans-77
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一般聊天，模拟中的其他场景，例如问候或询问是否有额外需求需要处理。
+- en: Besides natural language outputs, the simulators are also prompted to generate
+    the control identifiers in the responses, signaling the intention of the response.
+    Given the input intention signaled by the control identifiers, the user or agent
+    is prompted to select a proper intention and generate responses accordingly.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了自然语言输出外，模拟器还会在响应中生成控制标识符，以表示响应的意图。根据控制标识符传达的输入意图，用户或代理会被提示选择适当的意图，并据此生成响应。
+- en: 3.3.3 Simulation Details
+  id: totrans-79
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.3 模拟细节
+- en: As described in Sec. [3.3.1](https://arxiv.org/html/2405.13037v1#S3.SS3.SSS1
+    "3.3.1 Simulation Process Overview ‣ 3.3 User-Agent Dialogue Simulation backed
+    by GPT-4 ‣ 3 Method ‣ Enhancing Dialogue State Tracking Models through LLM-backed
+    User-Agents Simulation"), the simulation begins by generating user profiles, which
+    initializes the user requests. Following this, based on input intent from the
+    preceding round, the simulation selects a user or agent response intent and then
+    uses the corresponding prompt for dialogue generation. This selection process
+    is governed by the predetermined logic listed below. The Generate Chat intent
+    refers to the expressions of greetings and gratitude that are triggered only at
+    the beginning or end of a conversation and are skipped in the subsequent list.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如第[3.3.1节](https://arxiv.org/html/2405.13037v1#S3.SS3.SSS1 "3.3.1 Simulation
+    Process Overview ‣ 3.3 User-Agent Dialogue Simulation backed by GPT-4 ‣ 3 Method
+    ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents Simulation")所述，模拟从生成用户资料开始，这将初始化用户请求。接下来，根据前一轮的输入意图，模拟选择一个用户或代理的响应意图，然后使用相应的提示生成对话。这个选择过程遵循下列预定逻辑。生成聊天意图指的是在对话开始或结束时触发的问候与感谢表达，并且在后续列表中会被跳过。
+- en: The conversation can be initiated by either the user or the agent. The following
+    describes the detailed mechanism that triggers the user’s intent.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对话可以由用户或代理发起。以下描述了触发用户意图的详细机制。
+- en: •
+  id: totrans-82
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Conversation Starts: triggers user’s Inform Requirement intent. Using randomization,
+    the user simulator is instructed to choose a task of interest along with several
+    related preferences and then generate a corresponding request.'
+  id: totrans-83
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 对话开始：触发用户的告知需求意图。通过随机化，用户模拟器被指示选择一个感兴趣的任务，并附带几个相关的偏好，然后生成相应的请求。
+- en: •
+  id: totrans-84
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Inquire from the agent: triggers user’s Inform Requirement intent, corresponding
+    to the scenario to answer the follow-up questions from the agent.'
+  id: totrans-85
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来自代理的询问：触发用户的告知需求意图，针对代理的后续问题进行回答。
+- en: •
+  id: totrans-86
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Report Search Result from the agent: if the user’s preference has not been
+    fully expressed, the user’s Inform Requirement intent will be triggered. If no
+    candidate meets the search criteria, this will trigger the user’s Update Requirement
+    intent. Otherwise, the presence of a single candidate will initiate the user’s
+    Ask for Action intent, while the discovery of multiple candidates will prompt
+    the user’s Ask for Recommendation intent.'
+  id: totrans-87
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来自代理的搜索结果报告：如果用户的偏好尚未完全表达，将触发用户的告知需求意图。如果没有候选项符合搜索标准，将触发用户的更新需求意图。否则，如果发现一个候选项，将启动用户的请求行动意图，而如果发现多个候选项，则会提示用户选择请求推荐意图。
+- en: •
+  id: totrans-88
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Recommendation from the agent: the user will be prompted to select from (i)
+    Inquire Propertied intent for more information or (ii) Ask for Action intent to
+    proceed to make transactions.'
+  id: totrans-89
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来自代理的推荐：用户将被提示从以下选项中选择：（i）询问属性意图以获取更多信息，或（ii）请求行动意图以继续进行交易。
+- en: •
+  id: totrans-90
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Report Action Result from the agent: if all the tasks in the user profile have
+    been completed, General Chat between the user and agent will be triggered, and
+    then the conversation terminates; Otherwise, Inform Requirement intent is triggered
+    for a new task.'
+  id: totrans-91
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来自代理的行动结果报告：如果用户资料中的所有任务都已完成，将触发用户与代理之间的普通对话，随后对话终止；否则，将触发告知需求意图以启动新任务。
+- en: Below is the intent-triggering mechanism for the agent simulation.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下是代理模拟的意图触发机制。
+- en: •
+  id: totrans-93
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Inform Requirement from the user: the agent is prompted to check if all the
+    required slot values have been collected. If not, Inquire intent will be triggered
+    to generate follow-up questions; Otherwise, the agent will search based on the
+    user’s requirement, and then generate a response based on Report Search Result
+    intent.'
+  id: totrans-94
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来自用户的需求告知：代理会被提示检查是否已收集所有必需的槽值。如果没有，系统将触发询问意图来生成后续问题；否则，代理将根据用户的需求进行搜索，并根据报告搜索结果意图生成响应。
+- en: •
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Inquire Properties from the user: triggers agent’s Answer intent.'
+  id: totrans-96
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 向用户询问属性：触发代理的**回答**意图。
+- en: •
+  id: totrans-97
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Ask for Recommendation from the user: the agent is prompted to select the top
+    candidate and then generate the response based on Recommendation intent.'
+  id: totrans-98
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 请求用户推荐：代理被提示选择最佳候选项，然后根据**推荐**意图生成响应。
+- en: •
+  id: totrans-99
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Ask for Action from the user: the agent is prompted to make transactions and
+    then generate a response based on Report Action Result intent.'
+  id: totrans-100
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 请求用户操作：代理被提示进行交易，然后根据**报告操作结果**意图生成响应。
+- en: 3.3.4 Slot Extraction
+  id: totrans-101
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.4 槽位提取
+- en: It’s important to note that the agent simulator must verify that all necessary
+    information has been gathered before initiating a search. To manage this, a slot
+    tracking module is employed to keep track of both the required and filled slots.
+    With the Inform Requirement prompt, the user simulator can simultaneously provide
+    dialogue utterances and the corresponding filled slot values. However, there is
+    a possibility that the conversation generated by GPT-4 might not align with the
+    outcomes of slot filling. This discrepancy can lead to repeated or even endless
+    query loops from the agent. To address this issue, a slot extraction model, backed
+    by GPT-4, is utilized to ensure that the generated conversation matches the slot-filling
+    results. If inconsistencies are found, the conversation must be regenerated to
+    maintain coherence.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的是，代理模拟器必须在启动搜索之前验证所有必要信息是否已收集。为了管理这一点，采用了一个槽位跟踪模块，用于跟踪所需槽位和已填充槽位。通过**信息需求**提示，用户模拟器可以同时提供对话发言和相应的已填充槽位值。然而，由GPT-4生成的对话可能与槽位填充的结果不一致。这种差异可能导致代理出现重复甚至无限的查询循环。为了解决这个问题，采用了一个基于GPT-4的槽位提取模型，以确保生成的对话与槽位填充结果匹配。如果发现不一致，必须重新生成对话以保持一致性。
+- en: 3.3.5 Generation Diversity
+  id: totrans-103
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.5 生成多样性
+- en: To obtain a high-quality DST model, it is essential to have dialogue data that
+    encompasses a wide range of diversity. To ensure the data generated possesses
+    this diversity, we manually created ten rewriting templates, which were then expanded
+    into hundreds of templates by GPT-4\. These rewriting templates serve as a post-processing
+    tool to enhance the diversity of the user and agent responses.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了获得高质量的DST模型，必须有涵盖广泛多样性的对话数据。为了确保生成的数据具有这种多样性，我们手动创建了十个重写模板，然后通过GPT-4将这些模板扩展为数百个模板。这些重写模板作为后处理工具，用于增强用户和代理响应的多样性。
+- en: The details about the rewriting templates and rewritten outputs are shown in
+    Appendix [B](https://arxiv.org/html/2405.13037v1#A2 "Appendix B Templates for
+    Booking Responses ‣ Enhancing Dialogue State Tracking Models through LLM-backed
+    User-Agents Simulation").
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于重写模板和重写输出的详细信息，请参见附录[B](https://arxiv.org/html/2405.13037v1#A2 "附录 B 预定响应模板
+    ‣ 通过LLM支持的用户代理模拟增强对话状态跟踪模型")。
+- en: 3.4 Two-stage Fine-tuning Strategy
+  id: totrans-106
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 两阶段微调策略
+- en: Taking into account the discrepancy in distribution between GPT-4 generated
+    and real dialogues, directly merging generated and real data could cause the resulting
+    model to deviate from the true distribution. To address this issue, we have designed
+    a two-stage fine-tuning approach. Initially, we fine-tuned the LLaMA 2 model using
+    the generated dialogue data. Following this, we continue to fine-tune the model
+    with real data. The first step enables the model to learn fundamental task-oriented
+    dialogue patterns. The second step ensures that the model effectively bridges
+    the gap between generated and real dialogues, aligning closely with the true distribution.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑到GPT-4生成的对话与真实对话之间的分布差异，直接将生成的对话数据与真实数据合并可能会导致生成的模型偏离真实分布。为了解决这个问题，我们设计了一个两阶段微调方法。首先，我们使用生成的对话数据对LLaMA
+    2模型进行了微调。随后，我们继续使用真实数据对模型进行微调。第一步使得模型能够学习基本的任务导向对话模式。第二步确保模型有效弥合生成对话与真实对话之间的差距，更好地与真实分布对齐。
+- en: 4 Experiments
+  id: totrans-108
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验
+- en: 4.1 Datasets and Metrics
+  id: totrans-109
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 数据集和指标
+- en: We conduct all the experiments on MultiWOZ 2.2²²2[https://github.com/budzianowski/multiwoz/tree/master/data/MultiWOZ_2.2](https://github.com/budzianowski/multiwoz/tree/master/data/MultiWOZ_2.2)
+    Zang et al. ([2020](https://arxiv.org/html/2405.13037v1#bib.bib52)) and MultiWOZ
+    2.4³³3[https://github.com/smartyfh/MultiWOZ2.4](https://github.com/smartyfh/MultiWOZ2.4) Ye
+    et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib50)). MultiWOZ (Budzianowski
+    et al., [2018](https://arxiv.org/html/2405.13037v1#bib.bib4)) has been extensively
+    utilized for evaluating the performance of DST, including 8,438, 1,000, and 1,000
+    samples for training, dev, and test sets with multi-turn dialogues, which are
+    collected by a Wizard-of-Oz (WOZ) setup and encompass a diverse array of domains.
+    MultiWOZ 2.2 dataset refines the annotations in dev and test sets of MultiWOZ
+    2.1 (Eric et al., [2020](https://arxiv.org/html/2405.13037v1#bib.bib7)). MultiWOZ
+    2.4 Ye et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib50)) is the latest
+    refined version correcting all incorrect labels in dev and test sets. Following
+    Wu et al. ([2019](https://arxiv.org/html/2405.13037v1#bib.bib47)), we remove the
+    domains of ‘hospital’ and ‘police’ from both MultiWOZ2.2 and MultiWOZ2.4 datasets
+    because they only appear a few times in the training set and never occur in the
+    dev and test set. By using the MultiWOZ schema, nearly 8000 new dialogues are
+    generated. The detailed statistics of MultiWOZ 2.2 and MultiWOZ 2.4 datasets and
+    the generated dialogue data are demonstrated in Table [2](https://arxiv.org/html/2405.13037v1#S4.T2
+    "Table 2 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State
+    Tracking Models through LLM-backed User-Agents Simulation").
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在MultiWOZ 2.2²²2[https://github.com/budzianowski/multiwoz/tree/master/data/MultiWOZ_2.2](https://github.com/budzianowski/multiwoz/tree/master/data/MultiWOZ_2.2)和MultiWOZ
+    2.4³³3[https://github.com/smartyfh/MultiWOZ2.4](https://github.com/smartyfh/MultiWOZ2.4)
+    Zang等（[2020](https://arxiv.org/html/2405.13037v1#bib.bib52)）和Ye等（[2022](https://arxiv.org/html/2405.13037v1#bib.bib50)）上进行了所有实验。MultiWOZ（Budzianowski等，[2018](https://arxiv.org/html/2405.13037v1#bib.bib4)）已广泛用于评估DST的性能，包括8,438个用于训练、1,000个用于开发和1,000个用于测试集的多回合对话，这些数据由“奥兹巫师”（WOZ）设置收集，涵盖了多种领域。MultiWOZ
+    2.2数据集对MultiWOZ 2.1（Eric等，[2020](https://arxiv.org/html/2405.13037v1#bib.bib7)）中的开发集和测试集的注释进行了改进。MultiWOZ
+    2.4（Ye等，[2022](https://arxiv.org/html/2405.13037v1#bib.bib50)）是最新的改进版本，修正了开发集和测试集中的所有错误标签。根据Wu等（[2019](https://arxiv.org/html/2405.13037v1#bib.bib47)）的方法，我们从MultiWOZ
+    2.2和MultiWOZ 2.4数据集中去除了“医院”和“警察”领域，因为它们在训练集中仅出现几次，并且在开发集和测试集中从未出现过。通过使用MultiWOZ架构，生成了近8,000个新的对话。MultiWOZ
+    2.2和MultiWOZ 2.4数据集以及生成的对话数据的详细统计信息如表[2](https://arxiv.org/html/2405.13037v1#S4.T2
+    "表2 ‣ 4.1 数据集和指标 ‣ 4 实验 ‣ 通过LLM支持的用户代理模拟提升对话状态追踪模型")所示。
+- en: We adopt Joint Goal Accuracy (JGA) as the evaluation metric, which is the primary
+    metric for DST. JGA is defined as the proportion of dialogue turns in which all
+    the key-values are correctly predicted.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们采用联合目标准确率（JGA）作为评估指标，这是DST的主要指标。JGA定义为所有关键值都被正确预测的对话回合的比例。
+- en: '| Metric $\downarrow$ Dataset $\rightarrow$ | 2.2 | 2.4 | Generated |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 $\downarrow$ 数据集 $\rightarrow$ | 2.2 | 2.4 | 生成数据集 |'
+- en: '| No. of domains | 8 | 7 | 5 |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| 领域数量 | 8 | 7 | 5 |'
+- en: '| No. of dialogues | 8,438 | 8,438 | 7,556 |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对话数 | 8,438 | 8,438 | 7,556 |'
+- en: '| Total no. of turns | 113,556 | 113,556 | 102,602 |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总回合数 | 113,556 | 113,556 | 102,602 |'
+- en: '| Avg. turns per dialogue | 13.46 | 13.46 | 13.57 |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个对话的回合数 | 13.46 | 13.46 | 13.57 |'
+- en: '| Avg. tokens per turn | 13.13 | 13.38 | 17.01 |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个回合的标记数 | 13.13 | 13.38 | 17.01 |'
+- en: '| No. of slots | 61 | 37 | 17 |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| 插槽数量 | 61 | 37 | 17 |'
+- en: '| Have schema description | Yes | Yes | - |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| 有架构描述 | 是 | 是 | - |'
+- en: '| Unseen domains in test set | No | No | - |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| 测试集中的未见领域 | 否 | 否 | - |'
+- en: 'Table 2: Statistics of MultiWOZ (2.2 and 2.4) and the generated dataset used
+    for training in our experiments.'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：MultiWOZ（2.2和2.4）以及我们实验中用于训练的生成数据集的统计信息。
+- en: '| Models | MultiWOZ 2.2 | MultiWOZ 2.4 |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | MultiWOZ 2.2 | MultiWOZ 2.4 |'
+- en: '| TRADE | 45.40 | 55.05 |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| TRADE | 45.40 | 55.05 |'
+- en: '| UniLM | 54.25 | - |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| UniLM | 54.25 | - |'
+- en: '| DS-DST | 51.70 | - |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| DS-DST | 51.70 | - |'
+- en: '| TripPy | 53.50 | 64.75 |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| TripPy | 53.50 | 64.75 |'
+- en: '| AG-DST | 57.26 | - |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| AG-DST | 57.26 | - |'
+- en: '| SDP-DST | 57.60 | - |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| SDP-DST | 57.60 | - |'
+- en: '| D3ST${}_{\text{Base}}$ | 56.10 | 72.10 |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| D3ST${}_{\text{Base}}$ | 56.10 | 72.10 |'
+- en: '| D3ST${}_{\text{Large}}$ | 54.20 | 70.80 |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| D3ST${}_{\text{Large}}$ | 54.20 | 70.80 |'
+- en: '| D3ST${}_{\text{XXL}}$ | 58.70 | 75.90 |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| D3ST${}_{\text{XXL}}$ | 58.70 | 75.90 |'
+- en: '| SPACE-3 | 57.50 | - |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| SPACE-3 | 57.50 | - |'
+- en: '| MSP-L | 57.70 | - |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| MSP-L | 57.70 | - |'
+- en: '| RefPyDST | - | 65.20 |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| RefPyDST | - | 65.20 |'
+- en: '| Diable | 56.48 | 70.46 |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| Diable | 56.48 | 70.46 |'
+- en: '| DDSA | - | 75.58 |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| DDSA | - | 75.58 |'
+- en: '| SPLAT | 56.60 | - |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| SPLAT | 56.60 | - |'
+- en: '| MoNET | - | 76.02 |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| MoNET | - | 76.02 |'
+- en: '| SSNet | 62.10 | - |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSNet | 62.10 | - |'
+- en: '| TOATOD${}_{\text{Small}}$ | 61.92 | - |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| TOATOD${}_{\text{Small}}$ | 61.92 | - |'
+- en: '| TOATOD${}_{\text{Base}}$ | 63.79 | - |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| TOATOD${}_{\text{Base}}$ | 63.79 | - |'
+- en: '| LUAS${}_{\text{R}}$ | 65.42 | 77.20 |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| LUAS${}_{\text{R}}$ | 65.42 | 77.20 |'
+- en: '| LUAS${}_{\text{R+G}}$ | 66.25 | 78.20 |'
+  id: totrans-143
+  prefs: []
+  type: TYPE_TB
+  zh: '| LUAS${}_{\text{R+G}}$ | 66.25 | 78.20 |'
+- en: 'Table 3: Joint Goal Accuracy for DST results on MultiWOZ 2.2 and MultiWOZ 2.4
+    dataset. ‘-’ denotes that the results are not reported in the original paper.'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：在 MultiWOZ 2.2 和 MultiWOZ 2.4 数据集上的 DST 结果的联合目标准确度（JGA）。‘-’ 表示原始论文中未报告该结果。
+- en: '| Metric $\downarrow$ Replaced Domain $\rightarrow$ | Attraction | Hotel |
+    Restaurant | Taxi | Train |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 $\downarrow$ 替换领域 $\rightarrow$ | 吸引力 | 酒店 | 餐厅 | 出租车 | 火车 |'
+- en: '| Replaced Dialogues | 2538 | 3235 | 3666 | 1397 | 2840 |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| 替换的对话数 | 2538 | 3235 | 3666 | 1397 | 2840 |'
+- en: '| Replaced Turns | 13348 | 30402 | 25768 | 6662 | 33364 |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| 替换的轮次 | 13348 | 30402 | 25768 | 6662 | 33364 |'
+- en: '| Avg. replaced turns per dialogue | 5.26 | 9.40 | 7.03 | 4.77 | 11.75 |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个对话替换的平均轮次 | 5.26 | 9.40 | 7.03 | 4.77 | 11.75 |'
+- en: '| Avg. tokens per replaced turn | 15.57 | 15.54 | 15.33 | 18.28 | 16.44 |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个替换轮次的平均词汇数 | 15.57 | 15.54 | 15.33 | 18.28 | 16.44 |'
+- en: '| Avg. slots per replaced user turn | 1.38 | 2.75 | 2.54 | 1.37 | 2.90 |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个替换用户轮次的平均插槽数 | 1.38 | 2.75 | 2.54 | 1.37 | 2.90 |'
+- en: 'Table 4: Substituting details for 5 domains of MultiWOZ 2.2.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：MultiWOZ 2.2 的 5 个领域的替换详情。
+- en: '| Replaced Domain | Impact | JGA ($\Delta$  ) | Slot Precision ($\Delta$  )
+    | Slot Recall ($\Delta$  ) | Slot F1 ($\Delta$  ) |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| 替换领域 | 影响 | JGA ($\Delta$  ) | 插槽准确度 ($\Delta$  ) | 插槽召回率 ($\Delta$  ) |
+    插槽 F1 ($\Delta$  ) |'
+- en: '| Base | 0% | 65.42 | 95.47% | 93.25% | 94.35% |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基础 | 0% | 65.42 | 95.47% | 93.25% | 94.35% |'
+- en: '| Attraction | 28.1% | 64.99 ($-$0.43) | 95.46% ($-$0.01%) | 92.93% ($-$0.32%)
+    | 94.17% ($-$0.18%) |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| 吸引力 | 28.1% | 64.99 ($-$0.43) | 95.46% ($-$0.01%) | 92.93% ($-$0.32%) | 94.17%
+    ($-$0.18%) |'
+- en: '| Hotel | 42.1% | 64.28 ($-$1.13) | 95.22% ($-$0.25%) | 92.83% ($-$0.42%) |
+    94.01% ($-$0.34%) |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| 酒店 | 42.1% | 64.28 ($-$1.13) | 95.22% ($-$0.25%) | 92.83% ($-$0.42%) | 94.01%
+    ($-$0.34%) |'
+- en: '| Restaurant | 41.2% | 64.61 ($-$0.81) | 95.44% ($-$0.03%) | 93.30% ($+$0.05%)
+    | 94.36% ($+$0.01%) |'
+  id: totrans-156
+  prefs: []
+  type: TYPE_TB
+  zh: '| 餐厅 | 41.2% | 64.61 ($-$0.81) | 95.44% ($-$0.03%) | 93.30% ($+$0.05%) | 94.36%
+    ($+$0.01%) |'
+- en: '| Taxi | 9.1% | 65.22 ($-$0.20) | 95.62% ($+$0.15%) | 92.91% ($-$0.34%) | 94.25%
+    ($-$0.10%) |'
+  id: totrans-157
+  prefs: []
+  type: TYPE_TB
+  zh: '| 出租车 | 9.1% | 65.22 ($-$0.20) | 95.62% ($+$0.15%) | 92.91% ($-$0.34%) | 94.25%
+    ($-$0.10%) |'
+- en: '| Train | 38.4% | 64.23 ($-$1.19) | 95.59% ($+$0.12%) | 92.67% ($-$0.58%) |
+    94.11% ($-$0.24%) |'
+  id: totrans-158
+  prefs: []
+  type: TYPE_TB
+  zh: '| 火车 | 38.4% | 64.23 ($-$1.19) | 95.59% ($+$0.12%) | 92.67% ($-$0.58%) | 94.11%
+    ($-$0.24%) |'
+- en: '| Averaged | 31.20% | 64.67 ($-$0.75) | 95.47% ($-$0.00%) | 92.93% ($-$0.32%)
+    | 94.18% ($-$0.17%) |'
+  id: totrans-159
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均值 | 31.20% | 64.67 ($-$0.75) | 95.47% ($-$0.00%) | 92.93% ($-$0.32%) |
+    94.18% ($-$0.17%) |'
+- en: 'Table 5: JGA for substituting real data with generated data on MultiWOZ 2.2
+    dataset.'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：在 MultiWOZ 2.2 数据集上，用生成数据替代真实数据的 JGA。
+- en: '| Dataset | Real Data Size | JGA${}_{\text{R}}$ | $\text{JGA}_{\text{R+G}}$
+    ($\Delta$ ) | Slot |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据集 | 真实数据大小 | JGA${}_{\text{R}}$ | $\text{JGA}_{\text{R+G}}$ ($\Delta$ )
+    | 插槽 |'
+- en: '| $\text{Precision}_{\text{R+G}}$ ($\Delta$ ) | $\text{Recall}_{\text{R+G}}$
+    ($\Delta$ ) | $\text{F1}_{\text{R+G}}$ ($\Delta$ ) |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| $\text{Precision}_{\text{R+G}}$ ($\Delta$ ) | $\text{Recall}_{\text{R+G}}$
+    ($\Delta$ ) | $\text{F1}_{\text{R+G}}$ ($\Delta$ ) |'
+- en: '| MultiWOZ 2.2 | 1000 | 58.77 | 63.06 ($+$4.29) | 95.06% ($+$0.69%) | 92.39%
+    ($+$1.46%) | 93.70% ($+$1.08%) |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| MultiWOZ 2.2 | 1000 | 58.77 | 63.06 ($+$4.29) | 95.06% ($+$0.69%) | 92.39%
+    ($+$1.46%) | 93.70% ($+$1.08%) |'
+- en: '| 2000 | 62.66 | 64.43 ($+$1.77) | 95.33% ($+$0.27%) | 92.90% ($+$0.53%) |
+    94.10% ($+$0.41%) |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2000 | 62.66 | 64.43 ($+$1.77) | 95.33% ($+$0.27%) | 92.90% ($+$0.53%) |
+    94.10% ($+$0.41%) |'
+- en: '| 4000 | 64.01 | 65.84 ($+$1.83) | 95.55% ($+$0.13%) | 93.21% ($+$0.30%) |
+    94.37% ($+$0.22%) |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4000 | 64.01 | 65.84 ($+$1.83) | 95.55% ($+$0.13%) | 93.21% ($+$0.30%) |
+    94.37% ($+$0.22%) |'
+- en: '| All | 65.42 | 66.25 ($+$0.83) | 95.61% ($+$0.14%) | 93.55% ($+$0.30%) | 94.57%
+    ($+$0.22%) |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| 全部 | 65.42 | 66.25 ($+$0.83) | 95.61% ($+$0.14%) | 93.55% ($+$0.30%) | 94.57%
+    ($+$0.22%) |'
+- en: '| MultiWOZ 2.4 | 1000 | 64.60 | 69.69 ($+$5.09) | 97.15% ($+$1.09%) | 94.59%
+    ($+$0.58%) | 95.85% ($+$0.83%) |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| MultiWOZ 2.4 | 1000 | 64.60 | 69.69 ($+$5.09) | 97.15% ($+$1.09%) | 94.59%
+    ($+$0.58%) | 95.85% ($+$0.83%) |'
+- en: '| 2000 | 72.15 | 75.58 ($+$3.43) | 97.67% ($+$0.59%) | 95.90% ($+$0.46%) |
+    96.78% ($+$0.52%) |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2000 | 72.15 | 75.58 ($+$3.43) | 97.67% ($+$0.59%) | 95.90% ($+$0.46%) |
+    96.78% ($+$0.52%) |'
+- en: '| 4000 | 75.81 | 77.29 ($+$1.48) | 98.08% ($+$0.27%) | 96.12% ($+$0.16%) |
+    97.09% ($+$0.21%) |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4000 | 75.81 | 77.29 ($+$1.48) | 98.08% ($+$0.27%) | 96.12% ($+$0.16%) |
+    97.09% ($+$0.21%) |'
+- en: '| All | 77.20 | 78.20 ($+$1.00) | 97.88% ($+$0.07%) | 96.46% ($+$0.22%) | 97.16%
+    ($+$0.14%) |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| 全部 | 77.20 | 78.20 ($+$1.00) | 97.88% ($+$0.07%) | 96.46% ($+$0.22%) | 97.16%
+    ($+$0.14%) |'
+- en: 'Table 6: JGA and Slot Performance for fine-tuning with different sizes of real
+    data from MultiWOZ 2.2 and 2.4.'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6：用于微调的不同大小真实数据的 JGA 和插槽性能，数据来自 MultiWOZ 2.2 和 2.4。
+- en: 4.2 Implementation Details
+  id: totrans-172
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 实现细节
+- en: The GPT-4 version used for simulation is gpt-4-1106-preview. As for the fine-tuning
+    stage, 8 Nvidia A100 (80G) GPUs are utilized for supervised full-parameter tuning
+    with pytorch’s FSDP framework (Zhao et al., [2023](https://arxiv.org/html/2405.13037v1#bib.bib57)).
+    The base model is 7B version⁴⁴4[https://huggingface.co/meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf)
+    of LLaMA 2\. For each fine-tuning stage, the learning rate is set to 2e-5 with
+    the cosine scheduler Loshchilov and Hutter ([2016](https://arxiv.org/html/2405.13037v1#bib.bib28)),
+    and the batch size is set to 8 on each GPU. We utilize Adam optimizer Kingma and
+    Ba ([2015](https://arxiv.org/html/2405.13037v1#bib.bib20)) with $\beta_{1}$ =
+    0.9, $\beta_{2}$ = 0.999, and the warm-up ratio is set to 3%. Both fine-tuning
+    stages last around two hours. For inference, vLLM⁵⁵5[https://github.com/vllm-project/vllm](https://github.com/vllm-project/vllm) Kwon
+    et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib23)) is used.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于模拟的GPT-4版本是gpt-4-1106-preview。至于微调阶段，使用了8个Nvidia A100（80G）GPU，通过pytorch的FSDP框架进行监督的全参数微调（Zhao等，[2023](https://arxiv.org/html/2405.13037v1#bib.bib57)）。基础模型是LLaMA
+    2的7B版本⁴⁴4[https://huggingface.co/meta-llama/Llama-2-7b-hf](https://huggingface.co/meta-llama/Llama-2-7b-hf)。在每个微调阶段，学习率设置为2e-5，并采用余弦调度器Loshchilov和Hutter（[2016](https://arxiv.org/html/2405.13037v1#bib.bib28)），每个GPU上的批次大小设置为8。我们使用Adam优化器Kingma和Ba（[2015](https://arxiv.org/html/2405.13037v1#bib.bib20)），其中$\beta_{1}$
+    = 0.9，$\beta_{2}$ = 0.999，热身比例设置为3%。两个微调阶段的持续时间约为两个小时。对于推理，使用了vLLM⁵⁵5[https://github.com/vllm-project/vllm](https://github.com/vllm-project/vllm)
+    Kwon等（[2023](https://arxiv.org/html/2405.13037v1#bib.bib23)）。
+- en: 4.3 Baselines
+  id: totrans-174
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 基准
+- en: To assess the efficacy of the generated dialogue data, fine-tune LLaMA 2 solely
+    using real data, referring to it as LUAS${}_{\text{R}}$, which serves as a strong
+    baseline. We also conduct comparisons between our model and other strong baselines,
+    including TRADE (Wu et al., [2019](https://arxiv.org/html/2405.13037v1#bib.bib47)),
+    UniLM Dong et al. ([2019](https://arxiv.org/html/2405.13037v1#bib.bib6)), DS-DST Zhang
+    et al. ([2020](https://arxiv.org/html/2405.13037v1#bib.bib54)), TripPy Heck et al.
+    ([2020](https://arxiv.org/html/2405.13037v1#bib.bib13)), AG-DST Tian et al. ([2021](https://arxiv.org/html/2405.13037v1#bib.bib40)),
+    SDP-DST Lee et al. ([2021](https://arxiv.org/html/2405.13037v1#bib.bib24)), D3ST Zhao
+    et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib56)), SPACE-3 He et al.
+    ([2022](https://arxiv.org/html/2405.13037v1#bib.bib12)), MSP-L Sun et al. ([2022](https://arxiv.org/html/2405.13037v1#bib.bib39)),
+    RefPyDST King and Flanigan ([2023](https://arxiv.org/html/2405.13037v1#bib.bib19)),
+    Diable Lesci et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib25)), DDSA Yang
+    et al. ([2023b](https://arxiv.org/html/2405.13037v1#bib.bib49)), SPLAT Bebensee
+    and Lee ([2023](https://arxiv.org/html/2405.13037v1#bib.bib3)), MoNET Zhang et al.
+    ([2023](https://arxiv.org/html/2405.13037v1#bib.bib53)), SSNet Atawulla et al.
+    ([2023](https://arxiv.org/html/2405.13037v1#bib.bib1)), TOATOD Bang et al. ([2023](https://arxiv.org/html/2405.13037v1#bib.bib2)).
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估生成的对话数据的效果，我们仅使用真实数据对LLaMA 2进行微调，将其称为LUAS${}_{\text{R}}$，并作为强基准。我们还与其他强基准进行比较，包括TRADE (Wu等，[2019](https://arxiv.org/html/2405.13037v1#bib.bib47))、UniLM Dong等（[2019](https://arxiv.org/html/2405.13037v1#bib.bib6)）、DS-DST Zhang等（[2020](https://arxiv.org/html/2405.13037v1#bib.bib54)）、TripPy Heck等（[2020](https://arxiv.org/html/2405.13037v1#bib.bib13)）、AG-DST Tian等（[2021](https://arxiv.org/html/2405.13037v1#bib.bib40)）、SDP-DST Lee等（[2021](https://arxiv.org/html/2405.13037v1#bib.bib24)）、D3ST Zhao等（[2022](https://arxiv.org/html/2405.13037v1#bib.bib56)）、SPACE-3 He等（[2022](https://arxiv.org/html/2405.13037v1#bib.bib12)）、MSP-L Sun等（[2022](https://arxiv.org/html/2405.13037v1#bib.bib39)）、RefPyDST King和Flanigan（[2023](https://arxiv.org/html/2405.13037v1#bib.bib19)）、Diable Lesci等（[2023](https://arxiv.org/html/2405.13037v1#bib.bib25)）、DDSA Yang等（[2023b](https://arxiv.org/html/2405.13037v1#bib.bib49)）、SPLAT Bebensee和Lee（[2023](https://arxiv.org/html/2405.13037v1#bib.bib3)）、MoNET Zhang等（[2023](https://arxiv.org/html/2405.13037v1#bib.bib53)）、SSNet Atawulla等（[2023](https://arxiv.org/html/2405.13037v1#bib.bib1)）、TOATOD Bang等（[2023](https://arxiv.org/html/2405.13037v1#bib.bib2)）。
+- en: 4.4 Results for DST prediction
+  id: totrans-176
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4 DST预测结果
+- en: 'The whole results are shown in Table [3](https://arxiv.org/html/2405.13037v1#S4.T3
+    "Table 3 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State
+    Tracking Models through LLM-backed User-Agents Simulation"), it needs to be pointed
+    out that our model is primarily compared with the generation-based models, because
+    classification-based models can utilize external knowledge, leading to unfair
+    comparisons. LUAS${}_{\text{R}}$ is only fine-tuned on the real data, and LUAS${}_{\text{R+G}}$
+    is fine-tuned on both real and generated data. From these results, we have the
+    following observations:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有结果见表[3](https://arxiv.org/html/2405.13037v1#S4.T3 "Table 3 ‣ 4.1 Datasets
+    and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State Tracking Models through
+    LLM-backed User-Agents Simulation")，需要指出的是，我们的模型主要与基于生成的模型进行了比较，因为基于分类的模型可以利用外部知识，导致不公平的比较。LUAS${}_{\text{R}}$仅在真实数据上进行了微调，而LUAS${}_{\text{R+G}}$则在真实数据和生成数据上进行了微调。从这些结果中，我们得出以下观察结论：
+- en: (1) On both MultiWOZ 2.2 and 2.4 datasets, the performance of LLaMA 2 fine-tuned
+    on real data (LUAS${}_{\text{R}}$) surpasses previous DST baselines. This outcome
+    underscores the exceptional effectiveness of LLaMA 2.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (1) 在MultiWOZ 2.2和2.4数据集上，LLaMA 2在真实数据上微调后的性能（LUAS${}_{\text{R}}$）超过了之前的DST基准。这一结果强调了LLaMA
+    2的卓越效果。
+- en: (2) Furthermore, the incorporation of additional generated data yields significant
+    performance improvements, with enhancements of 0.83% on MultiWOZ 2.2 and 1% on
+    MultiWOZ 2.4\. This improvement emphasizes the important role of generated data
+    in boosting overall model performance. As is shown in the next section, the gain
+    from the generated data can be even larger in case the real dialogue data is of
+    a smaller size. For example, the enhancement can be as large as from 4.29% to
+    5.09% if only 1,000 dialogue real data exists. Considering the challenge in dialogue
+    data collection, this result highlights the pragmatic significance of integrating
+    generated data for DST development across domains.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (2) 此外，加入额外的生成数据显著提高了性能，MultiWOZ 2.2数据集提高了0.83%，MultiWOZ 2.4数据集提高了1%。这一改进突显了生成数据在提升整体模型性能方面的重要作用。如下一节所示，当真实对话数据量较小时，生成数据的增益可能更大。例如，如果仅存在1,000条真实对话数据，性能提升可以达到从4.29%增加到5.09%。考虑到对话数据收集的挑战，这一结果突显了在跨领域的DST开发中整合生成数据的实际意义。
+- en: 4.5 Results of Substituting Real Data with Generated Data
+  id: totrans-180
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.5 用生成数据替代真实数据的结果
+- en: In order to further validate the quality and effectiveness of the generated
+    dialogue data, we conduct a data replacement experiment for different domains
+    on MultiWOZ 2.2\. In these experiments, all dialogue data segments related to
+    a specific domain will be removed, and the newly generated data will be inserted
+    at the removed location. After replacement, the new training set will consist
+    of 1 domain with the generated data and 4 others with real data. The replacement
+    details are shown in Table [4](https://arxiv.org/html/2405.13037v1#S4.T4 "Table
+    4 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation").
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进一步验证生成对话数据的质量和有效性，我们在MultiWOZ 2.2数据集上进行了不同领域的数据替换实验。在这些实验中，所有与特定领域相关的对话数据段将被移除，新的生成数据将插入到移除的位置。替换后，新的训练集将包含1个领域的生成数据和4个领域的真实数据。替换的详细信息见表[4](https://arxiv.org/html/2405.13037v1#S4.T4
+    "Table 4 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State
+    Tracking Models through LLM-backed User-Agents Simulation")。
+- en: The model is also trained on LLaMA 2 7B, the results are shown in Table [5](https://arxiv.org/html/2405.13037v1#S4.T5
+    "Table 5 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State
+    Tracking Models through LLM-backed User-Agents Simulation"), and the ‘($\Delta$)’
+    denotes the difference between the results of real data and real data with 1 domain
+    replaced with generated data. Statistically, the generated data on average affects
+    31.2% of the training data, the test JGA decrease is from -0.2 to -1.19 with an
+    average of -0.75, and the slot precision is on par with before with the recall
+    drops by -0.32% on average. Compared to the reduction in training data size, the
+    decreases in JGA and slot performance are relatively minor, suggesting that using
+    generated data can effectively adapt DST models to a new domain with decent accuracy.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该模型还在 LLaMA 2 7B 上进行了训练，结果如表 [5](https://arxiv.org/html/2405.13037v1#S4.T5 "Table
+    5 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") 所示，其中‘($\Delta$)’表示真实数据与替换为生成数据的
+    1 个领域的真实数据结果之间的差异。从统计学角度看，生成数据平均影响了 31.2% 的训练数据，测试 JGA 的下降范围从 -0.2 到 -1.19，平均为
+    -0.75，插槽精度与之前相当，但召回率平均下降了 -0.32%。与训练数据量的减少相比，JGA 和插槽性能的下降相对较小，这表明使用生成数据可以有效地将
+    DST 模型适应到新领域，并保持相当的准确性。
+- en: In practical applications, our method for automated dialogue generation offers
+    a fast way to develop dialogue systems in new domains, resulting in considerable
+    savings in both time and cost.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实际应用中，我们的自动化对话生成方法为开发新领域的对话系统提供了一种快速的方式，从而在时间和成本上都带来了可观的节省。
+- en: 4.6 Analysis
+  id: totrans-184
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.6 分析
+- en: 4.6.1 The Effect of Adding Generated Data to Real Data of Various Sizes
+  id: totrans-185
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.6.1 向不同大小的真实数据中添加生成数据的效果
+- en: '![Refer to caption](img/33cb34a1307028fd56f1064cfcbd8327.png)'
+  id: totrans-186
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/33cb34a1307028fd56f1064cfcbd8327.png)'
+- en: 'Figure 2: The error distribution between $\text{LUAS}_{\text{R}}$ and $\text{LUAS}_{\text{R+G}}$
+    with different sizes of real data on MultiWOZ 2.2.'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：在 MultiWOZ 2.2 上，$\text{LUAS}_{\text{R}}$ 和 $\text{LUAS}_{\text{R+G}}$ 在不同大小的真实数据上的误差分布。
+- en: To better illustrate the impact of generated data, we conduct a series of experiments
+    by combining generated data with various sizes of real data. The experiment results
+    are demonstrated in Table [6](https://arxiv.org/html/2405.13037v1#S4.T6 "Table
+    6 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") and the sizes of real data
+    used are set to be 1000, 2000, 4000, and all. The $\text{JGA}_{\text{R}}$ represents
+    the results obtained from training solely with real data, while $\text{JGA}_{\text{R+G}}$
+    and Slot $\text{Precision}_{\text{R+G}}$, $\text{Recall}_{\text{R+G}}$, and $\text{F1}_{\text{R+G}}$
+    represent the DST and slots accuracy results obtained from training with the same
+    real data along with additional generated data. The symbols used in Table [5](https://arxiv.org/html/2405.13037v1#S4.T5
+    "Table 5 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State
+    Tracking Models through LLM-backed User-Agents Simulation") are also used here.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更好地说明生成数据的影响，我们通过将生成数据与不同大小的真实数据结合进行了一系列实验。实验结果如表 [6](https://arxiv.org/html/2405.13037v1#S4.T6
+    "Table 6 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State
+    Tracking Models through LLM-backed User-Agents Simulation") 所示，所使用的真实数据大小设置为 1000、2000、4000
+    和全部。$\text{JGA}_{\text{R}}$ 表示仅使用真实数据进行训练时获得的结果，而 $\text{JGA}_{\text{R+G}}$、插槽
+    $\text{Precision}_{\text{R+G}}$、$\text{Recall}_{\text{R+G}}$ 和 $\text{F1}_{\text{R+G}}$
+    表示使用相同的真实数据加上额外生成数据进行训练时获得的 DST 和插槽准确度结果。表 [5](https://arxiv.org/html/2405.13037v1#S4.T5
+    "Table 5 ‣ 4.1 Datasets and Metrics ‣ 4 Experiments ‣ Enhancing Dialogue State
+    Tracking Models through LLM-backed User-Agents Simulation") 中使用的符号在此处也适用。
+- en: The findings indicate that incorporating generated data into the training process
+    significantly enhances model performance, surpassing that achieved with solely
+    real data, particularly in scenarios where real training data is scarce. Under
+    such situation, the performance of a model trained with generated data can be
+    comparable to the model trained with twice amount of real data. For example, when
+    only using 1,000 real data, the JGA of the two datasets will increase by 4.29%
+    and 5.09% if the generated data is used, which is comparable to the performance
+    of using 2,000 real data. Such findings hold considerable practical relevance,
+    as they underscore the capacity of generated data to substantially mitigate the
+    limitations posed by insufficient original data in real-world contexts.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 研究结果表明，将生成的数据纳入训练过程显著提升了模型性能，超越了仅使用真实数据时的表现，特别是在真实训练数据稀缺的情况下。在这种情况下，使用生成数据训练的模型表现可与使用两倍量真实数据训练的模型相媲美。例如，当仅使用1,000条真实数据时，如果使用生成的数据，两个数据集的JGA将分别提高4.29%和5.09%，这与使用2,000条真实数据的表现相当。这些发现具有重要的实际意义，因为它们强调了生成数据在实际场景中有效缓解原始数据不足问题的能力。
+- en: 4.6.2 Error Distribution Analysis
+  id: totrans-190
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.6.2 错误分布分析
+- en: As illustrated in Figure [2](https://arxiv.org/html/2405.13037v1#S4.F2 "Figure
+    2 ‣ 4.6.1 The Effect of Adding Generated Data to Real Data of Various Sizes ‣
+    4.6 Analysis ‣ 4 Experiments ‣ Enhancing Dialogue State Tracking Models through
+    LLM-backed User-Agents Simulation"), to further highlight the superiority of our
+    approach, we examine the error distribution of different sizes of real data on
+    MultiWOZ 2.2 between $\text{LUAS}_{\text{R}}$ and $\text{LUAS}_{\text{R+G}}$.
+    Using generated data leads to a reduction in errors across almost all domain categories
+    compared to models fine-tuned solely on original data. This finding not only confirms
+    the high quality of our generated data but also emphasizes the effectiveness of
+    our approach in enhancing model performance in DST.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图[2](https://arxiv.org/html/2405.13037v1#S4.F2 "Figure 2 ‣ 4.6.1 The Effect
+    of Adding Generated Data to Real Data of Various Sizes ‣ 4.6 Analysis ‣ 4 Experiments
+    ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents Simulation")所示，为进一步突出我们方法的优越性，我们检查了MultiWOZ
+    2.2中不同大小真实数据在$\text{LUAS}_{\text{R}}$和$\text{LUAS}_{\text{R+G}}$之间的错误分布。与仅对原始数据进行微调的模型相比，使用生成数据在几乎所有领域类别中的错误都得到了减少。这一发现不仅验证了我们生成数据的高质量，也强调了我们的方法在提升DST模型性能方面的有效性。
+- en: 5 Conclusion
+  id: totrans-192
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结论
+- en: In this paper, we propose a novel approach utilizing GPT-4 to simulate conversations
+    between users and agents and generate dialogues with dialogue state labels. We
+    then conduct a two-stage fine-tuning of LLaMA 2 on both the generated and real
+    data for DST prediction. Experimental results on two public DST benchmarks demonstrate
+    that our model, augmented with generated data, outperforms the baseline trained
+    solely on real data. Furthermore, detailed analysis confirms the adaptability
+    of our approach, effectively meeting the dynamic requirements of transitioning
+    to new domains in real-world scenarios. We believe that our method can be extended
+    into a generalizable framework, offering benefits to a wide range of dialogue-related
+    tasks.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了一种新颖的方法，利用GPT-4模拟用户和代理之间的对话并生成带有对话状态标签的对话。然后，我们对LLaMA 2进行了两阶段微调，使用生成数据和真实数据进行DST预测。在两个公开的DST基准测试上的实验结果表明，增强了生成数据的我们的模型优于仅使用真实数据训练的基线模型。此外，详细的分析确认了我们方法的适应性，有效地满足了在现实场景中过渡到新领域的动态需求。我们相信，我们的方法可以扩展为一个通用框架，能够为广泛的对话相关任务带来益处。
+- en: Limitations
+  id: totrans-194
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 限制
+- en: With the high-quality dialogue data produced by our algorithm, we have significantly
+    enhanced the DST model. We are also confident that the data generated will serve
+    as valuable resources for other dialogue-related tasks, such as dialogue generation.
+    We plan to explore this aspect in future research.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 借助我们算法生成的高质量对话数据，我们显著增强了DST模型。我们还相信，生成的数据将作为其他与对话相关任务的宝贵资源，例如对话生成。我们计划在未来的研究中进一步探索这一方面。
+- en: Ethics Statement
+  id: totrans-196
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 伦理声明
+- en: We conduct experiments using two publicly available datasets in addition to
+    datasets created by GPT-4, with a specific focus on multi-domain task-oriented
+    dialogue. Each dataset is subjected to thorough pre-processing for academic research
+    purposes, which includes the removal of any personally identifiable information
+    or offensive content. As a result, we are confident that our work presents no
+    ethical risks.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用两个公开可用的数据集以及由GPT-4创建的数据集进行实验，特别关注多领域任务导向对话。每个数据集都经过了严格的预处理，以满足学术研究的目的，包括移除任何个人身份信息或令人反感的内容。因此，我们有信心我们的工作不会带来任何伦理风险。
+- en: References
+  id: totrans-198
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Atawulla et al. (2023) Abibulla Atawulla, Xi Zhou, Yating Yang, Bo Ma, and Fengyi
+    Yang. 2023. A slot-shared span prediction-based neural network for multi-domain
+    dialogue state tracking. In *ICASSP 2023-2023 IEEE International Conference on
+    Acoustics, Speech and Signal Processing (ICASSP)*, pages 1–5\. IEEE.
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 阿塔乌拉等（2023）阿比布拉·阿塔乌拉、周希、杨雅婷、马博、杨峰义。2023. 基于共享槽预测的神经网络用于多领域对话状态追踪。见 *ICASSP 2023-2023
+    IEEE国际声学、语音与信号处理大会（ICASSP）*，第1-5页。IEEE。
+- en: 'Bang et al. (2023) Namo Bang, Jeehyun Lee, and Myoung-Wan Koo. 2023. [Task-optimized
+    adapters for an end-to-end task-oriented dialogue system](https://doi.org/10.18653/v1/2023.findings-acl.464).
+    In *Findings of the Association for Computational Linguistics: ACL 2023*, pages
+    7355–7369, Toronto, Canada. Association for Computational Linguistics.'
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 邦等（2023）南茂邦、李志贤、具名万。2023. [面向端到端任务导向对话系统的任务优化适配器](https://doi.org/10.18653/v1/2023.findings-acl.464)。见
+    *计算语言学协会年会研究成果：ACL 2023*，第7355-7369页，多伦多，加拿大。计算语言学协会。
+- en: 'Bebensee and Lee (2023) Björn Bebensee and Haejun Lee. 2023. [Span-selective
+    linear attention transformers for effective and robust schema-guided dialogue
+    state tracking](https://doi.org/10.18653/v1/2023.acl-long.6). In *Proceedings
+    of the 61st Annual Meeting of the Association for Computational Linguistics (Volume
+    1: Long Papers)*, pages 78–91, Toronto, Canada. Association for Computational
+    Linguistics.'
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 贝本斯和李（2023）比约恩·贝本斯和海俊·李。2023. [基于跨度选择性线性注意力变换器的有效且稳健的模式引导对话状态追踪](https://doi.org/10.18653/v1/2023.acl-long.6)。见
+    *第61届计算语言学协会年会论文集（第1卷：长篇论文）*，第78-91页，多伦多，加拿大。计算语言学协会。
+- en: Budzianowski et al. (2018) Paweł Budzianowski, Tsung-Hsien Wen, Bo-Hsiang Tseng,
+    Iñigo Casanueva, Stefan Ultes, Osman Ramadan, and Milica Gašić. 2018. MultiWOZ
+    - a large-scale multi-domain Wizard-of-Oz dataset for task-oriented dialogue modelling.
+    In *Proc. of EMNLP*.
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 布吉安诺夫斯基等（2018）帕维尔·布吉安诺夫斯基、温宗贤、曾博翔、伊尼戈·卡萨纽瓦、斯特凡·乌尔特斯、奥斯曼·拉马丹、米利察·加希奇。2018. MultiWOZ
+    - 用于任务导向对话建模的大规模多领域“巫师奥兹”数据集。见 *EMNLP 会议论文集*。
+- en: Chen et al. (2020) Lu Chen, Boer Lv, Chi Wang, Su Zhu, Bowen Tan, and Kai Yu.
+    2020. Schema-guided multi-domain dialogue state tracking with graph attention
+    neural networks. In *Proc. of AAAI*.
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 陈等（2020）陈路、吕博、王驰、朱苏、谭博文、余凯。2020. 基于图注意力神经网络的模式引导多领域对话状态追踪。见 *AAAI 会议论文集*。
+- en: Dong et al. (2019) Li Dong, Nan Yang, Wenhui Wang, Furu Wei, Xiaodong Liu, Yu Wang,
+    Jianfeng Gao, Ming Zhou, and Hsiao-Wuen Hon. 2019. Unified language model pre-training
+    for natural language understanding and generation. *Advances in neural information
+    processing systems*, 32.
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 董等（2019）董力、杨楠、王文辉、魏福如、刘晓东、王宇、高剑锋、周铭、洪小文。2019. 统一语言模型预训练用于自然语言理解与生成。*神经信息处理系统进展*，32。
+- en: 'Eric et al. (2020) Mihail Eric, Rahul Goel, Shachi Paul, Abhishek Sethi, Sanchit
+    Agarwal, Shuyang Gao, Adarsh Kumar, Anuj Goyal, Peter Ku, and Dilek Hakkani-Tur.
+    2020. MultiWOZ 2.1: A consolidated multi-domain dialogue dataset with state corrections
+    and state tracking baselines. In *Proc. of LREC*.'
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 埃里克等（2020）米哈伊尔·埃里克、拉胡尔·戈尔、沙奇·保罗、阿比谢克·塞提、桑奇特·阿加瓦尔、邵阳·高、阿达尔什·库马尔、阿努·戈亚尔、彼得·库、迪雷克·哈卡尼-图尔。2020.
+    MultiWOZ 2.1：一个整合的多领域对话数据集，包含状态修正和状态追踪基准。见 *LREC 会议论文集*。
+- en: Feng et al. (2023) Yujie Feng, Zexin Lu, Bo Liu, Liming Zhan, and Xiao-Ming
+    Wu. 2023. Towards llm-driven dialogue state tracking. In *Proc. of EMNLP*.
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 冯等（2023）冯宇杰、陆泽欣、刘博、詹立明、吴晓敏。2023. 面向LLM驱动的对话状态追踪。见 *EMNLP 会议论文集*。
+- en: 'Gao et al. (2020) Shuyang Gao, Sanchit Agarwal, Di Jin, Tagyoung Chung, and
+    Dilek Hakkani-Tur. 2020. From machine reading comprehension to dialogue state
+    tracking: Bridging the gap. In *Proceedings of the 2nd Workshop on Natural Language
+    Processing for Conversational AI*.'
+  id: totrans-207
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 高等（2020）高书阳、桑奇特·阿加瓦尔、金迪、郑太勇、迪雷克·哈卡尼-图尔。2020. 从机器阅读理解到对话状态追踪：弥合差距。见 *第二届自然语言处理与会话AI研讨会论文集*。
+- en: 'Gao et al. (2019) Shuyang Gao, Abhishek Sethi, Sanchit Agarwal, Tagyoung Chung,
+    and Dilek Hakkani-Tur. 2019. Dialog state tracking: A neural reading comprehension
+    approach. In *Proc. of SIGDIAL*.'
+  id: totrans-208
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gao 等人（2019）Shuyang Gao、Abhishek Sethi、Sanchit Agarwal、Tagyoung Chung 和 Dilek
+    Hakkani-Tur. 2019. 对话状态追踪：一种基于神经阅读理解的方法. 在*SIGDIAL 会议论文集*中.
+- en: 'Han et al. (2021) Ting Han, Ximing Liu, Ryuichi Takanabu, Yixin Lian, Chongxuan
+    Huang, Dazhen Wan, Wei Peng, and Minlie Huang. 2021. Multiwoz 2.3: A multi-domain
+    task-oriented dialogue dataset enhanced with annotation corrections and co-reference
+    annotation. In *Proc. of NLPCC*.'
+  id: totrans-209
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Han 等人（2021）Ting Han、Ximing Liu、Ryuichi Takanabu、Yixin Lian、Chongxuan Huang、Dazhen
+    Wan、Wei Peng 和 Minlie Huang. 2021. Multiwoz 2.3: 通过注释修正和共指注释增强的多领域任务导向对话数据集. 在*NLPCC
+    会议论文集*中.'
+- en: He et al. (2022) Wanwei He, Yinpei Dai, Min Yang, Jian Sun, Fei Huang, Luo Si,
+    and Yongbin Li. 2022. Unified dialog model pre-training for task-oriented dialog
+    understanding and generation. In *Proceedings of the 45th International ACM SIGIR
+    Conference on Research and Development in Information Retrieval*, pages 187–200.
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: He 等人（2022）Wanwei He、Yinpei Dai、Min Yang、Jian Sun、Fei Huang、Luo Si 和 Yongbin
+    Li. 2022. 任务导向对话理解与生成的统一对话模型预训练. 在*第45届国际ACM SIGIR信息检索研究与发展会议论文集*中，第187–200页.
+- en: 'Heck et al. (2020) Michael Heck, Carel van Niekerk, Nurul Lubis, Christian
+    Geishauser, Hsien-Chin Lin, Marco Moresi, and Milica Gasic. 2020. TripPy: A triple
+    copy strategy for value independent neural dialog state tracking. In *Proceedings
+    of the 21th Annual Meeting of the Special Interest Group on Discourse and Dialogue*.'
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Heck 等人（2020）Michael Heck、Carel van Niekerk、Nurul Lubis、Christian Geishauser、Hsien-Chin
+    Lin、Marco Moresi 和 Milica Gasic. 2020. TripPy：一种用于值无关神经对话状态追踪的三重复制策略. 在*第21届话语与对话特别兴趣小组年会论文集*中.
+- en: Henderson et al. (2014) Matthew Henderson, Blaise Thomson, and Jason D. Williams.
+    2014. The second dialog state tracking challenge. In *Proc. of SIGDIAL*.
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Henderson 等人（2014）Matthew Henderson、Blaise Thomson 和 Jason D. Williams. 2014.
+    第二届对话状态追踪挑战赛. 在*SIGDIAL 会议论文集*中.
+- en: 'Hu et al. (2022) Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu,
+    Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. 2022. Lora: Low-rank adaptation
+    of large language models. In *Proc. of ICLR*.'
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '胡等人（2022）Edward J. Hu、Yelong Shen、Phillip Wallis、Zeyuan Allen-Zhu、Yuanzhi Li、Shean
+    Wang、Lu Wang 和 Weizhu Chen. 2022. Lora: 大型语言模型的低秩适应. 在*ICLR 会议论文集*中.'
+- en: Hudeček and Dušek (2023) Vojtěch Hudeček and Ondřej Dušek. 2023. Are large language
+    models all you need for task-oriented dialogue? In *Proceedings of the 24th Annual
+    Meeting of the Special Interest Group on Discourse and Dialogue*.
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hudeček 和 Dušek（2023）Vojtěch Hudeček 和 Ondřej Dušek. 2023. 大型语言模型是否足以应对任务导向对话？在*第24届话语与对话特别兴趣小组年会论文集*中.
+- en: Jablonka et al. (2023) Kevin Maik Jablonka, Philippe Schwaller, Andres Ortega-Guerrero,
+    and Berend Smit. 2023. Is gpt-3 all you need for low-data discovery in chemistry?
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jablonka 等人（2023）Kevin Maik Jablonka、Philippe Schwaller、Andres Ortega-Guerrero
+    和 Berend Smit. 2023. GPT-3 是否足以在化学领域进行低数据发现？
+- en: Kaddour and Liu (2024) Jean Kaddour and Qi Liu. 2024. Synthetic data generation
+    in low-resource settings via fine-tuning of large language models. *ArXiv preprint*.
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kaddour 和 Liu（2024）Jean Kaddour 和 Qi Liu. 2024. 通过大型语言模型微调在低资源环境中生成合成数据. *ArXiv
+    预印本*.
+- en: 'King and Flanigan (2023) Brendan King and Jeffrey Flanigan. 2023. Diverse retrieval-augmented
+    in-context learning for dialogue state tracking. In *Findings of the Association
+    for Computational Linguistics: ACL 2023*, pages 5570–5585.'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: King 和 Flanigan（2023）Brendan King 和 Jeffrey Flanigan. 2023. 用于对话状态追踪的多样化检索增强上下文学习.
+    在*计算语言学协会会议成果：ACL 2023*中，第5570–5585页.
+- en: 'Kingma and Ba (2015) Diederik P. Kingma and Jimmy Ba. 2015. Adam: A method
+    for stochastic optimization. In *Proc. of ICLR*.'
+  id: totrans-218
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kingma 和 Ba（2015）Diederik P. Kingma 和 Jimmy Ba. 2015. Adam：一种用于随机优化的方法. 在*ICLR
+    会议论文集*中.
+- en: Ko et al. (2015) Tom Ko, Vijayaditya Peddinti, Daniel Povey, and Sanjeev Khudanpur.
+    2015. Audio augmentation for speech recognition. In *Proc. of Interspeech*.
+  id: totrans-219
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ko 等人（2015）Tom Ko、Vijayaditya Peddinti、Daniel Povey 和 Sanjeev Khudanpur. 2015.
+    语音识别的音频增强. 在*Interspeech 会议论文集*中.
+- en: Krizhevsky et al. (2012) Alex Krizhevsky, Ilya Sutskever, and Geoffrey E. Hinton.
+    2012. Imagenet classification with deep convolutional neural networks. In *Proc.
+    of NeurIPS*.
+  id: totrans-220
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Krizhevsky 等人（2012）Alex Krizhevsky、Ilya Sutskever 和 Geoffrey E. Hinton. 2012.
+    使用深度卷积神经网络进行Imagenet分类. 在*NeurIPS 会议论文集*中.
+- en: Kwon et al. (2023) Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin
+    Zheng, Cody Hao Yu, Joseph Gonzalez, Hao Zhang, and Ion Stoica. 2023. Efficient
+    memory management for large language model serving with pagedattention. In *Proceedings
+    of the 29th Symposium on Operating Systems Principles*, pages 611–626.
+  id: totrans-221
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kwon et al. (2023) Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin
+    Zheng, Cody Hao Yu, Joseph Gonzalez, Hao Zhang, 和 Ion Stoica. 2023. 大型语言模型服务的高效内存管理与分页注意力.
+    见于*第29届操作系统原理研讨会论文集*，第611-626页。
+- en: Lee et al. (2021) Chia-Hsuan Lee, Hao Cheng, and Mari Ostendorf. 2021. Dialogue
+    state tracking with a language model using schema-driven prompting. In *Proc.
+    of EMNLP*.
+  id: totrans-222
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lee et al. (2021) Chia-Hsuan Lee, Hao Cheng, 和 Mari Ostendorf. 2021. 使用基于模式提示的语言模型进行对话状态跟踪.
+    见于*EMNLP 会议论文集*。
+- en: 'Lesci et al. (2023) Pietro Lesci, Yoshinari Fujinuma, Momchil Hardalov, Chao
+    Shang, Yassine Benajiba, and Lluis Marquez. 2023. Diable: Efficient dialogue state
+    tracking as operations on tables. In *Proc. of ACL Findings*.'
+  id: totrans-223
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lesci et al. (2023) Pietro Lesci, Yoshinari Fujinuma, Momchil Hardalov, Chao
+    Shang, Yassine Benajiba, 和 Lluis Marquez. 2023. Diable：作为表格操作的高效对话状态追踪. 见于*ACL
+    发现会议论文集*。
+- en: Li et al. (2022) Zekun Li, Wenhu Chen, Shiyang Li, Hong Wang, Jing Qian, and
+    Yan Xifeng. 2022. Controllable dialogue simulation with in-context learning. In
+    *Proc. of EMNLP*.
+  id: totrans-224
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li et al. (2022) Zekun Li, Wenhu Chen, Shiyang Li, Hong Wang, Jing Qian, 和 Yan
+    Xifeng. 2022. 可控对话模拟与上下文学习. 见于*EMNLP 会议论文集*。
+- en: 'Lin et al. (2020) Zhaojiang Lin, Andrea Madotto, Genta Indra Winata, and Pascale
+    Fung. 2020. MinTL: Minimalist transfer learning for task-oriented dialogue systems.
+    In *Proc. of EMNLP*.'
+  id: totrans-225
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lin et al. (2020) Zhaojiang Lin, Andrea Madotto, Genta Indra Winata, 和 Pascale
+    Fung. 2020. MinTL：任务导向对话系统的极简迁移学习. 见于*EMNLP 会议论文集*。
+- en: 'Loshchilov and Hutter (2016) Ilya Loshchilov and Frank Hutter. 2016. Sgdr:
+    Stochastic gradient descent with warm restarts. In *International Conference on
+    Learning Representations*.'
+  id: totrans-226
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Loshchilov 和 Hutter (2016) Ilya Loshchilov 和 Frank Hutter. 2016. Sgdr: 具有热重启的随机梯度下降.
+    见于*国际学习表示会议*。'
+- en: Ma et al. (2019) Mingyu Derek Ma, Kevin Bowden, Jiaqi Wu, Wen Cui, and Marilyn
+    Walker. 2019. Implicit discourse relation identification for open-domain dialogues.
+    In *Proc. of ACL*.
+  id: totrans-227
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ma et al. (2019) Mingyu Derek Ma, Kevin Bowden, Jiaqi Wu, Wen Cui, 和 Marilyn
+    Walker. 2019. 开放域对话中的隐性话语关系识别. 见于*ACL 会议论文集*。
+- en: 'Mrkšić et al. (2017) Nikola Mrkšić, Diarmuid Ó Séaghdha, Tsung-Hsien Wen, Blaise
+    Thomson, and Steve Young. 2017. Neural belief tracker: Data-driven dialogue state
+    tracking. In *Proc. of ACL*.'
+  id: totrans-228
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mrkšić et al. (2017) Nikola Mrkšić, Diarmuid Ó Séaghdha, Tsung-Hsien Wen, Blaise
+    Thomson, 和 Steve Young. 2017. 神经信念跟踪器：数据驱动的对话状态追踪. 见于*ACL 会议论文集*。
+- en: OpenAI (2023) OpenAI. 2023. Chatgpt. [https://chat.openai.com](https://chat.openai.com).
+  id: totrans-229
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2023) OpenAI. 2023. ChatGPT. [https://chat.openai.com](https://chat.openai.com)。
+- en: 'Park et al. (2019) Daniel S. Park, William Chan, Yu Zhang, Chung-Cheng Chiu,
+    Barret Zoph, Ekin D. Cubuk, and Quoc V. Le. 2019. Specaugment: A simple data augmentation
+    method for automatic speech recognition. In *Proc. of INTERSPEECH*.'
+  id: totrans-230
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Park et al. (2019) Daniel S. Park, William Chan, Yu Zhang, Chung-Cheng Chiu,
+    Barret Zoph, Ekin D. Cubuk, 和 Quoc V. Le. 2019. SpecAugment：一种用于自动语音识别的简单数据增强方法.
+    见于*INTERSPEECH 会议论文集*。
+- en: 'Peng et al. (2021) Baolin Peng, Chunyuan Li, Jinchao Li, Shahin Shayandeh,
+    Lars Liden, and Jianfeng Gao. 2021. Soloist: Building task bots at scale with
+    transfer learning and machine teaching. *Transactions of the Association for Computational
+    Linguistics*.'
+  id: totrans-231
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Peng et al. (2021) Baolin Peng, Chunyuan Li, Jinchao Li, Shahin Shayandeh, Lars
+    Liden, 和 Jianfeng Gao. 2021. Soloist：通过迁移学习和机器教学大规模构建任务机器人. *计算语言学协会会刊*。
+- en: Ren et al. (2018) Liliang Ren, Kaige Xie, Lu Chen, and Kai Yu. 2018. Towards
+    universal dialogue state tracking. In *Proc. of EMNLP*.
+  id: totrans-232
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ren et al. (2018) Liliang Ren, Kaige Xie, Lu Chen, 和 Kai Yu. 2018. 面向通用对话状态跟踪.
+    见于*EMNLP 会议论文集*。
+- en: 'Shen et al. (2023) Yongliang Shen, Kaitao Song, Xu Tan, Dongsheng Li, Weiming
+    Lu, and Yueting Zhuang. 2023. Hugginggpt: Solving ai tasks with chatgpt and its
+    friends in huggingface. In *Proc. of NeurIPS*.'
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Shen et al. (2023) Yongliang Shen, Kaitao Song, Xu Tan, Dongsheng Li, Weiming
+    Lu, 和 Yueting Zhuang. 2023. HuggingGPT: 使用ChatGPT及其在HuggingFace中的朋友解决AI任务. 见于*NeurIPS
+    会议论文集*。'
+- en: Shorten and Khoshgoftaar (2019) Connor Shorten and Taghi M Khoshgoftaar. 2019.
+    A survey on image data augmentation for deep learning. *Journal of Big Data*.
+  id: totrans-234
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shorten 和 Khoshgoftaar (2019) Connor Shorten 和 Taghi M Khoshgoftaar. 2019. 深度学习中的图像数据增强调查.
+    *大数据期刊*。
+- en: 'Significant-gravitas (2023) Significant-gravitas. 2023. auto-gpt: An experimental
+    open-source attempt to make gpt-4 fully autonomous. [https://github.com/Significant-Gravitas/AutoGPT](https://github.com/Significant-Gravitas/AutoGPT).'
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Significant-gravitas (2023) Significant-gravitas. 2023. auto-gpt: 使GPT-4完全自主的实验性开源尝试.
+    [https://github.com/Significant-Gravitas/AutoGPT](https://github.com/Significant-Gravitas/AutoGPT)。'
+- en: Su et al. (2023) Ruolin Su, Jingfeng Yang, Ting-Wei Wu, and Biing-Hwang Juang.
+    2023. Choice fusion as knowledge for zero-shot dialogue state tracking. In *Proc.
+    of ICASSP*.
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 苏等人（2023）苏若琳、杨景峰、吴廷伟、庄秉煌。2023. 选择融合作为零样本对话状态追踪的知识。发表于*ICASSP会议论文集*。
+- en: Sun et al. (2022) Zhoujian Sun, Zhengxing Huang, and Nai Ding. 2022. [On tracking
+    dialogue state by inheriting slot values in mentioned slot pools](https://doi.org/10.24963/ijcai.2022/607).
+    In *Proceedings of the Thirty-First International Joint Conference on Artificial
+    Intelligence, IJCAI-22*, pages 4375–4382\. International Joint Conferences on
+    Artificial Intelligence Organization. Main Track.
+  id: totrans-237
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 孙等人（2022）孙周剑、黄正兴、丁奈。2022. [通过继承提及槽池中的槽位值追踪对话状态](https://doi.org/10.24963/ijcai.2022/607)。发表于*第31届国际人工智能联合会议（IJCAI-22）论文集*，第4375–4382页。国际人工智能联合会议组织。主会道。
+- en: Tian et al. (2021) Xin Tian, Liankai Huang, Yingzhan Lin, Siqi Bao, Huang He,
+    Yunyi Yang, Hua Wu, Fan Wang, and Shuqi Sun. 2021. Amendable generation for dialogue
+    state tracking. In *Proceedings of the 3rd Workshop on Natural Language Processing
+    for Conversational AI*.
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 田等人（2021）田鑫、黄连凯、林颖展、包思琪、何黄、杨云逸、吴华、王凡、孙书琪。2021. 对话状态追踪的可修正生成方法。发表于*第3届自然语言处理与对话AI研讨会论文集*。
+- en: 'Touvron et al. (2023a) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, et al. 2023a. Llama: Open and efficient foundation
+    language models. *ArXiv preprint*.'
+  id: totrans-239
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 图弗朗等人（2023a）雨果·图弗朗、蒂博·拉夫里尔、戈特耶·伊扎卡尔、克萨维尔·马尔丁、玛丽-安·拉肖、蒂莫泰·拉克鲁瓦、巴蒂斯特·罗齐耶、纳曼·戈亚尔、埃里克·汉布罗、费萨尔·阿兹哈尔等人。2023a.
+    Llama：开放和高效的基础语言模型。*ArXiv预印本*。
+- en: 'Touvron et al. (2023b) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, et al. 2023b. Llama 2: Open foundation and fine-tuned chat models.
+    *ArXiv preprint*.'
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 图弗朗等人（2023b）雨果·图弗朗、路易斯·马丁、凯文·斯通、彼得·阿尔伯特、阿姆贾德·阿尔马哈伊里、雅丝敏·巴巴伊、尼古拉·巴什利科夫、索姆亚·巴特拉、普拉杰瓦尔·巴尔加瓦、舒莉·博萨尔等人。2023b.
+    Llama 2：开放基础和微调的聊天模型。*ArXiv预印本*。
+- en: Ulmer et al. (2024) Dennis Ulmer, Elman Mansimov, Kaixiang Lin, Justin Sun,
+    Xibin Gao, and Yi Zhang. 2024. Bootstrapping llm-based task-oriented dialogue
+    agents via self-talk. *ArXiv preprint*.
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 乌尔梅尔等人（2024）丹尼斯·乌尔梅尔、埃尔曼·曼西莫夫、林凯翔、贾斯廷·孙、高熙斌、张毅。2024. 通过自我对话引导基于LLM的任务导向对话代理的启动。*ArXiv预印本*。
+- en: 'Wang et al. (2023) Qingyue Wang, Liang Ding, Yanan Cao, Yibing Zhan, Zheng
+    Lin, Shi Wang, Dacheng Tao, and Li Guo. 2023. Divide, conquer, and combine: Mixture
+    of semantic-independent experts for zero-shot dialogue state tracking. In *Proc.
+    of ACL*.'
+  id: totrans-242
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 王等人（2023）王清悦、丁亮、曹亚楠、詹一冰、林正、王石、大成涛、郭力。2023. 分而治之、征服并结合：基于语义独立专家的零样本对话状态追踪混合方法。发表于*ACL会议论文集*。
+- en: 'Wang et al. (2022) Yifan Wang, Jing Zhao, Junwei Bao, Chaoqun Duan, Youzheng
+    Wu, and Xiaodong He. 2022. LUNA: Learning slot-turn alignment for dialogue state
+    tracking. In *Proc. of NAACL*.'
+  id: totrans-243
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 王等人（2022）王一凡、赵婧、包俊伟、段超群、吴有正、何晓东。2022. LUNA：学习槽位-轮次对齐用于对话状态追踪。发表于*NAACL会议论文集*。
+- en: 'Wei and Zou (2019) Jason Wei and Kai Zou. 2019. EDA: Easy data augmentation
+    techniques for boosting performance on text classification tasks. In *Proc. of
+    EMNLP*.'
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 韦和邹（2019）韦杰森、邹凯。2019. EDA：提升文本分类任务性能的简易数据增强技术。发表于*EMNLP会议论文集*。
+- en: Wu et al. (2019) Chien-Sheng Wu, Andrea Madotto, Ehsan Hosseini-Asl, Caiming
+    Xiong, Richard Socher, and Pascale Fung. 2019. Transferable multi-domain state
+    generator for task-oriented dialogue systems. In *Proc. of ACL*.
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 吴等人（2019）吴建生、安德里亚·马多托、埃赫桑·霍赛尼-阿斯尔、肖凯明、理查德·索彻、帕斯卡尔·冯。2019. 可迁移的多领域状态生成器用于任务导向对话系统。发表于*ACL会议论文集*。
+- en: 'Yang et al. (2023a) Dongjie Yang, Ruifeng Yuan, Yuantao Fan, Yifei Yang, Zili
+    Wang, Shusen Wang, and Hai Zhao. 2023a. Refgpt: Dialogue generation of gpt, by
+    gpt, and for gpt. In *Proc. of EMNLP Findings*.'
+  id: totrans-246
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 杨等人（2023a）杨东杰、袁瑞峰、范元涛、杨一飞、王子力、王书森、赵海。2023a. Refgpt：由GPT生成、为GPT生成的对话生成。发表于*EMNLP
+    Findings会议论文集*。
+- en: Yang et al. (2023b) Longfei Yang, Jiyi Li, Sheng Li, and Takahiro Shinozaki.
+    2023b. Multi-domain dialogue state tracking with disentangled domain-slot attention.
+    In *Proc. of ACL Findings*.
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 杨等人（2023b）杨龙飞、李季毅、李胜、篠崎贵弘。2023b. 基于解耦域-槽位注意力的多领域对话状态追踪。发表于*ACL Findings会议论文集*。
+- en: 'Ye et al. (2022) Fanghua Ye, Jarana Manotumruksa, and Emine Yilmaz. 2022. MultiWOZ
+    2.4: A multi-domain task-oriented dialogue dataset with essential annotation corrections
+    to improve state tracking evaluation. In *Proceedings of the 23rd Annual Meeting
+    of the Special Interest Group on Discourse and Dialogue*.'
+  id: totrans-248
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ye et al. (2022) Fanghua Ye, Jarana Manotumruksa, 和 Emine Yilmaz. 2022. MultiWOZ
+    2.4：一个多领域任务导向对话数据集，包含重要的注释修正，以改善状态追踪评估。在 *第23届话语与对话特别兴趣小组年会论文集* 中。
+- en: Ye et al. (2021) Fanghua Ye, Jarana Manotumruksa, Qiang Zhang, Shenghui Li,
+    and Emine Yilmaz. 2021. Slot self-attentive dialogue state tracking. In *Proc.
+    of WWW*.
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ye et al. (2021) Fanghua Ye, Jarana Manotumruksa, Qiang Zhang, Shenghui Li,
+    和 Emine Yilmaz. 2021. 槽位自注意对话状态追踪。在 *WWW会议论文集* 中。
+- en: 'Zang et al. (2020) Xiaoxue Zang, Abhinav Rastogi, Srinivas Sunkara, Raghav
+    Gupta, Jianguo Zhang, and Jindong Chen. 2020. MultiWOZ 2.2 : A dialogue dataset
+    with additional annotation corrections and state tracking baselines. In *Proceedings
+    of the 2nd Workshop on Natural Language Processing for Conversational AI*.'
+  id: totrans-250
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zang et al. (2020) Xiaoxue Zang, Abhinav Rastogi, Srinivas Sunkara, Raghav Gupta,
+    Jianguo Zhang, 和 Jindong Chen. 2020. MultiWOZ 2.2：一个带有额外注释修正和状态追踪基准的对话数据集。在 *第二届对话AI自然语言处理研讨会论文集*
+    中。
+- en: 'Zhang et al. (2023) Haoning Zhang, Junwei Bao, Haipeng Sun, Youzheng Wu, Wenye
+    Li, Shuguang Cui, and Xiaodong He. 2023. [MoNET: Tackle state momentum via noise-enhanced
+    training for dialogue state tracking](https://doi.org/10.18653/v1/2023.findings-acl.33).
+    In *Findings of the Association for Computational Linguistics: ACL 2023*, pages
+    520–534, Toronto, Canada. Association for Computational Linguistics.'
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang et al. (2023) Haoning Zhang, Junwei Bao, Haipeng Sun, Youzheng Wu, Wenye
+    Li, Shuguang Cui, 和 Xiaodong He. 2023. [MoNET：通过噪声增强训练解决对话状态追踪中的状态动量问题](https://doi.org/10.18653/v1/2023.findings-acl.33)。在
+    *计算语言学协会2023年会议论文集：ACL 2023* 中，页面520–534， 加拿大多伦多。计算语言学协会。
+- en: Zhang et al. (2020) Jianguo Zhang, Kazuma Hashimoto, Chien-Sheng Wu, Yao Wang,
+    Philip Yu, Richard Socher, and Caiming Xiong. 2020. Find or classify? dual strategy
+    for slot-value predictions on multi-domain dialog state tracking. In *Proceedings
+    of the Ninth Joint Conference on Lexical and Computational Semantics*.
+  id: totrans-252
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang et al. (2020) Jianguo Zhang, Kazuma Hashimoto, Chien-Sheng Wu, Yao Wang,
+    Philip Yu, Richard Socher, 和 Caiming Xiong. 2020. 查找还是分类？多领域对话状态追踪中的槽值预测双重策略。在
+    *第九届词汇和计算语义联合会议论文集* 中。
+- en: Zhang et al. (2015) Xiang Zhang, Junbo Jake Zhao, and Yann LeCun. 2015. Character-level
+    convolutional networks for text classification. In *Proc. of NeurIPS*.
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang et al. (2015) Xiang Zhang, Junbo Jake Zhao, 和 Yann LeCun. 2015. 用于文本分类的字符级卷积网络。在
+    *NeurIPS会议论文集* 中。
+- en: Zhao et al. (2022) Jeffrey Zhao, Raghav Gupta, Yuan Cao, Dian Yu, Mingqiu Wang,
+    Harrison Lee, Abhinav Rastogi, Izhak Shafran, and Yonghui Wu. 2022. Description-driven
+    task-oriented dialog modeling. *ArXiv preprint*.
+  id: totrans-254
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhao et al. (2022) Jeffrey Zhao, Raghav Gupta, Yuan Cao, Dian Yu, Mingqiu Wang,
+    Harrison Lee, Abhinav Rastogi, Izhak Shafran, 和 Yonghui Wu. 2022. 基于描述的任务导向对话建模。*ArXiv预印本*。
+- en: 'Zhao et al. (2023) Yanli Zhao, Andrew Gu, Rohan Varma, Liang Luo, Chien-Chin
+    Huang, Min Xu, Less Wright, Hamid Shojanazeri, Myle Ott, Sam Shleifer, Alban Desmaison,
+    Can Balioglu, Pritam Damania, Bernard Nguyen, Geeta Chauhan, Yuchen Hao, Ajit
+    Mathews, and Shen Li. 2023. Pytorch fsdp: Experiences on scaling fully sharded
+    data parallel. *Proc. VLDB Endow.*'
+  id: totrans-255
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhao et al. (2023) Yanli Zhao, Andrew Gu, Rohan Varma, Liang Luo, Chien-Chin
+    Huang, Min Xu, Less Wright, Hamid Shojanazeri, Myle Ott, Sam Shleifer, Alban Desmaison,
+    Can Balioglu, Pritam Damania, Bernard Nguyen, Geeta Chauhan, Yuchen Hao, Ajit
+    Mathews, 和 Shen Li. 2023. Pytorch fsdp: 扩展完全分片数据并行的经验。*VLDB 会议论文集*。'
+- en: 'Zhou et al. (2023) Han Zhou, Ignacio Iacobacci, and Pasquale Minervini. 2023.
+    XQA-DST: Multi-domain and multi-lingual dialogue state tracking. In *Proc. of
+    ACL Findings*.'
+  id: totrans-256
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhou et al. (2023) Han Zhou, Ignacio Iacobacci, 和 Pasquale Minervini. 2023.
+    XQA-DST：多领域和多语言对话状态追踪。在 *ACL论文集* 中。
+- en: Zhu et al. (2022) Qi Zhu, Bing Li, Fei Mi, Xiaoyan Zhu, and Minlie Huang. 2022.
+    Continual prompt tuning for dialog state tracking. In *Proc. of ACL*.
+  id: totrans-257
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhu et al. (2022) Qi Zhu, Bing Li, Fei Mi, Xiaoyan Zhu, 和 Minlie Huang. 2022.
+    对话状态追踪的持续提示调优。在 *ACL会议论文集* 中。
+- en: Appendix A Prompts for Simulation
+  id: totrans-258
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 仿真提示
+- en: In this section, we illustrated a variety of typical prompts utilized by the
+    user simulator and the agent simulator within the simulation. The symbol ‘$\backslash$n’
+    of the prompts represents a line break.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了用户模拟器和代理模拟器在仿真中使用的各种典型提示。提示符号‘$\backslash$n’代表换行。
+- en: Table [7](https://arxiv.org/html/2405.13037v1#A1.T7 "Table 7 ‣ Appendix A Prompts
+    for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents
+    Simulation") represents the prompt that the user informs requirement to the agent.
+    Table [8](https://arxiv.org/html/2405.13037v1#A1.T8 "Table 8 ‣ Appendix A Prompts
+    for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents
+    Simulation") represents the prompt that the user updates the requirement to the
+    agent. Table [9](https://arxiv.org/html/2405.13037v1#A1.T9 "Table 9 ‣ Appendix
+    A Prompts for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed
+    User-Agents Simulation") represents the prompt that the user asks for a recommendation
+    with the control identifier ‘[RECOM]’ to request a recommendation from the agent.
+    Table [10](https://arxiv.org/html/2405.13037v1#A1.T10 "Table 10 ‣ Appendix A Prompts
+    for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents
+    Simulation") represents the prompt that the user inquires about some properties
+    (e.g. address and postcode) for the candidates. Table [11](https://arxiv.org/html/2405.13037v1#A1.T11
+    "Table 11 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") represents the prompt that
+    the user asks for a booking action from the agent. Table [12](https://arxiv.org/html/2405.13037v1#A1.T12
+    "Table 12 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") represents the prompt that
+    the user’s general chat with the agent with the control identifier ‘[EOF]’ to
+    inform the agent that all the needs are satisfied.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 [7](https://arxiv.org/html/2405.13037v1#A1.T7 "Table 7 ‣ Appendix A Prompts
+    for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents
+    Simulation") 表示用户向代理传达需求的提示。表 [8](https://arxiv.org/html/2405.13037v1#A1.T8 "Table
+    8 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking Models
+    through LLM-backed User-Agents Simulation") 表示用户向代理更新需求的提示。表 [9](https://arxiv.org/html/2405.13037v1#A1.T9
+    "Table 9 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") 表示用户请求代理提供推荐的提示，其中控制标识符为‘[RECOM]’。表
+    [10](https://arxiv.org/html/2405.13037v1#A1.T10 "Table 10 ‣ Appendix A Prompts
+    for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents
+    Simulation") 表示用户询问候选者的一些属性（例如地址和邮政编码）的提示。表 [11](https://arxiv.org/html/2405.13037v1#A1.T11
+    "Table 11 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") 表示用户请求代理进行预订操作的提示。表 [12](https://arxiv.org/html/2405.13037v1#A1.T12
+    "Table 12 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") 表示用户与代理进行一般对话的提示，控制标识符为‘[EOF]’，通知代理所有需求已得到满足。
+- en: Table [13](https://arxiv.org/html/2405.13037v1#A1.T13 "Table 13 ‣ Appendix A
+    Prompts for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed
+    User-Agents Simulation") represents the prompt that is used by the slot extractor.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 [13](https://arxiv.org/html/2405.13037v1#A1.T13 "Table 13 ‣ Appendix A Prompts
+    for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents
+    Simulation") 表示槽提取器使用的提示。
+- en: Table [14](https://arxiv.org/html/2405.13037v1#A1.T14 "Table 14 ‣ Appendix A
+    Prompts for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed
+    User-Agents Simulation") represents the prompt that the agent inquires the user
+    for a specified requirement(e.g. restaurant-pricerange). Table [15](https://arxiv.org/html/2405.13037v1#A1.T15
+    "Table 15 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") represents the prompt that
+    the agent responds with the properties that the user inquiries. Table [16](https://arxiv.org/html/2405.13037v1#A1.T16
+    "Table 16 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") represents the prompt that
+    the agent reports search results to the user. Table [17](https://arxiv.org/html/2405.13037v1#A1.T17
+    "Table 17 ‣ Appendix A Prompts for Simulation ‣ Enhancing Dialogue State Tracking
+    Models through LLM-backed User-Agents Simulation") represents the prompt that
+    the agent reports the action result (e.g. the reservation information, etc.) and
+    control identifier ‘[BOOKED]’ to inform the successful of the reservation. Table
+    [18](https://arxiv.org/html/2405.13037v1#A1.T18 "Table 18 ‣ Appendix A Prompts
+    for Simulation ‣ Enhancing Dialogue State Tracking Models through LLM-backed User-Agents
+    Simulation") represents the prompt that the agent general chats with the user
+    and outputs the control identifier ‘[EOD]’ to end the whole simulation.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 [14](https://arxiv.org/html/2405.13037v1#A1.T14 "表格 14 ‣ 附录 A 模拟提示 ‣ 通过基于大型语言模型的用户代理模拟增强对话状态跟踪模型")
+    代表了代理向用户询问指定需求（例如餐厅-价格区间）的提示。表格 [15](https://arxiv.org/html/2405.13037v1#A1.T15
+    "表格 15 ‣ 附录 A 模拟提示 ‣ 通过基于大型语言模型的用户代理模拟增强对话状态跟踪模型") 代表了代理回应用户询问的属性的提示。表格 [16](https://arxiv.org/html/2405.13037v1#A1.T16
+    "表格 16 ‣ 附录 A 模拟提示 ‣ 通过基于大型语言模型的用户代理模拟增强对话状态跟踪模型") 代表了代理向用户报告搜索结果的提示。表格 [17](https://arxiv.org/html/2405.13037v1#A1.T17
+    "表格 17 ‣ 附录 A 模拟提示 ‣ 通过基于大型语言模型的用户代理模拟增强对话状态跟踪模型") 代表了代理报告行动结果（例如预订信息等）并输出控制标识符
+    '[BOOKED]' 以通知预订成功。表格 [18](https://arxiv.org/html/2405.13037v1#A1.T18 "表格 18 ‣
+    附录 A 模拟提示 ‣ 通过基于大型语言模型的用户代理模拟增强对话状态跟踪模型") 代表了代理与用户进行一般性对话，并输出控制标识符 '[EOD]' 以结束整个模拟。
+- en: '| DST: [history], [requirements] $\rightarrow$ [user_utterance] |'
+  id: totrans-263
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [需求] $\rightarrow$ [用户发言] |'
+- en: '| Prompt: This is your first time in Cambridge and want to find a restaurant.$\backslash$n
+    Now you are chatting with a local guide online.$\backslash$n And this is your
+    preference:$\backslash$n {"restaurant’s area": "north"}$\backslash$n and the conversation
+    history (may be empty or not relevant to the current preference):$\backslash$n
+    []$\backslash$n Your responses should resemble an online chat as much as possible,
+    and make them as brief as you can.$\backslash$n How would you initiate the inquiry
+    or respond to the guide online?$\backslash$n Please do not provide any information
+    that does not exist in your preference.$\backslash$n Please randomly use synonyms
+    or synonymous phrases to describe your intention, for example:$\backslash$n -
+    you can use ‘something to eat‘ or some food‘ instead of ‘restaurant‘.Please provide
+    all the information in your preferences to the guide, except the ones that have
+    been informed in the history.$\backslash$n Please remember not to provide any
+    information that does not exist in your preference.$\backslash$n If the local
+    guide asks your preference, answer it directly and don’t answer with other words.$\backslash$n
+    Please don’t repeat asking the same thing that is in the history.$\backslash$n
+    Please don’t repeat your old preference which you have informed in the history
+    when you respond to the guide.$\backslash$n Please make sure the time in your
+    response must be in the format ‘after, at or around %H:%M‘ in 24 hours.$\backslash$n
+    Pay attention to the diversity of responses, and try not to reuse sentence patterns
+    that have been used in history.$\backslash$n Only output the newest utterance,
+    don’t output the conversation history. |'
+  id: totrans-264
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：这是你第一次来到剑桥，想要找一家餐馆。$\backslash$n 现在你正在和当地导游在线聊天。$\backslash$n 这是你的偏好：$\backslash$n
+    {"餐馆区域": "北部"}$\backslash$n 和对话历史（可能为空，或者与当前偏好无关）：$\backslash$n []$\backslash$n
+    你的回应应尽可能像在线聊天一样简洁明了。$\backslash$n 你会如何开始提问或回应导游？$\backslash$n 请不要提供任何在你偏好中没有的信息。$\backslash$n
+    请随机使用同义词或相似短语来描述你的意图，例如：$\backslash$n - 你可以用‘吃的东西’或‘食物’来代替‘餐馆’。请将所有偏好信息提供给导游，除了历史中已经告知的内容。$\backslash$n
+    请记住不要提供任何在你偏好中没有的信息。$\backslash$n 如果当地导游询问你的偏好，请直接回答，不要用其他话语。$\backslash$n 请不要重复询问历史中已有的内容。$\backslash$n
+    请不要重复你在历史中已经告知的旧偏好。$\backslash$n 请确保你的回应中的时间格式为‘after, at or around %H:%M’，采用24小时制。$\backslash$n
+    注意回应的多样性，尽量避免重复使用历史中的句型。$\backslash$n 只输出最新的发言，不要输出对话历史。 |'
+- en: '| Output: Do you know of any good eateries in the north of Cambridge? |'
+  id: totrans-265
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：你知道剑桥北部有哪些好的餐馆吗？ |'
+- en: 'Table 7: Prompt for the user to inform requirement.'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7：提示用户告知需求。
+- en: '| DST: [history], [old requirements], [new requirements] $\rightarrow$ [user_utterance]
+    |'
+  id: totrans-267
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [旧需求], [新需求] $\rightarrow$ [用户发言] |'
+- en: '| Prompt: You are the first time in Cambridge and want to find a hotel.$\backslash$n
+    And now you are chatting with a local guide online.$\backslash$n Here is your
+    old preference:$\backslash$n {"hotel’s area": "north", "hotel’s stars": "4", "hotel’s
+    type": "hotel"}$\backslash$n and here is your new perference:$\backslash$n {"hotel’s
+    type": "guesthouse"}$\backslash$n and the conversation history:$\backslash$n ["Could
+    you suggest any 4-star hotels in the northern part of Cambridge?", "from local
+    guide: Are you looking for a boutique hotel or would a chain hotel suit your needs?",
+    "A regular hotel would be fine, not looking for a boutique.", "from local guide:
+    I apologize, but it seems we currently do not have any 4-star hotels available
+    in the northern part of Cambridge matching your search criteria. Is there anything
+    else I can assist you with or would you like to adjust your search conditions?"]$\backslash$n
+    Please output your response to inform the local guide of your preference change.$\backslash$n
+    Your responses should resemble an online chat as much as possible, and make them
+    as brief as you can.$\backslash$n Don’t tell the guide you change your mind, please
+    inform him like:$\backslash$n - how about, would you like or do you have and ect.$\backslash$n
+    Only output the newest utterance, don’t output the conversation history. |'
+  id: totrans-268
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：这是你第一次来到剑桥，想找一家酒店。$\backslash$n 现在你正在与本地导游在线聊天。$\backslash$n 以下是你的旧偏好：$\backslash$n
+    {"酒店区域": "北部", "酒店星级": "4", "酒店类型": "酒店"}$\backslash$n 以下是你的新偏好：$\backslash$n
+    {"酒店类型": "宾馆"}$\backslash$n 以下是对话历史：$\backslash$n ["你能推荐一些剑桥北部的4星级酒店吗？", "本地导游：你是想找一家精品酒店，还是连锁酒店更合适？",
+    "普通酒店就行，不需要精品酒店。", "本地导游：抱歉，目前剑桥北部没有符合你搜索条件的4星级酒店。还有其他我可以帮助的吗，或者你想调整一下搜索条件吗？"]$\backslash$n
+    请输出你的回复，告知本地导游你改变了偏好。$\backslash$n 你的回复应该尽量像在线聊天一样简短。$\backslash$n 不要告诉导游你改变了主意，直接用类似“怎么样，是否有”或“你们有……吗？”等方式告知。$\backslash$n
+    只输出最新的一句回复，不要输出对话历史。 |'
+- en: '| Output: How about guesthouses? Do you have any 4-star options in the north
+    of Cambridge for a group of 4, staying from Saturday for 4 nights? |'
+  id: totrans-269
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：关于宾馆怎么样？你们在剑桥北部有适合四人入住、入住四晚的4星级选项吗？ |'
+- en: 'Table 8: Prompt for the user to update requirement.'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表8：用户更新需求的提示。
+- en: '| DST: [history], [requirements] $\rightarrow$ [user_utterance] |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史记录], [需求] $\rightarrow$ [用户回复] |'
+- en: '| Prompt: This is your first time here and want to find a place to eat.$\backslash$n
+    Now you are chatting with a local guide online. $\backslash$n And this is your
+    preference: $\backslash$n $\backslash$n"restaurant’s area": "north", "restaurant’s
+    pricerange": "moderate", "restaurant’s bookpeople": "8", "restaurant’s booktime":
+    "18:00"$\backslash$n $\backslash$n and the conversation history (may be empty
+    or not relevant to the current preference): $\backslash$n [ $\backslash$n "Do
+    you know of any good eateries in the north of Cambridge?", $\backslash$n "from
+    local guide: Are you looking for something more upscale or casual?", $\backslash$n
+    "I’d like a recommendation for a place that’s not too expensive.", $\backslash$n
+    "from local guide: I found a couple of places that fit your preferences. Would
+    you like me to recommend one?" $\backslash$n ] $\backslash$n Your responses should
+    resemble an online chat as much as possible, and make them as brief as you can.$\backslash$n
+    How would you initiate the inquiry or respond to the guide online? $\backslash$n
+    Please do not provide any information that does not exist in your preference.$\backslash$n
+    There are several choices that meet your preference.$\backslash$n If the agent
+    doesn’t recommend you a selection, $\backslash$n please ask directly for a recommendation
+    from the local agent, and output a special mark ‘[RECOM]‘ if you are looking for
+    a recommendation.$\backslash$n Only output the newest utterance, don’t output
+    the conversation history. |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：这是你第一次来这里，想找一个餐馆吃饭。$\backslash$n 现在你正在与本地导游在线聊天。$\backslash$n 这是你的偏好：$\backslash$n
+    $\backslash$n"餐馆区域"："北区"，"餐馆价格范围"："中等"，"餐馆预定人数"："8"，"餐馆预定时间"："18:00" $\backslash$n
+    $\backslash$n 和对话历史（可能为空或与当前偏好无关）：$\backslash$n [ $\backslash$n "你知道剑桥北部有什么好的餐馆吗？"，$\backslash$n
+    "来自本地导游：你是想要找更高档还是更休闲的地方？"，$\backslash$n "我想要一个不太贵的推荐。", $\backslash$n "来自本地导游：我找到了一些符合你偏好的地方，你想让我推荐一个吗？"
+    $\backslash$n ] $\backslash$n 你的回答应该尽可能像在线聊天，并尽量简短。$\backslash$n 你会如何向导游发起询问或回应？$\backslash$n
+    请不要提供你偏好中没有的信息。$\backslash$n 有几个选择符合你的偏好。$\backslash$n 如果代理没有向你推荐选择，$\backslash$n
+    请直接请求本地代理推荐，并在你寻找推荐时输出特殊标记‘[RECOM]’。$\backslash$n 只输出最新的发言，不要输出对话历史。 |'
+- en: '| Output: Yes, please recommend one. [RECOM] |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：是的，请推荐一个。[RECOM] |'
+- en: 'Table 9: Prompt for the user to ask a recommendation with control identifier
+    ‘[RECOM]’.'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表9：用户请求推荐的提示，控制标识符为‘[RECOM]’。
+- en: '| DST: [history], [requirements], [properties] $\rightarrow$ [user_utterance]
+    |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [history], [requirements], [properties] $\rightarrow$ [user_utterance]
+    |'
+- en: '| Prompt: This is your first time in here and want to find a place to eat.$\backslash$n
+    Now you are chatting with a local guide online.$\backslash$n And this is your
+    preference:$\backslash$n {"restaurant’s area": "north", "restaurant’s pricerange":
+    "moderate", "restaurant’s bookpeople": "8", "restaurant’s booktime": "18:00",
+    "restaurant’s bookday": "monday"}$\backslash$n and the conversation history (may
+    be empty or not relevant to the current preference):$\backslash$n [$\backslash$n
+    "Do you know of any good eateries in the north of Cambridge?",$\backslash$n "from
+    local guide: Are you looking for something more upscale or casual?",$\backslash$n
+    "I’d like a recommendation for a place that’s not too expensive.",$\backslash$n
+    "from local guide: I found a couple of places that fit your preferences. Would
+    you like me to recommend one?",$\backslash$n "I’d appreciate a recommendation.",$\backslash$n
+    "from local guide: golden wok is an chinese food restaurant in the moderate price
+    rang and the north part of town."$\backslash$n ]$\backslash$n Your responses should
+    resemble an online chat as much as possible, and make them as brief as you can.$\backslash$n
+    How would you initiate the inquiry or respond to the guide online?$\backslash$n
+    Please do not provide any information that is not exist in your preference.$\backslash$n
+    Here is some information that you want to get from the local guide:$\backslash$n
+    ["address", "postcode"]$\backslash$n Please read the history carefully and ask
+    the information that is in your list but has not been mentioned in the history.$\backslash$n
+    Please ask a question for the information only, don’t respond with other thing.$\backslash$n
+    Please try not to mention names in your questions as much as possible.$\backslash$n
+    Only output the newest utterance, don’t output the conversation history. |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：这是你第一次来这里，想找个地方吃饭。$\backslash$n 现在你正在与当地导游在线聊天。$\backslash$n 这是你的偏好：$\backslash$n
+    {"餐厅所在区域": "北区", "餐厅价格范围": "中等", "餐厅预定人数": "8", "餐厅预定时间": "18:00", "餐厅预定日期": "星期一"}$\backslash$n
+    以及对话历史（可能为空或与当前偏好无关）：$\backslash$n [$\backslash$n "你知道剑桥北部有什么好餐厅吗？",$\backslash$n
+    "来自当地导游：你是想找更高档还是更休闲的地方？",$\backslash$n "我想找一个不太贵的推荐。",$\backslash$n "来自当地导游：我找到了几个符合你偏好的地方，要我推荐一个吗？",$\backslash$n
+    "我很感激能得到推荐。",$\backslash$n "来自当地导游：金锅是一家位于城北的中价位中餐厅。"$\backslash$n ]$\backslash$n
+    你的回答应该尽量像在线聊天，尽量简短。$\backslash$n 你会如何启动询问或回应导游的提问？$\backslash$n 请不要提供任何在你的偏好中不存在的信息。$\backslash$n
+    以下是你想从当地导游那里获得的一些信息：$\backslash$n ["地址", "邮政编码"]$\backslash$n 请仔细阅读历史，并询问列表中但未在历史中提及的信息。$\backslash$n
+    请仅询问信息，不要回应其他内容。$\backslash$n 尽量不要在问题中提到名字。$\backslash$n 只输出最新的发言，不要输出对话历史。 |'
+- en: '| Output: Could you provide the address and postcode for that place? |'
+  id: totrans-277
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：你能提供该地点的地址和邮政编码吗？ |'
+- en: 'Table 10: Prompt for the user to inquire the properties of the candidate.'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 10：提示用户询问候选项的属性。
+- en: '| DST: [history], [requirements] $\rightarrow$ [user_utterance] |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [需求] $\rightarrow$ [用户发言] |'
+- en: '| Prompt: Now you are chatting with a local guide online.$\backslash$n And
+    this is your preference:$\backslash$n {"hotel’s area": "north", "hotel’s stars":
+    "4", "hotel’s type": "guesthouse", "hotel’s bookday": "saturday", "hotel’s bookpeople":
+    "4", "hotel’s bookstay": "4"}$\backslash$n and the conversation history (may be
+    empty or not relevant to the current preference):$\backslash$n [$\backslash$n
+    "Could you suggest any 4-star hotels in the northern part of Cambridge?",$\backslash$n
+    "from local guide: Are you looking for a boutique hotel or would a chain hotel
+    suit your needs?",$\backslash$n "A regular hotel would be fine, not looking for
+    a boutique.",$\backslash$n "from local guide: I apologize, but it seems we currently
+    do not have any 4-star hotels available in the northern part of Cambridge matching
+    your search criteria. Is there anything else I can assist you with or would you
+    like to adjust your search conditions?",$\backslash$n "How about guesthouses?
+    Do you have any 4-star options in the north of Cambridge for a group of 4, staying
+    from Saturday for 4 nights?",$\backslash$n "from local guide: We have several
+    4-star guesthouses available in the north of Cambridge that meet your criteria.
+    Would you like me to recommend one?",$\backslash$n "Yes, please recommend one.
+    ",$\backslash$n "from local guide: I currently have access to the worth house;
+    how about we set up a reservation for you?",$\backslash$n "What’s the postcode
+    for the location?",$\backslash$n "from local guide: The Worth House is located
+    at the postcode CB41DA. Would you like to proceed with the booking for 4 people
+    from Saturday for a 4-night stay?"$\backslash$n ]$\backslash$n Your responses
+    should resemble an online chat as much as possible, and make them as brief as
+    you can.$\backslash$n How would you initiate the inquiry or respond to the guide
+    online?$\backslash$n Please do not provide any information that is not exist in
+    your preference.$\backslash$n Please ask for a booking from the local guide with
+    your booking preference.$\backslash$n Please don’t use today or other relative
+    days to describe the ‘bookday‘.$\backslash$n If no booking is needed, please end
+    the conversion directly.$\backslash$n If the guide asks you for the booking information,
+    please avoid providing the booking information only.$\backslash$n Please don’t
+    put other references that are non-relevant to your booking, like price range,
+    area or others.$\backslash$n Please try not repeat the booking information that
+    you have already informed in the history.$\backslash$n Only output the newest
+    utterance, don’t output the conversation history. |'
+  id: totrans-280
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：现在你正在与一位本地导游在线聊天。$\backslash$n 这是你的偏好：$\backslash$n {"酒店区域": "北部", "酒店星级":
+    "4", "酒店类型": "宾馆", "预定日期": "周六", "预定人数": "4", "预定时长": "4"}$\backslash$n 以及对话历史（可能为空或与当前偏好无关）：$\backslash$n
+    [$\backslash$n "你能推荐一些位于剑桥北部的四星级酒店吗？",$\backslash$n "来自本地导游：您是想找精品酒店，还是连锁酒店更合适？",$\backslash$n
+    "普通酒店就可以，不需要精品酒店。",$\backslash$n "来自本地导游：很抱歉，似乎我们目前没有符合您搜索条件的四星级酒店位于剑桥北部。还有什么我可以帮助您的吗，或者您想调整一下搜索条件？",$\backslash$n
+    "那宾馆怎么样？你们有没有位于剑桥北部，适合4个人，从周六开始住4晚的四星级宾馆？",$\backslash$n "来自本地导游：我们在剑桥北部有几家符合您要求的四星级宾馆。需要我推荐一家吗？",$\backslash$n
+    "是的，请推荐一家。",$\backslash$n "来自本地导游：我目前有沃斯别墅（Worth House）可供选择；我们来为您安排预定好吗？",$\backslash$n
+    "这个地方的邮政编码是什么？",$\backslash$n "来自本地导游：沃斯别墅位于邮政编码CB41DA。您是否希望继续为4个人安排从周六起住4晚的预定？"$\backslash$n
+    ]$\backslash$n 您的回复应尽量模拟在线聊天，且尽量简洁。$\backslash$n 您会如何向导游发起询问或回应？$\backslash$n
+    请不要提供任何不在您的偏好中的信息。$\backslash$n 请根据您的预定偏好向本地导游请求预定。$\backslash$n 请不要使用“今天”或其他相关日期来描述“预定日期”。$\backslash$n
+    如果不需要预定，请直接结束对话。$\backslash$n 如果导游向您询问预定信息，请避免仅提供预定信息。$\backslash$n 请不要添加与预定无关的其他参考信息，如价格范围、区域等。$\backslash$n
+    请尽量避免重复已在历史对话中提供的预定信息。$\backslash$n 只输出最新的发言，不要输出对话历史。 |'
+- en: '| Output: Yes, please proceed with the booking at Worth House. |'
+  id: totrans-281
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：是的，请继续在沃斯别墅安排预定。 |'
+- en: 'Table 11: Prompt for the user to ask for a booking action from the agent.'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 11：提示用户向代理请求预定操作。
+- en: '| DST: [history], [requirements] $\rightarrow$ [user_utterance] |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [需求] $\rightarrow$ [用户发言] |'
+- en: '| Prompt: This is your first time in cambridge and want to find a hotel.$\backslash$n
+    Now you are chatting with a local guide online. $\backslash$n And this is your
+    preference:$\backslash$n {"hotel’s type": "guesthouse", "hotel’s stars": "4",
+    "hotel’s internet": "yes", "hotel’s area": "centre", "hotel’s name": "alexander
+    bed and breakfast", "hotel’s parking": "yes", "hotel’s bookstay": "1", "hotel’s
+    pricerange": "cheap", "hotel’s bookday": "tuesday", "hotel’s bookpeople": "6"}$\backslash$n
+    and the conversation history (may be empty or not relevant to the current preference):$\backslash$n
+    [$\backslash$n "I’m eager to see ’the man on the moon’ during my visit to Cambridge.
+    Can you provide some help with this?",$\backslash$n "from local guide: Absolutely,
+    I’d be happy to help with your visit to ’the man on the moon’ in Cambridge. You
+    can find this concert hall at 2 Norfolk Street, in the centre area. ",$\backslash$n
+    "Many thanks for the concert hall information. Could you point me to a good 4-star
+    guesthouse close by?",$\backslash$n "from local guide: Would you prefer a guesthouse
+    with free Wi-Fi access, and should it be in a specific area of Cambridge?",$\backslash$n
+    "Yes, a guesthouse with internet access in the central area would be ideal.",$\backslash$n
+    "from local guide: I’ve found a lovely 4-star guesthouse for you: the Alexander
+    Bed and Breakfast, located centrally at 56 Saint Barnabas Road, with the convenience
+    of free internet access. Would you like me to book a room for you?",$\backslash$n
+    "That’s just right. Can you book one night for me and ensure parking is covered?",$\backslash$n
+    "from local guide: Fantastic choice! To proceed with the booking at Alexander
+    Bed and Breakfast, could you please provide me with the date you’d like to stay
+    and the number of people the booking is for?",$\backslash$n "I’d like to book
+    a single room for the night of this coming Tuesday.",$\backslash$n "from local
+    guide: Your single room at Alexander Bed and Breakfast for the night of this coming
+    Tuesday has been successfully booked. Your reference code is: 3F7H8J9Z. "$\backslash$n
+    ]$\backslash$n Your responses should resemble an online chat as much as possible,
+    and make them as brief as you can.$\backslash$n How would you initiate the inquiry
+    or respond to the guide online?$\backslash$n Please do not provide any information
+    that is not exist in your preference.$\backslash$n And now, all your preferences
+    are met.$\backslash$n Please always answer with **No** if the guide asks you whether
+    more information is needed.$\backslash$n Please thanks for the help from the local
+    guide and output the mark ‘[EOF]‘Only output the newest utterance, don’t output
+    the conversation history. |'
+  id: totrans-284
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：这是你第一次来到剑桥，想找一家酒店。$\backslash$n 现在你正在和一位当地导游在线聊天。$\backslash$n 这是你的偏好：$\backslash$n
+    {"酒店类型": "宾馆", "酒店星级": "4", "酒店互联网": "是", "酒店区域": "市中心", "酒店名称": "亚历山大床和早餐", "酒店停车":
+    "是", "酒店预订": "1", "酒店价格范围": "便宜", "酒店预定日期": "星期二", "酒店预定人数": "6"}$\backslash$n
+    和聊天记录（可能为空或与当前偏好无关）：$\backslash$n [$\backslash$n "我很期待在剑桥看到‘月球上的人’。你能帮我一下吗？",$\backslash$n
+    "来自当地导游：当然，我很高兴帮助你参观‘月球上的人’。你可以在市中心的诺福克街2号找到这个音乐厅。",$\backslash$n "非常感谢提供音乐厅信息。能不能给我推荐一家离这儿近的4星级宾馆？",$\backslash$n
+    "来自当地导游：你需要一间有免费Wi-Fi的宾馆吗？或者有没有特别偏好的剑桥区域？",$\backslash$n "是的，市中心的有网络的宾馆最好。",$\backslash$n
+    "来自当地导游：我为你找到了一家不错的4星级宾馆：亚历山大床和早餐，位于市中心圣巴纳巴斯路56号，提供免费的互联网接入。需要我为你预定房间吗？",$\backslash$n
+    "正合适。你能为我预定一晚并确保有停车位吗？",$\backslash$n "来自当地导游：好选择！为了继续在亚历山大床和早餐的预订，你能告诉我你想入住的日期和预定人数吗？",$\backslash$n
+    "我想预定本周二晚上的单人房。",$\backslash$n "来自当地导游：你在亚历山大床和早餐的单人房已经成功预定，入住日期为本周二晚上。你的参考代码是：3F7H8J9Z。
+    "$\backslash$n ]$\backslash$n 你的回答应该尽量像在线聊天一样简洁，尽量简短。$\backslash$n 你会如何启动咨询或回应导游？$\backslash$n
+    请不要提供任何不在你偏好中的信息。$\backslash$n 现在，你的所有偏好都已经满足。$\backslash$n 如果导游询问是否需要更多信息，请始终回答**否**。$\backslash$n
+    请感谢当地导游的帮助，并输出标记‘[EOF]’。仅输出最新的发言，不要输出聊天历史。 |'
+- en: '| Output: Grateful for your guidance.[EOF] |'
+  id: totrans-285
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：感谢你的指导。[EOF] |'
+- en: 'Table 12: Prompt for the user to chat with the agent with the control identifier
+    ‘[EOF]’.'
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表12：用户与控制标识符‘[EOF]’的代理聊天提示。
+- en: '| DST: [history], [slots schema] $\rightarrow$ [slots] |'
+  id: totrans-287
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [槽位架构] $\rightarrow$ [槽位] |'
+- en: '| Prompt: You are a local agent, and now chatting with the user online for
+    ‘restaurant.$\backslash$n Here is the conversion history:$\backslash$n ["Do you
+    know of any good eateries in the north of Cambridge?"]$\backslash$n Here are the
+    service schemas that you might use for all services:$\backslash$n {"restaurant":
+    [{"name": "restaurant-pricerange", "description": "price budget for the restaurant",
+    "possible_values": ["cheap", "expensive", "moderate"], "is_categorical": true},
+    {"name": "restaurant-area", "description": "area or place of the restaurant",
+    "possible_values": ["centre", "east", "north", "south", "west"], "is_categorical":
+    true}, {"name": "restaurant-food", "description": "the cuisine of the restaurant
+    you are looking for", "possible_values": ["italian", "international", "indian",
+    "chinese", "modern european", "european", "british", "gastropub", "mexican", "lebanese",
+    "vietnamese", "spanish", "french", "japanese", "portuguese", "korean", "turkish",
+    "asian oriental", "african", "mediterranean", "seafood", "thai", "north american"],
+    "is_categorical": true}, {"name": "restaurant-name", "description": "name of the
+    restaurant", "possible_values": [], "is_categorical": false}, {"name": "restaurant-bookday",
+    "description": "day of the restaurant booking", "possible_values": ["monday",
+    "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"], "is_categorical":
+    true}, {"name": "restaurant-bookpeople", "description": "how many people for the
+    restaurant reservation", "possible_values": ["1", "2", "3", "4", "5", "6", "7",
+    "8"], "is_categorical": true}, {"name": "restaurant-booktime", "description":
+    "time of the restaurant booking", "possible_values": [], "is_categorical": false}]}$\backslash$n
+    Please read the history and the service schemas carefully:$\backslash$n - first
+    find the best service matched for the last utterance,$\backslash$n - then find
+    the slots of restaurants from the conversion history based on the schema of the
+    restaurant.$\backslash$n Your response should be in JSON format: {"slots": {"slot
+    key": "slot value"}, "service": ""},$\backslash$n The service you selected must
+    be in the schema.$\backslash$n The slots in your output must be in the schema
+    of your predicted ‘service‘,$\backslash$n - the ‘slot key‘ must be mentioned in
+    the schema$\backslash$n - the ‘slot value‘ should be mentioned in the schema ‘possible_values‘
+    if the slot value is categorical or you need to extract its value exactly from
+    the conversion history. |'
+  id: totrans-288
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示: 你是一个本地代理，现在正在与用户在线聊天，主题是‘餐厅.$\backslash$n 这是转换历史记录:$\backslash$n ["你知道剑桥北部有哪些好餐馆吗？"]$\backslash$n
+    以下是你可能在所有服务中使用的服务模式:$\backslash$n {"restaurant": [{"name": "restaurant-pricerange",
+    "description": "餐厅的价格预算", "possible_values": ["便宜", "昂贵", "适中"], "is_categorical":
+    true}, {"name": "restaurant-area", "description": "餐厅的区域或位置", "possible_values":
+    ["市中心", "东部", "北部", "南部", "西部"], "is_categorical": true}, {"name": "restaurant-food",
+    "description": "你正在寻找的餐厅的菜系", "possible_values": ["意大利", "国际", "印度", "中国", "现代欧洲",
+    "欧洲", "英国", "酒吧餐厅", "墨西哥", "黎巴嫩", "越南", "西班牙", "法国", "日本", "葡萄牙", "韩国", "土耳其",
+    "亚洲东方", "非洲", "地中海", "海鲜", "泰国", "北美"], "is_categorical": true}, {"name": "restaurant-name",
+    "description": "餐厅名称", "possible_values": [], "is_categorical": false}, {"name":
+    "restaurant-bookday", "description": "餐厅预订的日期", "possible_values": ["星期一", "星期二",
+    "星期三", "星期四", "星期五", "星期六", "星期天"], "is_categorical": true}, {"name": "restaurant-bookpeople",
+    "description": "餐厅预订的人数", "possible_values": ["1", "2", "3", "4", "5", "6", "7",
+    "8"], "is_categorical": true}, {"name": "restaurant-booktime", "description":
+    "餐厅预订的时间", "possible_values": [], "is_categorical": false}]}$\backslash$n 请仔细阅读历史记录和服务模式:$\backslash$n
+    - 首先找到最适合最后发言的服务,$\backslash$n - 然后根据餐厅的模式从转换历史中提取餐厅的插槽.$\backslash$n 你的回应应为 JSON
+    格式: {"slots": {"插槽键": "插槽值"}, "service": ""},$\backslash$n 你选择的服务必须在模式中.$\backslash$n
+    输出中的插槽必须属于你预测的‘服务‘的模式,$\backslash$n - ‘插槽键‘必须在模式中提及$\backslash$n - 如果插槽值是分类的，‘插槽值‘应在模式的‘possible_values‘中提及，或者你需要从转换历史中精确提取其值。'
+- en: '| Output: {"slots": {"restaurant-area": "north"}, "service": "restaurant"}
+    |'
+  id: totrans-289
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出: {"slots": {"restaurant-area": "north"}, "service": "restaurant"} |'
+- en: 'Table 13: Prompt for the slot extractor of restaurant domain.'
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格 13: 餐厅领域的插槽提取器提示。'
+- en: '| DST: [history], [inquire_requirements] $\rightarrow$ [agent_utterance], [inquire_requirements]
+    |'
+  id: totrans-291
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [查询要求] $\rightarrow$ [代理发言], [查询要求] |'
+- en: '| Prompt: You are a local agent for ‘restaurant‘, and are chatting with the
+    user online.$\backslash$n You are going to rhetorically question some search criteria
+    to make the user request more clearly.$\backslash$n Here is the conversion history:$\backslash$n
+    ["Do you know of any good eateries in the north of Cambridge?"]$\backslash$n and
+    the rhetorical slots that you will ask: $\backslash$n ["restaurant-pricerange"]$\backslash$n
+    Please read the history and rhetorical slots carefully.$\backslash$n Then generate
+    a brief rhetorical response to continue the conversion.$\backslash$n - the response
+    should resemble an online chat as much as possible, and make them as brief as
+    possible.$\backslash$n - please ask by the rhetorical slots directly, don’t respond
+    with other words, don’t tell the user that you are narrowing down the option.$\backslash$n
+    - please try asking all the rhetorical slots that are provided in the rhetorical
+    slots at once.$\backslash$n - for the service ‘train‘, no return ticket is preferred
+    from the user, and all the users will be adults as a group when booking tickets,
+    but you need still to ask how many people instead.$\backslash$n Pay attention
+    to the diversity of responses, and try not to reuse sentence patterns that have
+    been used in history.$\backslash$n Please answer in a JSON format, {"response":
+    "", "inquire_requirements": []} |'
+  id: totrans-292
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：您是‘餐厅’的本地代理，正在与用户在线聊天。$\backslash$n 您将通过修辞性提问一些搜索标准，以使用户的需求更明确。$\backslash$n
+    这是转换历史：$\backslash$n ["您知道剑桥北部有好的餐馆吗？"]$\backslash$n 以及您将提问的修辞性条件：$\backslash$n
+    ["restaurant-pricerange"]$\backslash$n 请仔细阅读历史和修辞性条件。$\backslash$n 然后生成简洁的修辞性回答以继续对话。$\backslash$n
+    - 该回答应尽量像在线聊天一样简洁，且尽量简短。$\backslash$n - 请直接按照修辞性条件提问，不要使用其他词语，也不要告诉用户您正在缩小选项范围。$\backslash$n
+    - 请尽量一次性提问所有提供的修辞性条件。$\backslash$n - 对于‘火车’服务，不需要用户提供返程票，并且在预定车票时所有用户将作为一个成人群体，但您仍然需要询问人数。$\backslash$n
+    请注意回答的多样性，尽量避免重复使用历史中的句型。$\backslash$n 请以 JSON 格式回答，{"response": "", "inquire_requirements":
+    []} |'
+- en: '| Output: {"response": "Are you looking for something more upscale or casual?",
+    "inquire_requirements": ["restaurant-pricerange"]} |'
+  id: totrans-293
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：{"response": "您是在寻找更高档的还是更休闲的餐厅？", "inquire_requirements": ["restaurant-pricerange"]}
+    |'
+- en: 'Table 14: Prompt for the agent to inquire the user for a specified requirement.'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 14：提示代理询问用户指定的需求。
+- en: '| DST: [history], [search condition], [search results] $\rightarrow$ [agent_utterance]
+    |'
+  id: totrans-295
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史], [搜索条件], [搜索结果] $\rightarrow$ [代理发言] |'
+- en: '| Prompt: You are a local agent, and now are chatting with the user online
+    for restaurant.$\backslash$n Given the conversion history and search condition,
+    please read the history and search condition carefully.$\backslash$n Then generate
+    a proper response to answer the user demands.$\backslash$n Here is the conversion
+    history:$\backslash$n ["Do you know of any good eateries in the north of Cambridge?",
+    "from local guide: Are you looking for something more upscale or casual?", "I’d
+    like a recommendation for a place that’s not too expensive.", "from local guide:
+    I found a couple of places that fit your preferences. Would you like me to recommend
+    one?", "I’d appreciate a recommendation.", "from local guide: golden wok is an
+    chinese food restaurant in the moderate price rang and the north part of town.",
+    "May I have the address and postcode for that location, please?"]$\backslash$n
+    the search condition: {"restaurant": {"restaurant-area": "north", "restaurant-pricerange":
+    "moderate", "restaurant-name": "golden wok"}}$\backslash$n the search results:
+    [{"address": "191 Histon Road Chesterton", "area": "north", "food": "chinese",
+    "name": "golden wok", "phone": "01223350688", "postcode": "cb43hl", "pricerange":
+    "moderate"}]$\backslash$n Your response must resemble an online chat as much as
+    possible, and make them as brief as possible.$\backslash$n If you have not introduce
+    the candidate to the user, please:$\backslash$n - Inform the user with the name,
+    and ask the user whether he needs a booking.$\backslash$n Or else if you are responding
+    to a booking request, please make sure you know the following information:$\backslash$n
+    - the information must be known before booking a restaurant are book-day, book-time
+    and book-people.$\backslash$n - you can ask these three attributes all at once
+    or step by step.$\backslash$n When all the book information, which are book day,
+    book hour and book people are provided by the user, please respond with a confirm:$\backslash$n
+    - please inform the user that the booking is successful.$\backslash$n - please
+    output the name in your response, and other information like bookday, booktime,
+    bookpeople are not necessary to inform.$\backslash$n - please add an 8 character’
+    reference code with numbers and letters in your response.$\backslash$n - please
+    output a mark ‘[BOOKED]‘ at the end of the response.$\backslash$n - if the user
+    informed you he doesn’t need a booking or reservation at this moment or booking
+    later. Please reply with good politely and shortly, and also output the mark ‘[BOOKED]‘.$\backslash$n
+    Please answer in a JSON format {"response": ""} |'
+  id: totrans-296
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：您是当地代理，目前正在与用户在线交流餐厅相关事宜。$\backslash$n 根据转换历史和搜索条件，请仔细阅读历史记录和搜索条件。$\backslash$n
+    然后生成一个恰当的回应来满足用户的需求。$\backslash$n 以下是转换历史：$\backslash$n ["你知道剑桥北部有哪些不错的餐馆吗？",
+    "来自当地向导：您是想找更高档还是更休闲的餐馆？", "我想要一个不太贵的推荐。", "来自当地向导：我找到了一些符合您偏好的餐馆。您想让我推荐其中一个吗？",
+    "我很感激能得到推荐。", "来自当地向导：golden wok 是一家位于城北，价格适中的中餐馆。", "请告诉我该地点的地址和邮政编码。"]$\backslash$n
+    搜索条件：{"餐馆": {"餐馆区域": "北部", "餐馆价格范围": "适中", "餐馆名称": "golden wok"}}$\backslash$n
+    搜索结果：[{"地址": "191 Histon Road Chesterton", "区域": "北部", "食物": "中餐", "名称": "golden
+    wok", "电话": "01223350688", "邮政编码": "cb43hl", "价格范围": "适中"}]$\backslash$n 您的回答必须尽可能像在线聊天，并且尽量简洁。$\backslash$n
+    如果您还没有向用户介绍候选餐馆，请：$\backslash$n - 告知用户餐馆名称，并询问是否需要预订。$\backslash$n 或者如果您正在回应预订请求，请确保您知道以下信息：$\backslash$n
+    - 预订餐馆时必须知道的三项信息是预订日期、预订时间和预订人数。$\backslash$n - 您可以一次性或分步询问这三项信息。$\backslash$n
+    当用户提供了所有预订信息，包括预订日期、预订时间和预订人数时，请确认：$\backslash$n - 请告知用户预订成功。$\backslash$n - 在您的回应中输出餐馆名称，不必告知预订日期、预订时间和预订人数等信息。$\backslash$n
+    - 请在您的回应中添加一个8位字符的参考代码，由数字和字母组成。$\backslash$n - 请在回应末尾加上标记 ''[BOOKED]''。$\backslash$n
+    - 如果用户告知您目前不需要预订或稍后再预订，请礼貌简短地回复，并加上标记 ''[BOOKED]''。$\backslash$n 请以 JSON 格式回答
+    {"response": ""}'
+- en: '| Output: Certainly! Golden Wok is located at 191 Histon Road Chesterton, with
+    the postcode CB43HL. Would you like me to make a reservation for you? |'
+  id: totrans-297
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：当然！Golden Wok 位于 191 Histon Road Chesterton，邮政编码为 CB43HL。您需要我为您预订座位吗？
+    |'
+- en: 'Table 15: Prompt for the agent to answer the user’s inquiry properties.'
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 15：提示代理回答用户查询属性。
+- en: '| DST: [history], [search condition], [search results] $\rightarrow$ [agent_utterance]
+    |'
+  id: totrans-299
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史记录], [搜索条件], [搜索结果] $\rightarrow$ [代理回应] |'
+- en: '| Prompt: You are a local agent, and now are chatting with the user online
+    for restaurant.$\backslash$n Given the conversion history and search condition,
+    please read the history and search condition carefully.$\backslash$n Then generate
+    a proper response to answer the user demands.$\backslash$n Here is the conversion
+    history:$\backslash$n ["Do you know of any good eateries in the north of Cambridge?",
+    "from local guide: Are you looking for something more upscale or casual?", "I’d
+    like a recommendation for a place that’s not too expensive."]$\backslash$n the
+    search condition: {"restaurant": {"restaurant-area": "north", "restaurant-pricerange":
+    "moderate"}}$\backslash$n the search results: [{"address": "7 Milton Road Chesterton",
+    "area": "north", "food": "indian", "name": "the nirala", "phone": "01223360966",
+    "postcode": "cb41uy", "pricerange": "moderate"}, {"address": "191 Histon Road
+    Chesterton", "area": "north", "food": "chinese", "name": "golden wok", "phone":
+    "01223350688", "postcode": "cb43hl", "pricerange": "moderate"}]$\backslash$n Your
+    response must resemble an online chat as much as possible, and make them as brief
+    as possible.$\backslash$n If you have not inform the user of the result, please
+    first inform the user of the result:$\backslash$n - the information should have
+    the number of candidates, please don’t use the exact number, use many, several,
+    some or others instead.$\backslash$n - and it is also necessary to ask if the
+    user needs a recommendation.$\backslash$n If you have already informed the user
+    of the result, and the user what a recommendation, please do the follows:$\backslash$n
+    Please recommend one candidate with the restaurant name and detailed information
+    from the search results directly, don’t repeat the user need.$\backslash$n The
+    detailed information needed contains restaurant area, pricerange, food type.$\backslash$n
+    - please don’t output the candidate’s details.$\backslash$n Please answer in a
+    JSON format {"response": ""} |'
+  id: totrans-300
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：你是一个本地代理，现在正在与用户在线聊天，讨论餐厅相关问题。$\backslash$n 根据对话历史和搜索条件，请仔细阅读历史记录和搜索条件。$\backslash$n
+    然后生成一个适当的回复，以满足用户的需求。$\backslash$n 这是对话历史：$\backslash$n ["你知道剑桥北部有好的餐馆吗？", "来自本地指南：你在寻找更高档还是休闲的餐厅？",
+    "我想要一个价格不太贵的推荐。"]$\backslash$n 搜索条件：{"restaurant": {"restaurant-area": "north",
+    "restaurant-pricerange": "moderate"}}$\backslash$n 搜索结果：[{"address": "7 Milton
+    Road Chesterton", "area": "north", "food": "indian", "name": "the nirala", "phone":
+    "01223360966", "postcode": "cb41uy", "pricerange": "moderate"}, {"address": "191
+    Histon Road Chesterton", "area": "north", "food": "chinese", "name": "golden wok",
+    "phone": "01223350688", "postcode": "cb43hl", "pricerange": "moderate"}]$\backslash$n
+    你的回复必须尽可能像在线聊天，简洁明了。$\backslash$n 如果你还没有告诉用户搜索结果，请先告诉用户结果：$\backslash$n - 信息应包括候选餐厅的数量，请不要使用确切的数字，使用“许多”、“几个”、“一些”或“其他”来代替。$\backslash$n
+    - 同时还需要询问用户是否需要推荐。$\backslash$n 如果你已经告知用户搜索结果，且用户需要推荐，请执行以下操作：$\backslash$n 请直接推荐一个候选餐厅，并提供该餐厅的名称和详细信息，不要重复用户的需求。$\backslash$n
+    需要提供的详细信息包括餐厅所在区域、价格范围和菜品类型。$\backslash$n - 请不要输出候选餐厅的详细信息。$\backslash$n 请以 JSON
+    格式回答 {"response": ""} |'
+- en: '| Output: {"response": "I found a couple of places that fit your preferences.
+    Would you like me to recommend one?"} |'
+  id: totrans-301
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：{"response": "我找到了一些符合你要求的地方，你想让我推荐其中一个吗？"} |'
+- en: 'Table 16: Prompt for the agent to report search results.'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表16：代理报告搜索结果的提示。
+- en: '| DST: [history], [search condition], [search results] $\rightarrow$ [agent_utterance]
+    |'
+  id: totrans-303
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [历史记录], [搜索条件], [搜索结果] $\rightarrow$ [代理回复] |'
+- en: '| Prompt: You are a local agent, and now are chatting with the user online
+    for restaurant. $\backslash$n Given the conversion history and search condition,
+    please read the history and search condition carefully. $\backslash$n Then generate
+    a proper response to answer the user demands. $\backslash$n Here is the conversion
+    history: $\backslash$n ["Do you know of any good eateries in the north of Cambridge?",
+    "from local guide: Are you looking for something more upscale or casual?", "I’d
+    like a recommendation for a place that’s not too expensive.", "from local guide:
+    I found a couple of places that fit your preferences. Would you like me to recommend
+    one?", "I’d appreciate a recommendation.", "from local guide: golden wok is an
+    chinese food restaurant in the moderate price rang and the north part of town.",
+    "May I have the address and postcode for that location, please?", "from local
+    guide: Certainly! Golden Wok is located at 191 Histon Road Chesterton, with the
+    postcode CB43HL. Would you like me to make a reservation for you?", "Kindly reserve
+    seating for eight at Golden Wok on Monday, at 18:00 hours."] $\backslash$n the
+    search condition: {"restaurant": {"restaurant-area": "north", "restaurant-pricerange":
+    "moderate", "restaurant-name": "golden wok", "restaurant-bookday": "monday", "restaurant-bookpeople":
+    "8", "restaurant-booktime": "18:00"}} $\backslash$n the search results: [{"address":
+    "191 Histon Road Chesterton", "area": "north", "food": "chinese", "name": "golden
+    wok", "phone": "01223350688", "postcode": "cb43hl", "pricerange": "moderate"}]
+    $\backslash$n Your response must resemble an online chat as much as possible,
+    and make them as brief as possible. $\backslash$n If you have not introduce the
+    candidate to the user, please: $\backslash$n - Inform the user with the name,
+    and ask the user whether he needs a booking. $\backslash$n Or else if you are
+    responding to a booking request, please make sure you know the following information:
+    $\backslash$n - the information must be known before booking a restaurant are
+    book-day, book-time and book-people. $\backslash$n - you can ask these three attributes
+    all at once or step by step. $\backslash$n When all the book information, which
+    are book day, book hour and book people are provided by the user, please respond
+    with a confirm: $\backslash$n - please inform the user that the booking is successful.
+    $\backslash$n - please output the name in your response, and other information
+    like bookday, booktime, bookpeople are not necessary to inform. $\backslash$n
+    - please add an 8 character’ reference code with numbers and letters in your response.
+    $\backslash$n - please output a mark ‘[BOOKED]‘ at the end of the response. $\backslash$n
+    - if the user informed you he doesn’t need a booking or reservation at this moment
+    or booking later. Please reply with good politely and shortly, and also output
+    the mark ‘[BOOKED]‘. $\backslash$n Please answer in a JSON format {"response":
+    ""} |'
+  id: totrans-304
+  prefs: []
+  type: TYPE_TB
+- en: '| Output: {"response": "Your reservation at Golden Wok for eight people on
+    Monday at 18:00 hours has been successfully made. Your reference code is 3FA7B6Z9\.
+    [BOOKED]"} |'
+  id: totrans-305
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：{"response": "您已成功预订了Golden Wok的8人座位，时间是星期一18:00，参考代码为3FA7B6Z9。 [BOOKED]"}
+    |'
+- en: 'Table 17: Prompt for the agent to report reservation information of booking
+    action with control identifier ‘[BOOKED]’.'
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表17：提示代理报告带有控制标识符‘[BOOKED]’的预订信息。
+- en: '| DST: [history]$\rightarrow$ [agent_utterance] |'
+  id: totrans-307
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [history]$\rightarrow$ [agent_utterance] |'
+- en: '| Prompt: You are a local agent for ‘restaurant‘, and are chatting with the
+    user online.$\backslash$n Give your a conversion history and please read the history
+    carefully.$\backslash$n Here is the conversion history:$\backslash$n ["Do you
+    know of any good eateries in the north of Cambridge?", "from local guide: Are
+    you looking for something more upscale or casual?", "I’d like a recommendation
+    for a place that’s not too expensive.", "from local guide: I found a couple of
+    places that fit your preferences. Would you like me to recommend one?", "I’d appreciate
+    a recommendation.", "from local guide: golden wok is an chinese food restaurant
+    in the moderate price rang and the north part of town.", "May I have the address
+    and postcode for that location, please?", "from local guide: Certainly! Golden
+    Wok is located at 191 Histon Road Chesterton, with the postcode CB43HL. Would
+    you like me to make a reservation for you?", "Kindly reserve seating for eight
+    at Golden Wok on Monday, at 18:00 hours.", "from local guide: Your reservation
+    at Golden Wok for eight people on Monday at 18:00 hours has been successfully
+    made. Your reference code is 3FA7B6Z9\. ", "I appreciate your assistance!"]$\backslash$n
+    Then generate a casual response to continue or end the conversion if is necessary.$\backslash$n
+    The casual response should be:- highly related to the conversion history, and
+    briefly enough.$\backslash$n - resemble an online chat as much as possible, and
+    make them as brief as possible.$\backslash$n - make the reply simple when you
+    respond to the users’ thanks.$\backslash$n - all the words in your response, should
+    be limited to 15 words.$\backslash$n - please also add a mark ‘[EOD]‘ at the end
+    of your response.$\backslash$n Please answer in a JSON format, {"response": ""}
+    |'
+  id: totrans-308
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：您是‘餐厅’的本地代理，正在与用户在线聊天。$\backslash$n 请提供您的对话历史，并请仔细阅读历史记录。$\backslash$n
+    以下是对话历史：$\backslash$n ["你知道剑桥北部有什么好的餐馆吗？", "来自本地指南：你是想找更高档的还是更随意的地方？", "我想找一个不太贵的推荐。",
+    "来自本地指南：我找到了一些符合你要求的地方。你想让我推荐其中一个吗？", "我会很感激你推荐一个地方。", "来自本地指南：Golden Wok是一家中餐馆，价格适中，位于市北部。",
+    "请提供该地点的地址和邮政编码。", "来自本地指南：当然！Golden Wok位于Chesterton的191 Histon Road，邮政编码为CB43HL。你需要我为你预订吗？",
+    "请为8人预定Golden Wok的座位，时间是星期一，18:00。", "来自本地指南：您已成功预订了Golden Wok的8人座位，时间是星期一18:00，参考代码为3FA7B6Z9。",
+    "谢谢你的帮助！"]$\backslash$n 然后，如果需要，生成一个简洁的回应继续或结束对话。$\backslash$n 这个回应应符合以下要求：- 高度相关于对话历史，并尽可能简短。$\backslash$n
+    - 尽可能像在线聊天一样，保持简洁。$\backslash$n - 对用户的感谢回应时应简洁。$\backslash$n - 回应中的所有文字不得超过15个单词。$\backslash$n
+    - 请在回应的末尾加上标记‘[EOD]’。$\backslash$n 请以JSON格式回答，{"response": ""} |'
+- en: '| Output: {"response": "You’re welcome! Enjoy your meal at Golden Wok. If you
+    need anything else, just ask. [EOD]"} |'
+  id: totrans-309
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：{"response": "不客气！祝您在Golden Wok用餐愉快。如果需要帮助，随时告诉我。 [EOD]"} |'
+- en: 'Table 18: Prompt for the agent to conclude the dialogue with control identifier
+    ‘[EOD]’.'
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表18：提示代理结束对话，带有控制标识符‘[EOD]’。
+- en: Appendix B Templates for Booking Responses
+  id: totrans-311
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 预订响应模板
+- en: We first crafted template responses like There are a lot of {type} attractions
+    available. Would you like information about one of those? Perhaps, a {type} like
+    {name}? and then expand them to hundreds with the GPT-4’s rewriting ability as
+    shown in Table [19](https://arxiv.org/html/2405.13037v1#A2.T19 "Table 19 ‣ Appendix
+    B Templates for Booking Responses ‣ Enhancing Dialogue State Tracking Models through
+    LLM-backed User-Agents Simulation"). In our simulation, the templated response
+    will randomly substitute the recommendation responses of the agent to enhance
+    the variety of interactions.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先创建了类似于“有很多{type}景点可供选择。你想了解其中一个吗？也许是{type}，比如{name}？”这样的模板响应，然后利用GPT-4的重写能力将其扩展到数百个，正如表[19](https://arxiv.org/html/2405.13037v1#A2.T19
+    "表19 ‣ 附录B 预订响应模板 ‣ 通过LLM支持的用户代理模拟增强对话状态跟踪模型")所示。在我们的模拟中，模板响应会随机替换代理的推荐响应，以增强互动的多样性。
+- en: '| DST: [template]$\rightarrow$ [rewrited templates] |'
+  id: totrans-313
+  prefs: []
+  type: TYPE_TB
+  zh: '| DST: [模板]$\rightarrow$ [改写后的模板] |'
+- en: '| Prompt: $\backslash$n Please rewrite the following template into 10 different
+    ways,$\backslash$n template:$\backslash$n There are a lot of {type} attractions
+    available. Would you like information about one of those? Perhaps, a {type} like
+    {name}?$\backslash$n Your output should be in JSON format like ["template0", "template1",
+    …]$\backslash$n Your output:$\backslash$n |'
+  id: totrans-314
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示：$\backslash$n 请将以下模板改写为10种不同的方式，$\backslash$n 模板：$\backslash$n 有很多{type}景点可供选择。你想了解其中的某个景点吗？也许是像{name}这样的{type}？$\backslash$n
+    输出应为JSON格式，类似于["template0", "template1", …]$\backslash$n 输出：$\backslash$n |'
+- en: '| Output: $\backslash$n [$\backslash$n "Many {type} attractions are at your
+    disposal. Interested in learning more about any? Maybe one such as {name}?",$\backslash$n
+    "A wide array of {type} attractions are on offer. Care to get details on any specific
+    one, possibly the {name}?",$\backslash$n "We have numerous {type} attractions
+    to choose from. Would you care for details about a particular one, for instance,
+    {name}?",$\backslash$n "Our selection of {type} attractions is quite extensive.
+    Can I interest you in information about a specific one, maybe {name}?",$\backslash$n
+    "You’ll find plenty of {type} attractions here. Shall I provide information on
+    one, perhaps {name}?",$\backslash$n "There’s no shortage of {type} attractions
+    to explore. Would you like to hear about one, such as {name}?",$\backslash$n "We
+    boast a variety of {type} attractions. Would any pique your interest, maybe something
+    like {name}?",$\backslash$n "The range of {type} attractions we have is impressive.
+    Do you wish to know more about any, like {name}?",$\backslash$n "If you’re interested
+    in {type} attractions, we have many options. How about more information on one
+    like {name}?",$\backslash$n "Looking for {type} attractions? We’ve got plenty.
+    Want to learn about a specific one, say {name}?"$\backslash$n ] |'
+  id: totrans-315
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出：$\backslash$n [$\backslash$n "有许多{type}景点供你选择。你想了解其中的某个景点吗？比如像{name}这样的？",$\backslash$n
+    "有很多{type}景点可以选择。你想了解某个特定的景点吗，也许是{name}？",$\backslash$n "我们有众多{type}景点可供选择。你想了解其中的某个景点吗，比如{name}？",$\backslash$n
+    "我们的{type}景点种类繁多。你有兴趣了解某个特定的景点吗，可能是{name}？",$\backslash$n "这里有许多{type}景点。你想了解某个景点的详细信息吗，也许是{name}？",$\backslash$n
+    "这里有丰富的{type}景点可供探索。你想了解其中的某个景点吗，像{name}这样？",$\backslash$n "我们提供各种{type}景点。你有兴趣了解某个景点吗，也许是{name}？",$\backslash$n
+    "我们拥有令人印象深刻的{type}景点。你想了解其中的某个景点吗，像{name}这样？",$\backslash$n "如果你对{type}景点感兴趣，我们有很多选择。你想了解更多关于{name}的信息吗？",$\backslash$n
+    "在寻找{type}景点吗？我们有很多选择。想了解其中某个景点的详细信息吗，譬如{name}？"$\backslash$n ] |'
+- en: 'Table 19: Prompt for template rewriting.'
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格19：模板改写提示。

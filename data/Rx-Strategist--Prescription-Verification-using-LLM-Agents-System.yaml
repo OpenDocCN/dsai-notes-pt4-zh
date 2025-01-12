@@ -1,0 +1,1753 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 12:16:30'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:16:30
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Rx Strategist: Prescription Verification using LLM Agents System'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Rx Strategist：使用LLM代理系统进行处方验证
+- en: 来源：[https://arxiv.org/html/2409.03440/](https://arxiv.org/html/2409.03440/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2409.03440/](https://arxiv.org/html/2409.03440/)
+- en: Phuc Phan Van1, Dat Nguyen Minh1, An Dinh Ngoc1, Huy Phan Thanh1
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Phuc Phan Van1, Dat Nguyen Minh1, An Dinh Ngoc1, Huy Phan Thanh1
+- en: University Collaboration with Li Jinghong2, Dong Yicheng2
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与李晶宏2、董一诚2的大学合作
+- en: '{phucpvse170209, datnmse170570, andnse171386, huypt24}@fpt.edu.vn, and {lijinghong-n,
+    s2320035}@jaist.ac.jp 1FPT University, Ho Chi Minh Campus, Vietnam 2Japan Advanced
+    Institute of Science and Technology, Ishikawa Campus, Japan'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{phucpvse170209, datnmse170570, andnse171386, huypt24}@fpt.edu.vn，以及 {lijinghong-n,
+    s2320035}@jaist.ac.jp 1 FPT大学，胡志明市校区，越南 2 日本先进科学技术研究所，石川县校区，日本'
+- en: Abstract
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: To protect patient safety, modern pharmaceutical complexity demands strict prescription
+    verification. We offer a new approach - Rx Strategist - that makes use of knowledge
+    graphs and different search strategies to enhance the power of Large Language
+    Models (LLMs) inside an agentic framework. This multifaceted technique allows
+    for a multi-stage LLM pipeline and reliable information retrieval from a custom-built
+    active ingredient database. Different facets of prescription verification, such
+    as indication, dose, and possible drug interactions, are covered in each stage
+    of the pipeline. We alleviate the drawbacks of monolithic LLM techniques by spreading
+    reasoning over these stages, improving correctness and reliability while reducing
+    memory demands. Our findings demonstrate that Rx Strategist surpasses many current
+    LLMs, achieving performance comparable to that of a highly experienced clinical
+    pharmacist. In the complicated world of modern medications, this combination of
+    LLMs with organized knowledge and sophisticated search methods presents a viable
+    avenue for reducing prescription errors and enhancing patient outcomes.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了保护患者安全，现代药品的复杂性要求严格的处方验证。我们提供了一种新的方法——Rx Strategist——利用知识图谱和不同的搜索策略，在一个具有代理框架的环境中增强大语言模型（LLMs）的能力。这种多层次的技术方法使得可以构建一个多阶段的LLM管道，并从定制构建的活性成分数据库中可靠地检索信息。在管道的每个阶段，都会涵盖处方验证的不同方面，例如适应症、剂量和可能的药物相互作用。我们通过在这些阶段之间分配推理任务，缓解了单一LLM技术的缺点，从而提高了准确性和可靠性，同时减少了内存需求。我们的研究结果表明，Rx
+    Strategist的表现超越了许多现有的LLM，达到了与经验丰富的临床药师相当的水平。在现代药物复杂的世界中，这种将LLM与组织化知识和复杂搜索方法相结合的方式，提供了一条可行的途径，用以减少处方错误并提高患者治疗效果。
+- en: 'Index Terms:'
+  id: totrans-11
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 关键词：
+- en: Medical Systems, Large Language Model, Question Answering
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 医疗系统、大语言模型、问答
+- en: I Introduction
+  id: totrans-13
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: I 引言
+- en: Verifying prescriptions is an essential stage in the healthcare process that
+    guarantees patient safety and the best possible results from treatments. However,
+    studies have shown that a significant proportion of prescribed dosages are erroneous.
+    For instance, A work analysis of medication errors in Vietnamese hospitals [[1](https://arxiv.org/html/2409.03440v1#bib.bib1)]
+    found that roughly $40\%$ of doses prescribed to patients are incorrect in two
+    urban public hospitals in Vietnam. Moreover, the availability of healthcare professionals,
+    particularly in regions like Vietnam, is limited, exacerbating the issue. According
+    to the Ministry of Health ¹¹1[Ministry of Health (MOH) 2023 Report](https://moh.gov.vn/documents/174521/1760801/3.++BC-BYT-+T%E1%BB%95ng+k%E1%BA%BFt+ng%C3%A0nh.pdf/481b5482-2b3c-4487-bfd6-20dd2601cb04),
+    Vietnam has just $12.5$ doctors and $3.2$ graduate pharmacists for every $10,000$
+    people. This shortage of qualified personnel underscores the urgent need for advanced
+    systems capable of automating and enhancing prescription verification without
+    relying heavily on human resources.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处方验证是医疗过程中一个至关重要的阶段，确保患者安全并取得最佳治疗效果。然而，研究表明，处方剂量中有很大一部分是错误的。例如，越南医院的一项药物错误工作分析[[1](https://arxiv.org/html/2409.03440v1#bib.bib1)]发现，在越南的两家城市公立医院中，大约$40\%$的处方剂量是错误的。此外，医疗专业人员的供应，特别是在越南这样的地区，非常有限，这加剧了问题的严重性。根据卫生部的报告¹¹1[卫生部（MOH）2023年报告](https://moh.gov.vn/documents/174521/1760801/3.++BC-BYT-+T%E1%BB%95ng+k%E1%BA%BFt+ng%C3%A0nh.pdf/481b5482-2b3c-4487-bfd6-20dd2601cb04)，越南每$10,000$人只有$12.5$名医生和$3.2$名研究生药剂师。这一合格人员的短缺凸显了急需能够自动化并增强处方验证的先进系统，而不依赖过多的人工资源。
+- en: Leveraging artificial intelligence (AI), particularly LLMs, as an assistant
+    for healthcare providers offers a promising solution to mitigate prescription
+    errors. AI-powered systems can rapidly analyze vast amounts of medical information,
+    potentially identifying inconsistencies or potential issues with dosages, drug
+    interactions, and contraindications. However, current LLM systems face challenges
+    in achieving reliable performance in this domain. Notably, the limited availability
+    of real-world clinical data for AI model training raises concerns about their
+    generalization to heterogeneous patient populations and varied clinical scenarios.
+    Moreover, many LLMs rely on memorization rather than deep medical reasoning [[2](https://arxiv.org/html/2409.03440v1#bib.bib2),
+    [3](https://arxiv.org/html/2409.03440v1#bib.bib3)], making them susceptible to
+    hallucinations or incorrect answers when faced with unfamiliar or complex cases.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用人工智能（AI），特别是LLM，作为医疗服务提供者的助手，提供了一个有前景的解决方案，旨在减少处方错误。AI驱动的系统可以快速分析大量的医学信息，潜在地识别剂量、药物相互作用和禁忌症的不一致性或潜在问题。然而，当前的LLM系统在这一领域仍面临实现可靠性能的挑战。特别是，现实临床数据的有限性对AI模型训练带来了困难，这引发了它们是否能很好地推广到异质化患者群体和多样化临床场景的担忧。此外，许多LLM依赖于记忆而非深度医学推理[[2](https://arxiv.org/html/2409.03440v1#bib.bib2),
+    [3](https://arxiv.org/html/2409.03440v1#bib.bib3)]，使得它们在面对不熟悉或复杂案例时容易产生幻觉或错误答案。
+- en: 'To address these challenges, we propose a novel LLM agent system designed specifically
+    for prescription verification. Our system incorporates a sequence of specialized
+    agents including 2 main tasks: indication verification and dose verification,
+    each equipped with a unique combination of knowledge graphs, rule-based systems,
+    and LLM components. This modular architecture enables a comprehensive analysis
+    of each prescribed active ingredient, taking into account patient-specific information,
+    the indicated condition, and established medical knowledge by combining the strengths
+    of structured knowledge sources with the adaptability of LLMs. In addition, we
+    introduce a specialized dataset focused on drug information and a novel methodology
+    for knowledge retrieval. This dataset, combined with our retrieval approach, aims
+    to enhance the system’s robustness and overall performance.'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了应对这些挑战，我们提出了一种新颖的LLM代理系统，专门用于处方验证。我们的系统包含一系列专门的代理，包括2个主要任务：适应症验证和剂量验证，每个任务都配备了独特的知识图谱、基于规则的系统和LLM组件的组合。这种模块化架构使得能够对每一种处方的活性成分进行全面分析，综合考虑患者特定信息、指示的病情和已有的医学知识，将结构化知识来源的优势与LLM的适应性结合在一起。此外，我们还引入了一个专注于药物信息的专门数据集，并提出了一种新的知识检索方法。该数据集结合我们的检索方法，旨在增强系统的鲁棒性和整体性能。
+- en: Chain-of-thought (CoT), introduced by [[4](https://arxiv.org/html/2409.03440v1#bib.bib4)],
+    marks a pivotal advancement in improving the reasoning abilities of text-generation
+    models. CoT enables models to generate intermediate steps in their thought processes,
+    mirroring human problem-solving techniques. Research by [[5](https://arxiv.org/html/2409.03440v1#bib.bib5)]
+    further demonstrated that certain prompts, like "Let’s think step-by-step," can
+    naturally induce CoT reasoning in LLMs. These breakthroughs have laid the groundwork
+    for ongoing research aimed at enhancing the reasoning capabilities of LLMs.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Chain-of-thought (CoT)，由[[4](https://arxiv.org/html/2409.03440v1#bib.bib4)]提出，标志着在提高文本生成模型推理能力方面的一个重要进展。CoT使得模型能够在思考过程中生成中间步骤，模拟人类的解决问题技巧。[[5](https://arxiv.org/html/2409.03440v1#bib.bib5)]的研究进一步表明，某些提示，如“让我们一步步思考”，可以自然地引导LLM进行CoT推理。这些突破为当前的研究奠定了基础，旨在提升LLM的推理能力。
+- en: To address the inherent knowledge limitations of LLMs, Retrieval Augmented Generation
+    (RAG) has emerged as a prominent approach. RAG integrates LLMs with information
+    retrieval systems, enabling them to access and utilize relevant external knowledge.
+    This is typically achieved by embedding both the query and candidate documents
+    in a shared vector space and then identifying the documents with the highest similarity
+    to the query. Recent advancements in RAG have focused on improving retrieval accuracy.
+    For instance, HyDE [[6](https://arxiv.org/html/2409.03440v1#bib.bib6)] enhances
+    retrieval by generating a hypothetical answer to the query and then embedding
+    it alongside the documents, allowing for a more nuanced comparison. Alternatively,
+    Take a Step Back [[7](https://arxiv.org/html/2409.03440v1#bib.bib7)] aims to identify
+    the foundational knowledge documents most relevant to the query, potentially leading
+    to more accurate and comprehensive responses.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决LLM固有的知识局限性，检索增强生成（RAG）已成为一种重要的技术。RAG将LLM与信息检索系统结合，使其能够访问和利用相关的外部知识。这通常通过将查询和候选文档嵌入到共享的向量空间中，然后识别与查询相似度最高的文档来实现。RAG的最新进展集中在提高检索准确性上。例如，HyDE[[6](https://arxiv.org/html/2409.03440v1#bib.bib6)]通过生成一个假设性答案并将其与文档一起嵌入，来增强检索，从而实现更细致的比较。另一种方法，“Take
+    a Step Back”[[7](https://arxiv.org/html/2409.03440v1#bib.bib7)]，旨在识别与查询最相关的基础知识文档，可能导致更准确和更全面的回答。
+- en: 'Beyond traditional document retrieval, advanced RAG systems have increasingly
+    turned to knowledge graphs (KGs) to improve retrieval accuracy and context understanding.
+    KGs offer a structured representation of knowledge, capturing entities, relationships,
+    and facts in a graph format. By integrating KG retrieval into RAG pipelines, researchers
+    have been able to achieve several key advantages:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 超越传统文档检索，先进的RAG系统越来越多地依赖知识图谱（KG）来提高检索准确性和上下文理解。KG提供了一种结构化的知识表示，捕捉实体、关系和事实，以图的形式呈现。通过将KG检索集成到RAG流程中，研究人员实现了多个关键优势：
+- en: •
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Structured Knowledge: KGs provide a structured representation of knowledge,
+    enabling more precise retrieval and reasoning compared to unstructured text.'
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 结构化知识：KG提供了一种结构化的知识表示，相较于非结构化文本，能够实现更精确的检索和推理。
+- en: •
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Semantic Understanding: KGs capture the semantic relationships between entities,
+    allowing RAG systems to better understand the meaning and context of queries.'
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 语义理解：KG能够捕捉实体之间的语义关系，使得RAG系统能够更好地理解查询的意义和上下文。
+- en: •
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Multi-hop Reasoning: KGs can facilitate multi-hop reasoning, where the system
+    navigates multiple relationships in the graph to answer complex questions.'
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 多跳推理：KG能够促进多跳推理，系统在图中导航多个关系，以回答复杂问题。
+- en: •
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Explainability: KGs can provide a transparent explanation of the reasoning
+    process by highlighting the relevant entities and relationships used to generate
+    a response.'
+  id: totrans-27
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 可解释性：KG能够通过突出显示用于生成回答的相关实体和关系，提供透明的推理过程解释。
+- en: Recent works such as [[8](https://arxiv.org/html/2409.03440v1#bib.bib8)] and
+    [[9](https://arxiv.org/html/2409.03440v1#bib.bib9)] have demonstrated the effectiveness
+    of incorporating KG retrieval into RAG. These systems leverage KG embeddings,
+    graph traversal algorithms, and graph neural networks to identify relevant entities
+    and subgraphs within the knowledge graph, providing the LLM with richer context
+    and enabling more accurate and informative responses.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的研究如[[8](https://arxiv.org/html/2409.03440v1#bib.bib8)]和[[9](https://arxiv.org/html/2409.03440v1#bib.bib9)]已证明将知识图谱（KG）检索融入到RAG中是有效的。这些系统利用KG嵌入、图遍历算法和图神经网络，在知识图谱中识别相关实体和子图，为LLM提供更丰富的上下文，从而生成更准确、信息量更大的回答。
+- en: Besides optimizing in LLMs and RAG, many works integrate many LLMs together
+    and also provide them tools for calling [[10](https://arxiv.org/html/2409.03440v1#bib.bib10),
+    [11](https://arxiv.org/html/2409.03440v1#bib.bib11), [12](https://arxiv.org/html/2409.03440v1#bib.bib12),
+    [13](https://arxiv.org/html/2409.03440v1#bib.bib13)] to boost the performance
+    of LLMs. These works demonstrated that a multi-agent system, where individual
+    agents specialize in different reasoning tasks and communicate via function calls,
+    can outperform single-agent models on complex question-answering tasks. This architecture
+    allows for a more modular and adaptable approach, where agents can leverage each
+    other’s expertise and collaboratively generate responses. As a result, LLMs can
+    benefit from improved accuracy, a wider range of capabilities, and better handling
+    of complex tasks that require multiple perspectives.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了在LLM和RAG方面进行优化，许多工作还将多个LLM集成在一起，并为它们提供调用工具[[10](https://arxiv.org/html/2409.03440v1#bib.bib10)，[11](https://arxiv.org/html/2409.03440v1#bib.bib11)，[12](https://arxiv.org/html/2409.03440v1#bib.bib12)，[13](https://arxiv.org/html/2409.03440v1#bib.bib13)]，以提升LLM的性能。这些工作表明，采用多代理系统，其中各个代理专注于不同的推理任务并通过函数调用进行通信，可以在复杂的问答任务中超越单代理模型。这种架构提供了一种更加模块化和灵活的方式，代理可以相互借用专业知识并协作生成回答。因此，LLM能够受益于提高准确性、更广泛的能力范围，并更好地处理需要多角度的复杂任务。
+- en: 'In summary, our main contributions are as follows: (1) we introduce a novel
+    system flow for prescription verification, leveraging a multi-agent LLM architecture
+    combined with knowledge graphs and rule-based systems; (2) we provide a specialized
+    dataset focused on drug information and a novel knowledge graph-based retrieval
+    methodology that significantly enhances the performance of our system; and (3)
+    our system demonstrates exceptional performance across various metrics from models
+    to human labels, outperforming current LLMs and achieving parity with highly experienced
+    clinical pharmacists.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，我们的主要贡献如下：（1）我们提出了一种新颖的处方验证系统流程，结合了多代理LLM架构、知识图谱和基于规则的系统；（2）我们提供了一个专注于药物信息的专业数据集，并提出了一种基于知识图谱的检索方法，显著提升了系统性能；（3）我们的系统在多个指标上表现卓越，从模型到人工标签，都超过了现有的LLM，并与经验丰富的临床药师的表现相当。
+- en: '![Refer to caption](img/09a3c88c67cf0a2c417bcb19115bcb9f.png)'
+  id: totrans-31
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/09a3c88c67cf0a2c417bcb19115bcb9f.png)'
+- en: 'Figure 1: Benchmark of Drug Verification on our system against various levels
+    of Clinical Pharmacists’ Evaluation. The result shows that our system can perform
+    at the level of senior pharmacists with five years of experience (YoE), while
+    state-of-the-art LLMs (Llama 3.1 70B) fall short of even junior pharmacists’ performance.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：我们系统在药物验证方面与不同级别临床药师评估的基准对比。结果显示，我们的系统能够达到具有五年工作经验（YoE）高级药师的水平，而最先进的大型语言模型（LLM）（Llama
+    3.1 70B）甚至未能达到初级药师的表现。
+- en: II Dataset
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: II 数据集
+- en: Current inference approaches for LLMs, such as CoT and ReAct [[14](https://arxiv.org/html/2409.03440v1#bib.bib14)],
+    primarily rely on the model’s response capabilities. However, these methods can
+    be prone to hallucination and illogical reasoning. To mitigate these issues, we
+    propose leveraging relevant reference materials, including drug and indication
+    information, to guide LLM responses.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当前LLM的推理方法，如CoT和ReAct [[14](https://arxiv.org/html/2409.03440v1#bib.bib14)]，主要依赖于模型的响应能力。然而，这些方法可能容易出现幻觉和不合逻辑的推理。为了减轻这些问题，我们建议利用相关参考材料，包括药物和适应症信息，来指导LLM的回应。
+- en: Instead of assessing specific drugs independently, we delve deeper into the
+    active ingredients, which are specific compounds that make up a medication and
+    are responsible for the therapeutic effects of it. For instance, Losartan is primarily
+    used to treat hypertension and to protect the kidneys from damage due to diabetes,
+    as well as helps relax blood vessels, making it easier for the heart to pump blood
+    and reducing the risk of strokes and heart attacks ²²2[Losartan information](https://www.drugs.com/losartan.html).
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不再独立评估特定药物，而是深入研究其活性成分，活性成分是构成药物并负责其治疗效果的特定化合物。例如，洛沙坦主要用于治疗高血压和保护糖尿病导致的肾脏损伤，还帮助放松血管，使心脏更容易泵血，减少中风和心脏病发作的风险²²2[洛沙坦信息](https://www.drugs.com/losartan.html)。
+- en: II-A Data Collection
+  id: totrans-36
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-A 数据收集
+- en: '![Refer to caption](img/7bd09cb39c26461fe1b2332220a9a323.png)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/7bd09cb39c26461fe1b2332220a9a323.png)'
+- en: 'Figure 2: An overview of Rx Strategist. The process begins with extracting
+    key information from the prescription, including the diagnosis, prescribed dosage,
+    and active ingredients. This information is then passed to the indication verification
+    module, which first identifies the ICD-10 code associated with the indicated condition
+    and then cross-references it with the patient’s diagnosis to ascertain whether
+    the prescribed active ingredients are appropriate for treatment. Following this
+    verification, the relevant active ingredients proceed to the dosage retriever
+    module, which assesses whether the prescribed dosage falls within the recommended
+    range for the patient’s specific characteristics. Finally, the checker module
+    consolidates the information from both the indication verification and dosage
+    retriever stages, providing a comprehensive assessment and conclusion regarding
+    the appropriateness of the prescription.'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：Rx Strategist概述。该过程从提取处方中的关键信息开始，包括诊断、处方剂量和活性成分。然后，这些信息传递给指征验证模块，该模块首先识别与指示病症相关的ICD-10代码，并将其与患者的诊断进行交叉验证，以确定所开具的活性成分是否适用于治疗。经过验证后，相关的活性成分进入剂量检索模块，该模块评估处方剂量是否符合患者特定特征的推荐范围。最后，检查模块整合来自指征验证和剂量检索阶段的信息，提供全面的评估和结论，判断处方的适当性。
+- en: II-A1 Drug Information Sources
+  id: totrans-39
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: II-A1 药物信息来源
+- en: For this task, we collected highly accurate drug information from reliable sources
+    like Drugs.com and Long Chau Pharmacy.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此任务，我们从像Drugs.com和Long Chau Pharmacy这样的可靠来源收集了高度准确的药物信息。
+- en: •
+  id: totrans-41
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Drugs.com: Information on over 1700 active ingredients in AHFS DI Monographs
+    format, including medication indication, administration, dosage, and adverse effects
+    (if available).'
+  id: totrans-42
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Drugs.com：提供AHFS DI药典格式的1700多种活性成分的信息，包括药物指征、给药方法、剂量和不良反应（如有）。
+- en: •
+  id: totrans-43
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Long Chau Pharmacy: Vietnamese-language information on medicinal properties
+    specific to Vietnam. Data from both sources was stored and retrieved as HTML documents,
+    with each document corresponding to a specific active ingredient. The data was
+    then chunked according to headers and saved in Markdown format for human readability.
+    For evaluation and querying purposes, the Markdown documents were further processed
+    into a structured JSON format.'
+  id: totrans-44
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Long Chau Pharmacy：提供关于越南特定药物性质的越南语信息。来自两个来源的数据被存储并以HTML文档格式检索，每个文档对应一个特定的活性成分。然后，数据按标题进行分块，并以Markdown格式保存以便人类阅读。为了评估和查询的目的，Markdown文档进一步处理为结构化的JSON格式。
+- en: II-A2 Standardizing Indication Terminology
+  id: totrans-45
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: II-A2 标准化指征术语
+- en: To address inconsistencies in medical indication terminology, By using AI models
+    like GPT 3.5 to generate ICD-10 codes based on various indication terms, we create
+    a unified language for identifying and classifying diseases. This standardization
+    allows healthcare professionals to quickly and easily identify the correct ICD-10
+    code, streamlining tasks such as medical billing, insurance claims processing,
+    and research data analysis. In addition, accurate disease classification facilitated
+    by standardized terminology can lead to improved diagnosis, treatment, and ultimately,
+    patient outcomes.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决医学指征术语中的不一致问题，我们通过使用像GPT 3.5这样的AI模型，根据不同的指征术语生成ICD-10代码，从而创建了一个统一的语言来识别和分类疾病。这种标准化使得医疗专业人员能够快速、轻松地识别正确的ICD-10代码，从而简化了医疗账单、保险索赔处理和研究数据分析等任务。此外，标准化术语促进的准确疾病分类，有助于改善诊断、治疗，并最终提高患者的治疗效果。
+- en: II-A3 Drug Interaction Data
+  id: totrans-47
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: II-A3 药物相互作用数据
+- en: 'We collected interaction data for 27 common active components, with detailed
+    name in Appendix [-B](https://arxiv.org/html/2409.03440v1#A0.SS2 "-B Components
+    table ‣ Rx Strategist: Prescription Verification using LLM Agents System"), from
+    Drug.com interaction checker. The data include interaction level and detailed
+    descriptions of their interactions with other components. By integrating this
+    data, we aim to enhance the model’s ability to identify and evaluate potential
+    adverse effects, ensuring safer and more effective prescription recommendations.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们收集了27种常见活性成分的相互作用数据，详细名称见附录[-B](https://arxiv.org/html/2409.03440v1#A0.SS2
+    "-B Components table ‣ Rx Strategist: Prescription Verification using LLM Agents
+    System")，数据来自Drug.com相互作用检查器。数据包括相互作用级别及其与其他成分相互作用的详细描述。通过整合这些数据，我们旨在增强模型识别和评估潜在不良反应的能力，从而确保更安全、更有效的处方推荐。'
+- en: II-B Expert-Approved Labels
+  id: totrans-49
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-B 专家批准的标签
+- en: 'To ensure safe and accurate prescription verification, we leveraged the expertise
+    of clinical pharmacists with varying levels of experience to establish a robust
+    and reliable evaluation process. To assess the model’s performance at different
+    levels of human expertise, we enlisted three clinical pharmacists: a junior pharmacist
+    with one year of experience, an intermediate pharmacist with three years of experience,
+    and a senior pharmacist with five years of experience. Each pharmacist independently
+    evaluated prescriptions, verifying the appropriateness of both the indication
+    and dosage for each active ingredient. If an indication was deemed incorrect,
+    the corresponding dosage was not evaluated. Our diligent human labeling process
+    not only provided valuable insights but also optimized the evaluation of our automated
+    verification model.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了确保安全和准确的处方验证，我们借助了具有不同经验层级的临床药剂师的专业知识，建立了一个稳健且可靠的评估过程。为了评估模型在不同经验层级下的表现，我们邀请了三位临床药剂师：一位具有一年经验的初级药剂师，一位具有三年经验的中级药剂师，以及一位具有五年经验的高级药剂师。每位药剂师独立评估处方，验证每种活性成分的适应症和剂量是否合适。如果某个适应症被认为不正确，那么相应的剂量将不予评估。我们认真细致的人工标注过程不仅提供了宝贵的见解，还优化了我们自动化验证模型的评估。
+- en: A council of three highly experienced hospital pharmacists (with over five years
+    of experience) provided the definitive assessment used as the gold standard for
+    accuracy to which individual pharmacists’ results were compared. This comprehensive
+    evaluation strategy ensures that our system not only aligns with but surpasses
+    industry standards, fostering trust in its ability to enhance patient safety and
+    optimize medication management.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 三位经验丰富的医院药剂师（具有超过五年经验）提供了最终评估，作为与个别药剂师结果进行对比的准确性金标准。这一全面的评估策略确保我们的系统不仅符合行业标准，而且超越行业标准，从而增强了患者安全性和药物管理优化的信任。
+- en: II-C Data Quality Control
+  id: totrans-52
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-C 数据质量控制
+- en: 'For practical application and seamless integration into a database, the collected
+    data underwent a rigorous preparation and quality control process. The initial
+    Markdown format was converted into a structured JSON format for enhanced usability
+    and compatibility. This transformation involved several key steps:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了实现实际应用并无缝集成到数据库中，收集的数据经历了严格的准备和质量控制过程。初始的 Markdown 格式被转换为结构化的 JSON 格式，以增强可用性和兼容性。这个转变涉及了几个关键步骤：
+- en: •
+  id: totrans-54
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Removal of extraneous characters: Non-essential symbols, including tabs (\t)
+    and daggers ($\dagger$), were eliminated. Newline characters (\n) were retained
+    to preserve content separation.'
+  id: totrans-55
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 去除多余字符：非必要的符号，包括制表符（\t）和匕首符号（$\dagger$）被去除。换行符（\n）保留，以保持内容分隔。
+- en: •
+  id: totrans-56
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Hyphen standardization: Long and short hyphens were unified to ensure consistency.'
+  id: totrans-57
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 连字符标准化：对长短连字符进行了统一，以确保一致性。
+- en: •
+  id: totrans-58
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Dosage unit conversion: Regular expressions were employed to convert dosage
+    amounts expressed in micrograms (mcg) to the standard unit of milligrams (mg).'
+  id: totrans-59
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 剂量单位转换：使用正则表达式将以微克（mcg）表示的剂量转换为标准单位毫克（mg）。
+- en: •
+  id: totrans-60
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Restructuring of JSON hierarchy: Redundant layers within the JSON structure
+    were removed to streamline data access and manipulation.'
+  id: totrans-61
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: JSON 层次结构重组：移除了 JSON 结构中的冗余层，以简化数据访问和操作。
+- en: II-D Data Statistics
+  id: totrans-62
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-D 数据统计
+- en: 'The dataset includes 1780 active ingredients, each containing information about
+    compatible age groups alongside usage, as shown in Figure [3](https://arxiv.org/html/2409.03440v1#S2.F3
+    "Figure 3 ‣ II-D3 Drug versatility ‣ II-D Data Statistics ‣ II Dataset ‣ Rx Strategist:
+    Prescription Verification using LLM Agents System").'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '数据集包含1780种活性成分，每种成分都包含关于适用年龄组和使用方法的信息，如图[3](https://arxiv.org/html/2409.03440v1#S2.F3
+    "Figure 3 ‣ II-D3 Drug versatility ‣ II-D Data Statistics ‣ II Dataset ‣ Rx Strategist:
+    Prescription Verification using LLM Agents System")所示。'
+- en: II-D1 Age groups
+  id: totrans-64
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: II-D1 年龄组
+- en: Close assession and filtering of dataset reveals that 1694 ($95\%$) of all available
+    active ingredient can be used by adults, while only 923 ($52\%$) of them are prescribed
+    towards pediatric patients. This imbalance of data can be understandable as the
+    number of illnesses grows positively correlated with a person’s age.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据集的接近评估和过滤显示，1694（$95\%$）种所有可用的活性成分可以供成人使用，而只有923（$52\%$）种被用于儿童患者。这种数据不平衡是可以理解的，因为疾病数量与年龄正相关。
+- en: II-D2 Total information in each active ingredient
+  id: totrans-66
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: II-D2 每个活性成分的完整信息
+- en: In order to measure how much information is described in each medicine, we calculate
+    the number of words available in the "description" portion of the data. The result
+    shows that the number of words range from 0 up to 7697, with the majority of active
+    ingredient descriptions fall under 1000 words. This indicates a large variance
+    across our collection of active ingredient.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了衡量每种药物描述了多少信息，我们计算了数据中“描述”部分的字数。结果显示，字数从 0 到 7697 不等，其中大多数活性成分的描述字数少于 1000
+    字。这表明我们收集的活性成分之间存在较大的差异。
+- en: II-D3 Drug versatility
+  id: totrans-68
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: II-D3 药物多样性
+- en: The visualization also includes drug versatility measurement, which equals the
+    total number of diseases one drug can cure, according to our dataset. On average,
+    each drug can be indicated to cure 3 diseases, and few of them can reach up 40.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可视化还包括药物多样性测量，根据我们的数据集，它等于一种药物能够治愈的疾病总数。平均而言，每种药物可以用于治愈 3 种疾病，少数药物可以达到 40 种。
+- en: '![Refer to caption](img/de536c30cc6209a61c1d6fa308bf4c53.png)'
+  id: totrans-70
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/de536c30cc6209a61c1d6fa308bf4c53.png)'
+- en: 'Figure 3: Some visualizations on the statistics of the active ingredient dataset.
+    The left chart shows the discrepancy in adult and pediatric in quantity. The center
+    chart displays the distribution in the number of words described in each drug.
+    The right one indicates how many diseases each particular medicine can cure. AIs
+    = Active Ingredients.'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：活性成分数据集统计的部分可视化。左侧图表显示了成人和儿童在数量上的差异。中间图表展示了每种药物描述的字数分布。右侧图表显示了每种特定药物可以治愈的疾病数。AIs
+    = 活性成分。
+- en: III Methodology
+  id: totrans-72
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: III 方法论
+- en: 'Overview. The Rx Strategist, as illustrated in Figure [2](https://arxiv.org/html/2409.03440v1#S2.F2
+    "Figure 2 ‣ II-A Data Collection ‣ II Dataset ‣ Rx Strategist: Prescription Verification
+    using LLM Agents System"), is composed of three agents, an information extractor,
+    and a checker. These components interact based on fit status, a key concept in
+    the system, with the fit of indication (FI) and fit of dosage (FD) playing a crucial
+    role in identifying the active ingredients and connecting the different modules.
+    Specifically, a prescription is first processed by using optical character recognition
+    (OCR) to extract relevant information, which is then converted into features by
+    an LLM. ICD Finder is an LLM component identifies ICD-10 codes from the extracted
+    active ingredients. ICD Matcher compares the identified ICD-10 codes with those
+    in the patient’s diagnosis, filtering the active ingredients to those that are
+    suitable for the patient’s condition as FI. Dosage Retriever determines the appropriate
+    dosage of the active ingredient based on both FI and patient information. Finally,
+    Checker utilizes both FI and FD to assess the overall validity of the prescription,
+    providing explanations for its determination.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '概述。如图 [2](https://arxiv.org/html/2409.03440v1#S2.F2 "Figure 2 ‣ II-A Data Collection
+    ‣ II Dataset ‣ Rx Strategist: Prescription Verification using LLM Agents System")
+    所示，Rx Strategist 由三名代理、一个信息提取器和一个检查器组成。这些组件根据适配状态进行交互，适配状态是系统中的一个关键概念，其中适应症的适配度（FI）和剂量的适配度（FD）在识别活性成分和连接不同模块中起着至关重要的作用。具体来说，处方首先通过光学字符识别（OCR）进行处理，以提取相关信息，然后由
+    LLM 转换为特征。ICD Finder 是一个 LLM 组件，它从提取的活性成分中识别 ICD-10 代码。ICD Matcher 将识别出的 ICD-10
+    代码与患者的诊断代码进行比较，筛选出适合患者病情的活性成分作为 FI。剂量检索器根据 FI 和患者信息确定活性成分的适当剂量。最后，Checker 利用 FI
+    和 FD 来评估处方的整体有效性，并提供其判定的解释。'
+- en: 'III-A Indication: Finding and Mapping'
+  id: totrans-74
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-A 适应症：发现与映射
+- en: To initiate the prescription verification process and provide the necessary
+    input for the ICD Finder, we first extract relevant information from the prescription
+    image. The image of a prescription is fed into an OCR model, returning a full-text
+    format of the whole prescription. Subsequently, this body of text goes through
+    a reformatting phase using GPT-4o-mini, turning it into a dictionary-like format
+    (with information such as age group, indication, and dosage) for easy extraction
+    in the latter phase.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了启动处方验证过程并为 ICD Finder 提供必要的输入，我们首先从处方图像中提取相关信息。处方的图像输入到 OCR 模型中，返回整个处方的全文格式。随后，这段文本通过
+    GPT-4o-mini 进行重新格式化，转化为类似字典的格式（包含年龄组、适应症和剂量等信息），以便在后续阶段方便提取。
+- en: ICD Finder. The ICD Finder receives a list of active ingredients in dictionary
+    format. To address the challenge of inconsistent name representation, we employ
+    a fuzzy matching algorithm to identify potential matches between the received
+    active ingredients and the database entries. This fuzzy matching approach enhances
+    the system’s ability to recognize active ingredients with slight variations in
+    naming conventions, thereby improving the accuracy of subsequent steps. Once potential
+    matches are identified, the ICD Finder retrieves the corresponding usages for
+    each active ingredient, indicating the diseases each active ingredient is designed
+    to treat. Subsequently, the ICD Finder maps these diseases to their respective
+    ICD-10 codes, establishing a set of ICD-10 codes associated with the prescription’s
+    intended therapeutic purposes.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ICD 查找器。ICD 查找器接收一个以字典格式呈现的活性成分列表。为了解决命名表示不一致的问题，我们采用了一种模糊匹配算法，用以识别接收到的活性成分与数据库条目之间的潜在匹配。这种模糊匹配方法增强了系统在识别命名略有变化的活性成分方面的能力，从而提高了后续步骤的准确性。一旦识别出潜在匹配，ICD
+    查找器会检索每个活性成分的相应用途，指出每个活性成分旨在治疗的疾病。随后，ICD 查找器将这些疾病映射到它们各自的 ICD-10 代码，从而建立与处方治疗目的相关的
+    ICD-10 代码集。
+- en: In instances where information about a specific active ingredient is unavailable
+    within our database, we leverage the capabilities of an LLM to generate potential
+    ICD-10 codes. The LLM is trained on a vast corpus of medical literature and clinical
+    data, enabling it to infer potential ICD-10 codes based on the active ingredient’s
+    name, chemical structure, and known therapeutic uses. However, it is important
+    to note that LLM-generated ICD-10 codes should be treated with caution and may
+    require additional validation before being used for clinical decision-making.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的数据库中没有特定活性成分信息时，我们利用大型语言模型（LLM）的能力生成潜在的 ICD-10 代码。该 LLM 已在大量医学文献和临床数据上进行训练，使其能够根据活性成分的名称、化学结构和已知的治疗用途推断潜在的
+    ICD-10 代码。然而，需要注意的是，LLM 生成的 ICD-10 代码应谨慎对待，并可能需要额外的验证，才能在临床决策中使用。
+- en: ICD Matcher. Leveraging the ICD-10 codes obtained by the ICD Finder, the ICD
+    Matcher compares them against the ICD-10 codes derived from the patient’s diagnosed
+    conditions. The comparison is conducted at the category level of the ICD-10 code,
+    which consists of an alphabetical letter followed by two numbers (e.g., A01, B15,
+    C23). An active ingredient is labeled as "APPROPRIATE" if all ICD-10 categories
+    associated with its usages are present in the patient’s diagnosis codes, signifying
+    that it aligns with the patient’s medical needs. Conversely, if any ICD-10 category
+    linked to an active ingredient’s usage is absent from the patient’s diagnosis
+    codes, indicating a potential mismatch between the medication and the patient’s
+    condition, the active ingredient is classified as "INAPPROPRIATE".
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ICD 匹配器。借助 ICD 查找器获得的 ICD-10 代码，ICD 匹配器将这些代码与患者的诊断条件中得出的 ICD-10 代码进行比较。比较是在
+    ICD-10 代码的类别级别进行的，该类别由一个字母后跟两个数字组成（例如 A01、B15、C23）。如果与某个活性成分相关的所有 ICD-10 类别都出现在患者的诊断代码中，则该活性成分被标记为“合适”（"APPROPRIATE"），表示它与患者的医疗需求相符。相反，如果与某个活性成分用途相关的任何
+    ICD-10 类别在患者的诊断代码中缺失，表明药物与患者病情之间可能存在不匹配，则该活性成分被分类为“不合适”（"INAPPROPRIATE"）。
+- en: 'III-B Dosage: Retriever with Knowledge Graph'
+  id: totrans-79
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-B 剂量：结合知识图谱的检索器
+- en: Due to the structured nature of our dataset and the possibility that LLMs might
+    overlook subtle textual details [[2](https://arxiv.org/html/2409.03440v1#bib.bib2)],
+    we have developed a specialized text-to-graph processing approach. This method
+    focuses on task-specific information extraction, improving the robustness of our
+    model while minimizing the need for extensive fine-tuning.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们的数据集具有结构化的特性，并且大型语言模型（LLMs）可能会忽视细微的文本细节[[2](https://arxiv.org/html/2409.03440v1#bib.bib2)]，我们开发了一种专门的文本到图谱处理方法。该方法专注于任务特定的信息提取，提升了我们模型的鲁棒性，同时最小化了大量微调的需求。
+- en: 'We extracted dosage information for each disease within specific age groups
+    (e.g., pediatric, adult) and administration routes (e.g., oral, intravenous) from
+    our dataset. Given the absence of detailed patient histories in our prescription
+    data, we established the initial dosage specified in the drug information as the
+    recommended baseline dose. Any prescribed dosage deviating from this baseline
+    was flagged for further scrutiny, as it might necessitate individualized adjustments
+    based on the patient’s specific circumstances and medical history. To structure
+    this information, we constructed a knowledge graph with nodes representing drugs,
+    diseases, and dosages, and edges denoting the relationships between them (see
+    Appendix [-E](https://arxiv.org/html/2409.03440v1#A0.SS5 "-E Dosage Knowledge
+    Graph Structure ‣ Rx Strategist: Prescription Verification using LLM Agents System")
+    for details). The process of generating this knowledge graph is outlined in Algorithm
+    [1](https://arxiv.org/html/2409.03440v1#alg1 "Algorithm 1 ‣ III-B Dosage: Retriever
+    with Knowledge Graph ‣ III Methodology ‣ Rx Strategist: Prescription Verification
+    using LLM Agents System"). Specifically, the algorithm iterates through each active
+    ingredient in the dataset, then for each age group associated with that ingredient,
+    and finally for each disease that the ingredient is indicated for within that
+    age group. For each disease, the language model is used to generate dosage nodes
+    and relationships, which are then added to the knowledge graph. This structured
+    representation facilitates efficient retrieval and reasoning about dosage information,
+    enhancing the accuracy and effectiveness of our prescription verification system.'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们从数据集中提取了每种疾病在特定年龄组（例如，儿童、成人）和给药途径（例如，口服、静脉注射）下的剂量信息。由于我们的处方数据中缺乏详细的患者历史记录，我们将药物信息中规定的初始剂量作为推荐的基线剂量。任何与此基线偏离的处方剂量都将被标记以供进一步审查，因为它可能需要根据患者的具体情况和病史进行个性化调整。为了结构化这些信息，我们构建了一个知识图，其中节点代表药物、疾病和剂量，边表示它们之间的关系（有关详细信息，请参见附录[-E](https://arxiv.org/html/2409.03440v1#A0.SS5
+    "-E 剂量知识图结构 ‣ Rx Strategist: 使用LLM代理的处方验证系统")）。生成此知识图的过程在算法[1](https://arxiv.org/html/2409.03440v1#alg1
+    "算法 1 ‣ III-B 剂量：带有知识图的检索器 ‣ III 方法论 ‣ Rx Strategist: 使用LLM代理的处方验证系统")中有所概述。具体来说，算法遍历数据集中的每个活性成分，然后遍历与该成分相关的每个年龄组，最后遍历该年龄组中该成分适应的每种疾病。对于每个疾病，使用语言模型生成剂量节点和关系，然后将其添加到知识图中。这种结构化表示有助于高效地检索和推理剂量信息，从而提高我们的处方验证系统的准确性和有效性。'
+- en: Algorithm 1 Knowledge Graph Generation from Prescription Data
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 处方数据生成知识图
+- en: 1:ActiveElementList, AgeGroupData, DiseaseData, LanguageModel2:KnowledgeGraph3:KnowledgeGraph
+    $\leftarrow$ emptyGraph() $\triangleright$ Initialize empty knowledge graph4:for each
+    ActiveElement in ActiveElementList do5:     for each AgeGroup in AgeGroupData[ActiveElement] do6:         for each
+    Disease in DiseaseData[AgeGroup] do7:              Output $\leftarrow$ LanguageModel(Disease)
+    $\triangleright$ Let the model generate dosage nodes and relationships8:              add
+    (ActiveElement, AgeGroup, Disease, Output) to KnowledgeGraph9:         end for10:     end for11:end for12:return
+    KnowledgeGraph
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1:ActiveElementList、AgeGroupData、DiseaseData、LanguageModel2:KnowledgeGraph3:KnowledgeGraph
+    $\leftarrow$ emptyGraph() $\triangleright$ 初始化空的知识图4:对于每个ActiveElement in ActiveElementList do5:     对于每个AgeGroup
+    in AgeGroupData[ActiveElement] do6:         对于每个Disease in DiseaseData[AgeGroup] do7:              Output
+    $\leftarrow$ LanguageModel(Disease) $\triangleright$ 让模型生成剂量节点和关系8:              将(ActiveElement,
+    AgeGroup, Disease, Output)添加到KnowledgeGraph9:          end for10:     end for11:end for12:return
+    KnowledgeGraph
+- en: Dosage Retriever. a knowledge graph-based system, efficiently retrieves appropriate
+    dosages for verified active ingredients. It takes as input the active ingredients
+    validated in the indication stage, along with patient-specific details like age
+    group, age-specific factors (e.g., weight, kidney function), and the diagnosed
+    condition the drug aims to treat. The system then navigates the knowledge graph,
+    which is structured around relationships between drugs, diseases, and dosages.
+    The retrieval process involves comparing the patient’s information with the knowledge
+    graph’s nodes and edges. For instance, if the patient is a child diagnosed with
+    a specific condition, the Dosage Retriever will traverse the graph to find the
+    active ingredient node, follow the edge to the relevant disease node, and then
+    identify the dosage node associated with the child age group. To enhance accuracy,
+    a language model is integrated to standardize keywords and address inconsistencies
+    in drug information representation. This ensures precise matching between the
+    patient’s data and the knowledge graph’s information. If no exact match is found,
+    the language model can suggest the closest available dosage information.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 剂量检索器。一个基于知识图谱的系统，高效地检索已验证活性成分的适当剂量。它以在指征阶段验证的活性成分作为输入，结合患者特定的详细信息，如年龄组、特定年龄因素（例如体重、肾功能）以及药物旨在治疗的诊断病症。系统接着在围绕药物、疾病和剂量之间关系构建的知识图谱中进行导航。检索过程涉及将患者信息与知识图谱的节点和边进行比较。例如，如果患者是被诊断为某一特定疾病的儿童，剂量检索器将遍历图谱，找到活性成分节点，沿着边找到相关的疾病节点，然后确定与儿童年龄组相关的剂量节点。为了提高准确性，系统整合了语言模型，用于标准化关键字并解决药物信息表示中的不一致性。这确保了患者数据与知识图谱信息之间的精确匹配。如果未找到精确匹配，语言模型可以建议最接近的剂量信息。
+- en: 'Algorithm [2](https://arxiv.org/html/2409.03440v1#alg2 "Algorithm 2 ‣ III-B
+    Dosage: Retriever with Knowledge Graph ‣ III Methodology ‣ Rx Strategist: Prescription
+    Verification using LLM Agents System") details the step-by-step process of dosage
+    retrieval. It first identifies relevant diseases for the active ingredient and
+    patient age group within the knowledge graph. If the diagnosed disease isn’t directly
+    linked, the language model assists in finding the closest match. The patient’s
+    age is then categorized into a specific age range, and potential dosages are retrieved
+    based on the active ingredient, disease, and age range. If multiple dosage options
+    exist, the system selects the most appropriate one based on the patient’s specific
+    age and any additional guidance from the language model. If no dosage information
+    is available, the system indicates this lack of information.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '算法[2](https://arxiv.org/html/2409.03440v1#alg2 "Algorithm 2 ‣ III-B Dosage:
+    Retriever with Knowledge Graph ‣ III Methodology ‣ Rx Strategist: Prescription
+    Verification using LLM Agents System")详细介绍了剂量检索的逐步过程。它首先在知识图谱中识别与活性成分和患者年龄组相关的疾病。如果诊断出的疾病没有直接关联，语言模型将协助找到最接近的匹配。然后，患者的年龄被分类到特定的年龄范围，并根据活性成分、疾病和年龄范围检索潜在的剂量。如果存在多个剂量选项，系统将根据患者的具体年龄和语言模型的额外指导选择最合适的剂量。如果没有可用的剂量信息，系统将指示缺少此信息。'
+- en: Algorithm 2 Prescription Dosage Retrieval (KG-based)
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 2 处方剂量检索（基于KG）
+- en: 1:Knowledge Graph (KG), active ingredient (AE), Age Group (AG), Diagnosed Disease
+    (D), Patient Age (PA), Language Model (LM)2:Recommended Dosage3:RelevantDiseases
+    $\leftarrow$ KG.findDiseases(AE, AG) $\triangleright$ Retrieve diseases treated
+    by AE from KG4:if D not in RelevantDiseases then5:     D $\leftarrow$ LM.matchDisease(D,
+    RelevantDiseases) $\triangleright$ Use LM to match D to the closest disease in
+    KG6:end if7:RelevantAgeRanges $\leftarrow$ KG.findAgeRanges(PA)8:AgeRange $\leftarrow$
+    matchAgeRange(PA, RelevantAgeRanges) $\triangleright$ Categorize PA into age range
+    (e.g., from 12 to 17 ages)9:DoseOptions $\leftarrow$ KG.findDosages(AE, D, AgeRange)
+    $\triangleright$ Retrieve dosages based on AE, D, and AgeRange10:if DoseOptions
+    is empty then11:     return "No dosage information available"12:else13:     return
+    DoseOptions14:end if
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1: 知识图谱（KG）、活性成分（AE）、年龄组（AG）、诊断疾病（D）、患者年龄（PA）、语言模型（LM）2: 推荐剂量3: 相关疾病 $\leftarrow$
+    KG.findDiseases(AE, AG) $\triangleright$ 从KG中检索AE治疗的疾病4:如果 D 不在相关疾病中，则5:     D
+    $\leftarrow$ LM.matchDisease(D, 相关疾病) $\triangleright$ 使用LM将D与KG中最接近的疾病进行匹配6:结束 如果7:
+    相关年龄范围 $\leftarrow$ KG.findAgeRanges(PA)8: 年龄范围 $\leftarrow$ matchAgeRange(PA,
+    相关年龄范围) $\triangleright$ 将PA分类到年龄范围（例如，从12岁到17岁）9: 剂量选项 $\leftarrow$ KG.findDosages(AE,
+    D, 年龄范围) $\triangleright$ 根据AE、D和年龄范围检索剂量10:如果 剂量选项为空，则11:     返回 "没有剂量信息可用"12:否则13:     返回
+    剂量选项14:结束 如果'
+- en: IV Experimental Settings
+  id: totrans-88
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: IV 实验设置
+- en: IV-A Benchmarks
+  id: totrans-89
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-A 基准
+- en: To evaluate the performance of our system, we curated a dataset of 20 real-world
+    prescriptions sourced from Vietnam hospitals, the age group of patient is majoring
+    as adults. To ensure patient privacy, all personally identifiable information,
+    including names, addresses, and hospital details, was meticulously removed from
+    the dataset.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们系统的表现，我们策划了一个包含 20 个来自越南医院的真实处方的数据集，患者的主要年龄段为成人。为了确保患者隐私，所有个人可识别信息，包括姓名、地址和医院细节，都被仔细移除。
+- en: IV-B Baselines and Experimental settings
+  id: totrans-91
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-B 基准和实验设置
+- en: Assessing our system’s capabilities reliably and comprehensively involved comparing
+    its performance to a diverse set of benchmarks, including state-of-the-art language
+    models (LLMs) and human experts. This multifaceted approach allowed for a robust
+    evaluation across various metrics and perspectives. For the LLM baseline, we utilized
+    both open-source (Qwen2 72B by Alibaba group [[15](https://arxiv.org/html/2409.03440v1#bib.bib15)],
+    LLama3.1 family models from 8 parameters to 405 parameters by Meta [[16](https://arxiv.org/html/2409.03440v1#bib.bib16)])
+    and closed-source models (GPT4o-mini by OpenAI³³3[https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
+    and Claude 3.5 Sonnet by Anthropic⁴⁴4[https://www.anthropic.com/news/claude-3-5-sonnet](https://www.anthropic.com/news/claude-3-5-sonnet)).
+    To evaluate human performance, we collected prescription evaluations from clinical
+    pharmacists with 1 to 5 years of experience, establishing a real-world benchmark.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可靠而全面地评估我们系统的能力，涉及将其性能与各种基准进行比较，包括最先进的语言模型（LLMs）和人类专家。这种多方面的方法允许通过多种指标和角度进行强有力的评估。对于
+    LLM 基准，我们使用了开源模型（如阿里巴巴集团的 Qwen2 72B [[15](https://arxiv.org/html/2409.03440v1#bib.bib15)]、Meta
+    的 LLama3.1 系列模型，从 8 个参数到 405 个参数 [[16](https://arxiv.org/html/2409.03440v1#bib.bib16)]）以及封闭源模型（OpenAI
+    的 GPT4o-mini³³3[https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
+    和 Anthropic 的 Claude 3.5 Sonnet⁴⁴4[https://www.anthropic.com/news/claude-3-5-sonnet](https://www.anthropic.com/news/claude-3-5-sonnet)）。为了评估人类的表现，我们收集了具有
+    1 到 5 年经验的临床药师的处方评估，从而建立了一个真实世界的基准。
+- en: 'All LLM evaluations employed a CoT prompting method, with their specific prompts
+    detailed in Appendix [-A](https://arxiv.org/html/2409.03440v1#A0.SS1 "-A LLM Prompt
+    for Evaluate ‣ Rx Strategist: Prescription Verification using LLM Agents System").
+    Open-source models were initially configured with a temperature of 0, top-p of
+    0.7, and top-k of 50 for all models except LLama 3.1 8B. Additionally, We observed
+    a tendency for LLama 3.1 8B to omit answers and duplicate words for certain prescription
+    types. To address this, we adjusted the temperature for LLama 3.1 8B to 0.2 or
+    0.3 for prescription inference, and a value of 0.5 for interaction query summarization,
+    encouraging a more exploratory approach and potentially leading to more comprehensive
+    responses. Closed-source models were utilized with default settings provided by
+    their respective developers.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '所有 LLM 评估都采用了 CoT 提示方法，其具体提示在附录 [-A](https://arxiv.org/html/2409.03440v1#A0.SS1
+    "-A LLM Prompt for Evaluate ‣ Rx Strategist: Prescription Verification using LLM
+    Agents System") 中进行了详细说明。开源模型最初的配置为温度 0，top-p 0.7，top-k 50，所有模型均为此设置，除了 LLama
+    3.1 8B。除此之外，我们注意到 LLama 3.1 8B 在处理某些类型的处方时倾向于遗漏答案和重复词语。为了解决这个问题，我们将 LLama 3.1
+    8B 的温度调整为 0.2 或 0.3 用于处方推理，而交互查询总结则设置为 0.5，以鼓励更多的探索性方法，可能导致更全面的回答。封闭源模型则使用了各自开发者提供的默认设置。'
+- en: Our system utilizes GPT4o-mini as the underlying language model due to its availability,
+    ease of integration, and strong performance in preliminary tests.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的系统使用 GPT4o-mini 作为基础语言模型，原因是其可用性、易于集成以及在初步测试中的强劲表现。
+- en: 'TABLE I: Table of Hyperparameter choices for Large Language Models as evaluation
+    and comparison. The LLama3.1-8B model has a temperature value spanning from 0
+    to 0.5, for fine-tuned adjustments to output randomness. In contrast, the two
+    closed-source models have their Top K parameter disabled by default'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 I：大语言模型的超参数选择表，用于评估和比较。LLama3.1-8B 模型的温度值范围从 0 到 0.5，用于微调输出的随机性。相比之下，两个封闭源模型的
+    Top K 参数默认禁用。
+- en: '| Models | Temperature | Top k | Top p |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 温度 | Top k | Top p |'
+- en: '| LLama3.1-8B | 0 - 0.5 | 50 | 0.7 |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLama3.1-8B | 0 - 0.5 | 50 | 0.7 |'
+- en: '| LLama3.1-70B | 0 | 50 | 0.7 |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLama3.1-70B | 0 | 50 | 0.7 |'
+- en: '| Qwen2-72B |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| Qwen2-72B |'
+- en: '| LLama3.1-405B |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLama3.1-405B |'
+- en: '| GPT4o-mini | 1.0 | - | 1.0 |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT4o-mini | 1.0 | - | 1.0 |'
+- en: '| Claude 3.5 Sonnet | 1.0 | - | 0.999 |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| Claude 3.5 Sonnet | 1.0 | - | 0.999 |'
+- en: IV-C Evaluation Metrics
+  id: totrans-103
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-C 评估指标
+- en: To assess the performance of our system, we prepare a variety of metrics including
+    accuracy, precision, recall, F-0.5 score as our evaluation metrics. For each prescription,
+    we compare the set of active ingredients predicted by our system against the corresponding
+    gold standard set (i.e., the ground truth active ingredients).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们的系统性能，我们准备了多种指标，包括准确率、精确率、召回率、F-0.5得分作为评估指标。对于每个处方，我们将系统预测的活性成分集与相应的金标准集（即实际的活性成分）进行比较。
+- en: 'TABLE II: A comprehensive comparison of our Rx Strategist prescription verification
+    system’s performance against a diverse set of benchmarks. These include human
+    experts (clinical pharmacists with 1, 3, and 5 years of experience (1Y, 3Ys, 5Ys)),
+    open-source language models (LLama 3.1 family and Qwen 72B), and closed-source
+    models (Claude 3.5 Sonnet and GPT4o-mini). Our results demonstrate that our system
+    consistently outperformed these baselines across the majority of evaluated metrics.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表II：我们Rx Strategist处方验证系统在一组多样基准下的综合性能比较。基准包括人类专家（具有1年、3年和5年经验的临床药师（1Y、3Ys、5Ys））、开源语言模型（LLama
+    3.1家族和Qwen 72B）和闭源模型（Claude 3.5 Sonnet和GPT4o-mini）。我们的结果表明，系统在大多数评估指标上始终超越这些基准。
+- en: '| Metrics | Human | Open-Source Models | Closed-Source Models | Ours |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 人类 | 开源模型 | 闭源模型 | 我们的系统 |'
+- en: '| 1Y | 3Ys | 5Ys | LLama3.1-8B | Llama3.1-70B | Qwen2-72B | LLama3.1-405B |
+    Claude3.5-Sonnet | GPT4o-mini |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1Y | 3Ys | 5Ys | LLama3.1-8B | Llama3.1-70B | Qwen2-72B | LLama3.1-405B |
+    Claude3.5-Sonnet | GPT4o-mini |'
+- en: '| Accuracy | 71.30 | 72.22 | 75.93 | 56.48 | 64.81 | 68.52 | 74.07 | 72.22
+    | 70.37 | 75.93 |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| 准确率 | 71.30 | 72.22 | 75.93 | 56.48 | 64.81 | 68.52 | 74.07 | 72.22 | 70.37
+    | 75.93 |'
+- en: '| Precision | 75.00 | 79.22 | 81.01 | 66.29 | 69.89 | 72.53 | 74.74 | 73.68
+    | 73.12 | 82.67 |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| 精确率 | 75.00 | 79.22 | 81.01 | 66.29 | 69.89 | 72.53 | 74.74 | 73.68 | 73.12
+    | 82.67 |'
+- en: '| Recall | 88.00 | 81.33 | 85.33 | 96.72 | 86.67 | 88.00 | 94.67 | 100.00 |
+    90.67 | 82.67 |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| 召回率 | 88.00 | 81.33 | 85.33 | 96.72 | 86.67 | 88.00 | 94.67 | 100.00 | 90.67
+    | 82.67 |'
+- en: '| F-$0.5$ Score | 77.28 | 79.63 | 81.84 | 70.74 | 72.71 | 75.17 | 78.02 | 77.78
+    | 76.06 | 82.67 |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| F-$0.5$得分 | 77.28 | 79.63 | 81.84 | 70.74 | 72.71 | 75.17 | 78.02 | 77.78
+    | 76.06 | 82.67 |'
+- en: Basic metrics such as Accuracy, while reliable for most tasks, are not the best
+    indicator of good performance for this task. More specifically, cases of inappropriate
+    elements being flagged as appropriate are considered harmful to patients, as they
+    create a false belief that their description is accurate when it is not. On the
+    other hand, the opposite case of appropriate elements being flagged as inappropriate
+    is less serious, as it only requires a close assession by the professionals. Therefore,
+    we introduce more metrics to put emphasis on the harmful case.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基本指标，如准确率，尽管对于大多数任务是可靠的，但并不是该任务表现好坏的最佳指标。更具体地说，将不合适的元素误标为合适是对患者有害的，因为这会产生一种错误的信念，认为其描述是准确的，而实际上并非如此。另一方面，将合适的元素误标为不合适的情况则相对不那么严重，因为这仅需专业人员进行仔细评估。因此，我们引入了更多的指标，以强调有害情况。
+- en: 'The list of metrics we will use to assess performance is the following:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将用于评估性能的指标列表如下：
+- en: •
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Accuracy: proportion of correct prediction over all samples.'
+  id: totrans-115
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 准确率：所有样本中正确预测的比例。
+- en: •
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Precision: proportion of predicted appropriate elements that are correct.'
+  id: totrans-117
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 精确率：正确预测的合适元素占预测合适元素的比例。
+- en: •
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Recall: proportion of actual appropriate elements that are correctly predicted.'
+  id: totrans-119
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 召回率：正确预测的实际合适元素的比例。
+- en: •
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'F-0.5 Score: variant of F-$\beta$ Score with $\beta=0.5$, measuring weighted
+    harmonic mean of precision and recall. Instead of the traditional F1-Score, which
+    balances precision and recall, this variant weights more on precision, with the
+    purpose of minimizing precision - inappropriate elements classified as appropriate.'
+  id: totrans-121
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: F-0.5得分：F-$\beta$得分的变种，$\beta=0.5$，衡量精确率与召回率的加权调和均值。与传统的F1得分（平衡精确率和召回率）不同，这一变种更加重视精确率，目的是最小化精确率——将不合适的元素错误地归类为合适。
+- en: '![Refer to caption](img/faf2a44edc18116186c51d1a7d0d441d.png)'
+  id: totrans-122
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/faf2a44edc18116186c51d1a7d0d441d.png)'
+- en: 'Figure 4: The relationship between the precision-recall ratio and the F0.5
+    score in prescription verification tasks. The prediction that strike a balance
+    between precision and recall, thereby minimizing both false positives and false
+    negatives, generally achieve higher F0.5 scores.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：处方验证任务中精确率-召回率比与F0.5得分之间的关系。实现精确率与召回率之间平衡，从而最小化假阳性和假阴性的预测，通常会获得更高的F0.5得分。
+- en: V Results
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: V 结果
+- en: 'Table [II](https://arxiv.org/html/2409.03440v1#S4.T2 "TABLE II ‣ IV-C Evaluation
+    Metrics ‣ IV Experimental Settings ‣ Rx Strategist: Prescription Verification
+    using LLM Agents System") presents a comprehensive comparison of our system’s
+    performance against human labels, open-source models, and closed models. The results
+    unequivocally demonstrate that our system surpasses nearly all current LLMs, achieving
+    a level of knowledge comparable to that of a clinical pharmacist with 5 years
+    of experience in which you can see more in Figure [1](https://arxiv.org/html/2409.03440v1#S1.F1
+    "Figure 1 ‣ I Introduction ‣ Rx Strategist: Prescription Verification using LLM
+    Agents System"). In particular, our system outperforms GPT4o Mini by $5.56\%$
+    and Claude3.5 Sonnet by $3.71\%$ in terms of accuracy on closed models. On human
+    labels, Rx Strategist outperforms clinical pharmacist with one year of experience
+    by $4.63\%$ and by $3.71\%$ for clinical pharmacist with three years of experience,
+    highlighting its superior capability in this domain.'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格[II](https://arxiv.org/html/2409.03440v1#S4.T2 "TABLE II ‣ IV-C Evaluation
+    Metrics ‣ IV Experimental Settings ‣ Rx Strategist: Prescription Verification
+    using LLM Agents System")展示了我们系统与人工标签、开源模型和封闭模型的全面比较。结果明确表明，我们的系统超越了几乎所有当前的LLM，达到了一个与拥有5年经验的临床药剂师相当的知识水平，更多内容可以在图[1](https://arxiv.org/html/2409.03440v1#S1.F1
+    "Figure 1 ‣ I Introduction ‣ Rx Strategist: Prescription Verification using LLM
+    Agents System")中看到。特别是，在封闭模型的准确性方面，我们的系统比GPT4o Mini高出$5.56\%$，比Claude3.5 Sonnet高出$3.71\%$。在人工标签方面，Rx
+    Strategist比拥有一年经验的临床药剂师高出$4.63\%$，比拥有三年经验的临床药剂师高出$3.71\%$，突出其在这一领域的卓越能力。'
+- en: 'Interestingly, we observed a positive correlation between the precision-recall
+    ratio and the F-0.5 score in prescription verification tasks (Figure [4](https://arxiv.org/html/2409.03440v1#S4.F4
+    "Figure 4 ‣ IV-C Evaluation Metrics ‣ IV Experimental Settings ‣ Rx Strategist:
+    Prescription Verification using LLM Agents System")). This suggests that models
+    prioritizing precision (minimizing false positives) while maintaining a reasonable
+    recall (minimizing false negatives) tend to achieve higher overall performance,
+    as indicated by the F-0.5 score. This finding highlights the importance of balancing
+    precision and recall in this domain, where both accurate identification of valid
+    prescriptions and avoidance of incorrect rejections are crucial. Our system, Rx
+    Strategist, demonstrates this balance effectively, positioning it as a promising
+    tool for enhancing prescription verification accuracy and ultimately improving
+    patient safety.'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '有趣的是，我们观察到在处方验证任务中，精确率-召回率比与F-0.5分数之间存在正相关关系（图[4](https://arxiv.org/html/2409.03440v1#S4.F4
+    "Figure 4 ‣ IV-C Evaluation Metrics ‣ IV Experimental Settings ‣ Rx Strategist:
+    Prescription Verification using LLM Agents System")）。这表明，在保持合理召回率（最小化假阴性）的同时，优先考虑精确率（最小化假阳性）的模型，往往能在F-0.5分数上获得更高的整体性能。这一发现突出了在该领域平衡精确率和召回率的重要性，在此领域，既要准确识别有效处方，又要避免错误拒绝。我们的系统Rx
+    Strategist有效地展示了这种平衡，定位其为提升处方验证准确性、最终提高患者安全性的有前景工具。'
+- en: 'Another noteworthy performance criterion is runtime, which is an important
+    indication of how long our system can return its output. Table [III](https://arxiv.org/html/2409.03440v1#S5.T3
+    "TABLE III ‣ V Results ‣ Rx Strategist: Prescription Verification using LLM Agents
+    System") clearly demonstrates the difference between the time taken by Rx-Strategist
+    compared to other LLms, with additional information such as average time per token
+    and total generated tokens for measuring conciseness.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '另一个值得注意的性能标准是运行时间，它是衡量我们系统返回输出所需时间的一个重要指标。表格[III](https://arxiv.org/html/2409.03440v1#S5.T3
+    "TABLE III ‣ V Results ‣ Rx Strategist: Prescription Verification using LLM Agents
+    System")清楚地展示了Rx-Strategist与其他LLM所需时间的差异，并提供了额外的信息，如每个token的平均时间和生成的总token数，用于衡量简洁性。'
+- en: 'TABLE III: The comparison of speed and token generated by Rx-Strategist against
+    latest LLMs. While the fastest model (Llama 3.1 8B) is able to generate the output
+    at twice the time as our solution, the majority of LLMs require much more tokens
+    to output the whole answer. This indicates that our model is more efficient in
+    token count while keeping the inference time low.'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格III：Rx-Strategist与最新LLM在速度和生成token数方面的比较。虽然最快的模型（Llama 3.1 8B）生成输出的时间是我们方案的两倍，但大多数LLM需要更多的token来输出完整的答案。这表明我们的模型在保持推理时间较低的同时，更高效地使用了token数量。
+- en: '| Inference stat | Inference time (s) | Average time per token (ms) | Total
+    generated tokens |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| 推理统计 | 推理时间（秒） | 每个token的平均时间（毫秒） | 总生成token数 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| LLama 3.1 8B | 5.29 | 803 | 15266 |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLama 3.1 8B | 5.29 | 803 | 15266 |'
+- en: '| LLama 3.1 70B | 10.89 | 794 | 15101 |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLama 3.1 70B | 10.89 | 794 | 15101 |'
+- en: '| Qwen 2 72B | 12.93 | 659 | 13192 |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| Qwen 2 72B | 12.93 | 659 | 13192 |'
+- en: '| LLama 3.1 405B | 11.44 | 789 | 15789 |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLama 3.1 405B | 11.44 | 789 | 15789 |'
+- en: '| Ours | 10.50 | 705⁵⁵5calculated for LLM only | 1223 |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的模型 | 10.50 | 705⁵⁵仅针对LLM计算 | 1223 |'
+- en: VI Interaction Checking
+  id: totrans-136
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VI 交互检查
+- en: 'Given the complex nature of interaction between medical elements, we propose
+    a new way of representing the relationship of medical properties by utilizing
+    a Knowledge Graph. The triplets, which is used for graph construction, is extracted
+    using the LLama3-8B model with prompting that targets domain-specific relationships,
+    as detailed in the Appendix [-A2](https://arxiv.org/html/2409.03440v1#A0.SS1.SSS2
+    "-A2 Evaluation prompt with Interaction graph ‣ -A LLM Prompt for Evaluate ‣ Rx
+    Strategist: Prescription Verification using LLM Agents System"). Subsequently,
+    the corresponding triplet embeddings are generated using the general text embedding
+    model gte-Qwen2-1.5B-instruct [[17](https://arxiv.org/html/2409.03440v1#bib.bib17)].'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于医学元素之间交互的复杂性，我们提出了一种通过利用知识图谱来表示医学属性关系的新方法。用于图谱构建的三元组是通过使用LLama3-8B模型并结合针对特定领域关系的提示进行提取的，具体细节见附录[-A2](https://arxiv.org/html/2409.03440v1#A0.SS1.SSS2
+    "-A2 评估提示与交互图谱 ‣ -A LLM提示评估 ‣ Rx策略师：使用LLM代理系统进行处方验证")。随后，使用通用文本嵌入模型gte-Qwen2-1.5B-instruct
+    [[17](https://arxiv.org/html/2409.03440v1#bib.bib17)]生成相应的三元组嵌入。
+- en: '![Refer to caption](img/92f5561fd7aa11442d91863672b9b70e.png)'
+  id: totrans-138
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明](img/92f5561fd7aa11442d91863672b9b70e.png)'
+- en: 'Figure 5: This is a sample of the element Afentanil and its related interaction.
+    The center element branches to other elements connected by their corresponding
+    relationship. The captured relationships are elements of interaction with Afentanil,
+    the eligible age for usage such as Adults, and its adverse effects such as Hypotension.'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：这是阿芬太尼元素及其相关交互的示例。中心元素分支到与之相连接的其他元素。捕获的关系是与阿芬太尼的交互元素、使用的合格年龄（如成年人）以及其副作用（如低血压）。
+- en: To validate the approach’s performance against other experimental results and
+    determine its effectiveness for our specific application, we have Knowledge Graph’s
+    impact on refining evaluation outcomes. The graph is combined with two models
+    LLama3-8B [[18](https://arxiv.org/html/2409.03440v1#bib.bib18)] and LLama3.1-8B
+    [[16](https://arxiv.org/html/2409.03440v1#bib.bib16)] respectively. Information
+    on active components in prescriptions is retrieved from the graph using the cosine
+    similarity score between the input query embedding and the precomputed triplet
+    embeddings within the graph. The retrieved data is subsequently summarized using
+    the same inference model to condense the information. We anticipate that this
+    approach will enable the model to interpret the graph from its perspective. The
+    summarized interactions are then utilized to aid the LLM in its prescription evaluation.
+    The result shows that both LLama3-8B and LLama3.1-8B have improved their accuracy
+    substantially, achieving an increase of $8.33\%$.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证该方法相较于其他实验结果的性能，并确定其在我们特定应用中的有效性，我们研究了知识图谱对优化评估结果的影响。该图谱与两个模型LLama3-8B [[18](https://arxiv.org/html/2409.03440v1#bib.bib18)]和LLama3.1-8B
+    [[16](https://arxiv.org/html/2409.03440v1#bib.bib16)]分别结合使用。通过计算输入查询嵌入与图中预先计算的三元组嵌入之间的余弦相似度，检索处方中活性成分的信息。然后，使用相同的推理模型对检索到的数据进行总结，提炼信息。我们预期该方法将使模型能够从其角度解释图谱。总结的交互信息随后被用来帮助LLM进行处方评估。结果显示，LLama3-8B和LLama3.1-8B的准确率显著提高，增加了$8.33\%$。
+- en: '![Refer to caption](img/b1c9c7fc18d6d2f885b518975b74e675.png)'
+  id: totrans-141
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明](img/b1c9c7fc18d6d2f885b518975b74e675.png)'
+- en: 'Figure 6: Benchmark of Drug Verification for base LLama3.1-8B compared to LLama3.1-8B
+    and LLama3.0-8B combined with Interaction checking. The result shows that with
+    the aid of Interaction Knowledge Graph, a small model can perform at the same
+    level as larger LLMs.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：基于LLama3.1-8B的药物验证基准，与LLama3.1-8B和LLama3.0-8B结合交互检查进行对比。结果显示，在交互知识图谱的帮助下，小模型的表现可以达到与更大LLM相同的水平。
+- en: VII Conclusion and Future work
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VII 结论与未来工作
+- en: In conclusion, we present a novel, efficient approach to prescription verification,
+    effectively combining a knowledge base with a well-instructed reasoning process.
+    Our system’s performance surpasses not only some senior clinical pharmacists but
+    also state-of-the-art LLMs, demonstrating its potential for real-world implementation,
+    particularly in resource-constrained hospital settings.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总之，我们提出了一种新颖高效的处方验证方法，巧妙地将知识库与精心设计的推理过程相结合。我们的系统表现超过了部分资深临床药师，甚至超越了最先进的大型语言模型（LLMs），展示了其在现实世界中应用的潜力，特别是在资源有限的医院环境中。
+- en: 'Limitations and Future Works: Several avenues for future enhancement exist.
+    The current reliance on Vietnamese-language data necessitates further investigation
+    into multilingual capabilities to ensure broader applicability. Additionally,
+    refining the ICD-10 coding process, potentially through the development of a dedicated
+    model, could mitigate the risk of hallucination and further improve accuracy.
+    Expanding the knowledge base to incorporate diverse data sources, such as electronic
+    health records and clinical guidelines, could enhance the system’s understanding
+    of complex medical scenarios, ultimately leading to more robust and reliable prescription
+    verification.'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 局限性与未来工作：未来有多个提升方向。当前对越南语数据的依赖需要进一步研究多语言能力，以确保其更广泛的适用性。此外，完善ICD-10编码过程，可能通过开发专门的模型，能够减少幻觉风险并进一步提高准确性。扩大知识库，整合更多的数据源，如电子健康记录和临床指南，将增强系统对复杂医学场景的理解，从而最终提高处方验证的健壮性和可靠性。
+- en: References
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] H.-T. Nguyen, T.-D. Nguyen, E. R. van den Heuvel, F. M. Haaijer-Ruskamp,
+    and K. Taxis, “Medication errors in vietnamese hospitals: prevalence, potential
+    outcome and associated factors,” PloS one, vol. 10, no. 9, p. e0138284, 2015.'
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] H.-T. Nguyen, T.-D. Nguyen, E. R. van den Heuvel, F. M. Haaijer-Ruskamp,
+    和 K. Taxis, “越南医院的用药错误：发生率、潜在后果及相关因素”，PloS one，第10卷，第9期，e0138284，2015年。'
+- en: '[2] A. Srivastava, A. Rastogi, A. Rao, A. A. M. Shoeb, A. Abid, A. Fisch, A. R.
+    Brown, A. Santoro, A. Gupta, A. Garriga-Alonso, et al., “Beyond the imitation
+    game: Quantifying and extrapolating the capabilities of language models,” arXiv
+    preprint arXiv:2206.04615, 2022.'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] A. Srivastava, A. Rastogi, A. Rao, A. A. M. Shoeb, A. Abid, A. Fisch, A.
+    R. Brown, A. Santoro, A. Gupta, A. Garriga-Alonso 等人, “超越模仿游戏：量化并推断语言模型的能力”，arXiv预印本
+    arXiv:2206.04615，2022年。'
+- en: '[3] J. Wei, Y. Yao, J.-F. Ton, H. Guo, A. Estornell, and Y. Liu, “Measuring
+    and reducing llm hallucination without gold-standard answers,” 2024.'
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] J. Wei, Y. Yao, J.-F. Ton, H. Guo, A. Estornell, 和 Y. Liu, “在没有黄金标准答案的情况下衡量并减少LLM幻觉”，2024年。'
+- en: '[4] J. Wei, X. Wang, D. Schuurmans, M. Bosma, B. Ichter, F. Xia, E. Chi, Q. Le,
+    and D. Zhou, “Chain-of-thought prompting elicits reasoning in large language models,”
+    2023.'
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] J. Wei, X. Wang, D. Schuurmans, M. Bosma, B. Ichter, F. Xia, E. Chi, Q.
+    Le, 和 D. Zhou, “思维链提示引发大型语言模型中的推理”，2023年。'
+- en: '[5] T. Kojima, S. S. Gu, M. Reid, Y. Matsuo, and Y. Iwasawa, “Large language
+    models are zero-shot reasoners,” 2023.'
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] T. Kojima, S. S. Gu, M. Reid, Y. Matsuo, 和 Y. Iwasawa, “大型语言模型是零样本推理者”，2023年。'
+- en: '[6] L. Gao, X. Ma, J. Lin, and J. Callan, “Precise zero-shot dense retrieval
+    without relevance labels,” 2022.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] L. Gao, X. Ma, J. Lin, 和 J. Callan, “精确的零样本密集检索无需相关性标签”，2022年。'
+- en: '[7] H. S. Zheng, S. Mishra, X. Chen, H.-T. Cheng, E. H. Chi, Q. V. Le, and
+    D. Zhou, “Take a step back: Evoking reasoning via abstraction in large language
+    models,” 2024.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] H. S. Zheng, S. Mishra, X. Chen, H.-T. Cheng, E. H. Chi, Q. V. Le, 和 D.
+    Zhou, “退一步：通过抽象激发大型语言模型中的推理”，2024年。'
+- en: '[8] D. Edge, H. Trinh, N. Cheng, J. Bradley, A. Chao, A. Mody, S. Truitt, and
+    J. Larson, “From local to global: A graph rag approach to query-focused summarization,”
+    2024.'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] D. Edge, H. Trinh, N. Cheng, J. Bradley, A. Chao, A. Mody, S. Truitt, 和
+    J. Larson, “从本地到全球：一种基于图的RAG方法用于查询聚焦总结”，2024年。'
+- en: '[9] D. Sanmartin, “Kg-rag: Bridging the gap between knowledge and creativity,”
+    2024.'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] D. Sanmartin, “KG-RAG：弥合知识与创造力之间的鸿沟”，2024年。'
+- en: '[10] Z. Wang, G. Zhang, K. Yang, N. Shi, W. Zhou, S. Hao, G. Xiong, Y. Li,
+    M. Y. Sim, X. Chen, Q. Zhu, Z. Yang, A. Nik, Q. Liu, C. Lin, S. Wang, R. Liu,
+    W. Chen, K. Xu, D. Liu, Y. Guo, and J. Fu, “Interactive natural language processing,”
+    2023.'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] Z. Wang, G. Zhang, K. Yang, N. Shi, W. Zhou, S. Hao, G. Xiong, Y. Li,
+    M. Y. Sim, X. Chen, Q. Zhu, Z. Yang, A. Nik, Q. Liu, C. Lin, S. Wang, R. Liu,
+    W. Chen, K. Xu, D. Liu, Y. Guo, 和 J. Fu, “互动自然语言处理”，2023年。'
+- en: '[11] K. Yang, J. Liu, J. Wu, C. Yang, Y. R. Fung, S. Li, Z. Huang, X. Cao,
+    X. Wang, Y. Wang, H. Ji, and C. Zhai, “If llm is the wizard, then code is the
+    wand: A survey on how code empowers large language models to serve as intelligent
+    agents,” 2024.'
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] K. Yang, J. Liu, J. Wu, C. Yang, Y. R. Fung, S. Li, Z. Huang, X. Cao,
+    X. Wang, Y. Wang, H. Ji, 和 C. Zhai, “如果 LLM 是魔法师，那么代码就是魔杖：一项关于代码如何赋能大型语言模型以作为智能代理的调查”，2024。'
+- en: '[12] Y. Li, H. Wen, W. Wang, X. Li, Y. Yuan, G. Liu, J. Liu, W. Xu, X. Wang,
+    Y. Sun, R. Kong, Y. Wang, H. Geng, J. Luan, X. Jin, Z. Ye, G. Xiong, F. Zhang,
+    X. Li, M. Xu, Z. Li, P. Li, Y. Liu, Y.-Q. Zhang, and Y. Liu, “Personal llm agents:
+    Insights and survey about the capability, efficiency and security,” 2024.'
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] Y. Li, H. Wen, W. Wang, X. Li, Y. Yuan, G. Liu, J. Liu, W. Xu, X. Wang,
+    Y. Sun, R. Kong, Y. Wang, H. Geng, J. Luan, X. Jin, Z. Ye, G. Xiong, F. Zhang,
+    X. Li, M. Xu, Z. Li, P. Li, Y. Liu, Y.-Q. Zhang, 和 Y. Liu, “个人化 LLM 代理：关于能力、效率和安全性的见解与调查”，2024。'
+- en: '[13] Z. Xi, W. Chen, X. Guo, W. He, Y. Ding, B. Hong, M. Zhang, J. Wang, S. Jin,
+    E. Zhou, R. Zheng, X. Fan, X. Wang, L. Xiong, Y. Zhou, W. Wang, C. Jiang, Y. Zou,
+    X. Liu, Z. Yin, S. Dou, R. Weng, W. Cheng, Q. Zhang, W. Qin, Y. Zheng, X. Qiu,
+    X. Huang, and T. Gui, “The rise and potential of large language model based agents:
+    A survey,” 2023.'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] Z. Xi, W. Chen, X. Guo, W. He, Y. Ding, B. Hong, M. Zhang, J. Wang, S.
+    Jin, E. Zhou, R. Zheng, X. Fan, X. Wang, L. Xiong, Y. Zhou, W. Wang, C. Jiang,
+    Y. Zou, X. Liu, Z. Yin, S. Dou, R. Weng, W. Cheng, Q. Zhang, W. Qin, Y. Zheng,
+    X. Qiu, X. Huang, 和 T. Gui, “大型语言模型代理的崛起与潜力：一项调查”，2023。'
+- en: '[14] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, and Y. Cao,
+    “React: Synergizing reasoning and acting in language models,” arXiv preprint arXiv:2210.03629,
+    2022.'
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, 和 Y. Cao, “React：在语言模型中协同推理与行动”，arXiv
+    预印本 arXiv:2210.03629，2022。'
+- en: '[15] A. Yang, B. Yang, B. Hui, B. Zheng, B. Yu, C. Zhou, C. Li, C. Li, D. Liu,
+    F. Huang, et al., “Qwen2 technical report,” arXiv preprint arXiv:2407.10671, 2024.'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] A. Yang, B. Yang, B. Hui, B. Zheng, B. Yu, C. Zhou, C. Li, C. Li, D. Liu,
+    F. Huang, 等，“Qwen2 技术报告”，arXiv 预印本 arXiv:2407.10671，2024。'
+- en: '[16] H. Touvron, T. Culot, T. Le Scao, V. Lam, S. Edunov, J. Wei, I. Triantafillou,
+    G. Synnaeve, M. Caron, P. Martins, et al., “The llama 3 herd of models,” 2024.'
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] H. Touvron, T. Culot, T. Le Scao, V. Lam, S. Edunov, J. Wei, I. Triantafillou,
+    G. Synnaeve, M. Caron, P. Martins, 等，“Llama 3 模型群”，2024。'
+- en: '[17] Z. Li, X. Zhang, Y. Zhang, D. Long, P. Xie, and M. Zhang, “Towards general
+    text embeddings with multi-stage contrastive learning,” arXiv preprint arXiv:2308.03281,
+    2023.'
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] Z. Li, X. Zhang, Y. Zhang, D. Long, P. Xie, 和 M. Zhang, “面向通用文本嵌入的多阶段对比学习”，arXiv
+    预印本 arXiv:2308.03281，2023。'
+- en: '[18] AI@Meta, “Llama 3 model card,” 2024.'
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] AI@Meta, “Llama 3 模型卡”，2024。'
+- en: -A LLM Prompt for Evaluate
+  id: totrans-165
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: -A LLM 评估提示
+- en: -A1 Base evaluation prompt
+  id: totrans-166
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: -A1 基础评估提示
+- en: <svg class="ltx_picture" height="16.6" id="A0.SS1.SSS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE0]</foreignobject></g></g></svg>
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="16.6" id="A0.SS1.SSS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE0]</foreignobject></g></g></svg>
+- en: -A2 Evaluation prompt with Interaction graph
+  id: totrans-168
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: -A2 评估提示与交互图
+- en: <svg class="ltx_picture" height="16.6" id="A0.SS1.SSS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE1]</foreignobject></g></g></svg>
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="16.6" id="A0.SS1.SSS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE1]</foreignobject></g></g></svg>
+- en: -B Components table
+  id: totrans-170
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: -B 组件表
+- en: 'TABLE IV: Table of common drug components with collected Interaction Data.'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 IV：含有交互数据的常见药物成分表。
+- en: '| Row id | Name |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| 行ID | 名称 |'
+- en: '| --- | --- |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| 1 | Allopurinol |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 丙磺舒 |'
+- en: '| 2 | Amitriptyline |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 阿米替林 |'
+- en: '| 3 | Amlodipine |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | 氨氯地平 |'
+- en: '| 4 | Atorvastatin |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | 阿托伐他汀 |'
+- en: '| 5 | Bisoprolol |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | 比索洛尔 |'
+- en: '| 6 | Cefaclor |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 | 喹诺酮 |'
+- en: '| 7 | Clopidogrel |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | 氯吡格雷 |'
+- en: '| 8 | Dapagliflozin |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | 达格列净 |'
+- en: '| 9 | Dutasteride |'
+  id: totrans-182
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 | 杜他雄胺 |'
+- en: '| 10 | Empagliflozin |'
+  id: totrans-183
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | 恩格列净 |'
+- en: '| 11 | Esomeprazole |'
+  id: totrans-184
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11 | 培哚普酮 |'
+- en: '| 12 | Gabapentin |'
+  id: totrans-185
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12 | 加巴喷丁 |'
+- en: '| 13 | Isosorbide |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 | 异山梨醇 |'
+- en: '| 14 | Ivabradine |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| 14 | 艾伐布雷定 |'
+- en: '| 15 | Losartan |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| 15 | 洛卡特 |'
+- en: '| 16 | Meloxicam |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| 16 | 美洛昔康 |'
+- en: '| 17 | Metformin Hydrochloride |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| 17 | 二甲双胍盐酸盐 |'
+- en: '| 18 | Methylprednisolone |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| 18 | 美克洛噻吨 |'
+- en: '| 19 | Mirtazapine |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| 19 | 美托克倍 |'
+- en: '| 20 | Nifedipine |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| 20 | 尼群地平 |'
+- en: '| 21 | Olanzapine |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| 21 | 奥氮平 |'
+- en: '| 22 | Pregabalin |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| 22 | 普瑞巴林 |'
+- en: '| 23 | Quetiapine |'
+  id: totrans-196
+  prefs: []
+  type: TYPE_TB
+  zh: '| 23 | 喹硫平 |'
+- en: '| 24 | Rivaroxaban |'
+  id: totrans-197
+  prefs: []
+  type: TYPE_TB
+  zh: '| 24 | 利伐沙班 |'
+- en: '| 25 | Rosuvastatin |'
+  id: totrans-198
+  prefs: []
+  type: TYPE_TB
+  zh: '| 25 | 瑞舒伐他汀 |'
+- en: '| 26 | Spironolactone |'
+  id: totrans-199
+  prefs: []
+  type: TYPE_TB
+  zh: '| 26 | 螺内酯 |'
+- en: '| 27 | Telmisartan |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| 27 | 替米沙坦 |'
+- en: -C Data Representation
+  id: totrans-201
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: -C 数据表示
+- en: -C1 Raw JSON data Sample
+  id: totrans-202
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: -C1 原始 JSON 数据示例
+- en: <svg class="ltx_picture" height="16.6" id="A0.SS3.SSS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE2]</foreignobject></g></g></svg>
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="16.6" id="A0.SS3.SSS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE2]</foreignobject></g></g></svg>
+- en: -D Prescription Sample
+  id: totrans-204
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: -D 处方示例
+- en: 'An example of a prescription named 24th is demonstrated in Figure [7](https://arxiv.org/html/2409.03440v1#A0.F7
+    "Figure 7 ‣ -D Prescription Sample ‣ Rx Strategist: Prescription Verification
+    using LLM Agents System").'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '一个名为“24th”的处方示例在图[7](https://arxiv.org/html/2409.03440v1#A0.F7 "Figure 7 ‣
+    -D Prescription Sample ‣ Rx Strategist: Prescription Verification using LLM Agents
+    System")中展示。'
+- en: '![Refer to caption](img/1722867b194bb1bab060884b13764072.png)'
+  id: totrans-206
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见标题说明](img/1722867b194bb1bab060884b13764072.png)'
+- en: 'Figure 7: A sample of prescription which labeled as 5th, this prescription
+    include some important information such as diagnosis, dose, and active ingredients.'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：标为第五的处方示例，包含一些重要信息，如诊断、剂量和活性成分。
+- en: -E Dosage Knowledge Graph Structure
+  id: totrans-208
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: -E 剂量知识图谱结构
+- en: -E1 Node Examples
+  id: totrans-209
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: -E1 节点示例
+- en: <svg class="ltx_picture" height="16.6" id="A0.SS5.SSS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE3]</foreignobject></g></g></svg>
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="16.6" id="A0.SS5.SSS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE3]</foreignobject></g></g></svg>
+- en: -E2 Relationship Examples
+  id: totrans-211
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: -E2 关系示例
+- en: <svg class="ltx_picture" height="16.6" id="A0.SS5.SSS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE4]</foreignobject></g></g></svg>
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="16.6" id="A0.SS5.SSS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE4]</foreignobject></g></g></svg>
+- en: -F Output Examples
+  id: totrans-213
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: -F 输出示例
+- en: -F1 LLama3.1 405B
+  id: totrans-214
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: -F1 LLama3.1 405B
+- en: 'The output of the LLama 3.1 405B model on the 24th prescription (one of the
+    prescription in the evaluation dataset). For more information about input, see
+    at Appendix [-D](https://arxiv.org/html/2409.03440v1#A0.SS4 "-D Prescription Sample
+    ‣ Rx Strategist: Prescription Verification using LLM Agents System")'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLama 3.1 405B 模型在第 24 处方（评估数据集中的一份处方）上的输出。如需了解更多关于输入的信息，请参见附录[-D](https://arxiv.org/html/2409.03440v1#A0.SS4
+    "-D 处方示例 ‣ Rx 策略师：使用 LLM 代理的处方验证系统")
+- en: <svg class="ltx_picture" height="16.6" id="A0.SS6.SSS1.p3.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE5]</foreignobject></g></g></svg>
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="16.6" id="A0.SS6.SSS1.p3.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,16.6) matrix(1 0 0 -1 0 0) translate(0,15.22)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 15.22 -15.22)"><foreignobject height="0" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="0">[PRE5]</foreignobject></g></g></svg>

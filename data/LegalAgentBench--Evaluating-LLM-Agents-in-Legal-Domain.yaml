@@ -1,0 +1,4411 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 11:44:10'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 11:44:10
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'LegalAgentBench: Evaluating LLM Agents in Legal Domain'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: LegalAgentBench：评估法律领域中的LLM代理
+- en: 来源：[https://arxiv.org/html/2412.17259/](https://arxiv.org/html/2412.17259/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2412.17259/](https://arxiv.org/html/2412.17259/)
+- en: Haitao Li¹  , Junjie Chen¹¹¹1¹¹1missing[2], Jingli Yang², Qingyao Ai¹, Jia Wei²,
+    Youfeng Liu², Kai Lin³
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 李海涛¹，陈俊杰¹¹¹1¹¹1missing[2]，杨静丽²，艾青耀¹，魏佳²，刘有风²，林凯³
+- en: Yueyue Wu¹³³3, Guozhi Yuan⁴, Yiran Hu⁵, Wuyue Wang⁶, Yiqun Liu¹, Minlie Huang¹
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 吴月月¹³³3，袁国志⁴，胡怡然⁵，王伍越⁶，刘一群¹，黄敏烈¹
+- en: ¹Department of Computer Science and Technology Equal contributions.Work done
+    when HT and JJ interned at Zhipu AI.Corresponding author Tsinghua University ²Zhipu
+    AI ³Shanghai Amarsoft Enterprise Credit Information Service Co Ltd ⁴Central South
+    University ⁵University of Waterloo ⁶University of Notre Dame
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹计算机科学与技术系，等贡献。本文工作由HT和JJ在知谱AI实习时完成。通讯作者清华大学 ²知谱AI ³上海阿马软企业信用信息服务有限公司 ⁴中南大学
+    ⁵滑铁卢大学 ⁶圣母大学
+- en: liht22@mails.tsinghua.edu.cn
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: liht22@mails.tsinghua.edu.cn
+- en: Abstract
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: With the increasing intelligence and autonomy of LLM agents, their potential
+    applications in the legal domain are becoming increasingly apparent. However,
+    existing general-domain benchmarks cannot fully capture the complexity and subtle
+    nuances of real-world judicial cognition and decision-making. Therefore, we propose
+    LegalAgentBench, a comprehensive benchmark specifically designed to evaluate LLM
+    Agents in the Chinese legal domain. LegalAgentBench includes 17 corpora from real-world
+    legal scenarios and provides 37 tools for interacting with external knowledge.
+    We designed a scalable task construction framework and carefully annotated 300
+    tasks. These tasks span various types, including multi-hop reasoning and writing,
+    and range across different difficulty levels, effectively reflecting the complexity
+    of real-world legal scenarios. Moreover, beyond evaluating final success, LegalAgentBench
+    incorporates keyword analysis during intermediate processes to calculate progress
+    rates, enabling more fine-grained evaluation. We evaluated eight popular LLMs,
+    highlighting the strengths, limitations, and potential areas for improvement of
+    existing models and methods. LegalAgentBench sets a new benchmark for the practical
+    application of LLMs in the legal domain, with its code and data available at [https://github.com/CSHaitao/LegalAgentBench](https://github.com/CSHaitao/LegalAgentBench).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着LLM代理的智能性和自主性的不断提高，它们在法律领域中的潜在应用越来越明显。然而，现有的通用领域基准无法完全捕捉到现实世界司法认知和决策中的复杂性和微妙差异。因此，我们提出了LegalAgentBench，这是一个专门设计的综合基准，用于评估中文法律领域中的LLM代理。LegalAgentBench包括来自真实法律场景的17个语料库，并提供37个与外部知识互动的工具。我们设计了一个可扩展的任务构建框架，并精心标注了300个任务。这些任务涵盖了多种类型，包括多跳推理和写作，并且涉及不同的难度级别，能够有效反映现实法律场景的复杂性。此外，除了评估最终成功率，LegalAgentBench还在中间过程引入了关键词分析，以计算进展率，从而实现更精细的评估。我们评估了八个流行的LLM，突出了现有模型和方法的优点、局限性以及潜在改进空间。LegalAgentBench为LLM在法律领域的实际应用设立了新的基准，其代码和数据可在[https://github.com/CSHaitao/LegalAgentBench](https://github.com/CSHaitao/LegalAgentBench)获取。
+- en: 'LegalAgentBench: Evaluating LLM Agents in Legal Domain'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LegalAgentBench：评估法律领域中的LLM代理
+- en: 1 Introduction
+  id: totrans-13
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Recent advances in large language models (LLMs) have significantly increased
+    the field of artificial intelligence Achiam et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib1));
+    Bai et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib2)); Touvron et al.
+    ([2023](https://arxiv.org/html/2412.17259v1#bib.bib24)). With their expansive
+    neural networks and vast training datasets, LLMs have made remarkable strides
+    in various natural language processing tasks, such as text generation and machine
+    translation Li et al. ([2024e](https://arxiv.org/html/2412.17259v1#bib.bib15),
+    [c](https://arxiv.org/html/2412.17259v1#bib.bib13)); Zhao et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib33)).
+    At the same time, the rapid evolution of LLMs is transforming the traditional
+    legal industry, empowering legal professionals to handle tasks such as legal research,
+    contract drafting, and case analysis with greater efficiency. As a result, LLMs
+    are rapidly becoming indispensable tools in modern legal workflows Cui et al.
+    ([2023](https://arxiv.org/html/2412.17259v1#bib.bib5)); Li et al. ([2024d](https://arxiv.org/html/2412.17259v1#bib.bib14));
+    Guha et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib8)); Li et al.
+    ([2023](https://arxiv.org/html/2412.17259v1#bib.bib10)).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，大型语言模型（LLMs）的进展显著推动了人工智能领域的发展 Achiam et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib1));
+    Bai et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib2)); Touvron et
+    al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib24))。凭借其庞大的神经网络和海量的训练数据集，LLMs在各种自然语言处理任务中取得了显著进展，如文本生成和机器翻译 Li
+    et al. ([2024e](https://arxiv.org/html/2412.17259v1#bib.bib15), [c](https://arxiv.org/html/2412.17259v1#bib.bib13));
+    Zhao et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib33))。与此同时，LLMs的快速发展正在改变传统的法律行业，使法律专业人士能够更高效地处理诸如法律研究、合同起草和案件分析等任务。因此，LLMs正在迅速成为现代法律工作流程中不可或缺的工具 Cui
+    et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib5)); Li et al. ([2024d](https://arxiv.org/html/2412.17259v1#bib.bib14));
+    Guha et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib8)); Li et al.
+    ([2023](https://arxiv.org/html/2412.17259v1#bib.bib10))。
+- en: Despite their immense potential, LLMs still face challenges in tackling complex
+    legal issues, as real-world legal tasks often require multistep reasoning and
+    specialized expertise beyond their current capabilities. A promising solution
+    lies in the development of LLM-as-Agent systems Dorri et al. ([2018](https://arxiv.org/html/2412.17259v1#bib.bib6));
+    Liu et al. ([2023b](https://arxiv.org/html/2412.17259v1#bib.bib18)). These agents
+    can engage in step-by-step reasoning and acquire specialized knowledge through
+    iterative interactions with external tools. Their impressive capabilities have
+    attracted significant interest from both academia and industry Qin et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib20));
+    Li et al. ([2024a](https://arxiv.org/html/2412.17259v1#bib.bib11)).
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管LLMs具有巨大的潜力，但它们在处理复杂法律问题时仍面临挑战，因为现实世界中的法律任务通常需要多步骤推理和超出当前能力的专业知识。一个有前景的解决方案是开发LLM-as-Agent系统 Dorri
+    et al. ([2018](https://arxiv.org/html/2412.17259v1#bib.bib6)); Liu et al. ([2023b](https://arxiv.org/html/2412.17259v1#bib.bib18))。这些代理可以通过与外部工具的反复互动，进行逐步推理并获得专业知识。它们令人印象深刻的能力吸引了学术界和工业界的广泛关注 Qin
+    et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib20)); Li et al. ([2024a](https://arxiv.org/html/2412.17259v1#bib.bib11))。
+- en: Although LLM agents show great promise, the lack of standardized benchmarks
+    to evaluate their performance in legal scenarios is a major challenge. Existing
+    frameworks, such as AgentBench Liu et al. ([2023b](https://arxiv.org/html/2412.17259v1#bib.bib18))
+    and ToolBench Qin et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib20)),
+    are effective in assessing LLM agents in general domains. However, the insights
+    gained from these evaluations often have limited relevance in highly specialized
+    fields such as the legal domain Li et al. ([2024d](https://arxiv.org/html/2412.17259v1#bib.bib14)).
+    Moreover, existing datasets in the legal domain often focus on relatively basic
+    tasks, such as legal case retrieval Li et al. ([2024f](https://arxiv.org/html/2412.17259v1#bib.bib16),
+    [b](https://arxiv.org/html/2412.17259v1#bib.bib12)) or judgment prediction Li
+    et al. ([2024d](https://arxiv.org/html/2412.17259v1#bib.bib14)). In contrast,
+    legal practice is significantly more complex, involving in-depth case analysis,
+    legal reasoning, and comprehensive judgments based on a vast body of laws and
+    precedents. Current datasets and evaluation systems fall short of thoroughly testing
+    these advanced, multidimensional legal capabilities.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管LLM代理显示出巨大的潜力，但缺乏标准化的基准来评估它们在法律场景中的表现仍然是一个主要挑战。现有的框架，例如AgentBench Liu等人（[2023b](https://arxiv.org/html/2412.17259v1#bib.bib18)）和ToolBench
+    Qin等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib20)），在评估LLM代理在通用领域中的表现时是有效的。然而，从这些评估中获得的见解在高度专业化的领域，如法律领域，往往具有有限的相关性
+    Li等人（[2024d](https://arxiv.org/html/2412.17259v1#bib.bib14)）。此外，现有的法律领域数据集通常侧重于相对基础的任务，如法律案件检索
+    Li等人（[2024f](https://arxiv.org/html/2412.17259v1#bib.bib16)，[b](https://arxiv.org/html/2412.17259v1#bib.bib12)）或判决预测
+    Li等人（[2024d](https://arxiv.org/html/2412.17259v1#bib.bib14)）。相比之下，法律实践复杂得多，涉及深入的案件分析、法律推理以及基于大量法律和先例的综合判断。当前的数据集和评估系统未能充分测试这些先进的、多维度的法律能力。
+- en: To fill this gap, we developed LegalAgentBench, a comprehensive benchmark designed
+    to evaluate the capabilities of LLM agents in the Chinese legal domain. Based
+    on real-world legal needs, it includes 17 specialized corpora and 37 tools to
+    interact with external knowledge. Within this framework, LLM agents coordinate
+    and utilize these tools to address specific legal tasks.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为填补这一空白，我们开发了LegalAgentBench，这是一个全面的基准，旨在评估LLM代理在中国法律领域的能力。基于现实世界的法律需求，它包括17个专业语料库和37个工具，用于与外部知识进行交互。在这一框架内，LLM代理协调并利用这些工具来解决特定的法律任务。
+- en: 'LegalAgentBench is highlighted in the following three aspects:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LegalAgentBench在以下三个方面具有突出特点：
+- en: •
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Focus on Authentic Legal Scenarios: LegalAgentBench is the first dataset to
+    evaluate LLM agents in legal scenarios. It requires LLMs to demonstrate a solid
+    understanding of legal principles, enabling them to appropriately select and utilize
+    tools to solve complex legal problems. This represents a significant step forward
+    in advancing the application of LLM agents in legal scenarios.'
+  id: totrans-20
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 专注于真实的法律场景：LegalAgentBench是第一个评估LLM代理在法律场景中表现的数据集。它要求LLM展示对法律原则的扎实理解，使其能够恰当地选择和使用工具解决复杂的法律问题。这标志着LLM代理在法律场景中应用的一个重要进步。
+- en: •
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Diverse Task Types and Difficulty Levels: LegalAgentBench adopts a scalable
+    task construction framework aimed at comprehensively covering various task types
+    and difficulty levels. Specifically, we construct a planning tree based on the
+    dependencies between the corpus and tools, and select tasks through hierarchical
+    sampling and a maximum coverage strategy. Finally, we constructed 300 distinct
+    tasks, including multi-hop reasoning and writing tasks, to comprehensively evaluate
+    the LLM’s capabilities.'
+  id: totrans-22
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 多样化的任务类型和难度级别：LegalAgentBench采用可扩展的任务构建框架，旨在全面覆盖各种任务类型和难度级别。具体来说，我们基于语料库和工具之间的依赖关系构建了一个规划树，并通过分层抽样和最大覆盖策略选择任务。最终，我们构建了300个独立的任务，包括多跳推理和写作任务，以全面评估LLM的能力。
+- en: •
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Fine-Grained Evaluation Metrics: Rather than relying solely on final success
+    rates as evaluation criteria, LegalAgentBench introduces the process rate through
+    the annotation of intermediate steps, enabling fine-grained evaluation. This approach
+    provides deeper insights into an agent’s capabilities and identifies areas for
+    improvement beyond the final result.'
+  id: totrans-24
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 精细化的评估指标：LegalAgentBench引入了通过标注中间步骤来表示的过程率，而不仅仅依赖于最终的成功率作为评估标准，从而实现精细化评估。这种方法为代理的能力提供了更深入的见解，并帮助识别出超越最终结果的改进空间。
+- en: We evaluated a variety of commercial and open-source LLM agents, identifying
+    several potential weaknesses in their current capabilities. These observations
+    provide valuable insights, inspire new ideas, and pinpoint areas for further research
+    and improvement.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们评估了多种商业和开源LLM代理，识别出它们当前能力中的几个潜在弱点。这些观察结果提供了宝贵的见解，激发了新的想法，并指出了进一步研究和改进的领域。
+- en: 2 Related Work
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: 2.1 LLM Agents
+  id: totrans-27
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 LLM代理
+- en: Recently, large language models (LLMs) have achieved significant advancements
+    in their application as intelligent agents. Leveraging the capabilities in natural
+    language understanding and generation, LLM agents can efficiently solve complex
+    tasks by appropriately invoking external tools such as calculators, search engines,
+    and domain-specific APIs [Yao et al.](https://arxiv.org/html/2412.17259v1#bib.bib30)
+    ; Wang et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib25), [2023](https://arxiv.org/html/2412.17259v1#bib.bib26));
+    Shinn et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib22)); Chu et al.
+    ([2024](https://arxiv.org/html/2412.17259v1#bib.bib4)).
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，大型语言模型（LLM）在作为智能代理应用方面取得了显著进展。利用自然语言理解和生成的能力，LLM代理可以通过适当调用外部工具（如计算器、搜索引擎和特定领域的API）来高效解决复杂任务
+    [Yao等人](https://arxiv.org/html/2412.17259v1#bib.bib30)；Wang等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib25)，[2023](https://arxiv.org/html/2412.17259v1#bib.bib26)）；Shinn等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib22)）；Chu等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib4)）。
+- en: When faced with complex tasks, LLM agents need to devise appropriate plans and
+    strategies to ensure efficient execution. Chain-of-Thought (CoT) Wei et al. ([2022](https://arxiv.org/html/2412.17259v1#bib.bib27))
+    reasoning, a pioneering technique in this domain, enhances the reasoning capabilities
+    of agents by decomposing challenging reasoning tasks into smaller, more manageable
+    steps. Building upon this foundation, a series of advanced reasoning strategies
+    have emerged, offering new perspectives for task planning and problem-solving.
+    For instance, ReAct [Yao et al.](https://arxiv.org/html/2412.17259v1#bib.bib30)
+    decouples reasoning and action, alternating between thinking steps and action
+    steps, thereby significantly improving the planning efficiency for complex tasks.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 面对复杂任务时，LLM代理需要制定适当的计划和策略，以确保高效执行。Chain-of-Thought (CoT) Wei等人（[2022](https://arxiv.org/html/2412.17259v1#bib.bib27)）推理技术是这一领域的开创性方法，通过将复杂的推理任务分解为更小、更易于管理的步骤，增强了代理的推理能力。在此基础上，一系列先进的推理策略应运而生，为任务规划和问题解决提供了新的视角。例如，ReAct
+    [Yao等人](https://arxiv.org/html/2412.17259v1#bib.bib30)将推理和行动解耦，在思考步骤和行动步骤之间交替，从而显著提高了复杂任务的规划效率。
+- en: Furthermore, the capabilities of LLM agents are further enhanced through deep
+    integration with external tools. Methods such as HuggingGPT Shen et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib21))
+    exemplify this approach by positioning LLMs as controllers that decompose complex
+    tasks into subtasks, invoke appropriate specialized models, and integrate the
+    results to produce a final response. The LLM+P Liu et al. ([2023a](https://arxiv.org/html/2412.17259v1#bib.bib17))
+    approach combines LLMs with a symbolic planner based on the Planning Domain Definition
+    Language (PDDL), leveraging LLMs to formulate problems in PDDL syntax and employing
+    a planning solver to generate solutions.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，LLM代理的能力通过与外部工具的深度集成进一步增强。像HuggingGPT Shen等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib21)）的方法便是这一方法的典范，他们将LLM定位为控制器，将复杂任务分解为子任务，调用适当的专门模型，并整合结果以产生最终的响应。LLM+P
+    Liu等人（[2023a](https://arxiv.org/html/2412.17259v1#bib.bib17)）的方法结合了LLM和基于计划领域定义语言（PDDL）的符号规划器，利用LLM将问题表述为PDDL语法，并使用规划求解器生成解决方案。
+- en: 2.2 Benchmarks on LLM Agents
+  id: totrans-31
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 LLM代理的基准测试
+- en: With the rapid advancement of LLM agents, the demand for evaluating their reasoning
+    and decision-making capabilities in complex tasks has grown significantly. Numerous
+    benchmarks have been developed, providing essential references for the systematic
+    study of LLM agents Liu et al. ([2023b](https://arxiv.org/html/2412.17259v1#bib.bib18));
+    Zhuang et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib34)); Ye et al.
+    ([2024](https://arxiv.org/html/2412.17259v1#bib.bib31)); Yao et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib29));
+    Huang et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib9)); Xie et al.
+    ([2023](https://arxiv.org/html/2412.17259v1#bib.bib28)).
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着LLM代理的快速发展，评估其在复杂任务中的推理和决策能力的需求显著增长。为了系统研究LLM代理，已经开发了许多基准测试，提供了重要的参考资料，支持LLM代理的系统性研究刘等人（[2023b](https://arxiv.org/html/2412.17259v1#bib.bib18)）；庄等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib34)）；叶等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib31)）；姚等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib29)）；黄等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib9)）；谢等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib28)）。
+- en: 'AgentBench Liu et al. ([2023b](https://arxiv.org/html/2412.17259v1#bib.bib18))
+    is a multidimensional benchmark platform that spans eight distinct environments,
+    including operating systems, databases, and knowledge graphs. It systematically
+    evaluates the performance of LLM agents in multi-turn open-ended generation settings.
+    AgentBoard Ma et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib19)) focuses
+    on the systematic evaluation of LLMs in multi-turn interactions. It introduces
+    fine-grained progress rate metrics and multidimensional analysis tools to comprehensively
+    assess LLMs’ multitasking capabilities in partially observable environments, offering
+    a scientific framework for evaluating interactive LLM performance. ToolQA Zhuang
+    et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib34)) covers eight domains
+    and 13 tools, with tasks specifically designed to require external tools and reference
+    materials for problem-solving. This avoids reliance solely on the model’s internal
+    knowledge, establishing a new benchmark for assessing LLMs’ tool-using abilities.
+    T-Eval Chen et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib3)) decomposes
+    the tool utilization abilities of LLMs into six dimensions: planning, reasoning,
+    retrieval, understanding, instruction execution, and result evaluation. This framework
+    comprehensively measures LLMs’ performance in using external tools across multiple
+    levels.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AgentBench 刘等人（[2023b](https://arxiv.org/html/2412.17259v1#bib.bib18)）是一个多维基准平台，涵盖了包括操作系统、数据库和知识图谱在内的八个不同环境。它系统地评估了LLM代理在多轮开放式生成设置中的表现。AgentBoard
+    马等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib19)）专注于在多轮互动中系统性地评估LLM。它引入了细粒度的进度率度量和多维度分析工具，全面评估LLM在部分可观察环境中的多任务处理能力，为评估互动LLM性能提供了一个科学框架。ToolQA
+    庄等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib34)）涵盖了八个领域和13个工具，任务特别设计为需要外部工具和参考资料来解决问题。这避免了仅依赖模型的内部知识，建立了一个新的基准，用于评估LLM的工具使用能力。T-Eval
+    陈等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib3)）将LLM的工具利用能力分解为六个维度：规划、推理、检索、理解、指令执行和结果评估。该框架全面衡量了LLM在使用外部工具方面的表现，涵盖了多个层级。
+- en: These benchmarks provide diverse tools for exploring the capability boundaries
+    of LLM agents. However, they primarily focus on evaluating LLMs in general domains,
+    lacking systematic guidance and targeted frameworks for vertical domains such
+    as law and medicine. To address this gap, this paper introduces a dataset specifically
+    designed to evaluate LLM agents in the legal domain, offering valuable insights
+    and support for research and practice.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些基准测试提供了多样化的工具，用于探索LLM代理的能力边界。然而，它们主要集中于在一般领域评估LLM，缺乏针对法律和医学等垂直领域的系统性指导和专门框架。为了解决这一空白，本文引入了一个专门为评估法律领域的LLM代理而设计的数据集，为研究和实践提供了宝贵的见解和支持。
+- en: 3 LegalAgentBench
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 LegalAgentBench
+- en: 3.1 Overview
+  id: totrans-36
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 概述
+- en: 'LegalAgentBench consists of three key components: the environment, tools, and
+    tasks. LLM agents rely on these tools to interact with the environment and tackle
+    specific tasks. We define the environment as a text-based corpora, where both
+    the observation and action spaces are represented in natural language. Specifically,
+    the environment consists of 17 distinct corpora, 14 of which are tabular databases
+    for lookup, while 3 are document collections for retrieval. To facilitate interaction
+    with the environment, we provide 37 specialized tools for tasks such as text retrieval,
+    database operations, and mathematical computations.'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LegalAgentBench包含三个关键组件：环境、工具和任务。LLM代理依赖这些工具与环境互动并解决特定任务。我们将环境定义为基于文本的语料库，其中观察空间和行动空间均以自然语言表示。具体来说，环境包含17个不同的语料库，其中14个是用于查找的表格数据库，3个是用于检索的文档集合。为了便于与环境的互动，我们提供了37个专用工具，用于执行如文本检索、数据库操作和数学计算等任务。
+- en: 'In addition, LegalAgentBench includes 300 tasks of varying difficulty levels
+    and types. Figure [1](https://arxiv.org/html/2412.17259v1#S3.F1 "Figure 1 ‣ 3.1
+    Overview ‣ 3 LegalAgentBench ‣ LegalAgentBench: Evaluating LLM Agents in Legal
+    Domain") illustrates a task example. The key_answer represents the keywords in
+    the answer, used to evaluate the success rate of the final result. The key_middle
+    refers to the keywords in the intermediate steps of solving the task, providing
+    a more granular evaluation. These keywords are derived from the observations returned
+    by successful tool calls. The Path refers to the correct solution path for solving
+    the task. A longer path signifies a higher level of difficulty associated with
+    the task.'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '此外，LegalAgentBench包括300个具有不同难度级别和类型的任务。图[1](https://arxiv.org/html/2412.17259v1#S3.F1
+    "Figure 1 ‣ 3.1 Overview ‣ 3 LegalAgentBench ‣ LegalAgentBench: Evaluating LLM
+    Agents in Legal Domain")展示了一个任务示例。key_answer表示答案中的关键词，用于评估最终结果的成功率。key_middle指的是解决任务的中间步骤中的关键词，提供更细致的评估。这些关键词来源于成功工具调用返回的观察结果。Path指的是解决任务的正确路径。较长的路径表示任务的难度更高。'
+- en: Upon receiving the task, the LLM agent gradually selects the appropriate tools
+    and obtains corresponding feedback. After receiving feedback, the LLM agent updates
+    its internal state based on the observation and then determines the next action.
+    The agent’s actions typically involve selecting the appropriate tool and inputting
+    the necessary parameters, or adjusting the query strategy based on the feedback.
+    Each action generates a new observation, and this cycle continues until the agent
+    completes the task or reaches the predefined termination condition.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在接收到任务后，LLM代理会逐步选择适当的工具并获取相应的反馈。收到反馈后，LLM代理会根据观察更新其内部状态，然后决定下一步行动。代理的行动通常包括选择适当的工具并输入必要的参数，或根据反馈调整查询策略。每个行动都会生成新的观察结果，这一循环会持续进行，直到代理完成任务或达到预定的终止条件。
+- en: '![Refer to caption](img/04e53e2751289862d474ede0f6898067.png)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/04e53e2751289862d474ede0f6898067.png)'
+- en: 'Figure 1: A task example in LegalAgentBench (translated from Chinese).'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：LegalAgentBench中的一个任务示例（翻译自中文）。
+- en: 3.2 Corpora and Tools
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 语料库和工具
+- en: 'In LegalAgentBench, we developed 17 real-world datasets, including 14 tabular
+    databases designed for lookups and 3 document repositories intended for retrieving
+    relevant information. Table [1](https://arxiv.org/html/2412.17259v1#S3.T1 "Table
+    1 ‣ 3.2 Corpora and Tools ‣ 3 LegalAgentBench ‣ LegalAgentBench: Evaluating LLM
+    Agents in Legal Domain") presents the basic information and a brief overview of
+    these corpora. More details can be found in Appendix [B](https://arxiv.org/html/2412.17259v1#A2
+    "Appendix B Corpus Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain").'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在LegalAgentBench中，我们开发了17个真实世界的数据集，包括14个用于查找的表格数据库和3个用于检索相关信息的文档库。表[1](https://arxiv.org/html/2412.17259v1#S3.T1
+    "Table 1 ‣ 3.2 Corpora and Tools ‣ 3 LegalAgentBench ‣ LegalAgentBench: Evaluating
+    LLM Agents in Legal Domain")展示了这些语料库的基本信息和简要概述。更多细节可以在附录[B](https://arxiv.org/html/2412.17259v1#A2
+    "Appendix B Corpus Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")中找到。'
+- en: 'Specifically, we gather publicly available real-world data, encompassing information
+    about courts, law firms, listed companies, and their associated legal cases. Additionally,
+    we compile legal knowledge, articles, and guiding cases to create comprehensive
+    and searchable corpora. These corpora are sourced from real-world scenarios and
+    can evolve over time, mitigating the risk of LLM overfitting. Due to the sensitivity
+    of the legal domain, we discuss the license and ethical considerations in Appendix
+    [A](https://arxiv.org/html/2412.17259v1#A1 "Appendix A Discussion ‣ LegalAgentBench:
+    Evaluating LLM Agents in Legal Domain").'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体来说，我们收集了公开的真实世界数据，涵盖了法院、律所、上市公司及其相关法律案件的信息。此外，我们还编撰了法律知识、条文和指导性案例，以创建全面且可搜索的语料库。这些语料库来源于真实世界的场景，且随着时间的推移不断演变，从而减少了LLM过拟合的风险。由于法律领域的敏感性，我们在附录[A](https://arxiv.org/html/2412.17259v1#A1
+    "附录 A 讨论 ‣ LegalAgentBench：评估法律领域的LLM代理")中讨论了许可证和伦理考虑。
+- en: '| ID | Corpus | Format | Size | Brief overview |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| ID | 语料库 | 格式 | 大小 | 简要概述 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| 1 | CompanyInfo | Tabular Database | 695 | Basic information of listed companies
+    |'
+  id: totrans-47
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | CompanyInfo | 表格数据库 | 695 | 上市公司基本信息 |'
+- en: '| 2 | CompanyRegister | Tabular Database | 10,125 | Registration information
+    of listed companies |'
+  id: totrans-48
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | CompanyRegister | 表格数据库 | 10,125 | 上市公司注册信息 |'
+- en: '| 3 | SubCompanyInfo | Tabular Database | 9,433 | Investment information of
+    listed companies |'
+  id: totrans-49
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | SubCompanyInfo | 表格数据库 | 9,433 | 上市公司投资信息 |'
+- en: '| 4 | LegalDoc | Tabular Database | 24,372 | Legal cases involving listed companies
+    |'
+  id: totrans-50
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | LegalDoc | 表格数据库 | 24,372 | 涉及上市公司的法律案件 |'
+- en: '| 5 | LegalAbstract | Tabular Database | 1,200 | Summary information of legal
+    cases |'
+  id: totrans-51
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | LegalAbstract | 表格数据库 | 1,200 | 法律案件摘要信息 |'
+- en: '| 6 | CourtInfo | Tabular Database | 3,413 | Basic information of courts |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 | CourtInfo | 表格数据库 | 3,413 | 法院基本信息 |'
+- en: '| 7 | CourtCode | Tabular Database | 3,348 | Levels and administrative division
+    codes of courts |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | CourtCode | 表格数据库 | 3,348 | 法院的级别和行政区划代码 |'
+- en: '| 8 | LawfirmInfo | Tabular Database | 4,768 | Basic information of law firms
+    |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | LawfirmInfo | 表格数据库 | 4,768 | 律所基本信息 |'
+- en: '| 9 | LawfirmLog | Tabular Database | 101 | Service information of law firms
+    |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 | LawfirmLog | 表格数据库 | 101 | 律所服务信息 |'
+- en: '| 10 | AddrInfo | Tabular Database | 19,533 | Province, city, and district
+    corresponding to the address |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | AddrInfo | 表格数据库 | 19,533 | 与地址对应的省、市、区信息 |'
+- en: '| 11 | RestrictionCase | Tabular Database | 46 | Cases involving restrictions
+    on high consumption |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11 | RestrictionCase | 表格数据库 | 46 | 涉及高消费限制的案件 |'
+- en: '| 12 | FinalizedCase | Tabular Database | 119 | Cases closed upon final enforcement
+    |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12 | FinalizedCase | 表格数据库 | 119 | 已经执行完结的案件 |'
+- en: '| 13 | DishonestyCase | Tabular Database | 13 | Cases involving dishonest judgment
+    debtors |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 | DishonestyCase | 表格数据库 | 13 | 涉及不诚实判决债务人的案件 |'
+- en: '| 14 | AdministrativeCase | Tabular Database | 443 | Cases involving administrative
+    penalty |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| 14 | AdministrativeCase | 表格数据库 | 443 | 涉及行政处罚的案件 |'
+- en: '| 15 | LegalKonwledge | Retrieval Corpus | 26,951 | Knowledge from legal books
+    |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| 15 | LegalKonwledge | 检索语料库 | 26,951 | 来自法律书籍的知识 |'
+- en: '| 16 | LegalArticle | Retrieval Corpus | 55,347 | Legislatively enacted legal
+    articles |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 16 | LegalArticle | 检索语料库 | 55,347 | 立法制定的法律条文 |'
+- en: '| 17 | LegalCases | Retrieval Corpus | 2,370 | Officially published guiding
+    cases |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| 17 | LegalCases | 检索语料库 | 2,370 | 正式发布的指导性案例 |'
+- en: 'Table 1: Basic information of the corpora.'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：语料库的基本信息。
+- en: 'To obtain information from these reference corpora, we designed 37 tools that
+    are available to the LLM Agents. These tools are primarily divided into the following
+    categories:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了从这些参考语料库中获取信息，我们设计了37个可供LLM代理使用的工具。这些工具主要分为以下几类：
+- en: •
+  id: totrans-66
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Text Retrievers: These tools are responsible for retrieving content relevant
+    to a given query from document repositories. We use Embedding-3 ¹¹1[https://bigmodel.cn/](https://bigmodel.cn/)
+    as the default retriever. Additionally, users can integrate more advanced retrieval
+    models to further improve query results. LegalAgentBench includes three text retrievers.
+    For each retriever, the LLM can use the Number parameter to specify the number
+    of relevant documents to be returned.'
+  id: totrans-67
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 文本检索器：这些工具负责从文档库中检索与给定查询相关的内容。我们使用Embedding-3 ¹¹1[https://bigmodel.cn/](https://bigmodel.cn/)作为默认检索器。此外，用户还可以集成更高级的检索模型，以进一步改善查询结果。LegalAgentBench包含三个文本检索器。对于每个检索器，LLM可以使用Number参数指定返回相关文档的数量。
+- en: •
+  id: totrans-68
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Mathematical Tools: These tools perform basic arithmetic operations such as
+    addition, subtraction, multiplication, and division. Additionally, they can handle
+    more complex tasks like sorting data, and computing maximum or minimum values.
+    There are five mathematical tools in LegalAgentBench.'
+  id: totrans-69
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数学工具：这些工具执行基本的算术运算，如加法、减法、乘法和除法。此外，它们还可以处理更复杂的任务，如排序数据，以及计算最大值或最小值。LegalAgentBench
+    中有五个数学工具。
+- en: •
+  id: totrans-70
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Database Tools: These tools interact with specific databases to extract content
+    from particular columns based on predefined queries. They allow the LLM agents
+    to access structured data, providing tailored responses that match the criteria
+    defined in the query. There are 28 database tools in LegalAgentBench. For each
+    Database Tool, the LLM can use the parameter Column to control the attributes
+    returned from the corresponding tabular database.'
+  id: totrans-71
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数据库工具：这些工具与特定数据库交互，从特定列中提取内容，基于预定义的查询。它们使得 LLM 代理能够访问结构化数据，并根据查询中定义的标准提供量身定制的响应。LegalAgentBench
+    中有 28 个数据库工具。对于每个数据库工具，LLM 可以使用参数 Column 来控制从相应表格数据库返回的属性。
+- en: •
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'System Tools: The System tool currently only includes Finish, which parses
+    the execution feedback and returns the answer to complete the task.'
+  id: totrans-73
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 系统工具：当前系统工具仅包括 Finish，它解析执行反馈并返回答案以完成任务。
+- en: 'Due to space constraints, detailed descriptions of each tool, including their
+    inputs, outputs, and usage examples, are provided in Appendix [C](https://arxiv.org/html/2412.17259v1#A3
+    "Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain").'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于空间限制，每个工具的详细描述，包括它们的输入、输出和使用示例，已在附录 [C](https://arxiv.org/html/2412.17259v1#A3
+    "附录 C 工具详细信息 ‣ LegalAgentBench：在法律领域评估 LLM 代理人") 中提供。
+- en: '![Refer to caption](img/0c299ed1e529ed814297ad494c24045c.png)'
+  id: totrans-75
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/0c299ed1e529ed814297ad494c24045c.png)'
+- en: 'Figure 2: The overview of the task construction process in LegalAgentBench.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：LegalAgentBench 中任务构建过程的概览。
+- en: 3.3 Tasks
+  id: totrans-77
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 任务
+- en: 3.3.1 Task Definition
+  id: totrans-78
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.1 任务定义
+- en: LegalAgentBench employs a unified framework to standardize all tasks, offering
+    a formalized definition of the agent’s interaction process in legal scenarios.
+    At each time step $t$, the agent performs an action $a_{t}$, receives an observation
+    $o_{t}$, and updates its current state $s_{t}$ accordingly. This iterative process
+    continues until the task is successfully completed or the maximum iteration limit
+    $T$ is reached.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LegalAgentBench 使用统一框架来标准化所有任务，提供了在法律场景中代理人互动过程的正式定义。在每个时间步 $t$，代理人执行动作 $a_{t}$，接收观察结果
+    $o_{t}$，并相应地更新其当前状态 $s_{t}$。这一迭代过程持续进行，直到任务成功完成或达到最大迭代限制 $T$。
+- en: '$s_{t}$ represents the agent’s perceptual state at time $t$, encompassing the
+    acquired contextual information and the environmental state. The state $s_{t}$
+    is updated according to the following formula:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: $s_{t}$ 表示代理人在时间 $t$ 的感知状态，包括获取的上下文信息和环境状态。状态 $s_{t}$ 根据以下公式更新：
+- en: '|  | $s_{t+1}=u(s_{t},a_{t},o_{t}),$ |  |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $s_{t+1}=u(s_{t},a_{t},o_{t}),$ |  |'
+- en: where $u$ is the state update function, responsible for integrating the agent’s
+    actions and feedback into a new perceptual state.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$u$ 是状态更新函数，负责将代理人的动作和反馈整合成新的感知状态。
+- en: $a_{t}$ represents the specific action taken by the agent in the state $s_{t}$,
+    including tool invocation or information generation. The action $a_{t}$ is determined
+    by the state $s_{t}$ and the sequence of past observations.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: $a_{t}$ 表示代理人在状态 $s_{t}$ 下采取的特定行动，包括工具调用或信息生成。动作 $a_{t}$ 由状态 $s_{t}$ 和过去观察的序列决定。
+- en: '|  | $a_{t}=\pi(s_{t},{o_{1},o_{2},...,o_{t-1}}),$ |  |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $a_{t}=\pi(s_{t},{o_{1},o_{2},...,o_{t-1}}),$ |  |'
+- en: where $\pi$ is the agent’s decision-making policy.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$\pi$ 是代理人的决策制定策略。
+- en: $o_{t}$ is the feedback information received by the agent after invoking a tool,
+    including successful results or error messages.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: $o_{t}$ 是代理人在调用工具后收到的反馈信息，包括成功结果或错误信息。
+- en: '|  | $o_{t}=f(a_{t})$ |  |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $o_{t}=f(a_{t})$ |  |'
+- en: Here, $f$ is the feedback function. If $a_{t}$ is a valid action, it returns
+    the result of the operation; otherwise, it returns an error message.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里，$f$ 是反馈函数。如果 $a_{t}$ 是一个有效的动作，它返回操作的结果；否则，返回错误信息。
+- en: 3.3.2 Task Construction
+  id: totrans-89
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.2 任务构建
+- en: 'During the task generation phase, our primary goal is to leverage corpus and
+    tools to construct a diverse set of questions. The core principle is to ensure
+    that tasks encompass a wide range of difficulty levels and types, enabling a comprehensive
+    evaluation. In this section, we propose a scalable task construction process that
+    can be extended to incorporate new knowledge bases and tools. The entire process
+    is illustrated in Figure [2](https://arxiv.org/html/2412.17259v1#S3.F2 "Figure
+    2 ‣ 3.2 Corpora and Tools ‣ 3 LegalAgentBench ‣ LegalAgentBench: Evaluating LLM
+    Agents in Legal Domain").'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在任务生成阶段，我们的主要目标是利用语料库和工具构建一个多样化的问题集。核心原则是确保任务涵盖广泛的难度级别和类型，以便进行全面评估。在本节中，我们提出了一种可扩展的任务构建过程，该过程可以扩展以包含新的知识库和工具。整个过程如图
+    [2](https://arxiv.org/html/2412.17259v1#S3.F2 "图 2 ‣ 3.2 语料库和工具 ‣ 3 LegalAgentBench
+    ‣ LegalAgentBench：评估法律领域的大型语言模型代理")所示。
+- en: '| Attribute | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | Writing | ALL |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| 属性 | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | 写作 | 总计 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| # Task | 80 | 80 | 60 | 40 | 20 | 20 | 300 |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| # 任务数量 | 80 | 80 | 60 | 40 | 20 | 20 | 300 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Avg. length per query | 88.29 | 87.90 | 99.37 | 118.33 | 110.25 | 1059.95
+    | 160.65 |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个查询的平均长度 | 88.29 | 87.90 | 99.37 | 118.33 | 110.25 | 1059.95 | 160.65 |'
+- en: '| Avg. length per answer | 74.20 | 40.84 | 45.53 | 63.48 | 86.20 | 678.75 |
+    99.24 |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个回答的平均长度 | 74.20 | 40.84 | 45.53 | 63.48 | 86.20 | 678.75 | 99.24 |'
+- en: '| # Avg. key_answer per query | 1.88 | 1.44 | 1.20 | 1.40 | 2.25 | 10.25 |
+    2.14 |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| # 每个查询的平均 key_answer 数量 | 1.88 | 1.44 | 1.20 | 1.40 | 2.25 | 10.25 | 2.14
+    |'
+- en: '| Avg. length of key_answer | 10.59 | 5.94 | 6.07 | 6.59 | 6.93 | 12.58 | 9.28
+    |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| key_answer 的平均长度 | 10.59 | 5.94 | 6.07 | 6.59 | 6.93 | 12.58 | 9.28 |'
+- en: '| # Avg. key_middle per query | 0.13 | 1.45 | 2.87 | 4.78 | 5.60 | 6.20 | 2.42
+    |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| # 每个查询的平均 key_middle 数量 | 0.13 | 1.45 | 2.87 | 4.78 | 5.60 | 6.20 | 2.42
+    |'
+- en: '| Avg. length of key_middle | 9.20 | 9.72 | 10.95 | 11.35 | 11.25 | 7.21 |
+    10.24 |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| key_middle 的平均长度 | 9.20 | 9.72 | 10.95 | 11.35 | 11.25 | 7.21 | 10.24 |'
+- en: 'Table 2: Detailed Statistics of LegalAgentBench Tasks.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：LegalAgentBench 任务的详细统计。
+- en: 'Planning Tree Construction: To better organize and structure the task, we first
+    construct a planning tree based on the call relationships between the available
+    tools. The root node of the tree represents the unknown entity, which typically
+    corresponds to the starting point of the task. Each branch of the tree corresponds
+    to a tool that can be utilized by the entity, while the child nodes contain the
+    information obtained after invoking these tools. For each child node, subsequent
+    tools may be called progressively, forming deeper branches. In this planning tree,
+    each path represents a potential solution pathway, and the information at the
+    leaf nodes corresponds to the final requirements of the task.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规划树构建：为了更好地组织和结构化任务，我们首先基于可用工具之间的调用关系构建规划树。树的根节点代表未知实体，通常对应任务的起点。树的每一条分支代表实体可以使用的工具，而子节点包含在调用这些工具后获得的信息。对于每个子节点，后续的工具可以逐步调用，形成更深的分支。在这棵规划树中，每一条路径代表潜在的解决方案路径，而叶节点的信息对应任务的最终需求。
+- en: 'Path Selection: We select different paths from the planning tree to construct
+    tasks that cover a variety of types and difficulty levels. In the planning tree,
+    the depth of each branch represents the complexity of the task solution, while
+    the breadth of all branches reflects the diversity of task types. Therefore, we
+    extract solution paths layer by layer to ensure coverage of different difficulty
+    levels. Moreover, we minimize overlap between solution paths for tasks of different
+    difficulty levels, expanding the coverage of all branches to encompass a broader
+    range of task types. We ultimately developed serial solution paths ranging from
+    1-hop to 5-hop.'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 路径选择：我们从规划树中选择不同的路径来构建覆盖各种类型和难度级别的任务。在规划树中，每一条分支的深度代表任务解决方案的复杂性，而所有分支的宽度反映了任务类型的多样性。因此，我们逐层提取解决方案路径，以确保涵盖不同的难度级别。此外，我们最小化不同难度级别任务之间的路径重叠，扩展所有分支的覆盖范围，涵盖更广泛的任务类型。最终，我们开发了从
+    1-hop 到 5-hop 的串行解决方案路径。
+- en: 'In addition to using tools sequentially, our solution paths also incorporate
+    the parallel use of tools. We introduce the task of writing a defense document
+    as a typical example. In this scenario, the LLM must query basic information about
+    the plaintiff, defendant, and their lawyer based on a template, while simultaneously
+    retrieving fundamental legal knowledge and relevant articles to formulate a defense
+    against the complaint. In Appendix [D](https://arxiv.org/html/2412.17259v1#A4
+    "Appendix D Task Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain"),
+    we provide examples for better understanding.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '除了顺序使用工具外，我们的解决路径还结合了工具的并行使用。我们以撰写辩护文书的任务作为典型示例。在这个场景中，LLM必须根据模板查询原告、被告及其律师的基本信息，同时检索基础的法律知识和相关条款，以制定对抗诉讼的辩护。在附录[D](https://arxiv.org/html/2412.17259v1#A4
+    "Appendix D Task Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")中，我们提供了更清晰的示例以便更好地理解。'
+- en: 'Entity Selection: After determining the solution path, we select entities to
+    formulate the complete question. It is important to note that not all initial
+    entities can complete the intended solution path, as there may be cases where
+    the tool call returns no result. To address this issue, we iterate through all
+    possible entities and select two successfully executed entities for each path.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实体选择：在确定解决路径后，我们选择实体来构造完整的问题。需要注意的是，并非所有初始实体都能完成预定的解决路径，因为可能会出现工具调用没有返回结果的情况。为了解决这个问题，我们遍历所有可能的实体，并为每个路径选择两个成功执行的实体。
+- en: 'Question Rewriting: After the above steps, we obtain the appropriate entities
+    and can automatically generate multi-hop questions such as “What is $entity_{3}$
+    of $entity_{2}$ of $entity_{1}$?”. However, this type of question not only deviates
+    from actual usage habits but also directly exposes the solution path to the model.
+    To better align with real-world scenarios and obscure the solution path, we rephrase
+    the questions using GPT-4 to make them more flexible and in line with human needs.
+    The specific prompt can be found in Appendix [D](https://arxiv.org/html/2412.17259v1#A4
+    "Appendix D Task Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain").'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '问题重写：在完成上述步骤后，我们获得了适当的实体，并可以自动生成诸如“$entity_{3}$ 是 $entity_{2}$ 的 $entity_{1}$”之类的多跳问题。然而，这种问题不仅偏离了实际使用习惯，而且直接暴露了解决路径给模型。为了更好地贴合实际场景并掩盖解决路径，我们使用GPT-4重写问题，使其更加灵活并符合人类需求。具体的提示可以在附录[D](https://arxiv.org/html/2412.17259v1#A4
+    "Appendix D Task Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")中找到。'
+- en: 'Answers Generation: For each question, since the entities and the toolchain
+    used in the solution path are known, we can programmatically extract the answer
+    from the reference corpora through the appropriate parameterized toolchain. This
+    enables the automatic generation of correct answers, even for complex multi-hop
+    reasoning tasks.'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案生成：对于每个问题，由于解决路径中使用的实体和工具链是已知的，我们可以通过适当的参数化工具链程序化地从参考语料库中提取答案。这使得即使是复杂的多跳推理任务，也能够自动生成正确的答案。
+- en: 'Human Verification: We manually validate all questions, solution paths, and
+    answers in the tasks. This involves revising incompatible queries and tools, refining
+    questions that deviate from everyday usage, and addressing queries related to
+    specialized tools. Detailed guidelines for the validation process are provided
+    in Appendix [G](https://arxiv.org/html/2412.17259v1#A7 "Appendix G Guidelines
+    for Expert-Annotation ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain").'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '人工验证：我们手动验证任务中的所有问题、解决路径和答案。这包括修正不兼容的查询和工具，优化偏离日常使用习惯的问题，并处理与专业工具相关的查询。验证过程的详细指南可以在附录[G](https://arxiv.org/html/2412.17259v1#A7
+    "Appendix G Guidelines for Expert-Annotation ‣ LegalAgentBench: Evaluating LLM
+    Agents in Legal Domain")中找到。'
+- en: 3.3.3 Task Evaluation
+  id: totrans-109
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.3 任务评估
+- en: Given the high accuracy requirements in the legal domain, we primarily evaluate
+    performance using keyword matching to calculate the success rate. Specifically,
+    we extract keywords from tool call results and record them as key_answer. The
+    overlap between the agent’s output and these keywords serves as a measure of its
+    capabilities.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于法律领域对准确性的高要求，我们主要通过关键词匹配来评估性能，从而计算成功率。具体而言，我们从工具调用结果中提取关键词，并将其记录为key_answer。代理输出与这些关键词之间的重叠度作为衡量其能力的标准。
+- en: 'However, relying solely on the success rate fails to capture subtle differences,
+    as it cannot distinguish between tasks that are nearly completed and those that
+    are unfinished. To address this issue, we provide keywords not only for the final
+    answers but also for the intermediate solution steps. Using these keywords, we
+    calculate the progress rate, enabling a more fine-grained evaluation of the agent’s
+    performance at various stages of task completion. We provide the detailed calculation
+    for the success rate and progress rate in Appendix [E](https://arxiv.org/html/2412.17259v1#A5
+    "Appendix E More Implementation details ‣ LegalAgentBench: Evaluating LLM Agents
+    in Legal Domain").'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，仅仅依赖成功率无法捕捉到微妙的差异，因为它无法区分任务完成得差不多和未完成的任务。为了解决这个问题，我们不仅为最终答案提供了关键词，还为中间的解决步骤提供了关键词。通过这些关键词，我们计算了进展率，从而能够在任务完成的不同阶段对代理的表现进行更细致的评估。我们在附录[E](https://arxiv.org/html/2412.17259v1#A5
+    "附录E 更多实现细节 ‣ LegalAgentBench：评估法律领域的LLM代理")中提供了成功率和进展率的详细计算方法。
+- en: 3.3.4 Task Statistics
+  id: totrans-112
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.4 任务统计
+- en: 'After careful human verification, LegalAgentBench includes a total of 300 tasks
+    across 6 different types. Table [2](https://arxiv.org/html/2412.17259v1#S3.T2
+    "Table 2 ‣ 3.3.2 Task Construction ‣ 3.3 Tasks ‣ 3 LegalAgentBench ‣ LegalAgentBench:
+    Evaluating LLM Agents in Legal Domain") presents the detailed statistics of the
+    tasks. Overall, LegalAgentBench has a well-balanced distribution of difficulty
+    and task types, making it an effective tool for evaluating the capabilities of
+    agents in the legal domain.'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 经过仔细人工验证，LegalAgentBench包含总共300个任务，涵盖6种不同类型。表[2](https://arxiv.org/html/2412.17259v1#S3.T2
+    "表2 ‣ 3.3.2 任务构建 ‣ 3.3 任务 ‣ 3 LegalAgentBench ‣ LegalAgentBench：评估法律领域的LLM代理")展示了任务的详细统计数据。总体来看，LegalAgentBench在难度和任务类型上有着良好的平衡，使其成为评估法律领域代理能力的有效工具。
+- en: 4 Experiment
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验
+- en: 4.1 Experiment Setup
+  id: totrans-115
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 实验设置
+- en: '| Model | Method | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | Writing | ALL |
+    Tokens |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 方法 | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | 写作 | 全部 | 令牌 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GLM-4 | P-S | 0.7588 | 0.4229 | 0.1806 | 0.3708 | 0.1750 | 0.5778 | 0.4509
+    | 5,100,468 |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLM-4 | P-S | 0.7588 | 0.4229 | 0.1806 | 0.3708 | 0.1750 | 0.5778 | 0.4509
+    | 5,100,468 |'
+- en: '| P-E | 0.7838 | 0.4042 | 0.2056 | 0.3083 | 0.1600 | 0.5469 | 0.4461 | 9,849,924
+    |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.7838 | 0.4042 | 0.2056 | 0.3083 | 0.1600 | 0.5469 | 0.4461 | 9,849,924
+    |'
+- en: '| ReAct | 0.8787 | 0.6771 | 0.4167 | 0.3875 | 0.2433 | 0.5937 | 0.6057 | 11,920,863
+    |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.8787 | 0.6771 | 0.4167 | 0.3875 | 0.2433 | 0.5937 | 0.6057 | 11,920,863
+    |'
+- en: '| GLM-4-Plus | P-S | 0.8519 | 0.4667 | 0.4167 | 0.3583 | 0.1167 | 0.7522 |
+    0.5406 | 5,657,827 |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLM-4-Plus | P-S | 0.8519 | 0.4667 | 0.4167 | 0.3583 | 0.1167 | 0.7522 |
+    0.5406 | 5,657,827 |'
+- en: '| P-E | 0.8419 | 0.5000 | 0.3667 | 0.3458 | 0.1167 | 0.7679 | 0.5363 | 9,422,692
+    |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8419 | 0.5000 | 0.3667 | 0.3458 | 0.1167 | 0.7679 | 0.5363 | 9,422,692
+    |'
+- en: '| ReAct | 0.9131 | 0.8104 | 0.6417 | 0.6167 | 0.4300 | 0.7659 | 0.7499 | 11,739,861
+    |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9131 | 0.8104 | 0.6417 | 0.6167 | 0.4300 | 0.7659 | 0.7499 | 11,739,861
+    |'
+- en: '| LLaMa3.1-8B | P-S | 0.3406 | 0.1333 | 0.0333 | 0.0375 | 0.1083 | 0.2382 |
+    0.1612 | 9,279,701 |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaMa3.1-8B | P-S | 0.3406 | 0.1333 | 0.0333 | 0.0375 | 0.1083 | 0.2382 |
+    0.1612 | 9,279,701 |'
+- en: '| P-E | 0.3510 | 0.1042 | 0.0250 | 0.0500 | 0.0667 | 0.3484 | 0.1607 | 13,649,741
+    |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.3510 | 0.1042 | 0.0250 | 0.0500 | 0.0667 | 0.3484 | 0.1607 | 13,649,741
+    |'
+- en: '| ReAct | 0.6019 | 0.1542 | 0.0750 | 0.0708 | 0.0600 | 0.0872 | 0.2359 | 50,661,127
+    |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.6019 | 0.1542 | 0.0750 | 0.0708 | 0.0600 | 0.0872 | 0.2359 | 50,661,127
+    |'
+- en: '| Qwen-max | P-S | 0.8469 | 0.4958 | 0.4083 | 0.3792 | 0.2333 | 0.4836 | 0.5381
+    | 4,800,345 |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| Qwen-max | P-S | 0.8469 | 0.4958 | 0.4083 | 0.3792 | 0.2333 | 0.4836 | 0.5381
+    | 4,800,345 |'
+- en: '| P-E | 0.8594 | 0.5896 | 0.3583 | 0.4083 | 0.3017 | 0.5539 | 0.5695 | 9,884,307
+    |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8594 | 0.5896 | 0.3583 | 0.4083 | 0.3017 | 0.5539 | 0.5695 | 9,884,307
+    |'
+- en: '| ReAct | 0.9062 | 0.7917 | 0.6333 | 0.5833 | 0.6083 | 0.6662 | 0.7422 | 11,473,873
+    |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9062 | 0.7917 | 0.6333 | 0.5833 | 0.6083 | 0.6662 | 0.7422 | 11,473,873
+    |'
+- en: '| Claude-sonnet | P-S | 0.8137 | 0.6354 | 0.4833 | 0.3750 | 0.2400 | 0.8395
+    | 0.6051 | 7,100,962 |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| Claude-sonnet | P-S | 0.8137 | 0.6354 | 0.4833 | 0.3750 | 0.2400 | 0.8395
+    | 0.6051 | 7,100,962 |'
+- en: '| P-E | 0.8700 | 0.6771 | 0.5333 | 0.4667 | 0.4717 | 0.8610 | 0.6703 | 13,566,119
+    |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8700 | 0.6771 | 0.5333 | 0.4667 | 0.4717 | 0.8610 | 0.6703 | 13,566,119
+    |'
+- en: '| ReAct | 0.8950 | 0.6979 | 0.4750 | 0.4792 | 0.4567 | 0.6567 | 0.6579 | 32,878,858
+    |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.8950 | 0.6979 | 0.4750 | 0.4792 | 0.4567 | 0.6567 | 0.6579 | 32,878,858
+    |'
+- en: '| GPT-3.5 | P-S | 0.4906 | 0.2396 | 0.0500 | 0.1000 | 0.0667 | 0.0333 | 0.2247
+    | 5,007,391 |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 | P-S | 0.4906 | 0.2396 | 0.0500 | 0.1000 | 0.0667 | 0.0333 | 0.2247
+    | 5,007,391 |'
+- en: '| P-E | 0.4906 | 0.2062 | 0.0667 | 0.0625 | 0.0500 | 0.0405 | 0.2135 | 9,597,807
+    |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.4906 | 0.2062 | 0.0667 | 0.0625 | 0.0500 | 0.0405 | 0.2135 | 9,597,807
+    |'
+- en: '| ReAct | 0.6421 | 0.2854 | 0.1167 | 0.1000 | 0.1333 | 0.0852 | 0.2986 | 11,357,664
+    |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.6421 | 0.2854 | 0.1167 | 0.1000 | 0.1333 | 0.0852 | 0.2986 | 11,357,664
+    |'
+- en: '| GPT-4o-mini | P-S | 0.7117 | 0.3375 | 0.2750 | 0.2583 | 0.1250 | 0.6314 |
+    0.4196 | 5,482,556 |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o-mini | P-S | 0.7117 | 0.3375 | 0.2750 | 0.2583 | 0.1250 | 0.6314 |
+    0.4196 | 5,482,556 |'
+- en: '| P-E | 0.7444 | 0.3771 | 0.3250 | 0.2417 | 0.1417 | 0.6681 | 0.4503 | 10,861,492
+    |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.7444 | 0.3771 | 0.3250 | 0.2417 | 0.1417 | 0.6681 | 0.4503 | 10,861,492
+    |'
+- en: '| ReAct | 0.9333 | 0.6500 | 0.4000 | 0.4208 | 0.2583 | 0.6087 | 0.6161 | 13,332,418
+    |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9333 | 0.6500 | 0.4000 | 0.4208 | 0.2583 | 0.6087 | 0.6161 | 13,332,418
+    |'
+- en: '| GPT-4o | P-S | 0.7856 | 0.4437 | 0.2750 | 0.1875 | 0.2250 | 0.7971 | 0.4760
+    | 4,153,333 |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o | P-S | 0.7856 | 0.4437 | 0.2750 | 0.1875 | 0.2250 | 0.7971 | 0.4760
+    | 4,153,333 |'
+- en: '| P-E | 0.8106 | 0.3979 | 0.3167 | 0.2167 | 0.2767 | 0.8643 | 0.4906 | 7,261,238
+    |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8106 | 0.3979 | 0.3167 | 0.2167 | 0.2767 | 0.8643 | 0.4906 | 7,261,238
+    |'
+- en: '| ReAct | 0.9262 | 0.8396 | 0.7500 | 0.6417 | 0.6117 | 0.6541 | 0.7908 | 11,206,957
+    |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9262 | 0.8396 | 0.7500 | 0.6417 | 0.6117 | 0.6541 | 0.7908 | 11,206,957
+    |'
+- en: 'Table 3: The success rate of different baselines on LegalAgentBench. P-S represents
+    the Plan-and-Solve method, and P-E represents the Plan-and-Execute method. The
+    best results are highlighted in bold.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：不同基准在LegalAgentBench上的成功率。P-S代表Plan-and-Solve方法，P-E代表Plan-and-Execute方法。最佳结果以粗体显示。
+- en: 4.1.1 Baselines
+  id: totrans-143
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.1.1 基准
+- en: 'We evaluated eight well-known LLMs on LegalAgentBench: GLM-4 GLM et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib7)),
+    GLM-4-Plus GLM et al. ([2024](https://arxiv.org/html/2412.17259v1#bib.bib7)),
+    LLaMA3.1-8B-instruct Touvron et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib24)),
+    Qwen-max Bai et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib2)), Claude-sonnet
+    (claude-3-5-sonnet-20241022), GPT-3.5 (gpt-3.5-turbo-1106), GPT-4o-mini (gpt-4o-mini-2024-07-18),
+    and GPT-4o (gpt-4o-2024-08-06). Except for LLaMA3.1-8B-Instruct, other LLMs are
+    evaluated through API calls. To ensure the reproducibility of the results, we
+    set the temperature for all LLMs to 0.'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在LegalAgentBench上评估了八个著名的LLM：GLM-4 GLM等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib7)），GLM-4-Plus
+    GLM等人（[2024](https://arxiv.org/html/2412.17259v1#bib.bib7)），LLaMA3.1-8B-instruct
+    Touvron等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib24)），Qwen-max Bai等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib2)），Claude-sonnet
+    (claude-3-5-sonnet-20241022)，GPT-3.5 (gpt-3.5-turbo-1106)，GPT-4o-mini (gpt-4o-mini-2024-07-18)，以及GPT-4o
+    (gpt-4o-2024-08-06)。除了LLaMA3.1-8B-Instruct外，其他LLM是通过API调用进行评估的。为了确保结果的可复现性，我们将所有LLM的温度设置为0。
+- en: 'For each LLM, we implemented three different methods. 1) Plan-and-Solve Wang
+    et al. ([2023](https://arxiv.org/html/2412.17259v1#bib.bib26)): Outline a complete
+    plan and execute it step by step. 2) Plan-and-Execute Topsakal and Akinci ([2023](https://arxiv.org/html/2412.17259v1#bib.bib23)):
+    Develop a multi-step plan and complete it sequentially. After completing a task,
+    the LLM can reassess the plan and make appropriate adjustments. 3) ReAct [Yao
+    et al.](https://arxiv.org/html/2412.17259v1#bib.bib30) : Perform reasoning incrementally
+    through the “thought-action-observation” process, integrating reasoning and tool
+    usage.'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个LLM，我们实现了三种不同的方法。1）Plan-and-Solve 王等人（[2023](https://arxiv.org/html/2412.17259v1#bib.bib26)）：概述一个完整的计划，并逐步执行。2）Plan-and-Execute
+    Topsakal和Akinci（[2023](https://arxiv.org/html/2412.17259v1#bib.bib23)）：制定一个多步骤的计划并顺序完成。完成任务后，LLM可以重新评估计划并做出适当的调整。3）ReAct [Yao等人](https://arxiv.org/html/2412.17259v1#bib.bib30)：通过“思考-行动-观察”过程逐步进行推理，结合推理和工具使用。
+- en: 'When given a task, the model first determines which tools are needed, and then
+    uses the selected tools to gradually solve the task. When the LLM outputs Finish
+    or reaches the maximum iteration limit $T=10$, it summarizes the current trajectory
+    and provides the final answer. We included three examples for each process to
+    guide the model in using the tools and following the specified output format.
+    Additional implementation details are available in Appendix [E](https://arxiv.org/html/2412.17259v1#A5
+    "Appendix E More Implementation details ‣ LegalAgentBench: Evaluating LLM Agents
+    in Legal Domain").'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在给定任务时，模型首先确定需要哪些工具，然后使用选定的工具逐步解决任务。当LLM输出Finish或达到最大迭代限制$T=10$时，它会总结当前轨迹并提供最终答案。我们为每个过程提供了三个示例，以指导模型使用工具并遵循指定的输出格式。更多实现细节请见附录 [E](https://arxiv.org/html/2412.17259v1#A5
+    "附录E 更多实现细节 ‣ LegalAgentBench：评估法律领域中的LLM代理")。
+- en: 4.1.2 Metrics
+  id: totrans-147
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.1.2 指标
+- en: 'We apply three evaluation metrics, Success Rate, Process Rate, and BERT-Score Zhang
+    et al. ([2019](https://arxiv.org/html/2412.17259v1#bib.bib32)), to comprehensively
+    evaluate the performance. Specifically, the success rate calculates the proportion
+    of key_answer elements included in the LLM’s answer. The process rate further
+    incorporates key_middle, measuring the ratio of key_middle and key_answer elements
+    present in the answer. Moreover, BERTScore is applied to compute the textual similarity
+    between the generated answer and the reference answer, thus assessing the quality
+    and accuracy of the output. In addition to these metrics, we also report the number
+    of tokens consumed by the LLMs as a reference for efficiency. Due to space limitations,
+    we report only the success rate in the main result. More results can be found
+    in the Appendix [F](https://arxiv.org/html/2412.17259v1#A6 "Appendix F More Evaluation
+    Result ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain").'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们应用了三个评估指标：成功率、过程率和BERT-Score Zhang等人（[2019](https://arxiv.org/html/2412.17259v1#bib.bib32)）提出的指标，来综合评估性能。具体来说，成功率计算LLM回答中包含的key_answer元素的比例。过程率进一步结合了key_middle，衡量回答中key_middle和key_answer元素的比例。此外，BERTScore用于计算生成答案与参考答案之间的文本相似度，从而评估输出的质量和准确性。除了这些指标，我们还报告了LLM消耗的token数量，作为效率的参考。由于篇幅限制，我们在主要结果中仅报告了成功率。更多结果可在附录[F](https://arxiv.org/html/2412.17259v1#A6
+    "Appendix F More Evaluation Result ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain")中找到。'
+- en: 4.2 Main Results
+  id: totrans-149
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 主要结果
+- en: 'The performance comparison between different LLMs and baselines on LegalAgentBench
+    is shown in Table [3](https://arxiv.org/html/2412.17259v1#S4.T3 "Table 3 ‣ 4.1
+    Experiment Setup ‣ 4 Experiment ‣ LegalAgentBench: Evaluating LLM Agents in Legal
+    Domain"). More experimental results can be found in Appendix [F](https://arxiv.org/html/2412.17259v1#A6
+    "Appendix F More Evaluation Result ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain"). Based on the experimental results, we draw the following observations.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在LegalAgentBench上，不同LLM和基准模型的性能比较见表格[3](https://arxiv.org/html/2412.17259v1#S4.T3
+    "Table 3 ‣ 4.1 Experiment Setup ‣ 4 Experiment ‣ LegalAgentBench: Evaluating LLM
+    Agents in Legal Domain")。更多实验结果可在附录[F](https://arxiv.org/html/2412.17259v1#A6
+    "Appendix F More Evaluation Result ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain")中找到。根据实验结果，我们得出以下观察结论。'
+- en: •
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Comparing Different LLMs. In experiments across different LLMs, GPT-3.5 and
+    LLaMA3.1-8B demonstrated poor performance, with success rates on LegalAgentBench
+    below 30%. This may stem from their limited ability to effectively use tools,
+    restricting their problem-solving capacity in complex legal tasks. GLM4, GLM4-Plus,
+    Qwen-Max, and GPT-4o-mini consumed tokens at similar levels. However, GLM4-Plus
+    and Qwen-Max demonstrated superior performance. Claude-Sonnet also achieved competitive
+    results, delivering the best performance under both P-S and P-E methods. However,
+    it often required more tokens compared to other LLMs. Under the ReAct method,
+    GPT-4o achieved the best performance with relatively fewer tokens, reaching a
+    success rate of 79.08%. Overall, LegalAgentBench effectively differentiates the
+    capabilities of various LLMs, with those demonstrating stronger tool usage and
+    logical reasoning achieving superior performance.
+  id: totrans-152
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 比较不同LLM。在不同LLM的实验中，GPT-3.5和LLaMA3.1-8B表现较差，LegalAgentBench上的成功率低于30%。这可能源于它们在有效使用工具方面的能力有限，限制了它们在复杂法律任务中的问题解决能力。GLM4、GLM4-Plus、Qwen-Max和GPT-4o-mini的token消耗相似。然而，GLM4-Plus和Qwen-Max表现出更优异的性能。Claude-Sonnet也取得了有竞争力的结果，在P-S和P-E方法下都表现最佳。然而，它通常需要比其他LLM更多的token。在ReAct方法下，GPT-4o凭借相对较少的token取得了最佳表现，成功率达到了79.08%。总体来说，LegalAgentBench有效地区分了不同LLM的能力，表现较强的工具使用能力和逻辑推理能力的LLM取得了更优异的表现。
+- en: •
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Comparing different methods. By comparing different methods, we found that ReAct
+    typically produces better results for multi-hop questions. However, this advantage
+    comes with higher token consumption, suggesting that allowing more time for reasoning
+    could improve performance. Additionally, we found that when LLMs are limited in
+    capability, the P-E method doesn’t always outperform P-S. LLMs like GLM-4, LLaMa3.1-8B,
+    and GPT-3.5 show similar trends. This may be due to plan updates increasing the
+    context length, which reduces the effectiveness of the attention mechanism. The
+    performance gap between different reasoning methods for the same LLM can reach
+    65%, emphasizing that effective methods better utilize the LLM’s potential. Additionally,
+    when designing effective reasoning methods, it is also crucial to balance model
+    capability, reasoning time, and token consumption.
+  id: totrans-154
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 比较不同的方法。通过比较不同的方法，我们发现ReAct通常在多跳问题中产生更好的结果。然而，这一优势伴随着更高的token消耗，这表明增加推理时间可能有助于提高性能。此外，我们还发现，当LLM的能力受到限制时，P-E方法并不总是优于P-S。像GLM-4、LLaMa3.1-8B和GPT-3.5这样的LLM表现出相似的趋势。这可能是由于计划更新增加了上下文长度，从而减少了注意力机制的效果。同一个LLM在不同推理方法下的性能差距可达到65%，这强调了有效方法更好地利用了LLM的潜力。此外，在设计有效的推理方法时，平衡模型能力、推理时间和token消耗同样至关重要。
+- en: •
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Comparing different types of queries. As shown in Table [3](https://arxiv.org/html/2412.17259v1#S4.T3
+    "Table 3 ‣ 4.1 Experiment Setup ‣ 4 Experiment ‣ LegalAgentBench: Evaluating LLM
+    Agents in Legal Domain"), for multi-hop questions, all baselines showed decreased
+    performance as the number of hops increased. The best performance achieved 93%
+    success on the 1-hop question, but only 61% on the 5-hop question. This indicates
+    that the questions in LegalAgentBench cover a wide range of difficulty levels.
+    For the Writing task, we observed that ReAct performed poorly compared to other
+    methods. We believe this may be due to the step-by-step update mechanism, which
+    repeatedly attempts to solve individual steps when errors occur. In tasks like
+    writing, which require parallel processing, this approach may overlook other potential
+    paths that could lead to other answers. This also highlights that the diverse
+    types of questions in LegalAgentBench effectively assess the potential of different
+    methods.'
+  id: totrans-156
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '比较不同类型的查询。如表[3](https://arxiv.org/html/2412.17259v1#S4.T3 "Table 3 ‣ 4.1 Experiment
+    Setup ‣ 4 Experiment ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")所示，对于多跳问题，所有基准方法在跳数增加时都表现出性能下降。在1跳问题上，最佳性能达到了93%的成功率，但在5跳问题上仅为61%。这表明LegalAgentBench中的问题涵盖了广泛的难度水平。在写作任务中，我们观察到ReAct的表现相较于其他方法较差。我们认为这可能是由于逐步更新机制，在发生错误时会反复尝试解决单个步骤。在需要并行处理的写作任务中，这种方法可能会忽视其他潜在路径，从而可能导致其他答案的出现。这也突显了LegalAgentBench中多样化问题类型有效评估了不同方法的潜力。'
+- en: 4.3 Analysis
+  id: totrans-157
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 分析
+- en: In this section, we analyze the unique challenges faced by LLM agents in LegalAgentBench
+    and the potential improvements.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们分析了LLM代理在LegalAgentBench中面临的独特挑战以及可能的改进方向。
+- en: Lack of specialized legal knowledge. The terminology and concepts in the legal
+    domain are highly specialized, and without sufficient legal knowledge, LLMs may
+    struggle to generate accurate reasoning paths. For example, LMs often fail to
+    distinguish between filing time and trial time or to interpret the specific meanings
+    of different parts of a case number, all of which are crucial for arriving at
+    the correct answer. Although we have provided a legal knowledge corpora, in practice,
+    we find that LLMs often fail to recognize the necessity of consulting relevant
+    legal knowledge. When handling legal issues, LLMs tend to rely on existing patterns
+    and linguistic knowledge, overlooking the precision and details required in the
+    legal domain. In the future, legal knowledge should be integrated into LLMs more
+    systematically and in-depth to ensure accuracy and reliability in complex legal
+    contexts. Moreover, LLMs should also intelligently recognize when to access external
+    legal databases, enabling more flexible and accurate decision-making.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缺乏专业的法律知识。法律领域的术语和概念高度专业化，如果没有足够的法律知识，LLM 可能难以生成准确的推理路径。例如，语言模型经常无法区分立案时间和审判时间，或者无法解读案件编号中不同部分的具体含义，这些都对得出正确答案至关重要。尽管我们提供了法律知识语料库，但实际上，我们发现
+    LLM 经常未能认识到咨询相关法律知识的必要性。在处理法律问题时，LLM 倾向于依赖现有的模式和语言知识，忽视了法律领域所需的精确性和细节。未来，法律知识应更加系统且深入地融入
+    LLM 中，以确保在复杂的法律环境下的准确性和可靠性。此外，LLM 还应能够智能识别何时访问外部法律数据库，从而实现更灵活和准确的决策。
+- en: Insufficient understanding of legal articles and case law. The resolution of
+    some legal issues relies on articles and case law, but LLMs may have significant
+    limitations in this regard. During reasoning, LLMs often struggle to accurately
+    interpret the scope and logic of legal articles. Even when retrievers successfully
+    identify relevant articles and cases, LLMs may still encounter difficulties in
+    understanding the judicial interpretations and practical applications of these
+    referenced materials, especially in complex legal scenarios. In the future, to
+    enhance the effectiveness of LLMs in the legal domain, it is essential to strengthen
+    their ability to deeply understand and apply legal articles and cases.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对法律条文和案例法的理解不足。一些法律问题的解决依赖于法律条文和案例法，但 LLM 在这方面可能存在显著的局限性。在推理过程中，LLM 常常难以准确解读法律条文的范围和逻辑。即使检索器成功识别相关条文和案例，LLM
+    仍可能在理解这些参考材料的司法解释和实际应用时遇到困难，特别是在复杂的法律情境下。未来，为了增强 LLM 在法律领域的有效性，必须加强它们深入理解和应用法律条文和案例的能力。
+- en: 'Other Error Types In addition to the above challenges, LLM agents commonly
+    encounter the following errors on LegalAgentBench: 1) Argument Errors: LLM agents
+    fail to provide the correct argument when invoking tools. 2) Planning Errors:
+    LLM agents generate incorrect planning paths or use inappropriate tools due to
+    hallucinations or insufficient knowledge. 3) Exceeding Length Limitations: The
+    encoded interaction history, observations, and tool usage plans exceed the length
+    limit, preventing the LLM agents from resolving the task. 4) Getting Stuck in
+    Loops: LLM agents may repeatedly attempt to solve the same problem, ultimately
+    reaching the maximum iteration limit. Overall, LegalAgentBench provides a comprehensive
+    and reliable evaluation platform, highlighting that LLM agents still have significant
+    room for improvement in solving complex legal problems.'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他错误类型 除了上述挑战，LLM 代理在 LegalAgentBench 上通常会遇到以下错误：1) 参数错误：LLM 代理在调用工具时未能提供正确的参数。
+    2) 规划错误：LLM 代理因幻觉或知识不足生成不正确的规划路径，或使用不合适的工具。 3) 超出长度限制：编码的交互历史、观察结果和工具使用计划超过了长度限制，导致
+    LLM 代理无法解决任务。 4) 陷入循环：LLM 代理可能反复尝试解决同一问题，最终达到最大迭代次数限制。总体而言，LegalAgentBench 提供了一个全面且可靠的评估平台，突显了
+    LLM 代理在解决复杂法律问题时仍有较大改进空间。
+- en: 5 Conclusion
+  id: totrans-162
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结论
+- en: 'In this paper, we introduced LegalAgentBench, a benchmark designed to evaluate
+    the performance of LLM agents in the legal domain. To achieve this, we collected
+    real-world data to construct 17 databases and 37 tools. Additionally, we proposed
+    a scalable task construction framework that comprises six steps: planning tree
+    creation, path selection, entity verification, question rewriting, answer generation,
+    and human verification. This framework is versatile and can be extended to incorporate
+    new knowledge bases and tools, enabling the construction of tasks with varying
+    types and difficulty levels. We conducted extensive experiments on LegalAgentBench,
+    providing an in-depth analysis of the strengths, weaknesses, and potential improvement
+    directions for existing models and methods. Looking ahead, we aim to expand LegalAgentBench
+    to support additional languages and legal systems, fostering the development of
+    legal LLMs worldwide.'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文介绍了LegalAgentBench，这是一个旨在评估法律领域LLM代理性能的基准测试。为了实现这一目标，我们收集了真实世界的数据，构建了17个数据库和37个工具。此外，我们提出了一个可扩展的任务构建框架，包含六个步骤：规划树创建、路径选择、实体验证、问题重写、答案生成和人工验证。该框架具有高度的通用性，可以扩展以纳入新的知识库和工具，从而支持不同类型和难度等级的任务构建。我们在LegalAgentBench上进行了广泛的实验，深入分析了现有模型和方法的优缺点以及潜在的改进方向。展望未来，我们计划扩展LegalAgentBench，支持更多语言和法律体系，促进全球法律LLM的发展。
+- en: References
+  id: totrans-164
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Achiam et al. (2023) Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad,
+    Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman,
+    Shyamal Anadkat, et al. 2023. Gpt-4 technical report. *arXiv preprint arXiv:2303.08774*.
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Achiam等（2023）Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya,
+    Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal
+    Anadkat等人，2023年。Gpt-4技术报告。*arXiv预印本 arXiv:2303.08774*。
+- en: Bai et al. (2023) Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong
+    Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, et al. 2023. Qwen technical report.
+    *arXiv preprint arXiv:2309.16609*.
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bai等（2023）Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng,
+    Yang Fan, Wenbin Ge, Yu Han, Fei Huang等人，2023年。Qwen技术报告。*arXiv预印本 arXiv:2309.16609*。
+- en: 'Chen et al. (2024) Zehui Chen, Weihua Du, Wenwei Zhang, Kuikun Liu, Jiangning
+    Liu, Miao Zheng, Jingming Zhuo, Songyang Zhang, Dahua Lin, Kai Chen, et al. 2024.
+    T-eval: Evaluating the tool utilization capability of large language models step
+    by step. In *Proceedings of the 62nd Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers)*, pages 9510–9529.'
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen等（2024）Zehui Chen, Weihua Du, Wenwei Zhang, Kuikun Liu, Jiangning Liu, Miao
+    Zheng, Jingming Zhuo, Songyang Zhang, Dahua Lin, Kai Chen等人，2024年。T-eval：一步步评估大语言模型工具利用能力。在*第62届计算语言学协会年会论文集（卷1：长篇论文）*中，第9510–9529页。
+- en: 'Chu et al. (2024) Zhumin Chu, Qingyao Ai, Yiteng Tu, Haitao Li, and Yiqun Liu.
+    2024. Pre: A peer review based large language model evaluator. *arXiv preprint
+    arXiv:2401.15641*.'
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chu等（2024）Zhumin Chu, Qingyao Ai, Yiteng Tu, Haitao Li, 和Yiqun Liu，2024年。Pre：一个基于同行评审的大语言模型评估器。*arXiv预印本
+    arXiv:2401.15641*。
+- en: 'Cui et al. (2023) Jiaxi Cui, Zongjian Li, Yang Yan, Bohua Chen, and Li Yuan.
+    2023. Chatlaw: Open-source legal large language model with integrated external
+    knowledge bases. *arXiv preprint arXiv:2306.16092*.'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cui等（2023）Jiaxi Cui, Zongjian Li, Yang Yan, Bohua Chen, 和Li Yuan，2023年。Chatlaw：集成外部知识库的开源法律大语言模型。*arXiv预印本
+    arXiv:2306.16092*。
+- en: 'Dorri et al. (2018) Ali Dorri, Salil S Kanhere, and Raja Jurdak. 2018. Multi-agent
+    systems: A survey. *Ieee Access*, 6:28573–28593.'
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dorri等（2018）Ali Dorri, Salil S Kanhere, 和Raja Jurdak，2018年。多智能体系统：一项综述。*IEEE
+    Access*，6：28573–28593。
+- en: 'GLM et al. (2024) Team GLM, Aohan Zeng, Bin Xu, Bowen Wang, Chenhui Zhang,
+    Da Yin, Dan Zhang, Diego Rojas, Guanyu Feng, Hanlin Zhao, et al. 2024. Chatglm:
+    A family of large language models from glm-130b to glm-4 all tools. *arXiv preprint
+    arXiv:2406.12793*.'
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: GLM等（2024）GLM团队，Aohan Zeng, Bin Xu, Bowen Wang, Chenhui Zhang, Da Yin, Dan Zhang,
+    Diego Rojas, Guanyu Feng, Hanlin Zhao等人，2024年。Chatglm：从glm-130b到glm-4全工具的大语言模型家族。*arXiv预印本
+    arXiv:2406.12793*。
+- en: 'Guha et al. (2024) Neel Guha, Julian Nyarko, Daniel Ho, Christopher Ré, Adam
+    Chilton, Alex Chohlas-Wood, Austin Peters, Brandon Waldon, Daniel Rockmore, Diego
+    Zambrano, et al. 2024. Legalbench: A collaboratively built benchmark for measuring
+    legal reasoning in large language models. *Advances in Neural Information Processing
+    Systems*, 36.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Guha等（2024）Neel Guha, Julian Nyarko, Daniel Ho, Christopher Ré, Adam Chilton,
+    Alex Chohlas-Wood, Austin Peters, Brandon Waldon, Daniel Rockmore, Diego Zambrano等人，2024年。Legalbench：一个协作构建的基准测试，用于衡量大语言模型中的法律推理能力。*神经信息处理系统进展*，36。
+- en: 'Huang et al. (2023) Yue Huang, Jiawen Shi, Yuan Li, Chenrui Fan, Siyuan Wu,
+    Qihui Zhang, Yixin Liu, Pan Zhou, Yao Wan, Neil Zhenqiang Gong, et al. 2023. Metatool
+    benchmark for large language models: Deciding whether to use tools and which to
+    use. *arXiv preprint arXiv:2310.03128*.'
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang 等人（2023）黄悦、施家文、李源、范晨瑞、吴思源、张琪辉、刘一鑫、周潘、万尧、宫振强、等人。2023。Metatool：大语言模型的基准测试：决定是否使用工具以及使用哪些工具。*arXiv
+    预印本 arXiv:2310.03128*。
+- en: 'Li et al. (2023) Haitao Li, Qingyao Ai, Jia Chen, Qian Dong, Yueyue Wu, Yiqun
+    Liu, Chong Chen, and Qi Tian. 2023. Sailer: structure-aware pre-trained language
+    model for legal case retrieval. In *Proceedings of the 46th International ACM
+    SIGIR Conference on Research and Development in Information Retrieval*, pages
+    1035–1044.'
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2023）李海涛、艾青尧、陈佳、董乾、吴悦悦、刘一群、陈冲、田琪。2023。Sailer：面向结构的法律案件检索预训练语言模型。载于《第46届国际
+    ACM SIGIR 信息检索研究与发展会议论文集》，页码1035–1044。
+- en: 'Li et al. (2024a) Haitao Li, Qingyao Ai, Jia Chen, Qian Dong, Zhijing Wu, Yiqun
+    Liu, Chong Chen, and Qi Tian. 2024a. [Blade: Enhancing black-box large language
+    models with small domain-specific models](http://arxiv.org/abs/2403.18365).'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2024a）李海涛、艾青尧、陈佳、董乾、吴志静、刘一群、陈冲、田琪。2024a。[Blade：通过小型领域特定模型增强黑箱大语言模型](http://arxiv.org/abs/2403.18365)。
+- en: 'Li et al. (2024b) Haitao Li, Qingyao Ai, Xinyan Han, Jia Chen, Qian Dong, Yiqun
+    Liu, Chong Chen, and Qi Tian. 2024b. Delta: Pre-train a discriminative encoder
+    for legal case retrieval via structural word alignment. *arXiv preprint arXiv:2403.18435*.'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2024b）李海涛、艾青尧、韩欣妍、陈佳、董乾、刘一群、陈冲、田琪。2024b。Delta：通过结构化单词对齐预训练一个判别性编码器用于法律案件检索。*arXiv
+    预印本 arXiv:2403.18435*。
+- en: 'Li et al. (2024c) Haitao Li, Junjie Chen, Qingyao Ai, Zhumin Chu, Yujia Zhou,
+    Qian Dong, and Yiqun Liu. 2024c. Calibraeval: Calibrating prediction distribution
+    to mitigate selection bias in llms-as-judges. *arXiv preprint arXiv:2410.15393*.'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2024c）李海涛、陈俊杰、艾青尧、朱敏、周宇佳、董乾、刘一群。2024c。Calibraeval：校准预测分布以减轻大语言模型作为法官时的选择偏差。*arXiv
+    预印本 arXiv:2410.15393*。
+- en: 'Li et al. (2024d) Haitao Li, You Chen, Qingyao Ai, Yueyue Wu, Ruizhe Zhang,
+    and Yiqun Liu. 2024d. Lexeval: A comprehensive chinese legal benchmark for evaluating
+    large language models. *arXiv preprint arXiv:2409.20288*.'
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2024d）李海涛、陈游、艾青尧、吴悦悦、张瑞哲、刘一群。2024d。Lexeval：评估大语言模型的全面中文法律基准。*arXiv 预印本
+    arXiv:2409.20288*。
+- en: 'Li et al. (2024e) Haitao Li, Qian Dong, Junjie Chen, Huixue Su, Yujia Zhou,
+    Qingyao Ai, Ziyi Ye, and Yiqun Liu. 2024e. Llms-as-judges: A comprehensive survey
+    on llm-based evaluation methods. *arXiv preprint arXiv:2412.05579*.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2024e）李海涛、董乾、陈俊杰、苏慧学、周宇佳、艾青尧、叶子怡、刘一群。2024e。Llms-as-judges：基于大语言模型的评估方法全面调查。*arXiv
+    预印本 arXiv:2412.05579*。
+- en: 'Li et al. (2024f) Haitao Li, Yunqiu Shao, Yueyue Wu, Qingyao Ai, Yixiao Ma,
+    and Yiqun Liu. 2024f. Lecardv2: A large-scale chinese legal case retrieval dataset.
+    In *Proceedings of the 47th International ACM SIGIR Conference on Research and
+    Development in Information Retrieval*, pages 2251–2260.'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2024f）李海涛、邵云秋、吴悦悦、艾青尧、马怡晓、刘一群。2024f。Lecardv2：大规模中文法律案件检索数据集。载于《第47届国际
+    ACM SIGIR 信息检索研究与发展会议论文集》，页码2251–2260。
+- en: 'Liu et al. (2023a) Bo Liu, Yuqian Jiang, Xiaohan Zhang, Qiang Liu, Shiqi Zhang,
+    Joydeep Biswas, and Peter Stone. 2023a. Llm+ p: Empowering large language models
+    with optimal planning proficiency. *arXiv preprint arXiv:2304.11477*.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人（2023a）刘博、姜雨倩、张晓涵、刘强、张诗琪、比斯瓦斯·乔伊迪普、石彼得。2023a。Llm+ p：赋能大语言模型以优化规划能力。*arXiv
+    预印本 arXiv:2304.11477*。
+- en: 'Liu et al. (2023b) Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu Lei, Hanyu
+    Lai, Yu Gu, Hangliang Ding, Kaiwen Men, Kejuan Yang, et al. 2023b. Agentbench:
+    Evaluating llms as agents. *arXiv preprint arXiv:2308.03688*.'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人（2023b）刘晓、余浩、张汉辰、许艺凡、雷轩宇、赖汉宇、顾宇、丁杭亮、门凯文、杨科娟、等人。2023b。Agentbench：评估大语言模型作为代理的表现。*arXiv
+    预印本 arXiv:2308.03688*。
+- en: 'Ma et al. (2024) Chang Ma, Junlei Zhang, Zhihao Zhu, Cheng Yang, Yujiu Yang,
+    Yaohui Jin, Zhenzhong Lan, Lingpeng Kong, and Junxian He. 2024. Agentboard: An
+    analytical evaluation board of multi-turn llm agents. *arXiv preprint arXiv:2401.13178*.'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ma 等人（2024）马昌、张俊磊、朱志浩、杨程、杨宇九、金耀辉、兰振中、孔灵鹏、贺俊贤。2024。Agentboard：多轮大语言模型代理的分析评估板。*arXiv
+    预印本 arXiv:2401.13178*。
+- en: 'Qin et al. (2023) Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan,
+    Yaxi Lu, Yankai Lin, Xin Cong, Xiangru Tang, Bill Qian, et al. 2023. Toolllm:
+    Facilitating large language models to master 16000+ real-world apis. *arXiv preprint
+    arXiv:2307.16789*.'
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Qin 等人 (2023) 祁佳、梁世豪、叶宜宁、朱坤伦、闫兰、陆雅溪、林彦凯、宋鑫、唐向如、钱彬等。2023年。《Toolllm: 促使大语言模型掌握16000+个现实世界的API》。*arXiv
+    预印本 arXiv:2307.16789*。'
+- en: 'Shen et al. (2024) Yongliang Shen, Kaitao Song, Xu Tan, Dongsheng Li, Weiming
+    Lu, and Yueting Zhuang. 2024. Hugginggpt: Solving ai tasks with chatgpt and its
+    friends in hugging face. *Advances in Neural Information Processing Systems*,
+    36.'
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Shen 等人 (2024) 宋凯涛、谭旭、李东生、陆伟明、庄宇廷。2024年。《Hugginggpt: 用 ChatGPT 和 Hugging Face
+    的伙伴们解决 AI 任务》。*神经信息处理系统进展*，36。'
+- en: 'Shinn et al. (2024) Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik
+    Narasimhan, and Shunyu Yao. 2024. Reflexion: Language agents with verbal reinforcement
+    learning. *Advances in Neural Information Processing Systems*, 36.'
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Shinn 等人 (2024) Noah Shinn、Federico Cassano、Ashwin Gopinath、Karthik Narasimhan、姚顺宇等。2024年。《Reflexion:
+    具有语言强化学习的语言代理》。*神经信息处理系统进展*，36。'
+- en: 'Topsakal and Akinci (2023) Oguzhan Topsakal and Tahir Cetin Akinci. 2023. Creating
+    large language model applications utilizing langchain: A primer on developing
+    llm apps fast. In *International Conference on Applied Engineering and Natural
+    Sciences*, volume 1, pages 1050–1056.'
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Topsakal 和 Akinci (2023) Oguzhan Topsakal 和 Tahir Cetin Akinci。2023年。《利用 Langchain
+    创建大语言模型应用：快速开发 LLM 应用的入门》。发表于*国际应用工程与自然科学会议*，第1卷，第1050-1056页。
+- en: 'Touvron et al. (2023) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, et al. 2023. Llama: Open and efficient foundation language
+    models. *arXiv preprint arXiv:2302.13971*.'
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron 等人 (2023) Hugo Touvron、Thibaut Lavril、Gautier Izacard、Xavier Martinet、Marie-Anne
+    Lachaux、Timothée Lacroix、Baptiste Rozière、Naman Goyal、Eric Hambro、Faisal Azhar等。2023年。《Llama:
+    开放且高效的基础语言模型》。*arXiv 预印本 arXiv:2302.13971*。'
+- en: Wang et al. (2024) Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao Yang, Jingsen
+    Zhang, Zhiyuan Chen, Jiakai Tang, Xu Chen, Yankai Lin, Wayne Xin Zhao, Zhewei
+    Wei, and Jirong Wen. 2024. [A survey on large language model based autonomous
+    agents](https://doi.org/10.1007/s11704-024-40231-1). *Frontiers of Computer Science*,
+    18(6).
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人 (2024) 王雷、马晨、冯雪扬、张泽宇、杨浩、张景森、陈志远、唐家凯、陈旭、林彦凯、赵欣伟、魏哲伟、温吉荣等。2024年。[关于基于大语言模型的自主代理的调查](https://doi.org/10.1007/s11704-024-40231-1)。*计算机科学前沿*，18(6)。
+- en: 'Wang et al. (2023) Lei Wang, Wanyu Xu, Yihuai Lan, Zhiqiang Hu, Yunshi Lan,
+    Roy Ka-Wei Lee, and Ee-Peng Lim. 2023. Plan-and-solve prompting: Improving zero-shot
+    chain-of-thought reasoning by large language models. *arXiv preprint arXiv:2305.04091*.'
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人 (2023) 王雷、许婉玉、蓝一槐、胡志强、兰云石、李瑞凯、林怡鹏等。2023年。《计划与解决提示：通过大语言模型提升零-shot链式推理》。*arXiv
+    预印本 arXiv:2305.04091*。
+- en: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei
+    Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. 2022. Chain-of-thought prompting elicits
+    reasoning in large language models. *Advances in neural information processing
+    systems*, 35:24824–24837.
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等人 (2022) Jason Wei、Xuezhi Wang、Dale Schuurmans、Maarten Bosma、Fei Xia、Ed
+    Chi、Quoc V Le、Denny Zhou等。2022年。《Chain-of-thought 提示促使大语言模型进行推理》。*神经信息处理系统进展*，35:24824–24837。
+- en: 'Xie et al. (2023) Xiaohui Xie, Qian Dong, Bingning Wang, Feiyang Lv, Ting Yao,
+    Weinan Gan, Zhijing Wu, Xiangsheng Li, Haitao Li, Yiqun Liu, and Jin Ma. 2023.
+    [T2ranking: A large-scale chinese benchmark for passage ranking](https://doi.org/10.1145/3539618.3591874).
+    In *Proceedings of the 46th International ACM SIGIR Conference on Research and
+    Development in Information Retrieval*, SIGIR ’23, page 2681–2690, New York, NY,
+    USA. Association for Computing Machinery.'
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Xie 等人 (2023) 谷晓辉、董乾、王冰宁、吕飞扬、姚婷、甘维南、吴志静、李向生、李海涛、刘一群、马进等。2023年。[T2ranking: 一项大规模中文段落排序基准](https://doi.org/10.1145/3539618.3591874)。发表于*第46届国际
+    ACM SIGIR 信息检索研究与发展会议论文集*，SIGIR ''23，第2681-2690页，纽约，美国。计算机协会。'
+- en: 'Yao et al. (2024) Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths,
+    Yuan Cao, and Karthik Narasimhan. 2024. Tree of thoughts: Deliberate problem solving
+    with large language models. *Advances in Neural Information Processing Systems*,
+    36.'
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao 等人 (2024) 姚顺宇、余淀、赵杰弗里、Izhak Shafran、Tom Griffiths、曹源、Karthik Narasimhan。2024年。《思维树：与大语言模型共同进行深思熟虑的问题解决》。*神经信息处理系统进展*，36。
+- en: '(30) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R Narasimhan,
+    and Yuan Cao. React: Synergizing reasoning and acting in language models. In *The
+    Eleventh International Conference on Learning Representations*.'
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '(30) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R Narasimhan,
+    和 Yuan Cao. React: 在语言模型中协同推理与行动。在*第十一届国际学习表征会议*。'
+- en: 'Ye et al. (2024) Junjie Ye, Guanyu Li, Songyang Gao, Caishuang Huang, Yilong
+    Wu, Sixian Li, Xiaoran Fan, Shihan Dou, Qi Zhang, Tao Gui, et al. 2024. Tooleyes:
+    Fine-grained evaluation for tool learning capabilities of large language models
+    in real-world scenarios. *arXiv preprint arXiv:2401.00741*.'
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ye等（2024）Junjie Ye, Guanyu Li, Songyang Gao, Caishuang Huang, Yilong Wu, Sixian
+    Li, Xiaoran Fan, Shihan Dou, Qi Zhang, Tao Gui, 等人. 2024. Tooleyes: 针对大语言模型在现实场景中的工具学习能力进行精细评估。*arXiv预印本
+    arXiv:2401.00741*。'
+- en: 'Zhang et al. (2019) Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger,
+    and Yoav Artzi. 2019. Bertscore: Evaluating text generation with bert. *arXiv
+    preprint arXiv:1904.09675*.'
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等（2019）Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger, 和
+    Yoav Artzi. 2019. Bertscore: 使用BERT评估文本生成。*arXiv预印本 arXiv:1904.09675*。'
+- en: Zhao et al. (2024) Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang, Xiaolei
+    Wang, Yupeng Hou, Yingqian Min, Beichen Zhang, Junjie Zhang, Zican Dong, Yifan
+    Du, Chen Yang, Yushuo Chen, Zhipeng Chen, Jinhao Jiang, Ruiyang Ren, Yifan Li,
+    Xinyu Tang, Zikang Liu, Peiyu Liu, Jian-Yun Nie, and Ji-Rong Wen. 2024. [A survey
+    of large language models](http://arxiv.org/abs/2303.18223).
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhao等（2024）Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang, Xiaolei Wang, Yupeng
+    Hou, Yingqian Min, Beichen Zhang, Junjie Zhang, Zican Dong, Yifan Du, Chen Yang,
+    Yushuo Chen, Zhipeng Chen, Jinhao Jiang, Ruiyang Ren, Yifan Li, Xinyu Tang, Zikang
+    Liu, Peiyu Liu, Jian-Yun Nie, 和 Ji-Rong Wen. 2024. [大语言模型调查](http://arxiv.org/abs/2303.18223)。
+- en: 'Zhuang et al. (2023) Yuchen Zhuang, Yue Yu, Kuan Wang, Haotian Sun, and Chao
+    Zhang. 2023. Toolqa: A dataset for llm question answering with external tools.
+    *Advances in Neural Information Processing Systems*, 36:50117–50143.'
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhuang等（2023）Yuchen Zhuang, Yue Yu, Kuan Wang, Haotian Sun, 和 Chao Zhang. 2023.
+    Toolqa: 一个用于LLM问题回答的外部工具数据集。*神经信息处理系统进展*, 36:50117–50143。'
+- en: Appendix A Discussion
+  id: totrans-199
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 讨论
+- en: In this section, we discuss limitations, potential impacts, license, and legal
+    and ethical considerations.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节讨论了局限性、潜在影响、许可证以及法律和伦理方面的考虑。
+- en: A.1 Limitation
+  id: totrans-201
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 局限性
+- en: We acknowledge several limitations in this study and aim to address them in
+    future work. First, the current dataset is primarily constructed in Chinese, which
+    limits its applicability in broader multilingual contexts. We plan to release
+    an updated version in future iterations that will support English. Second, the
+    task design primarily covers statutory law system, and its performance in case
+    law systems requires further exploration. It may not fully capture the diversity
+    of legal knowledge and systems across different countries. In future work, we
+    will enrich the task types, broaden the scope, and incorporate legal scenarios
+    from more countries and regions, thereby enhancing the applicability and comprehensiveness
+    of our research.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在本研究中承认存在若干限制，并计划在未来的工作中加以解决。首先，目前的数据集主要以中文构建，这限制了其在更广泛的多语言环境中的适用性。我们计划在未来的版本中发布支持英语的更新版本。其次，任务设计主要涵盖法定法律体系，其在判例法体系中的表现还需要进一步探索。它可能无法充分涵盖不同国家法律知识和体系的多样性。在未来的工作中，我们将丰富任务类型，扩大范围，并融入更多国家和地区的法律场景，从而增强我们研究的适用性和全面性。
+- en: '| ID | Corpus | Key | # Key |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '| ID | 语料库 | 关键字 | # 关键字 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| 1 | CompanyInfo |'
+  id: totrans-205
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 公司信息 |'
+- en: '&#124; Company Name, Company Abbreviation, English Name, Associated Security,
+    Company Code, Former Abbreviation, Market, Industry, Date of Establishment, Listing
+    Date, Legal Representative, General Manager, Board Secretary, Postal Code, Registered
+    Address, Office Address, Telephone Number, Fax, Official Website, Email, Included
+    Indices, Main Business, Business Scope, Company Profile, Par Value per Share (CNY),
+    Initial Public Offering (IPO) Price (CNY), Net Proceeds from IPO (CNY), Lead Underwriter
+    for IPO &#124;'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 公司名称, 公司简称, 英文名称, 相关证券, 公司代码, 原简称, 市场, 行业, 成立日期, 上市日期, 法定代表人, 总经理, 董事会秘书,
+    邮政编码, 注册地址, 办公地址, 电话号码, 传真, 官方网站, 电子邮件, 纳入指数, 主要业务, 经营范围, 公司简介, 每股面值（人民币）, 首次公开募股（IPO）价格（人民币）,
+    IPO净收益（人民币）, IPO主承销商 &#124;'
+- en: '| 28 |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| 28 |'
+- en: '| 2 | CompanyRegister |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 公司注册 |'
+- en: '&#124; Company Name, Registration Status, Unified Social Credit Code, Legal
+    Representative, Registered Capital, Date of Establishment, Company Address, Contact
+    Number, Contact Email, Registration Number, Organization Code, Number of Insured
+    Persons, Primary Industry Category, Secondary Industry Category, Tertiary Industry
+    Category, Former Name, Company Profile, Business Scope &#124;'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 公司名称、注册状态、统一社会信用代码、法定代表人、注册资本、成立日期、公司地址、联系电话、联系邮箱、注册号、组织机构代码、参保人数、主行业类别、次行业类别、第三行业类别、前身名称、公司简介、经营范围
+    &#124;'
+- en: '| 18 |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '| 18 |'
+- en: '| 3 | SubCompanyInfo |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | 子公司信息 |'
+- en: '&#124; Full Name of the Related Listed Company, Relationship to the Listed
+    Company, Listed Company’s Shareholding Percentage, Listed Company’s Investment
+    Amount, Company Name &#124;'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 相关上市公司全名、与上市公司的关系、上市公司股权比例、上市公司投资金额、公司名称 &#124;'
+- en: '| 5 |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 |'
+- en: '| 4 | LegalDoc |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | 法律文书 |'
+- en: '&#124; Related Company, Title, Case Number, Document Type, Plaintiff, Defendant,
+    Plaintiff’s Law Firm, Defendant’s Law Firm, Cause of Action, Amount Involved (CNY),
+    Judgment Outcome, Date, File Name &#124;'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 相关公司、职务、案件编号、文书类型、原告、被告、原告律所、被告律所、诉讼原因、涉及金额（人民币）、判决结果、日期、案件名称 &#124;'
+- en: '| 13 |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 |'
+- en: '| 5 | LegalAbstract |'
+  id: totrans-217
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | 法律摘要 |'
+- en: '&#124; File Name, Case Number, Text Summary &#124;'
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 案件名称、案件编号、文本摘要 &#124;'
+- en: '| 3 |'
+  id: totrans-219
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 |'
+- en: '| 6 | CourtInfo |'
+  id: totrans-220
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 | 法院信息 |'
+- en: '&#124; Court Name, Court Head, Date of Establishment, Court Address, Court
+    Province, Court City, Court County, Court Contact Number, Court Official Website
+    &#124;'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 法院名称、法院负责人、成立日期、法院地址、法院省份、法院城市、法院县区、法院联系电话、法院官方网站 &#124;'
+- en: '| 9 |'
+  id: totrans-222
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 |'
+- en: '| 7 | CourtCode |'
+  id: totrans-223
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | 法院代码 |'
+- en: '&#124; Court Name, Administrative Level, Court Level, Court Code, Zoning Code,
+    Rank &#124;'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 法院名称、行政级别、法院级别、法院代码、区域编码、排名 &#124;'
+- en: '| 6 |'
+  id: totrans-225
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 |'
+- en: '| 8 | LawfirmInfo |'
+  id: totrans-226
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | 律所信息 |'
+- en: '&#124; Law Firm Name, Law Firm Unique Code, Law Firm Head, Law Firm Registered
+    Capital, Date of Establishment, Law Firm Address, Law Firm Province, Law Firm
+    City, Law Firm County, Contact Phone Number, Contact Email, Law Firm Profile,
+    Law Firm Registration Authority &#124;'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 律所名称、律所唯一代码、律所负责人、律所注册资本、成立日期、律所地址、律所省份、律所城市、律所县区、联系电话、联系邮箱、律所简介、律所登记机关
+    &#124;'
+- en: '| 13 |'
+  id: totrans-228
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 |'
+- en: '| 9 | LawfirmLog |'
+  id: totrans-229
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 | 律所日志 |'
+- en: '&#124; Law Firm Name, Business Volume Ranking, Served Listed Companies, Listed
+    Companies with Violations During Reporting Period, Listed Companies Under Investigation
+    During Reporting Period &#124;'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 律所名称、业务量排名、服务过的上市公司、报告期内有违规行为的上市公司、报告期内被调查的上市公司 &#124;'
+- en: '| 5 |'
+  id: totrans-231
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 |'
+- en: '| 10 | AddrInfo |'
+  id: totrans-232
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | 地址信息 |'
+- en: '&#124; Address, Province, City, County &#124;'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 地址、省份、城市、县区 &#124;'
+- en: '| 4 |'
+  id: totrans-234
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 |'
+- en: '| 11 | RestrictionCase |'
+  id: totrans-235
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11 | 限制案件 |'
+- en: '&#124; Restricted High-Consumption Enterprise Name, Case Number, Legal Representative,
+    Applicant, Amount Involved (CNY), Executing Court, Filing Date, Restriction Publication
+    Date &#124;'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 限制高消费企业名称、案件编号、法定代表人、申请人、涉及金额（人民币）、执行法院、立案日期、限制公告日期 &#124;'
+- en: '| 4 |'
+  id: totrans-237
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 |'
+- en: '| 12 | FinalizedCase |'
+  id: totrans-238
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12 | 已结案案件 |'
+- en: '&#124; Finalized Company Name, Case Number, Person Subject To Execution, Suspected
+    Applicant for Enforcement, Unfulfilled Amount (CNY), Executor Target (CNY), Executing
+    Court, Filing Date, Finalized Date &#124;'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 已结案公司名称、案件编号、被执行人、涉嫌申请执行人、未履行金额（人民币）、执行目标金额（人民币）、执行法院、立案日期、结案日期 &#124;'
+- en: '| 8 |'
+  id: totrans-240
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 |'
+- en: '| 13 | DishonestyCase |'
+  id: totrans-241
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 | 失信案件 |'
+- en: '&#124; Dishonest Executed Company Name, Case Number, Dishonest Executed Person,
+    Suspected Applicant for Enforcement, Amount Involved (CNY), Executing Court, Filing
+    Date, Publication Date &#124;'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 失信被执行公司名称、案件编号、失信被执行人、涉嫌申请执行人、涉及金额（人民币）、执行法院、立案日期、公告日期 &#124;'
+- en: '| 9 |'
+  id: totrans-243
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 |'
+- en: '| 14 | AdministrativeCase |'
+  id: totrans-244
+  prefs: []
+  type: TYPE_TB
+  zh: '| 14 | 行政案件 |'
+- en: '&#124; Administrative Penalty Company Name, Case Number, Facts, Penalty Outcome,
+    Penalty Amount (CNY), Penalizing Authority, Penalty Date &#124;'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 行政处罚公司名称、案件编号、事实、处罚结果、处罚金额（人民币）、处罚机关、处罚日期 &#124;'
+- en: '| 8 |'
+  id: totrans-246
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 |'
+- en: '| 15 | LegalKonwledge |'
+  id: totrans-247
+  prefs: []
+  type: TYPE_TB
+  zh: '| 15 | 法律知识 |'
+- en: '&#124; EXAMPLE: Tax Law, Tax Collection and Administration Law, Legal Liability
+    (1) If a taxpayer fails to pay taxes within the prescribed period or if a withholding
+    agent… &#124;'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例：税法、税收征管法、法律责任（1）如果纳税人未能在规定期限内缴纳税款，或者扣缴义务人… &#124;'
+- en: '| - |'
+  id: totrans-249
+  prefs: []
+  type: TYPE_TB
+  zh: '| - |'
+- en: '| 16 | LegalArticle |'
+  id: totrans-250
+  prefs: []
+  type: TYPE_TB
+  zh: '| 16 | 法律条款 |'
+- en: '&#124; EXAMPLE: Article 1082 of the Civil Code of the People’s Republic of
+    China During the woman’s pregnancy, within one year after childbirth, or within
+    six months after termination of pregnancy, the man shall not file for divorce…
+    &#124;'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例：中华人民共和国民法典第1082条 在女性怀孕期间、产后一年内或流产后六个月内，男性不得提出离婚申请… &#124;'
+- en: '| - |'
+  id: totrans-252
+  prefs: []
+  type: TYPE_TB
+  zh: '| - |'
+- en: '| 17 | LegalCases |'
+  id: totrans-253
+  prefs: []
+  type: TYPE_TB
+  zh: '| 17 | 法律案例 |'
+- en: '&#124; EXAMPLE: Application for Recognition of a Civil Judgment by Kaohsiung
+    County Court in Taiwan: Kang vs. Huang. (1) Basic Facts: On June 1, 2004, mainland
+    resident Kang… &#124;'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例：台湾高雄县法院对民事判决的承认申请：康诉黄案。(1) 基本事实：2004年6月1日，大陆居民康… &#124;'
+- en: '| - |'
+  id: totrans-255
+  prefs: []
+  type: TYPE_TB
+  zh: '| - |'
+- en: 'Table 4: More details about the corpus of LegalAgentBench.'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格4：关于LegalAgentBench语料库的更多详细信息。
+- en: A.2 Broader Impact
+  id: totrans-257
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 更广泛的影响
+- en: LegalAgentBench aims to promote the application of LLM agents in the legal field
+    and help legal professionals better understand and evaluate the performance of
+    LLM agents through a standardized evaluation framework. By providing reliable
+    evaluation methods and construction processes, LegalAgentBench not only facilitates
+    the application of LLM agents in legal tasks but also offers valuable insights
+    for building benchmarks in other vertical domains. The widespread use of LLM agents
+    in the legal industry may influence the way legal professionals work, change how
+    they use technological tools, and drive adjustments in legal education and practice.
+    We are particularly focused on the far-reaching impact of LLM agents on the legal
+    industry, ensuring that their application always adheres to principles of social
+    justice and the rule of law. To guarantee fairness and transparency, the datasets
+    and evaluation methods of LegalAgentBench will undergo rigorous ethical reviews
+    and be subject to broad stakeholder involvement to ensure their impartiality.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LegalAgentBench旨在推动LLM代理在法律领域的应用，并通过标准化的评估框架帮助法律专业人员更好地理解和评估LLM代理的表现。通过提供可靠的评估方法和构建过程，LegalAgentBench不仅促进了LLM代理在法律任务中的应用，还为其他垂直领域基准的建立提供了宝贵的见解。LLM代理在法律行业的广泛使用可能会影响法律专业人员的工作方式，改变他们使用技术工具的方式，并推动法律教育和实践的调整。我们特别关注LLM代理对法律行业的深远影响，确保它们的应用始终遵循社会正义和法治的原则。为了保证公平和透明，LegalAgentBench的数据集和评估方法将经过严格的伦理审查，并广泛征求利益相关者的意见，以确保其公正性。
+- en: It is important to note that LegalAgentBench does not advocate for the complete
+    replacement of legal professionals by LLM agents but seeks to reduce the burden
+    on legal personnel and enhance efficiency through supportive tools. The uniqueness
+    and complexity of legal judgment require rich expertise and human insight, qualities
+    that LLM agents cannot fully replace. Our goal is to provide legal professionals
+    with a standardized evaluation tool to help them make more informed decisions
+    in practical applications, understanding when, where, and how to effectively use
+    LLM agents. However, the evaluation results of LegalAgentBench should be used
+    as a reference only, as applications in real-world legal scenarios still require
+    further in-depth evaluation to ensure the legality and reasonableness of decisions.
+    We believe that LegalAgentBench will contribute to the development of a more just
+    and efficient legal system and promote the responsible application of AI technology
+    in the legal field.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值得注意的是，LegalAgentBench并不提倡完全用LLM代理取代法律专业人员，而是通过支持工具来减轻法律人员的负担并提高效率。法律判决的独特性和复杂性需要丰富的专业知识和人类洞察力，这些是LLM代理无法完全替代的。我们的目标是为法律专业人员提供一种标准化的评估工具，帮助他们在实际应用中做出更为明智的决策，了解何时、何地以及如何有效使用LLM代理。然而，LegalAgentBench的评估结果仅应作为参考，因为在现实世界的法律场景中，应用仍然需要进一步深入的评估，以确保决策的合法性和合理性。我们相信，LegalAgentBench将有助于发展一个更加公正和高效的法律系统，并推动AI技术在法律领域的负责任应用。
+- en: A.3 License
+  id: totrans-260
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 许可
+- en: In this section, we clarify the copyright and licensing status of LegalAgentBench
+    to ensure that users can utilize this dataset in a legal and compliant manner.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们阐明了LegalAgentBench的版权和许可状态，以确保用户能够以合法合规的方式使用此数据集。
+- en: In LegalAgentBench, all tabular databases is sourced from authentic, publicly
+    available resources. We have obtained explicit copyright permissions to incorporate
+    these databases into the benchmark. Additionally, the retrieval corpora are derived
+    from publicly accessible legal materials that comply with relevant legal and ethical
+    standards. These resources are made available in accordance with applicable norms
+    for open access to legal information, ensuring that their inclusion in the benchmark
+    does not raise any legal or ethical concerns. While the copyright for these resources
+    remains with the respective government agencies, they have been publicly released
+    and authorized for public use. Users are expected to adhere to the relevant laws,
+    regulations, and provisions established by the respective government agencies
+    when utilizing this data
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 LegalAgentBench 中，所有的表格数据库均来源于真实的、公开可获取的资源。我们已获得明确的版权许可，将这些数据库纳入基准测试。此外，检索语料库来自于公开可访问的符合法律和伦理标准的法律材料。这些资源的提供符合开放法律信息的适用规范，确保它们的纳入不会引发任何法律或伦理问题。虽然这些资源的版权仍归各政府机构所有，但它们已经公开发布并授权供公众使用。用户在使用这些数据时，需遵守相关政府机构制定的法律、法规和规定。
+- en: The entire dataset is released under the MIT License. If you believe that LegalAgentBench
+    contains content that infringes on your copyrighted work, please feel free to
+    contact us at any time to request its removal.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 整个数据集以 MIT 许可证发布。如果您认为 LegalAgentBench 中包含侵犯您版权作品的内容，请随时联系我们请求删除。
+- en: A.4 Legal and Ethical Considerations
+  id: totrans-264
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.4 法律和伦理考量
+- en: The construction and release of LegalAgentBench adhere to strict legal and ethical
+    standards to ensure its responsible use in research and development. All data
+    in LegalAgentBench has undergone rigorous privacy screening and anonymization
+    processes. Any personal or sensitive information has been removed to comply with
+    applicable data protection laws and ethical research guidelines, ensuring the
+    dataset can be used without compromising individual privacy or security. To prevent
+    potential harm, the datasets in LegalAgentBench have been carefully curated and
+    filtered to exclude discriminatory, explicit, violent, or offensive content. An
+    ethical review by legal experts further ensures that the benchmark minimizes risks
+    related to security, safety, discrimination, surveillance, deception, harassment,
+    human rights, bias, and fairness. By addressing these considerations, LegalAgentBench
+    aims to provide a legally compliant and ethically sound foundation for advancing
+    AI capabilities in the legal domain, while upholding the principles of fairness,
+    transparency, and social responsibility.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LegalAgentBench 的构建和发布遵循严格的法律和伦理标准，以确保其在研究和开发中的负责任使用。LegalAgentBench 中的所有数据都经过了严格的隐私筛查和匿名化处理。任何个人或敏感信息已被删除，以遵守适用的数据保护法律和伦理研究准则，确保数据集的使用不会危及个人隐私或安全。为了防止潜在的伤害，LegalAgentBench
+    中的数据集经过精心策划和筛选，排除了歧视性、色情、暴力或冒犯性内容。法律专家的伦理审查进一步确保了该基准最小化了与安全、隐私、歧视、监控、欺骗、骚扰、人权、偏见和公平相关的风险。通过考虑这些因素，LegalAgentBench
+    旨在为推动法律领域人工智能能力提供一个符合法律和伦理规范的基础，同时秉持公平、透明和社会责任的原则。
+- en: Appendix B Corpus Details
+  id: totrans-266
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B 语料库详情
+- en: 'Table [4](https://arxiv.org/html/2412.17259v1#A1.T4 "Table 4 ‣ A.1 Limitation
+    ‣ Appendix A Discussion ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")
+    provides detailed information about the corpora in LegalAgentBench, it lists the
+    keys for 14 different tabular databases along with the number of keys per table,
+    ranging from 3 to 28\. This variation reflects the diversity of scenarios in real-world
+    applications. Additionally, basic examples are provided for the three retrieval
+    corpus to clarify their content.'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格 [4](https://arxiv.org/html/2412.17259v1#A1.T4 "Table 4 ‣ A.1 Limitation
+    ‣ Appendix A Discussion ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")
+    提供了 LegalAgentBench 中语料库的详细信息，列出了 14 个不同表格数据库的键值及每个表格中的键数，范围从 3 到 28。此差异反映了现实世界应用中场景的多样性。此外，还为三个检索语料库提供了基本示例，以澄清其内容。'
+- en: Appendix C Tool Details
+  id: totrans-268
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 C 工具详情
+- en: 'Tables [5](https://arxiv.org/html/2412.17259v1#A3.T5 "Table 5 ‣ Appendix C
+    Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain") and [6](https://arxiv.org/html/2412.17259v1#A3.T6
+    "Table 6 ‣ Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain") provide detailed information about the tools included in LegalAgentBench.
+    Table [5](https://arxiv.org/html/2412.17259v1#A3.T5 "Table 5 ‣ Appendix C Tool
+    Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain") outlines the
+    input and output for each tool, while Table [6](https://arxiv.org/html/2412.17259v1#A3.T6
+    "Table 6 ‣ Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain") describes the basic functionality of each tool.'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格[5](https://arxiv.org/html/2412.17259v1#A3.T5 "Table 5 ‣ Appendix C Tool
+    Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")和[6](https://arxiv.org/html/2412.17259v1#A3.T6
+    "Table 6 ‣ Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain")提供了关于LegalAgentBench中包含的工具的详细信息。表格[5](https://arxiv.org/html/2412.17259v1#A3.T5
+    "Table 5 ‣ Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain")概述了每个工具的输入和输出，而表格[6](https://arxiv.org/html/2412.17259v1#A3.T6 "Table
+    6 ‣ Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal
+    Domain")描述了每个工具的基本功能。'
+- en: 'For each tool, beyond the basic input information, we also provide optional
+    parameters to enhance flexibility in usage. For instance, the Database Tools include
+    the parameter Columns, which specifies the keys of the structured data to be returned.
+    Similarly, the text retriever offers a Number parameter that allows users to control
+    the number of documents retrieved. To enhance understanding, Table [7](https://arxiv.org/html/2412.17259v1#A3.T7
+    "Table 7 ‣ Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain") provides a concrete example of a tool call.'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于每个工具，除了基本的输入信息外，我们还提供可选参数以增强使用灵活性。例如，数据库工具包括参数 Columns，用于指定要返回的结构化数据的键。类似地，文本检索器提供了一个
+    Number 参数，允许用户控制检索的文档数量。为了便于理解，表格[7](https://arxiv.org/html/2412.17259v1#A3.T7
+    "Table 7 ‣ Appendix C Tool Details ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain")提供了一个工具调用的具体示例。'
+- en: '| ID | Tool | Input | Return |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| ID | 工具 | 输入 | 返回 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| 1 | get_company_info |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | get_company_info |'
+- en: '&#124; Company name or abbr. or code &#124;'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 公司名称或简称或代码 &#124;'
+- en: '| CompanyInfo |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 公司信息 |'
+- en: '| 2 | get_company_register | Company name | CompanyRegister |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | get_company_register | 公司名称 | CompanyRegister |'
+- en: '| 3 | get_company_register_name | Unified social credit code | Company name
+    |'
+  id: totrans-277
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | get_company_register_name | 统一社会信用代码 | 公司名称 |'
+- en: '| 4 | get_sub_company_info | Company name | SubCompanyInfo |'
+  id: totrans-278
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | get_sub_company_info | 公司名称 | SubCompanyInfo |'
+- en: '| 5 | get_sub_company_info_list | Company name | List[SubCompanyInfo] |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | get_sub_company_info_list | 公司名称 | List[SubCompanyInfo] |'
+- en: '| 6 | get_legal_document | Case number | LegalDoc |'
+  id: totrans-280
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 | get_legal_document | 案件编号 | LegalDoc |'
+- en: '| 7 | get_legal_abstract | Case number | LegalAbstract |'
+  id: totrans-281
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | get_legal_abstract | 案件编号 | LegalAbstract |'
+- en: '| 8 | get_legal_document_company_list | Company name | List[LegalDoc] |'
+  id: totrans-282
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | get_legal_document_company_list | 公司名称 | List[LegalDoc] |'
+- en: '| 9 | get_legal_document_lawfirm_list | Law firm name | List[LegalDoc] |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 | get_legal_document_lawfirm_list | 律所名称 | List[LegalDoc] |'
+- en: '| 10 | get_court_info | Court name | CourtInfo |'
+  id: totrans-284
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | get_court_info | 法院名称 | CourtInfo |'
+- en: '| 11 | get_court_info_list | Province, city, and county | List[CourtInfo] |'
+  id: totrans-285
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11 | get_court_info_list | 省、城市和县 | List[CourtInfo] |'
+- en: '| 12 | get_court_code | Court name or code | CourtCode |'
+  id: totrans-286
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12 | get_court_code | 法院名称或代码 | CourtCode |'
+- en: '| 13 | get_lawfirm_info | Law firm name | LawfirmInfo |'
+  id: totrans-287
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 | get_lawfirm_info | 律所名称 | LawfirmInfo |'
+- en: '| 14 | get_lawfirm_info_list | Province, city, and county | List[LawfirmInfo]
+    |'
+  id: totrans-288
+  prefs: []
+  type: TYPE_TB
+  zh: '| 14 | get_lawfirm_info_list | 省、城市和县 | List[LawfirmInfo] |'
+- en: '| 15 | get_lawfirm_log | Law firm name | LawfirmLog |'
+  id: totrans-289
+  prefs: []
+  type: TYPE_TB
+  zh: '| 15 | get_lawfirm_log | 律所名称 | LawfirmLog |'
+- en: '| 16 | get_address_info | Specific address | AddrInfo |'
+  id: totrans-290
+  prefs: []
+  type: TYPE_TB
+  zh: '| 16 | get_address_info | 具体地址 | AddrInfo |'
+- en: '| 17 | get_restriction_case | Case number | RestrictionCase |'
+  id: totrans-291
+  prefs: []
+  type: TYPE_TB
+  zh: '| 17 | get_restriction_case | 案件编号 | RestrictionCase |'
+- en: '| 18 | get_restriction_case_company_list | Company name | List[RestrictionCase]
+    |'
+  id: totrans-292
+  prefs: []
+  type: TYPE_TB
+  zh: '| 18 | get_restriction_case_company_list | 公司名称 | List[RestrictionCase] |'
+- en: '| 19 | get_restriction_case_court_list | Court name | List[RestrictionCase]
+    |'
+  id: totrans-293
+  prefs: []
+  type: TYPE_TB
+  zh: '| 19 | get_restriction_case_court_list | 法院名称 | List[RestrictionCase] |'
+- en: '| 20 | get_finalized_case | Case number | FinalizedCase |'
+  id: totrans-294
+  prefs: []
+  type: TYPE_TB
+  zh: '| 20 | get_finalized_case | 案件编号 | FinalizedCase |'
+- en: '| 21 | get_finalized_case_company_list | Company name | List[FinalizedCase]
+    |'
+  id: totrans-295
+  prefs: []
+  type: TYPE_TB
+  zh: '| 21 | get_finalized_case_company_list | 公司名称 | List[FinalizedCase] |'
+- en: '| 22 | get_finalized_case_court_list | Court name | List[FinalizedCase] |'
+  id: totrans-296
+  prefs: []
+  type: TYPE_TB
+  zh: '| 22 | get_finalized_case_court_list | 法院名称 | List[FinalizedCase] |'
+- en: '| 23 | get_dishonesty_case | Case number | DishonestyCase |'
+  id: totrans-297
+  prefs: []
+  type: TYPE_TB
+  zh: '| 23 | get_dishonesty_case | 案件编号 | DishonestyCase |'
+- en: '| 24 | get_dishonesty_case_company_list | Company name | List[DishonestyCase]
+    |'
+  id: totrans-298
+  prefs: []
+  type: TYPE_TB
+  zh: '| 24 | get_dishonesty_case_company_list | 公司名称 | List[DishonestyCase] |'
+- en: '| 25 | get_dishonesty_case_court_list | Court name | List[DishonestyCase] |'
+  id: totrans-299
+  prefs: []
+  type: TYPE_TB
+  zh: '| 25 | get_dishonesty_case_court_list | 法院名称 | List[DishonestyCase] |'
+- en: '| 26 | get_administrative_case | Case number | AdministrativeCase |'
+  id: totrans-300
+  prefs: []
+  type: TYPE_TB
+  zh: '| 26 | get_administrative_case | 案号 | AdministrativeCase |'
+- en: '| 27 | get_administrative_case_company_list | Company name | List[AdministrativeCase]
+    |'
+  id: totrans-301
+  prefs: []
+  type: TYPE_TB
+  zh: '| 27 | get_administrative_case_company_list | 公司名称 | List[AdministrativeCase]
+    |'
+- en: '| 28 | get_administrative_case_court_list | Court name | List[AdministrativeCase]
+    |'
+  id: totrans-302
+  prefs: []
+  type: TYPE_TB
+  zh: '| 28 | get_administrative_case_court_list | 法院名称 | List[AdministrativeCase]
+    |'
+- en: '| 29 | legal_knowledge_retriever | Query text | Relevant knowledge |'
+  id: totrans-303
+  prefs: []
+  type: TYPE_TB
+  zh: '| 29 | legal_knowledge_retriever | 查询文本 | 相关知识 |'
+- en: '| 30 | legal_article_retriever | Query text | Relevant articles |'
+  id: totrans-304
+  prefs: []
+  type: TYPE_TB
+  zh: '| 30 | legal_article_retriever | 查询文本 | 相关条文 |'
+- en: '| 31 | legal_case_retriever | Query text | Relevant cases |'
+  id: totrans-305
+  prefs: []
+  type: TYPE_TB
+  zh: '| 31 | legal_case_retriever | 查询文本 | 相关案件 |'
+- en: '| 32 | get_sum | List[num] | Summation results |'
+  id: totrans-306
+  prefs: []
+  type: TYPE_TB
+  zh: '| 32 | get_sum | List[num] | 加法结果 |'
+- en: '| 33 | get_subtraction | Minuend, subtrahend | Subtraction results |'
+  id: totrans-307
+  prefs: []
+  type: TYPE_TB
+  zh: '| 33 | get_subtraction | 被减数, 减数 | 减法结果 |'
+- en: '| 34 | get_multiplication | List[num] | Multiplication results |'
+  id: totrans-308
+  prefs: []
+  type: TYPE_TB
+  zh: '| 34 | get_multiplication | List[num] | 乘法结果 |'
+- en: '| 35 | get_division | Dividend, divisor | Division results |'
+  id: totrans-309
+  prefs: []
+  type: TYPE_TB
+  zh: '| 35 | get_division | 被除数, 除数 | 除法结果 |'
+- en: '| 36 | get_rank | List[num] | Sorting results |'
+  id: totrans-310
+  prefs: []
+  type: TYPE_TB
+  zh: '| 36 | get_rank | List[num] | 排序结果 |'
+- en: '| 37 | finish | - | Final results |'
+  id: totrans-311
+  prefs: []
+  type: TYPE_TB
+  zh: '| 37 | finish | - | 最终结果 |'
+- en: 'Table 5: The input and output of the tools.'
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Table 5: 工具的输入和输出。'
+- en: '| ID | Tool | Description |'
+  id: totrans-313
+  prefs: []
+  type: TYPE_TB
+  zh: '| ID | 工具 | 描述 |'
+- en: '| --- | --- | --- |'
+  id: totrans-314
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| 1 | get_company_info |'
+  id: totrans-315
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | get_company_info |'
+- en: '&#124; Query the corresponding listed company information in the [CompanyInfo]
+    based on [Company Name, Company Abbreviation, or Company Code]. &#124;'
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[公司名称、公司简称或公司代码]查询[公司信息]中的相应上市公司信息。 &#124;'
+- en: '|'
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 2 | get_company_register |'
+  id: totrans-318
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | get_company_register |'
+- en: '&#124; Query the corresponding company registration information in the [CompanyRegister]
+    based on [Company Name]. &#124;'
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[公司名称]查询[公司注册信息]中的相应公司注册信息。 &#124;'
+- en: '|'
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 3 | get_company_register_name |'
+  id: totrans-321
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | get_company_register_name |'
+- en: '&#124; Query the corresponding company name in the [CompanyRegister] based
+    on [Unified Social Credit Code]. &#124;'
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[统一社会信用代码]查询[公司注册信息]中的相应公司名称。 &#124;'
+- en: '|'
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 4 | get_sub_company_info |'
+  id: totrans-324
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | get_sub_company_info |'
+- en: '&#124; Query the corresponding parent company and investment information in
+    the [SubCompanyInfo] based on [Company Name]. &#124;'
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[公司名称]查询[子公司信息]中的相应母公司及投资信息。 &#124;'
+- en: '|'
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 5 | get_sub_company_info_list |'
+  id: totrans-327
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | get_sub_company_info_list |'
+- en: '&#124; Query all subsidiary companies invested by the parent company in the
+    [SubCompanyInfo] based on [Company Name]. &#124;'
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[公司名称]查询[子公司信息]中的所有子公司投资信息。 &#124;'
+- en: '|'
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 6 | get_legal_document |'
+  id: totrans-330
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 | get_legal_document |'
+- en: '&#124; Query the corresponding judgment document information in the [LegalDoc]
+    based on [Case Number]. &#124;'
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[案号]查询[LegalDoc]中的相应判决文书信息。 &#124;'
+- en: '|'
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 7 | get_legal_abstract |'
+  id: totrans-333
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | get_legal_abstract |'
+- en: '&#124; Query the text summary of the case in the [LegalAbstract] based on [Case
+    Number]. &#124;'
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[案号]查询[LegalAbstract]中的案件文本摘要。 &#124;'
+- en: '|'
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 8 | get_legal_document_company_list |'
+  id: totrans-336
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | get_legal_document_company_list |'
+- en: '&#124; Query the corresponding judgment document information in the [LegalDoc]
+    based on [Company Name]. &#124;'
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[公司名称]查询[LegalDoc]中的相应判决文书信息。 &#124;'
+- en: '|'
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 9 | get_legal_document_lawfirm_list |'
+  id: totrans-339
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 | get_legal_document_lawfirm_list |'
+- en: '&#124; Query the corresponding judgment document information in the [LegalDoc]
+    based on [Law Firm Name]. &#124;'
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[律师事务所名称]查询[LegalDoc]中的相应判决文书信息。 &#124;'
+- en: '|'
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 10 | get_court_info |'
+  id: totrans-342
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | get_court_info |'
+- en: '&#124; Query the relevant court information in the [CourtInfo] based on [Court
+    Name]. &#124;'
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[法院名称]查询[法院信息]中的相关法院信息。 &#124;'
+- en: '|'
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 11 | get_court_info_list |'
+  id: totrans-345
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11 | get_court_info_list |'
+- en: '&#124; Query the relevant court information in the [CourtInfo] based on [Province,
+    City, County]. &#124;'
+  id: totrans-346
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[省份、市、县]查询[法院信息]中的相关法院信息。 &#124;'
+- en: '|'
+  id: totrans-347
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 12 | get_court_code |'
+  id: totrans-348
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12 | get_court_code |'
+- en: '&#124; Query the relevant court information in the [CourtCode] based on [Court
+    Name or Court Code]. &#124;'
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[法院名称或法院代码]查询[法院代码]中的相关法院信息。 &#124;'
+- en: '|'
+  id: totrans-350
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 13 | get_lawfirm_info |'
+  id: totrans-351
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 | get_lawfirm_info |'
+- en: '&#124; Query the relevant law firm information in the [LawfirmInfo] based on
+    [Law Firm Name]. &#124;'
+  id: totrans-352
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 基于[律师事务所名称]查询[LawfirmInfo]中的相关律师事务所信息。 &#124;'
+- en: '|'
+  id: totrans-353
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 14 | get_lawfirm_info_list |'
+  id: totrans-354
+  prefs: []
+  type: TYPE_TB
+  zh: '| 14 | get_lawfirm_info_list |'
+- en: '&#124; Query the relevant law firm information in the [LawfirmInfo] based on
+    [Province, City, County]. &#124;'
+  id: totrans-355
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[省, 市, 县]查询[律师事务所信息]中的相关律师事务所信息。 &#124;'
+- en: '|'
+  id: totrans-356
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 15 | get_lawfirm_log |'
+  id: totrans-357
+  prefs: []
+  type: TYPE_TB
+  zh: '| 15 | get_lawfirm_log |'
+- en: '&#124; Query the service records of the law firm in the [LawfirmLog] based
+    on [Law Firm Name]. &#124;'
+  id: totrans-358
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[律师事务所名称]查询[律师事务所日志]中的服务记录。 &#124;'
+- en: '|'
+  id: totrans-359
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 16 | get_address_info |'
+  id: totrans-360
+  prefs: []
+  type: TYPE_TB
+  zh: '| 16 | get_address_info |'
+- en: '&#124; Query the province, city, and county of the address in the [AddrInfo]
+    based on [Specific Address]. &#124;'
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[具体地址]查询[地址信息]中的省、市、县信息。 &#124;'
+- en: '|'
+  id: totrans-362
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 17 | get_restriction_case |'
+  id: totrans-363
+  prefs: []
+  type: TYPE_TB
+  zh: '| 17 | get_restriction_case |'
+- en: '&#124; Query the relevant high-consumption restriction case information in
+    the [RestrictionCase] based on [Case Number]. &#124;'
+  id: totrans-364
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[案件编号]查询[限制消费案件]中的相关高消费限制案件信息。 &#124;'
+- en: '|'
+  id: totrans-365
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 18 | get_restriction_case_company_list |'
+  id: totrans-366
+  prefs: []
+  type: TYPE_TB
+  zh: '| 18 | get_restriction_case_company_list |'
+- en: '&#124; Query the relevant high-consumption restriction case information in
+    the [RestrictionCase] based on [Company Name]. &#124;'
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[公司名称]查询[限制消费案件]中的相关高消费限制案件信息。 &#124;'
+- en: '|'
+  id: totrans-368
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 19 | get_restriction_case_court_list |'
+  id: totrans-369
+  prefs: []
+  type: TYPE_TB
+  zh: '| 19 | get_restriction_case_court_list |'
+- en: '&#124; Query the relevant high-consumption restriction case information in
+    the [RestrictionCase] based on [Executing Court Name]. &#124;'
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[执行法院名称]查询[限制消费案件]中的相关高消费限制案件信息。 &#124;'
+- en: '|'
+  id: totrans-371
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 20 | get_finalized_case |'
+  id: totrans-372
+  prefs: []
+  type: TYPE_TB
+  zh: '| 20 | get_finalized_case |'
+- en: '&#124; Query the relevant finalized case information in the [FinalizedCase]
+    based on [Case Number]. &#124;'
+  id: totrans-373
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[案件编号]查询[已结案案件]中的相关已结案信息。 &#124;'
+- en: '|'
+  id: totrans-374
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 21 | get_finalized_case_company_list |'
+  id: totrans-375
+  prefs: []
+  type: TYPE_TB
+  zh: '| 21 | get_finalized_case_company_list |'
+- en: '&#124; Query the relevant finalized case information in the [FinalizedCase]
+    based on [Finalized Company Name]. &#124;'
+  id: totrans-376
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[已结公司名称]查询[已结案件]中的相关已结案信息。 &#124;'
+- en: '|'
+  id: totrans-377
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 22 | get_finalized_case_court_list |'
+  id: totrans-378
+  prefs: []
+  type: TYPE_TB
+  zh: '| 22 | get_finalized_case_court_list |'
+- en: '&#124; Query the relevant finalized case information in the [FinalizedCase]
+    based on [Executing Court Name]. &#124;'
+  id: totrans-379
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[执行法院名称]查询[已结案件]中的相关已结案信息。 &#124;'
+- en: '|'
+  id: totrans-380
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 23 | get_dishonesty_case |'
+  id: totrans-381
+  prefs: []
+  type: TYPE_TB
+  zh: '| 23 | get_dishonesty_case |'
+- en: '&#124; Query the relevant dishonesty enforcement case information in the [DishonestyCase]
+    based on [Case Number]. &#124;'
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[案件编号]查询[失信案件]中的相关失信执行案件信息。 &#124;'
+- en: '|'
+  id: totrans-383
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 24 | get_dishonesty_case_company_list |'
+  id: totrans-384
+  prefs: []
+  type: TYPE_TB
+  zh: '| 24 | get_dishonesty_case_company_list |'
+- en: '&#124; Query the relevant dishonesty enforcement case information in the [DishonestyCase]
+    based on [Company Name]. &#124;'
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[公司名称]查询[失信案件]中的相关失信执行案件信息。 &#124;'
+- en: '|'
+  id: totrans-386
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 25 | get_dishonesty_case_court_list |'
+  id: totrans-387
+  prefs: []
+  type: TYPE_TB
+  zh: '| 25 | get_dishonesty_case_court_list |'
+- en: '&#124; Query the relevant dishonesty enforcement case information in the [DishonestyCase]
+    based on [Executing Court Name]. &#124;'
+  id: totrans-388
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[执行法院名称]查询[失信案件]中的相关失信执行案件信息。 &#124;'
+- en: '|'
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 26 | get_administrative_case |'
+  id: totrans-390
+  prefs: []
+  type: TYPE_TB
+  zh: '| 26 | get_administrative_case |'
+- en: '&#124; Query the relevant administrative penalty case information in the [AdministrativeCase]
+    based on [Case Number]. &#124;'
+  id: totrans-391
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[案件编号]查询[行政案件]中的相关行政处罚案件信息。 &#124;'
+- en: '|'
+  id: totrans-392
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 27 | get_administrative_case_company_list |'
+  id: totrans-393
+  prefs: []
+  type: TYPE_TB
+  zh: '| 27 | get_administrative_case_company_list |'
+- en: '&#124; Query the relevant administrative penalty case information in the [AdministrativeCase]
+    based on [Company Name]. &#124;'
+  id: totrans-394
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[公司名称]查询[行政案件]中的相关行政处罚案件信息。 &#124;'
+- en: '|'
+  id: totrans-395
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 28 | get_administrative_case_court_list |'
+  id: totrans-396
+  prefs: []
+  type: TYPE_TB
+  zh: '| 28 | get_administrative_case_court_list |'
+- en: '&#124; Query the relevant administrative penalty case information in the [AdministrativeCase]
+    based on [Penalizing Authority]. &#124;'
+  id: totrans-397
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 根据[处罚机关]查询[行政案件]中的相关行政处罚案件信息。 &#124;'
+- en: '|'
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| 29 | legal_knowledge_retriever | Retrieve relevant legal knowledge based
+    on [Query text]. |'
+  id: totrans-399
+  prefs: []
+  type: TYPE_TB
+  zh: '| 29 | legal_knowledge_retriever | 根据[查询文本]检索相关法律知识。 |'
+- en: '| 30 | legal_article_retriever | Retrieve relevant legal articles based on
+    [Query text]. |'
+  id: totrans-400
+  prefs: []
+  type: TYPE_TB
+  zh: '| 30 | legal_article_retriever | 根据[查询文本]检索相关法律条文。 |'
+- en: '| 31 | legal_case_retriever | Retrieve relevant legal cases based on [Query
+    text]. |'
+  id: totrans-401
+  prefs: []
+  type: TYPE_TB
+  zh: '| 31 | legal_case_retriever | 根据[查询文本]检索相关法律案件。 |'
+- en: '| 32 | get_sum | Perform [Summation] based on [List[num]]. |'
+  id: totrans-402
+  prefs: []
+  type: TYPE_TB
+  zh: '| 32 | get_sum | 执行基于[List[num]]的[求和]操作。 |'
+- en: '| 33 | get_subtraction | Perform [Subtraction] based on [Minuend, Subtrahend].
+    |'
+  id: totrans-403
+  prefs: []
+  type: TYPE_TB
+  zh: '| 33 | get_subtraction | 执行基于[被减数, 减数]的[减法]操作。 |'
+- en: '| 34 | get_multiplication | Perform [Multiplication] based on [List[num]].
+    |'
+  id: totrans-404
+  prefs: []
+  type: TYPE_TB
+  zh: '| 34 | get_multiplication | 执行基于[List[num]]的[乘法]操作。 |'
+- en: '| 35 | get_division | Perform [Division] based on [Dividend, Divisor]. |'
+  id: totrans-405
+  prefs: []
+  type: TYPE_TB
+  zh: '| 35 | get_division | 执行基于[被除数, 除数]的[除法]操作。 |'
+- en: '| 36 | get_rank | Perform [Sorting] based on [List[num]]. |'
+  id: totrans-406
+  prefs: []
+  type: TYPE_TB
+  zh: '| 36 | get_rank | 执行基于[List[num]]的[排序]操作。 |'
+- en: '| 37 | finish | Summarize existing information to generate an answer. |'
+  id: totrans-407
+  prefs: []
+  type: TYPE_TB
+  zh: '| 37 | 完成 | 总结现有信息生成答案。 |'
+- en: 'Table 6: The descriptions of the tool functions.'
+  id: totrans-408
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 6：工具功能描述。
+- en: '|'
+  id: totrans-409
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Example: Use get_restriction_case_company_list to query the amounts
+    involved in all cases participated in by Jiangsu Yanning New Material Technology
+    Development Co., Ltd. &#124;'
+  id: totrans-410
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例：使用 get_restriction_case_company_list 查询江苏雁宁新材料科技发展有限公司参与的所有案件的金额。&#124;'
+- en: '|'
+  id: totrans-411
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| --- |'
+  id: totrans-412
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- |'
+- en: '|'
+  id: totrans-413
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Call Tool: &#124;'
+  id: totrans-414
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 调用工具：&#124;'
+- en: '&#124; get_restriction_case_company_list( &#124;'
+  id: totrans-415
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; get_restriction_case_company_list( &#124;'
+- en: '&#124;        identifier="Jiangsu Yanning New Material Technology Development
+    Co., Ltd.", &#124;'
+  id: totrans-416
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124;        identifier="江苏雁宁新材料科技发展有限公司"，&#124;'
+- en: '&#124;        columns=["Amount Involved (CNY)"]) &#124;'
+  id: totrans-417
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124;        columns=["涉及金额（CNY）"]) &#124;'
+- en: '|'
+  id: totrans-418
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '|'
+  id: totrans-419
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Return: &#124;'
+  id: totrans-420
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 返回：&#124;'
+- en: '&#124; [{‘Amount Involved (CNY)’: 686550}, {‘Amount Involved (CNY)’: 385353},
+    {‘Amount Involved (CNY)’: 17875}, {‘Amount Involved (CNY)’: 2456446}] &#124;'
+  id: totrans-421
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; [{‘涉及金额（CNY）’：686550}, {‘涉及金额（CNY）’：385353}, {‘涉及金额（CNY）’：17875}, {‘涉及金额（CNY）’：2456446}]
+    &#124;'
+- en: '|'
+  id: totrans-422
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: 'Table 7: A concrete example of a tool call. There are four cases related to
+    the specified company. Since the columns parameter specifies the Amount Involved
+    (CNY) attribute, each dictionary in the returned list contains only the Amount
+    Involved (CNY) key. If columns=[], all keys in the corresponding table will be
+    returned.'
+  id: totrans-423
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 7：工具调用的具体示例。返回的列表包含与指定公司相关的四个案件。由于列参数指定了“涉及金额（CNY）”属性，返回的每个字典仅包含“涉及金额（CNY）”键。如果
+    columns=[]，则会返回相应表格中的所有键。
+- en: Appendix D Task Details
+  id: totrans-424
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 D 任务详情
+- en: 'Tables [8](https://arxiv.org/html/2412.17259v1#A4.T8 "Table 8 ‣ Appendix D
+    Task Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain") and [9](https://arxiv.org/html/2412.17259v1#A4.T9
+    "Table 9 ‣ Appendix D Task Details ‣ LegalAgentBench: Evaluating LLM Agents in
+    Legal Domain") provide concrete examples of the tasks included in LegalAgentBench.
+    Table [8](https://arxiv.org/html/2412.17259v1#A4.T8 "Table 8 ‣ Appendix D Task
+    Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain") illustrates
+    a multi-hop task along with a human-provided solution path, showcasing the reasoning
+    steps involved. Table [9](https://arxiv.org/html/2412.17259v1#A4.T9 "Table 9 ‣
+    Appendix D Task Details ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")
+    presents an example of the writing task from the dataset, where the task requires
+    not only querying and retrieving various pieces of information but also processing
+    and organizing the information into a formatted legal defense document. This example
+    highlights the challenges faced by LLM agents when applied to the legal domain,
+    demonstrating the need for advanced reasoning, information synthesis, and adherence
+    to domain-specific requirements.'
+  id: totrans-425
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格 [8](https://arxiv.org/html/2412.17259v1#A4.T8 "表格 8 ‣ 附录 D 任务详情 ‣ LegalAgentBench:
+    评估法律领域中的 LLM 代理") 和 [9](https://arxiv.org/html/2412.17259v1#A4.T9 "表格 9 ‣ 附录 D
+    任务详情 ‣ LegalAgentBench: 评估法律领域中的 LLM 代理") 提供了 LegalAgentBench 中任务的具体示例。表格 [8](https://arxiv.org/html/2412.17259v1#A4.T8
+    "表格 8 ‣ 附录 D 任务详情 ‣ LegalAgentBench: 评估法律领域中的 LLM 代理") 展示了一个多跳任务，并附有人工提供的解决路径，展示了涉及的推理步骤。表格
+    [9](https://arxiv.org/html/2412.17259v1#A4.T9 "表格 9 ‣ 附录 D 任务详情 ‣ LegalAgentBench:
+    评估法律领域中的 LLM 代理") 提供了数据集中写作任务的示例，其中任务不仅需要查询和检索各种信息，还需要处理和整理信息，形成格式化的法律辩护文件。此示例突出了
+    LLM 代理在应用于法律领域时所面临的挑战，展示了对高级推理、信息综合以及遵循领域特定要求的需求。'
+- en: '| Task: What is the total amount of restricted high consumption for 91320115773957541H?
+    |'
+  id: totrans-426
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务：91320115773957541H 的受限高消费总金额是多少？ |'
+- en: '| --- |'
+  id: totrans-427
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- |'
+- en: '|'
+  id: totrans-428
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Step: &#124;'
+  id: totrans-429
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 步骤：&#124;'
+- en: '&#124; Firstly, since the provided Unified Social Credit Code "91320115773957541H"
+    cannot be directly used to query the total amount of restricted high consumption,
+    we use the get_company_register_name tool to obtain the company name associated
+    with this code. &#124;'
+  id: totrans-430
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 首先，由于提供的统一社会信用代码 "91320115773957541H" 不能直接用于查询受限高消费的总金额，我们使用 get_company_register_name
+    工具来获取与此代码相关联的公司名称。&#124;'
+- en: '&#124; Result of Action: &#124;'
+  id: totrans-431
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 动作结果：&#124;'
+- en: '&#124; The query reveals that the company name is Jiangsu Yanning New Material
+    Technology Development Co., Ltd. &#124;'
+  id: totrans-432
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 查询结果显示公司名称为江苏雁宁新材料科技发展有限公司。&#124;'
+- en: '&#124; Secondly, we use the get_restriction_case_company_list tool to query
+    all restricted high consumption cases involving this company, based on the company
+    name retrieved in the previous step. &#124;'
+  id: totrans-433
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 其次，我们使用get_restriction_case_company_list工具根据上一步骤中检索到的公司名称查询所有涉及该公司的限制高消费案件。
+    &#124;'
+- en: '&#124; Result of Action: &#124;'
+  id: totrans-434
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 行动结果： &#124;'
+- en: '&#124; The query returns the amounts involved in all cases as follows: [{‘Amount
+    Involved (CNY)’: 686550}, {‘Amount Involved (CNY)’: 385353}, {‘Amount Involved
+    (CNY)’: 17875}, {‘Amount Involved (CNY)’: 2456446}]. &#124;'
+  id: totrans-435
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 查询返回所有案件涉及的金额如下：[{‘涉及金额（元人民币）’：686550}, {‘涉及金额（元人民币）’：385353}, {‘涉及金额（元人民币）’：17875},
+    {‘涉及金额（元人民币）’：2456446}]。 &#124;'
+- en: '&#124; Thirdly, we use the get_sum tool to calculate the total of the amounts
+    obtained in the previous step. &#124;'
+  id: totrans-436
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 第三步，我们使用get_sum工具计算前一步骤中获得的金额总和。 &#124;'
+- en: '&#124; Result of Action: &#124;'
+  id: totrans-437
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 行动结果： &#124;'
+- en: '&#124; The calculation yields a total of 3546224 CNY. &#124;'
+  id: totrans-438
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 计算结果为3546224元人民币。 &#124;'
+- en: '&#124; Finally, we summarize the information and answer the original question.
+    &#124;'
+  id: totrans-439
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 最后，我们总结信息并回答原始问题。 &#124;'
+- en: '|'
+  id: totrans-440
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| Answer: The total amount of restricted high consumption for 91320115773957541H
+    is 3546224 CNY. |'
+  id: totrans-441
+  prefs: []
+  type: TYPE_TB
+  zh: '| 答案：91320115773957541H的限制高消费总金额为3546224元人民币。 |'
+- en: 'Table 8: An example of the multi-hop task.'
+  id: totrans-442
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表8：多跳任务示例。
+- en: '|'
+  id: totrans-443
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Task: PersonA has filed a lawsuit against CompanyX. The specific content
+    of the complaint is as follows: [Complaint Content]. CompanyX has engaged Law
+    Firm A for legal representation. As the head of Law Firm A, please draft a defense
+    statement in response to the complaint based on the specified defense statement
+    format: [Defense Statement Format]. &#124;'
+  id: totrans-444
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 任务：A人已对公司X提起诉讼。投诉的具体内容如下：[投诉内容]。公司X已聘请A律师事务所进行法律代理。作为A律师事务所的负责人，请根据指定的辩护陈述格式撰写回应投诉的辩护陈述：[辩护陈述格式]。
+    &#124;'
+- en: '|'
+  id: totrans-445
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| --- |'
+  id: totrans-446
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- |'
+- en: '|'
+  id: totrans-447
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Step: &#124;'
+  id: totrans-448
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 步骤： &#124;'
+- en: '&#124; Firstly, we need to retrieve the address, legal representative, Unified
+    Social Credit Code, and contact number of CompanyX. &#124;'
+  id: totrans-449
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 首先，我们需要检索公司X的地址、法定代表人、统一社会信用代码和联系电话。 &#124;'
+- en: '&#124; Call Tool: get_company_register &#124;'
+  id: totrans-450
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 调用工具：get_company_register &#124;'
+- en: '&#124; Secondly, we need to retrieve the head and contact number of Law Firm
+    A. &#124;'
+  id: totrans-451
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 其次，我们需要检索A律师事务所的负责人和联系电话。 &#124;'
+- en: '&#124; Call Tool: get_court_info &#124;'
+  id: totrans-452
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 调用工具：get_court_info &#124;'
+- en: '&#124; Thirdly, we need to retrieve relevant legal knowledge, legal article,
+    and legal case &#124;'
+  id: totrans-453
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 第三步，我们需要检索相关的法律知识、法律条文和法律案例。 &#124;'
+- en: '&#124; Call Tools: legal_knowledge_retriever, legal_article_retriever, legal_case_retriever
+    &#124;'
+  id: totrans-454
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 调用工具：legal_knowledge_retriever, legal_article_retriever, legal_case_retriever
+    &#124;'
+- en: '&#124; Finally, we generate the answer following the specified defense statement
+    format. &#124;'
+  id: totrans-455
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 最后，我们根据指定的辩护陈述格式生成答案。 &#124;'
+- en: '|'
+  id: totrans-456
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '|'
+  id: totrans-457
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Answer: &#124;'
+  id: totrans-458
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 答案： &#124;'
+- en: '&#124; Defendant: [Company Name], [Address], [Legal Representative], [Unified
+    Social Credit Code], [Contact Number] &#124;'
+  id: totrans-459
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 被告：[公司名称]，[地址]，[法定代表人]，[统一社会信用代码]，[联系电话] &#124;'
+- en: '&#124; Authorized Litigation Representative: [Law Firm Name], [Law Firm Head],
+    [Law Firm Contact Number] &#124;'
+  id: totrans-460
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 授权诉讼代表：[律师事务所名称]，[律师事务所负责人]，[律师事务所联系电话] &#124;'
+- en: '&#124; Plaintiff: [Name] &#124;'
+  id: totrans-461
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 原告：[姓名] &#124;'
+- en: '&#124; [Specific Content of the Defense Statement] &#124;'
+  id: totrans-462
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; [辩护陈述的具体内容] &#124;'
+- en: '|'
+  id: totrans-463
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: 'Table 9: An example of the writing task.'
+  id: totrans-464
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表9：写作任务示例。
+- en: Appendix E More Implementation details
+  id: totrans-465
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录E 更多实施细节
+- en: E.1 Prompt
+  id: totrans-466
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: E.1 提示
+- en: 'In this section, we present the key prompts used in LegalAgentBench. More details
+    can be found in our code. Table [10](https://arxiv.org/html/2412.17259v1#A5.T10
+    "Table 10 ‣ E.2 Metrics ‣ Appendix E More Implementation details ‣ LegalAgentBench:
+    Evaluating LLM Agents in Legal Domain") shows the prompt template for question
+    rewriting during the task construction process. We used GPT-4 to rewrite the original
+    questions and manually reviewed the rewritten questions for accuracy. Tables [11](https://arxiv.org/html/2412.17259v1#A5.T11
+    "Table 11 ‣ E.2 Metrics ‣ Appendix E More Implementation details ‣ LegalAgentBench:
+    Evaluating LLM Agents in Legal Domain"), [12](https://arxiv.org/html/2412.17259v1#A5.T12
+    "Table 12 ‣ E.2 Metrics ‣ Appendix E More Implementation details ‣ LegalAgentBench:
+    Evaluating LLM Agents in Legal Domain") and [13](https://arxiv.org/html/2412.17259v1#A5.T13
+    "Table 13 ‣ E.2 Metrics ‣ Appendix E More Implementation details ‣ LegalAgentBench:
+    Evaluating LLM Agents in Legal Domain") present the prompts used in different
+    methods.'
+  id: totrans-467
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了 LegalAgentBench 中使用的关键提示。更多详细信息可以在我们的代码中找到。表 [10](https://arxiv.org/html/2412.17259v1#A5.T10
+    "表 10 ‣ E.2 指标 ‣ 附录 E 更多实现细节 ‣ LegalAgentBench：评估法律领域中的 LLM 代理") 展示了任务构建过程中的问题重写提示模板。我们使用
+    GPT-4 对原始问题进行了重写，并手动审核了重写后的问题以确保准确性。表 [11](https://arxiv.org/html/2412.17259v1#A5.T11
+    "表 11 ‣ E.2 指标 ‣ 附录 E 更多实现细节 ‣ LegalAgentBench：评估法律领域中的 LLM 代理")、[12](https://arxiv.org/html/2412.17259v1#A5.T12
+    "表 12 ‣ E.2 指标 ‣ 附录 E 更多实现细节 ‣ LegalAgentBench：评估法律领域中的 LLM 代理") 和 [13](https://arxiv.org/html/2412.17259v1#A5.T13
+    "表 13 ‣ E.2 指标 ‣ 附录 E 更多实现细节 ‣ LegalAgentBench：评估法律领域中的 LLM 代理") 展示了不同方法中使用的提示。
+- en: E.2 Metrics
+  id: totrans-468
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: E.2 指标
+- en: 'In this section, we provide a detailed explanation of the calculation for success
+    rate and process rate. Assume there is a dataset $\mathcal{D}$ consisting of $N$
+    data points, where each data point includes a keyword set $\mathcal{K}_{i}$ and
+    a model output $\mathcal{O}_{i}$. The rate $s_{i}$ for the $i$-th data point is
+    calculated as:'
+  id: totrans-469
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们提供了成功率和进度率计算的详细说明。假设有一个数据集 $\mathcal{D}$，包含 $N$ 个数据点，每个数据点包括一个关键词集合 $\mathcal{K}_{i}$
+    和一个模型输出 $\mathcal{O}_{i}$。第 $i$ 个数据点的率 $s_{i}$ 计算如下：
+- en: '|  | $s_{i}=\frac{&#124;\mathcal{M}_{i}&#124;}{&#124;\mathcal{K}_{i}&#124;}$
+    |  |'
+  id: totrans-470
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $s_{i}=\frac{&#124;\mathcal{M}_{i}&#124;}{&#124;\mathcal{K}_{i}&#124;}$
+    |  |'
+- en: where $\mathcal{M}_{i}=\{k\in\mathcal{K}_{i}|k~{}\text{appears in}~{}\mathcal{O}_{i}\}$.
+    The notation $|\cdot|$ represents the number of elements in a set. When the keyword
+    set $\mathcal{K}_{i}=\text{key\_answer}$, $s_{i}$ represents the success rate.
+    When $\mathcal{K}_{i}=\text{key\_answer}\cup\text{key\_middle}$, $s_{i}$ represents
+    the progress rate. We report the average of all tasks in the experimental results.
+  id: totrans-471
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中 $\mathcal{M}_{i}=\{k\in\mathcal{K}_{i}|k~{}\text{出现在}~{}\mathcal{O}_{i}\}$。符号
+    $|\cdot|$ 表示集合中的元素个数。当关键词集合 $\mathcal{K}_{i}=\text{key\_answer}$ 时，$s_{i}$ 表示成功率。当
+    $\mathcal{K}_{i}=\text{key\_answer}\cup\text{key\_middle}$ 时，$s_{i}$ 表示进度率。我们报告所有任务的实验结果的平均值。
+- en: '| The prompt used in question rewriting. |'
+  id: totrans-472
+  prefs: []
+  type: TYPE_TB
+  zh: '| 用于问题重写的提示。 |'
+- en: '|'
+  id: totrans-473
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; You are an advanced question rewriter. Your task is to rewrite the given
+    questions to make them more relevant to real-life scenarios and sound more natural.
+    Please adhere to the following requirements: &#124;'
+  id: totrans-474
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 你是一个高级问题重写员。你的任务是重写给定的问题，使其更贴近现实场景，并听起来更自然。请遵守以下要求： &#124;'
+- en: '&#124; 1\. Preserve the Core Inquiry: Do not change the core content or the
+    focus of the original question. Ensure the user’s intent is not misunderstood.
+    &#124;'
+  id: totrans-475
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 1\. 保持核心查询：不要改变原始问题的核心内容或重点，确保不会误解用户意图。 &#124;'
+- en: '&#124; 2\. Introduce Misleading Context: Add potentially misleading context
+    to obscure the true purpose of the query. &#124;'
+  id: totrans-476
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 2\. 引入误导性上下文：添加潜在的误导性上下文，以掩盖查询的真实目的。 &#124;'
+- en: '&#124; 3\. Maintain Logical Coherence: The rewritten question should align
+    with daily usage scenarios, have smooth language, and be logically coherent. &#124;'
+  id: totrans-477
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 3\. 保持逻辑连贯性：重写的问题应与日常使用场景一致，语言流畅且逻辑连贯。 &#124;'
+- en: '&#124; 4\. Relate to Legal Needs: Whenever possible, ensure the question remains
+    tied to legal requirements. &#124;'
+  id: totrans-478
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 4\. 与法律需求相关：尽可能确保问题与法律需求保持相关。 &#124;'
+- en: '&#124; 5\. Ensure Clarity: Retain the critical points of the inquiry so that
+    the answers to the original question and the rewritten question remain consistent.
+    &#124;'
+  id: totrans-479
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 5\. 确保清晰性：保留查询的关键点，确保原始问题和重写问题的答案一致。 &#124;'
+- en: '|'
+  id: totrans-480
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: 'Table 10: The prompt template for question rewriting during the task construction
+    process.'
+  id: totrans-481
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 10：任务构建过程中的问题重写提示模板。
+- en: '| Stage | The Prompt used in the Plan-and-Solve method. |'
+  id: totrans-482
+  prefs: []
+  type: TYPE_TB
+  zh: '| 阶段 | 在计划与解决方法中使用的提示。 |'
+- en: '| --- | --- |'
+  id: totrans-483
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Plan |'
+  id: totrans-484
+  prefs: []
+  type: TYPE_TB
+  zh: '| 计划 |'
+- en: '&#124; Solve a Question-Answering Task. Please understand the question and
+    develop a step-by-step plan to solve it. &#124;'
+  id: totrans-485
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 解决问答任务。请理解问题，并制定逐步的计划来解决它。&#124;'
+- en: '&#124; Start your output with the title "Plan:" and follow it with a list of
+    steps. Each step should begin with "Step n:", where n is the current step number
+    (1, 2, 3, …). &#124;'
+  id: totrans-486
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 开始时，输出标题“计划：”，并列出步骤。每个步骤应以“步骤 n:”开始，其中n是当前步骤的编号（1, 2, 3，……）。&#124;'
+- en: '&#124; The plan should include several distinct steps, and completing these
+    steps sequentially will yield the correct answer. &#124;'
+  id: totrans-487
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 计划应包括若干个不同的步骤，按顺序完成这些步骤将得到正确的答案。&#124;'
+- en: '&#124; Ensure the plan is sufficiently detailed to complete the task accurately,
+    without skipping any steps or adding unnecessary ones. &#124;'
+  id: totrans-488
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 确保计划足够详细，能够准确完成任务，不跳过任何步骤，也不添加不必要的步骤。&#124;'
+- en: '&#124; The final step should always be: "Based on the above steps, please answer
+    the original question." &#124;'
+  id: totrans-489
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 最后一步应始终是：“根据以上步骤，请回答原始问题。”&#124;'
+- en: '&#124; At the end of the plan, include the line "End of Plan." &#124;'
+  id: totrans-490
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 在计划的最后，加入“计划结束”这一行。&#124;'
+- en: '&#124; You can use the following tools: &#124;'
+  id: totrans-491
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 你可以使用以下工具：&#124;'
+- en: '&#124; {tools} &#124;'
+  id: totrans-492
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {tools} &#124;'
+- en: '&#124; Relevant data tables and their fields (any field appearing in the table
+    can be used as a value in the columns parameter): &#124;'
+  id: totrans-493
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 相关数据表及其字段（表中任何出现的字段都可以作为列参数的值）：&#124;'
+- en: '&#124; {table_used_prompt} &#124;'
+  id: totrans-494
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {table_used_prompt} &#124;'
+- en: '&#124; Note: Your task is to develop the plan and output it as requested. Do
+    not execute the plan! &#124;'
+  id: totrans-495
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 注意：你的任务是制定计划并按要求输出。不要执行计划！&#124;'
+- en: '&#124; Here are some examples: &#124;'
+  id: totrans-496
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 以下是一些示例：&#124;'
+- en: '&#124; {examples} &#124;'
+  id: totrans-497
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {examples} &#124;'
+- en: '&#124; (Examples End) &#124;'
+  id: totrans-498
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; （示例结束）&#124;'
+- en: '&#124; Question: {question} &#124;'
+  id: totrans-499
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 问题：{question} &#124;'
+- en: '|'
+  id: totrans-500
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| Solve |'
+  id: totrans-501
+  prefs: []
+  type: TYPE_TB
+  zh: '| 解决 |'
+- en: '&#124; Given a single-step plan, please output the specific action you intend
+    to execute based on the plan. "Action" is specified using a JSON block, which
+    includes an action key (tool name) and an action_input key (tool input). &#124;'
+  id: totrans-502
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 给定一个单步计划，请输出你打算执行的具体操作。操作使用 JSON 格式块来指定，其中包括 action 键（工具名称）和 action_input
+    键（工具输入）。&#124;'
+- en: '&#124; Valid values for the action key include: "Final Answer" or {tool_names}.
+    &#124;'
+  id: totrans-503
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; action 键的有效值包括：“最终答案”或 {tool_names}。&#124;'
+- en: '&#124; You may use the following tools: &#124;'
+  id: totrans-504
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 你可以使用以下工具：&#124;'
+- en: '&#124; {tools} &#124;'
+  id: totrans-505
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {tools} &#124;'
+- en: '&#124; Relevant data tables and their available fields (any field in the table
+    can be used as a value in the columns parameter): &#124;'
+  id: totrans-506
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 相关数据表及其可用字段（表中的任何字段都可以用作列参数中的值）：&#124;'
+- en: '&#124; {table_used_prompt} &#124;'
+  id: totrans-507
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {table_used_prompt} &#124;'
+- en: '&#124; Each "Action" can only call one tool at a time. If multiple tools need
+    to be called, split them into separate steps. &#124;'
+  id: totrans-508
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 每个“操作”一次只能调用一个工具。如果需要调用多个工具，请将它们分成单独的步骤。&#124;'
+- en: '&#124; The output of an "Action" must strictly follow the JSON format below
+    and be parsable by Python’s json.loads function: &#124;'
+  id: totrans-509
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; “操作”的输出必须严格遵循以下 JSON 格式，并且能够通过 Python 的 json.loads 函数解析：&#124;'
+- en: '&#124; “‘json &#124;'
+  id: totrans-510
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; “‘json &#124;'
+- en: '&#124; {{ &#124;'
+  id: totrans-511
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {{ &#124;'
+- en: '&#124; "action": TOOL_NAME, &#124;'
+  id: totrans-512
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; "action": TOOL_NAME, &#124;'
+- en: '&#124; "action_input": INPUT &#124;'
+  id: totrans-513
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; "action_input": INPUT &#124;'
+- en: '&#124; }} &#124;'
+  id: totrans-514
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; }} &#124;'
+- en: '&#124; ”’ &#124;'
+  id: totrans-515
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; ”’ &#124;'
+- en: '&#124; Here are some examples: &#124;'
+  id: totrans-516
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 以下是一些示例：&#124;'
+- en: '&#124; {examples} &#124;'
+  id: totrans-517
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {examples} &#124;'
+- en: '&#124; (Examples End) &#124;'
+  id: totrans-518
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; （示例结束）&#124;'
+- en: '&#124; Plan you need to execute: {plan} &#124;'
+  id: totrans-519
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 你需要执行的计划：{plan} &#124;'
+- en: '&#124; Steps you have already completed: {scratchpad} &#124;'
+  id: totrans-520
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 你已完成的步骤：{scratchpad} &#124;'
+- en: '&#124; Action: &#124;'
+  id: totrans-521
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 操作：&#124;'
+- en: '|'
+  id: totrans-522
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: 'Table 11: The prompt used in the Plan-and-Solve method.'
+  id: totrans-523
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 11：在计划与解决方法中使用的提示。
+- en: '| Stage | The prompt used in the Plan-and-Execute method. |'
+  id: totrans-524
+  prefs: []
+  type: TYPE_TB
+  zh: '| 阶段 | 在计划与执行方法中使用的提示。 |'
+- en: '| Replan |'
+  id: totrans-525
+  prefs: []
+  type: TYPE_TB
+  zh: '| 重新计划 |'
+- en: '&#124; Solve a Question-Answering task. Please understand the question and
+    develop a step-by-step plan to solve it. &#124;'
+  id: totrans-526
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 解决问答任务。请理解问题，并制定逐步的计划来解决它。&#124;'
+- en: '&#124; Start your output with the title "Plan:" and follow it with a list of
+    steps. Each step should begin with "Step n:", where n is the current step number
+    (1, 2, 3, …). &#124;'
+  id: totrans-527
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 开始时，输出标题“计划：”，并列出步骤。每个步骤应以“步骤 n:”开始，其中n是当前步骤的编号（1, 2, 3，……）。&#124;'
+- en: '&#124; The plan should include several distinct steps, and completing these
+    steps sequentially will yield the correct answer. &#124;'
+  id: totrans-528
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 计划应包含几个不同的步骤，按顺序完成这些步骤将得出正确的答案。&#124;'
+- en: '&#124; Ensure the plan is sufficiently detailed to complete the task accurately,
+    without skipping any steps or adding unnecessary ones. &#124;'
+  id: totrans-529
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 确保计划足够详细，以准确完成任务，不能跳过任何步骤或添加不必要的步骤。&#124;'
+- en: '&#124; The final step should always be: "Based on the above steps, please answer
+    the original question." &#124;'
+  id: totrans-530
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 最后一步应始终是：“根据上述步骤，请回答原始问题。”&#124;'
+- en: '&#124; At the end of the plan, include the line "End of Plan." &#124;'
+  id: totrans-531
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 在计划的最后，包含一行“计划结束。”&#124;'
+- en: '&#124; You may use the following tools: &#124;'
+  id: totrans-532
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 你可以使用以下工具：&#124;'
+- en: '&#124; {tools} &#124;'
+  id: totrans-533
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {tools} &#124;'
+- en: '&#124; Relevant data tables and their fields (any field in the table can be
+    used as a value in the columns parameter): &#124;'
+  id: totrans-534
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 相关数据表及其字段（表中的任何字段都可以作为‘columns’参数的值）：&#124;'
+- en: '&#124; {table_used_prompt} &#124;'
+  id: totrans-535
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {table_used_prompt} &#124;'
+- en: '&#124; Note: You are only responsible for creating the plan according to the
+    requirements. Do not execute the plan! &#124;'
+  id: totrans-536
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 注意：你只负责根据要求创建计划。不要执行该计划！&#124;'
+- en: '&#124; Examples: &#124;'
+  id: totrans-537
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例：&#124;'
+- en: '&#124; {examples} &#124;'
+  id: totrans-538
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {examples} &#124;'
+- en: '&#124; (Examples End) &#124;'
+  id: totrans-539
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; (示例结束) &#124;'
+- en: '&#124; Question: {question} &#124;'
+  id: totrans-540
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 问题：{question} &#124;'
+- en: '&#124; Your Original Plan: {plan} &#124;'
+  id: totrans-541
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 你的原始计划：{plan} &#124;'
+- en: '&#124; Steps You Have Already Completed: {scratchpad} &#124;'
+  id: totrans-542
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 已完成的步骤：{scratchpad} &#124;'
+- en: '&#124; Please update the plan based on the situation. If additional steps are
+    needed, list the remaining steps strictly following the format requirements. Retain
+    the already completed steps as they are and do not repeat them. &#124;'
+  id: totrans-543
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 请根据情况更新计划。如果需要额外的步骤，请严格按照格式要求列出剩余步骤。保留已经完成的步骤，并且不要重复它们。&#124;'
+- en: '&#124; Each step should begin with "Step n:", where n is the current step number
+    (1, 2, 3, …). &#124;'
+  id: totrans-544
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 每个步骤应以“第n步:”开头，其中n是当前步骤的编号（1, 2, 3，…）。&#124;'
+- en: '&#124; The final step should always be: "Based on the above steps, please answer
+    the original question." &#124;'
+  id: totrans-545
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 最后一步应始终是：“根据上述步骤，请回答原始问题。”&#124;'
+- en: '&#124; At the end of the plan, include the line "End of Plan." &#124;'
+  id: totrans-546
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 在计划的最后，包含一行“计划结束。”&#124;'
+- en: '|'
+  id: totrans-547
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: 'Table 12: The prompt used in the Plan-and-Execute method.'
+  id: totrans-548
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格12：计划执行方法中使用的提示。
+- en: '| The prompt used in the ReAct method. |'
+  id: totrans-549
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在ReAct方法中使用的提示。 |'
+- en: '|'
+  id: totrans-550
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Solve a Question-Answering Task. The process involves alternating steps
+    of "Thought", "Action", and "Observation". &#124;'
+  id: totrans-551
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 解答问答任务。该过程涉及“思考”、“行动”和“观察”步骤的交替进行。&#124;'
+- en: '&#124; - "Thought" is used to reason about the next step based on the current
+    situation. Note that you only need to consider the immediate next step. &#124;'
+  id: totrans-552
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - “思考”是基于当前情况推理下一步的行动。请注意，你只需要考虑紧接着的下一步。&#124;'
+- en: '&#124; - "Action" refers to specifying the tool to use through a JSON block
+    containing an ‘action’ key (tool name) and an ‘action_input’ key (tool input).
+    &#124;'
+  id: totrans-553
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - “Action”指通过一个包含“action”键（工具名称）和“action_input”键（工具输入）的JSON块来指定要使用的工具。&#124;'
+- en: '&#124; - Valid values for the ‘action’ key include: ‘"Final Answer" or {tool_names}.
+    &#124;'
+  id: totrans-554
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - ‘action’键的有效值包括：“Final Answer”或{tool_names}。&#124;'
+- en: '&#124; - You may use the following tools: &#124;'
+  id: totrans-555
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - 你可以使用以下工具：&#124;'
+- en: '&#124; {tools} &#124;'
+  id: totrans-556
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {tools} &#124;'
+- en: '&#124; - Relevant data tables and their available fields (any field in the
+    table can be used as a value in the ‘columns’ parameter) include: &#124;'
+  id: totrans-557
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - 相关数据表及其可用字段（表中的任何字段都可以作为‘columns’参数的值）包括：&#124;'
+- en: '&#124; {table_used_prompt} &#124;'
+  id: totrans-558
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {table_used_prompt} &#124;'
+- en: '&#124; - Each "Action" can call only one tool. If multiple tools need to be
+    called, break them into separate steps. &#124;'
+  id: totrans-559
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - 每个“Action”只能调用一个工具。如果需要调用多个工具，请将它们拆分成独立的步骤。&#124;'
+- en: '&#124; - The output of an "Action" strictly follow the JSON format below and
+    be parsable by Python’s ‘json.loads’ function: &#124;'
+  id: totrans-560
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - “Action”的输出严格遵循以下JSON格式，并且能够通过Python的‘json.loads’函数解析：&#124;'
+- en: '&#124; “‘json &#124;'
+  id: totrans-561
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; “‘json &#124;'
+- en: '&#124; {{ &#124;'
+  id: totrans-562
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {{ &#124;'
+- en: '&#124; "action": TOOL_NAME, &#124;'
+  id: totrans-563
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; "action": TOOL_NAME, &#124;'
+- en: '&#124; "action_input": INPUT &#124;'
+  id: totrans-564
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; "action_input": 输入&#124;'
+- en: '&#124; }} &#124;'
+  id: totrans-565
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; }} &#124;'
+- en: '&#124; ”’ &#124;'
+  id: totrans-566
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; ”’ &#124;'
+- en: '&#124; Examples: &#124;'
+  id: totrans-567
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例：&#124;'
+- en: '&#124; {examples} &#124;'
+  id: totrans-568
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {examples} &#124;'
+- en: '&#124; (Examples End) &#124;'
+  id: totrans-569
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; (示例结束) &#124;'
+- en: '&#124; Important Notes: &#124;'
+  id: totrans-570
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 重要事项：&#124;'
+- en: '&#124; - When outputting "Action," the result must strictly follow the JSON
+    format specified above. &#124;'
+  id: totrans-571
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - 输出“Action”时，结果必须严格遵循上面指定的 JSON 格式。 &#124;'
+- en: '&#124; - When outputting "Thought," only reason about the immediate next step,
+    and avoid thinking about multiple steps ahead. &#124;'
+  id: totrans-572
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; - 输出“Thought”时，只考虑立即的下一步，并避免思考多个步骤。 &#124;'
+- en: '&#124; Question: {question} &#124;'
+  id: totrans-573
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 问题: {question} &#124;'
+- en: '&#124; {scratchpad} &#124;'
+  id: totrans-574
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; {scratchpad} &#124;'
+- en: '|'
+  id: totrans-575
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: 'Table 13: The prompt used in the ReAct method.'
+  id: totrans-576
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 13：ReAct 方法中使用的提示。
+- en: Appendix F More Evaluation Result
+  id: totrans-577
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 F 更多评估结果
+- en: 'Tables [14](https://arxiv.org/html/2412.17259v1#A6.T14 "Table 14 ‣ Appendix
+    F More Evaluation Result ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain")
+    and [15](https://arxiv.org/html/2412.17259v1#A6.T15 "Table 15 ‣ Appendix F More
+    Evaluation Result ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain") report
+    the progress rate and BertScore of different LLMs and methods on LegalAgentBench.
+    Table [14](https://arxiv.org/html/2412.17259v1#A6.T14 "Table 14 ‣ Appendix F More
+    Evaluation Result ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain") highlights
+    the progress rate as a more fine-grained evaluation metric. We observed that GLM-4-Plus
+    surpasses GPT-4o in progress rate across all tasks. This suggests that, although
+    GLM-4-Plus may not perform as well as GPT-4o in terms of final outcomes, it achieves
+    a higher degree of intermediate completion in many tasks. This provides a more
+    comprehensive and fine-grained perspective for analyzing model performance. In
+    Table [15](https://arxiv.org/html/2412.17259v1#A6.T15 "Table 15 ‣ Appendix F More
+    Evaluation Result ‣ LegalAgentBench: Evaluating LLM Agents in Legal Domain"),
+    BERTScore measures the semantic similarity between the model’s output and the
+    answer. However, the differences between baselines become smaller, making it challenging
+    to effectively distinguish the performance of different baselines. Given the high
+    accuracy requirements in the legal domain, we recommend using success rate and
+    progress rate to evaluate model performance.'
+  id: totrans-578
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 [14](https://arxiv.org/html/2412.17259v1#A6.T14 "表 14 ‣ 附录 F 更多评估结果 ‣ LegalAgentBench：评估法律领域中的LLM代理")
+    和 [15](https://arxiv.org/html/2412.17259v1#A6.T15 "表 15 ‣ 附录 F 更多评估结果 ‣ LegalAgentBench：评估法律领域中的LLM代理")
+    报告了不同 LLM 和方法在 LegalAgentBench 上的进展率和 BertScore。表 [14](https://arxiv.org/html/2412.17259v1#A6.T14
+    "表 14 ‣ 附录 F 更多评估结果 ‣ LegalAgentBench：评估法律领域中的LLM代理") 强调了进展率作为一种更细粒度的评估指标。我们观察到，GLM-4-Plus
+    在所有任务中的进展率都超越了 GPT-4o。这表明，尽管 GLM-4-Plus 在最终结果上可能不如 GPT-4o 表现优异，但在许多任务中它在中间完成度上更高。这为分析模型性能提供了一个更全面、细粒度的视角。在表
+    [15](https://arxiv.org/html/2412.17259v1#A6.T15 "表 15 ‣ 附录 F 更多评估结果 ‣ LegalAgentBench：评估法律领域中的LLM代理")
+    中，BERTScore 衡量了模型输出与答案之间的语义相似度。然而，基线之间的差异变小，这使得有效区分不同基线的性能变得具有挑战性。鉴于法律领域的高准确性要求，我们建议使用成功率和进展率来评估模型性能。
+- en: '| Model | Method | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | Writing | ALL |
+    Tokens |'
+  id: totrans-579
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 方法 | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | 写作 | 总计 | 标记数 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-580
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GLM-4 | P-S | 0.7519 | 0.5094 | 0.3502 | 0.3238 | 0.2334 | 0.4989 | 0.4984
+    | 5,100,468 |'
+  id: totrans-581
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLM-4 | P-S | 0.7519 | 0.5094 | 0.3502 | 0.3238 | 0.2334 | 0.4989 | 0.4984
+    | 5,100,468 |'
+- en: '| P-E | 0.7477 | 0.5225 | 0.4140 | 0.3080 | 0.2631 | 0.4801 | 0.5121 | 9,849,924
+    |'
+  id: totrans-582
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.7477 | 0.5225 | 0.4140 | 0.3080 | 0.2631 | 0.4801 | 0.5121 | 9,849,924
+    |'
+- en: '| ReAct | 0.8967 | 0.7092 | 0.5103 | 0.4191 | 0.2820 | 0.5179 | 0.6395 | 11,920,863
+    |'
+  id: totrans-583
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.8967 | 0.7092 | 0.5103 | 0.4191 | 0.2820 | 0.5179 | 0.6395 | 11,920,863
+    |'
+- en: '| GLM-4-Plus | P-S | 0.8231 | 0.6577 | 0.5336 | 0.4791 | 0.3366 | 0.6367 |
+    0.6304 | 5,657,827 |'
+  id: totrans-584
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLM-4-Plus | P-S | 0.8231 | 0.6577 | 0.5336 | 0.4791 | 0.3366 | 0.6367 |
+    0.6304 | 5,657,827 |'
+- en: '| P-E | 0.8673 | 0.6531 | 0.5447 | 0.4762 | 0.3156 | 0.6401 | 0.6416 | 9,422,692
+    |'
+  id: totrans-585
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8673 | 0.6531 | 0.5447 | 0.4762 | 0.3156 | 0.6401 | 0.6416 | 9,422,692
+    |'
+- en: '| ReAct | 0.9323 | 0.7835 | 0.6233 | 0.5788 | 0.4026 | 0.6273 | 0.7280 | 11,739,861
+    |'
+  id: totrans-586
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9323 | 0.7835 | 0.6233 | 0.5788 | 0.4026 | 0.6273 | 0.7280 | 11,739,861
+    |'
+- en: '| LLaMa3.1-8B | P-S | 0.3475 | 0.2498 | 0.0999 | 0.0734 | 0.0859 | 0.2631 |
+    0.2123 | 9,279,701 |'
+  id: totrans-587
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaMa3.1-8B | P-S | 0.3475 | 0.2498 | 0.0999 | 0.0734 | 0.0859 | 0.2631 |
+    0.2123 | 9,279,701 |'
+- en: '| P-E | 0.3719 | 0.2248 | 0.1247 | 0.0934 | 0.1097 | 0.3334 | 0.2260 | 13,649,741
+    |'
+  id: totrans-588
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.3719 | 0.2248 | 0.1247 | 0.0934 | 0.1097 | 0.3334 | 0.2260 | 13,649,741
+    |'
+- en: '| ReAct | 0.6177 | 0.1573 | 0.0649 | 0.0468 | 0.0581 | 0.1074 | 0.2369 | 50,661,127
+    |'
+  id: totrans-589
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.6177 | 0.1573 | 0.0649 | 0.0468 | 0.0581 | 0.1074 | 0.2369 | 50,661,127
+    |'
+- en: '| Qwen-max | P-S | 0.8485 | 0.6442 | 0.4579 | 0.3994 | 0.2610 | 0.4557 | 0.5907
+    | 4,800,345 |'
+  id: totrans-590
+  prefs: []
+  type: TYPE_TB
+  zh: '| Qwen-max | P-S | 0.8485 | 0.6442 | 0.4579 | 0.3994 | 0.2610 | 0.4557 | 0.5907
+    | 4,800,345 |'
+- en: '| P-E | 0.8979 | 0.7004 | 0.5233 | 0.4141 | 0.2836 | 0.5011 | 0.6384 | 9,884,307
+    |'
+  id: totrans-591
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8979 | 0.7004 | 0.5233 | 0.4141 | 0.2836 | 0.5011 | 0.6384 | 9,884,307
+    |'
+- en: '| ReAct | 0.9229 | 0.7954 | 0.5832 | 0.5185 | 0.4908 | 0.5659 | 0.7144 | 11,473,873
+    |'
+  id: totrans-592
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9229 | 0.7954 | 0.5832 | 0.5185 | 0.4908 | 0.5659 | 0.7144 | 11,473,873
+    |'
+- en: '| Claude-sonnet | P-S | 0.8304 | 0.6987 | 0.5975 | 0.4794 | 0.3195 | 0.6575
+    | 0.6563 | 7,100,962 |'
+  id: totrans-593
+  prefs: []
+  type: TYPE_TB
+  zh: '| Claude-sonnet | P-S | 0.8304 | 0.6987 | 0.5975 | 0.4794 | 0.3195 | 0.6575
+    | 0.6563 | 7,100,962 |'
+- en: '| P-E | 0.8262 | 0.7340 | 0.6458 | 0.5188 | 0.4418 | 0.6776 | 0.6890 | 13,566,119
+    |'
+  id: totrans-594
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8262 | 0.7340 | 0.6458 | 0.5188 | 0.4418 | 0.6776 | 0.6890 | 13,566,119
+    |'
+- en: '| ReAct | 0.8867 | 0.7356 | 0.4850 | 0.4533 | 0.3379 | 0.5504 | 0.6493 | 32,878,858
+    |'
+  id: totrans-595
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.8867 | 0.7356 | 0.4850 | 0.4533 | 0.3379 | 0.5504 | 0.6493 | 32,878,858
+    |'
+- en: '| GPT-3.5 | P-S | 0.4994 | 0.2856 | 0.1296 | 0.0905 | 0.0412 | 0.0863 | 0.2558
+    | 5,007,391 |'
+  id: totrans-596
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 | P-S | 0.4994 | 0.2856 | 0.1296 | 0.0905 | 0.0412 | 0.0863 | 0.2558
+    | 5,007,391 |'
+- en: '| P-E | 0.5067 | 0.2731 | 0.1254 | 0.0886 | 0.0496 | 0.0973 | 0.2546 | 9,597,807
+    |'
+  id: totrans-597
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.5067 | 0.2731 | 0.1254 | 0.0886 | 0.0496 | 0.0973 | 0.2546 | 9,597,807
+    |'
+- en: '| ReAct | 0.6344 | 0.3117 | 0.1162 | 0.1018 | 0.1102 | 0.0813 | 0.3019 | 11,357,664
+    |'
+  id: totrans-598
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.6344 | 0.3117 | 0.1162 | 0.1018 | 0.1102 | 0.0813 | 0.3019 | 11,357,664
+    |'
+- en: '| GPT-4o-mini | P-S | 0.7010 | 0.5371 | 0.4269 | 0.3193 | 0.1637 | 0.5224 |
+    0.5039 | 5,482,556 |'
+  id: totrans-599
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o-mini | P-S | 0.7010 | 0.5371 | 0.4269 | 0.3193 | 0.1637 | 0.5224 |
+    0.5039 | 5,482,556 |'
+- en: '| P-E | 0.7298 | 0.5548 | 0.4525 | 0.3124 | 0.2032 | 0.5547 | 0.5252 | 10,861,492
+    |'
+  id: totrans-600
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.7298 | 0.5548 | 0.4525 | 0.3124 | 0.2032 | 0.5547 | 0.5252 | 10,861,492
+    |'
+- en: '| ReAct | 0.9354 | 0.6746 | 0.4834 | 0.3652 | 0.3714 | 0.5014 | 0.6329 | 13,332,418
+    |'
+  id: totrans-601
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9354 | 0.6746 | 0.4834 | 0.3652 | 0.3714 | 0.5014 | 0.6329 | 13,332,418
+    |'
+- en: '| GPT-4o | P-S | 0.6773 | 0.6137 | 0.4544 | 0.3813 | 0.2878 | 0.6336 | 0.5474
+    | 4,153,333 |'
+  id: totrans-602
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o | P-S | 0.6773 | 0.6137 | 0.4544 | 0.3813 | 0.2878 | 0.6336 | 0.5474
+    | 4,153,333 |'
+- en: '| P-E | 0.7669 | 0.6204 | 0.4772 | 0.3955 | 0.2424 | 0.6748 | 0.5793 | 7,261,238
+    |'
+  id: totrans-603
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.7669 | 0.6204 | 0.4772 | 0.3955 | 0.2424 | 0.6748 | 0.5793 | 7,261,238
+    |'
+- en: '| ReAct | 0.9344 | 0.7937 | 0.6397 | 0.4833 | 0.4880 | 0.5123 | 0.7199 | 11,206,957
+    |'
+  id: totrans-604
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9344 | 0.7937 | 0.6397 | 0.4833 | 0.4880 | 0.5123 | 0.7199 | 11,206,957
+    |'
+- en: 'Table 14: The process rate of different baselines on LegalAgentBench. P-S represents
+    the Plan-and-Solve method, and P-E represents the Plan-and-Execute method. The
+    best results are highlighted in bold.'
+  id: totrans-605
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 14：不同基准在 LegalAgentBench 上的处理速率。P-S 代表计划与解决方法，P-E 代表计划与执行方法。最佳结果以**粗体**突出显示。
+- en: '| Model | Method | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | Writing | ALL |
+    Tokens |'
+  id: totrans-606
+  prefs: []
+  type: TYPE_TB
+  zh: '| Model | Method | 1-hop | 2-hop | 3-hop | 4-hop | 5-hop | Writing | ALL |
+    Tokens |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-607
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GLM-4 | P-S | 0.8511 | 0.7585 | 0.6996 | 0.7289 | 0.7459 | 0.7754 | 0.7678
+    | 5,100,468 |'
+  id: totrans-608
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLM-4 | P-S | 0.8511 | 0.7585 | 0.6996 | 0.7289 | 0.7459 | 0.7754 | 0.7678
+    | 5,100,468 |'
+- en: '| P-E | 0.8392 | 0.7389 | 0.7131 | 0.7288 | 0.7270 | 0.7725 | 0.7606 | 9,849,924
+    |'
+  id: totrans-609
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8392 | 0.7389 | 0.7131 | 0.7288 | 0.7270 | 0.7725 | 0.7606 | 9,849,924
+    |'
+- en: '| ReAct | 0.9086 | 0.8088 | 0.7913 | 0.7691 | 0.7597 | 0.7705 | 0.8208 | 11,920,863
+    |'
+  id: totrans-610
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9086 | 0.8088 | 0.7913 | 0.7691 | 0.7597 | 0.7705 | 0.8208 | 11,920,863
+    |'
+- en: '| GLM-4-Plus | P-S | 0.8998 | 0.8036 | 0.7505 | 0.7726 | 0.7805 | 0.7790 |
+    0.8113 | 5,657,827 |'
+  id: totrans-611
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLM-4-Plus | P-S | 0.8998 | 0.8036 | 0.7505 | 0.7726 | 0.7805 | 0.7790 |
+    0.8113 | 5,657,827 |'
+- en: '| P-E | 0.9000 | 0.8168 | 0.7453 | 0.7551 | 0.7530 | 0.7791 | 0.8097 | 9,422,692
+    |'
+  id: totrans-612
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.9000 | 0.8168 | 0.7453 | 0.7551 | 0.7530 | 0.7791 | 0.8097 | 9,422,692
+    |'
+- en: '| ReAct | 0.9284 | 0.8718 | 0.8254 | 0.8267 | 0.8277 | 0.7873 | 0.8630 | 11,739,861
+    |'
+  id: totrans-613
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9284 | 0.8718 | 0.8254 | 0.8267 | 0.8277 | 0.7873 | 0.8630 | 11,739,861
+    |'
+- en: '| LLaMa3.1-8B | P-S | 0.7427 | 0.6674 | 0.6356 | 0.6241 | 0.6313 | 0.6640 |
+    0.6727 | 9,279,701 |'
+  id: totrans-614
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaMa3.1-8B | P-S | 0.7427 | 0.6674 | 0.6356 | 0.6241 | 0.6313 | 0.6640 |
+    0.6727 | 9,279,701 |'
+- en: '| P-E | 0.7278 | 0.6542 | 0.6421 | 0.6327 | 0.6413 | 0.7336 | 0.6730 | 13,649,741
+    |'
+  id: totrans-615
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.7278 | 0.6542 | 0.6421 | 0.6327 | 0.6413 | 0.7336 | 0.6730 | 13,649,741
+    |'
+- en: '| ReAct | 0.8080 | 0.6944 | 0.6583 | 0.6390 | 0.6672 | 0.5931 | 0.7015 | 50,661,127
+    |'
+  id: totrans-616
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.8080 | 0.6944 | 0.6583 | 0.6390 | 0.6672 | 0.5931 | 0.7015 | 50,661,127
+    |'
+- en: '| Qwen-max | P-S | 0.8581 | 0.7518 | 0.7240 | 0.7296 | 0.7338 | 0.7570 | 0.7708
+    | 4,800,345 |'
+  id: totrans-617
+  prefs: []
+  type: TYPE_TB
+  zh: '| Qwen-max | P-S | 0.8581 | 0.7518 | 0.7240 | 0.7296 | 0.7338 | 0.7570 | 0.7708
+    | 4,800,345 |'
+- en: '| P-E | 0.8521 | 0.7664 | 0.7259 | 0.7035 | 0.7300 | 0.7602 | 0.7699 | 9,884,307
+    |'
+  id: totrans-618
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8521 | 0.7664 | 0.7259 | 0.7035 | 0.7300 | 0.7602 | 0.7699 | 9,884,307
+    |'
+- en: '| ReAct | 0.9033 | 0.8315 | 0.8196 | 0.7676 | 0.7886 | 0.7835 | 0.8337 | 11,473,873
+    |'
+  id: totrans-619
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9033 | 0.8315 | 0.8196 | 0.7676 | 0.7886 | 0.7835 | 0.8337 | 11,473,873
+    |'
+- en: '| Claude-sonnet | P-S | 0.8566 | 0.7841 | 0.7452 | 0.7246 | 0.7416 | 0.7928
+    | 0.7855 | 7,100,962 |'
+  id: totrans-620
+  prefs: []
+  type: TYPE_TB
+  zh: '| Claude-sonnet | P-S | 0.8566 | 0.7841 | 0.7452 | 0.7246 | 0.7416 | 0.7928
+    | 0.7855 | 7,100,962 |'
+- en: '| P-E | 0.8538 | 0.7937 | 0.7441 | 0.7314 | 0.7560 | 0.7913 | 0.7888 | 13,566,119
+    |'
+  id: totrans-621
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8538 | 0.7937 | 0.7441 | 0.7314 | 0.7560 | 0.7913 | 0.7888 | 13,566,119
+    |'
+- en: '| ReAct | 0.8722 | 0.8038 | 0.7770 | 0.7510 | 0.7747 | 0.7679 | 0.8053 | 32,878,858
+    |'
+  id: totrans-622
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.8722 | 0.8038 | 0.7770 | 0.7510 | 0.7747 | 0.7679 | 0.8053 | 32,878,858
+    |'
+- en: '| GPT-3.5 | P-S | 0.8329 | 0.7344 | 0.6961 | 0.6856 | 0.6317 | 0.5332 | 0.7262
+    | 5,007,391 |'
+  id: totrans-623
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 | P-S | 0.8329 | 0.7344 | 0.6961 | 0.6856 | 0.6317 | 0.5332 | 0.7262
+    | 5,007,391 |'
+- en: '| P-E | 0.8325 | 0.7302 | 0.7008 | 0.6544 | 0.6201 | 0.5412 | 0.7216 | 9,597,807
+    |'
+  id: totrans-624
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8325 | 0.7302 | 0.7008 | 0.6544 | 0.6201 | 0.5412 | 0.7216 | 9,597,807
+    |'
+- en: '| ReAct | 0.8695 | 0.7618 | 0.7182 | 0.6933 | 0.6459 | 0.5125 | 0.7483 | 11,357,664
+    |'
+  id: totrans-625
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.8695 | 0.7618 | 0.7182 | 0.6933 | 0.6459 | 0.5125 | 0.7483 | 11,357,664
+    |'
+- en: '| GPT-4o-mini | P-S | 0.8945 | 0.7811 | 0.7364 | 0.7498 | 0.7427 | 0.7766 |
+    0.7954 | 5,482,556 |'
+  id: totrans-626
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o-mini | P-S | 0.8945 | 0.7811 | 0.7364 | 0.7498 | 0.7427 | 0.7766 |
+    0.7954 | 5,482,556 |'
+- en: '| P-E | 0.8958 | 0.7884 | 0.7376 | 0.7493 | 0.7372 | 0.7785 | 0.7976 | 10,861,492
+    |'
+  id: totrans-627
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8958 | 0.7884 | 0.7376 | 0.7493 | 0.7372 | 0.7785 | 0.7976 | 10,861,492
+    |'
+- en: '| ReAct | 0.9303 | 0.8307 | 0.7917 | 0.7911 | 0.7900 | 0.7679 | 0.8373 | 13,332,418
+    |'
+  id: totrans-628
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9303 | 0.8307 | 0.7917 | 0.7911 | 0.7900 | 0.7679 | 0.8373 | 13,332,418
+    |'
+- en: '| GPT-4o | P-S | 0.8966 | 0.7874 | 0.7432 | 0.7387 | 0.7450 | 0.7864 | 0.7983
+    | 4,153,333 |'
+  id: totrans-629
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o | P-S | 0.8966 | 0.7874 | 0.7432 | 0.7387 | 0.7450 | 0.7864 | 0.7983
+    | 4,153,333 |'
+- en: '| P-E | 0.8955 | 0.7822 | 0.7352 | 0.7407 | 0.7489 | 0.7964 | 0.7962 | 7,261,238
+    |'
+  id: totrans-630
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-E | 0.8955 | 0.7822 | 0.7352 | 0.7407 | 0.7489 | 0.7964 | 0.7962 | 7,261,238
+    |'
+- en: '| ReAct | 0.9154 | 0.8346 | 0.8199 | 0.7848 | 0.8047 | 0.7792 | 0.8409 | 11,206,957
+    |'
+  id: totrans-631
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct | 0.9154 | 0.8346 | 0.8199 | 0.7848 | 0.8047 | 0.7792 | 0.8409 | 11,206,957
+    |'
+- en: 'Table 15: The BERT-Score of different baselines on LegalAgentBench. P-S represents
+    the Plan-and-Solve method, and P-E represents the Plan-and-Execute method. The
+    best results are highlighted in bold.'
+  id: totrans-632
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 15：不同基准模型在 LegalAgentBench 上的 BERT-Score。P-S 代表 Plan-and-Solve 方法，P-E 代表 Plan-and-Execute
+    方法。最佳结果以粗体突出显示。
+- en: Appendix G Guidelines for Expert-Annotation
+  id: totrans-633
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 G 专家标注指南
+- en: 'To ensure the quality and reliability of the dataset during its construction,
+    we conducted human verification on LegalAgentBench. To guide the validation process
+    and maintain consistency, we provided the following annotation guidelines:'
+  id: totrans-634
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了确保数据集在构建过程中的质量和可靠性，我们对 LegalAgentBench 进行了人工验证。为了指导验证过程并保持一致性，我们提供了以下标注指南：
+- en: 'Validation of Answer Accuracy: Annotators must independently call the relevant
+    tools to generate correct answers, ensuring that the dataset reflects accurate
+    and reliable outputs. Incorrect answers should be carefully reviewed and corrected
+    to maintain the integrity of the dataset. This process involves cross-verifying
+    outputs with authoritative sources, re-running tool-based evaluations where necessary,
+    and documenting any adjustments made to ensure transparency and reproducibility.'
+  id: totrans-635
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案准确性验证：标注者必须独立调用相关工具生成正确的答案，确保数据集反映准确和可靠的输出。对于不正确的答案，应进行仔细审查和修正，以维护数据集的完整性。此过程涉及与权威来源交叉验证输出，必要时重新运行基于工具的评估，并记录所有调整以确保透明性和可重复性。
+- en: 'Validation of Query Rewriting: Annotators must ensure that rewritten queries
+    preserve the meaning and intent of the original query. Specifically, they must
+    verify that the answers obtained from the original and rewritten queries are identical,
+    thereby ensuring semantic equivalence and logical consistency. In addition, any
+    rewritten query that does not align with practical, everyday usage should be modified
+    to ensure naturalness and usability.'
+  id: totrans-636
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查询重写验证：标注者必须确保重写后的查询保持原查询的含义和意图。具体而言，他们必须验证从原查询和重写查询中获得的答案是否一致，从而确保语义等价性和逻辑一致性。此外，任何不符合实际、日常使用的重写查询应进行修改，以确保自然性和可用性。
+- en: 'Verification of Relevant Legal Provisions: Certain tasks, such as Writing tasks,
+    require citing legal knowledge, articles or cases. Annotators must verify that
+    all references are accurate, up-to-date, and relevant to the task at hand. This
+    ensures the legal soundness of the dataset and enhances its applicability in real-world
+    scenarios.'
+  id: totrans-637
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相关法律条文的验证：某些任务（如写作任务）需要引用法律知识、条文或案例。标注者必须验证所有引用是否准确、最新，并且与当前任务相关。这确保了数据集的法律合理性，并增强了其在实际场景中的适用性。
+- en: 'Handling Doubts and Uncertainties: If annotators encounter doubts or uncertainties
+    during validation, they are required to consult official documents, legal texts,
+    or terminological glossaries associated with the relevant classification system.
+    Collaboration with legal experts is strongly encouraged to resolve ambiguities
+    and clarify issues, ensuring that the dataset remains precise and unambiguous.'
+  id: totrans-638
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理疑问和不确定性：如果标注者在验证过程中遇到疑问或不确定性，他们需要查阅相关分类系统的官方文档、法律文本或术语词汇表。强烈建议与法律专家合作，以解决模糊问题和澄清问题，确保数据集保持准确且不含歧义。
+- en: 'Review and Quality Control: A robust review mechanism is established to maintain
+    high-quality annotations. Senior annotators regularly cross-check and review the
+    annotations, correcting simple errors and refining complex cases. Each annotation
+    undergoes multiple rounds of manual verification to ensure accuracy and consistency.
+    In cases where disagreements arise among annotators, collaborative discussions
+    are held to reach consensus, with the final decision documented to ensure transparency.'
+  id: totrans-639
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 审核与质量控制：建立了一个完善的审核机制，以保持高质量的标注。资深标注员定期进行交叉检查和审核标注，纠正简单错误并优化复杂案例。每个标注都经过多轮人工验证，以确保准确性和一致性。当标注员之间出现分歧时，会进行协作讨论，达成共识，最终决策会被记录下来，以确保透明度。
+- en: 'Feedback Mechanism: To promote continuous improvement, a feedback mechanism
+    is in place, allowing annotators to provide insights and suggestions regarding
+    the annotation guidelines. This iterative refinement ensures that the guidelines
+    remain effective, up-to-date, and aligned with the evolving requirements of the
+    dataset.'
+  id: totrans-640
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反馈机制：为了促进持续改进，建立了反馈机制，允许标注员提供关于标注指南的见解和建议。通过这种迭代优化，确保指南始终保持有效、更新，并与数据集不断变化的需求保持一致。
+- en: 'Ethical Considerations: Ensure that all annotations are conducted with integrity
+    and impartiality, maintaining high standards of accuracy and fairness. Take proactive
+    measures to avoid any biases or conflicts of interest that could compromise the
+    quality or objectivity of the annotations.'
+  id: totrans-641
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 伦理考虑：确保所有标注工作都在诚信和公正的原则下进行，保持高标准的准确性和公平性。采取积极措施避免任何可能影响标注质量或客观性的偏见或利益冲突。
+- en: By adhering to these guidelines, we aim to produce a high-quality dataset that
+    is not only accurate and reliable but also capable of supporting meaningful advancements
+    in legal AI applications.
+  id: totrans-642
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过遵守这些指南，我们旨在生成一个高质量的数据集，这个数据集不仅准确可靠，而且能够支持法律人工智能应用中的有意义进展。

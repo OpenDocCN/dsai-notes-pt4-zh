@@ -1,0 +1,2522 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 13:04:35'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:04:35
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Large Language Model (LLM) as a System of Multiple Expert Agents: An Approach
+    to solve the Abstraction and Reasoning Corpus (ARC) Challenge'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLM）作为多专家代理系统：解决抽象与推理语料库（ARC）挑战的方法
+- en: 来源：[https://arxiv.org/html/2310.05146/](https://arxiv.org/html/2310.05146/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2310.05146/](https://arxiv.org/html/2310.05146/)
+- en: John Tan Chong Min    Mehul Motani
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: John Tan Chong Min    Mehul Motani
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: We attempt to solve the Abstraction and Reasoning Corpus (ARC) Challenge using
+    Large Language Models (LLMs) as a system of multiple expert agents. Using the
+    flexibility of LLMs to be prompted to do various novel tasks using zero-shot,
+    few-shot, context-grounded prompting, we explore the feasibility of using LLMs
+    to solve the ARC Challenge. We firstly convert the input image into multiple suitable
+    text-based abstraction spaces. We then utilise the associative power of LLMs to
+    derive the input-output relationship and map this to actions in the form of a
+    working program, similar to Voyager / Ghost in the MineCraft. In addition, we
+    use iterative environmental feedback in order to guide LLMs to solve the task.
+    Our proposed approach achieves 50 solves out of 111 training set problems (45%)
+    with just three abstraction spaces - grid, object and pixel - and we believe that
+    with more abstraction spaces and learnable actions, we will be able to solve more.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们尝试使用大型语言模型（LLM）作为多专家代理系统来解决抽象与推理语料库（ARC）挑战。通过利用LLM的灵活性，使用零样本、少样本和基于上下文的提示进行各种新任务的提示，我们探索了使用LLM解决ARC挑战的可行性。我们首先将输入图像转化为多个适合的基于文本的抽象空间。然后，我们利用LLM的联想能力推导输入-输出关系，并将其映射到以工作程序形式的操作，类似于《Minecraft》中的Voyager
+    / Ghost。此外，我们使用迭代的环境反馈来引导LLM解决任务。我们提出的方法在111个训练集问题中成功解决了50个（45%），仅使用了三个抽象空间——网格、物体和像素——我们相信，通过更多的抽象空间和可学习的操作，我们能够解决更多问题。
+- en: Abstraction and Reasoning Corpus, Large Language Models, Abstraction Spaces
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 抽象与推理语料库、大型语言模型、抽象空间
+- en: 1 Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: 'The Abstraction and Reasoning Corpus (ARC) Challenge is a key milestone in
+    the march towards artificial general intelligence (AGI) as it requires forming
+    concepts and abstractions (Chollet, [2019](#bib.bib7)). Fig. [1](#S1.F1 "Figure
+    1 ‣ 1 Introduction ‣ Large Language Model (LLM) as a System of Multiple Expert
+    Agents: An Approach to solve the Abstraction and Reasoning Corpus (ARC) Challenge")
+    illustrates a sample ARC task. One of the key difficulties of the ARC challenge
+    is that it requires doing something counter to mainstream deep learning – learning
+    from very few samples. Deep learning typically uses tens of thousands of samples
+    to do well. Humans, in comparison, can learn how to identify different animals
+    by just one or two different observations. For instance, a child can identify
+    a giraffe in real life for the first time, even though the only other time they
+    may have been exposed to a giraffe was through a cartoon flash card. Such capabilities
+    are not well endowed in modern AI systems, and that means that such AI systems
+    will need to be trained extensively before deploying in the real world. After
+    deploying them in the real world, they will also be limited in their ability to
+    adapt and learn as the environment changes.'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 抽象与推理语料库（ARC）挑战是朝着人工通用智能（AGI）迈进的关键里程碑，因为它要求形成概念和抽象（Chollet, [2019](#bib.bib7)）。图[1](#S1.F1
+    "图 1 ‣ 1 引言 ‣ 大型语言模型（LLM）作为多专家代理系统：解决抽象与推理语料库（ARC）挑战的方法")展示了一个示例ARC任务。ARC挑战的一个关键难点在于它要求做一些与主流深度学习相悖的事情——从极少的样本中学习。深度学习通常需要使用成千上万的样本才能做到良好表现。相比之下，人类可以通过一两次不同的观察就学会识别不同的动物。例如，一个孩子第一次看到长颈鹿时，即使他们可能只通过卡通闪卡看到过长颈鹿，依然能够辨认出它。现代AI系统并不具备这种能力，这意味着这些AI系统在投入实际应用之前需要进行大量训练。在实际部署后，它们在适应和学习环境变化方面也会受到限制。
+- en: '![Refer to caption](img/3176cecde0bf845be081f32c5d0712f5.png)'
+  id: totrans-12
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/3176cecde0bf845be081f32c5d0712f5.png)'
+- en: 'Figure 1: A sample ARC task. The challenge is to infer the abstract rule(s)
+    governing the demonstration transformations and apply it to the test input. Example
+    from: [https://aiguide.substack.com/p/why-the-abstraction-and-reasoning](https://aiguide.substack.com/p/why-the-abstraction-and-reasoning)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：一个示例ARC任务。挑战在于推断支配演示转换的抽象规则，并将其应用于测试输入。示例来自：[https://aiguide.substack.com/p/why-the-abstraction-and-reasoning](https://aiguide.substack.com/p/why-the-abstraction-and-reasoning)
+- en: In contrast, traditional symbol-based systems (e.g., GOFAI (Boden, [2014](#bib.bib4)))
+    can “learn” quite fast, as any new situation can be interpreted without any learning
+    phase, provided that there are existing symbols which can represent it. However,
+    the history of GOFAI has shown that it is difficult to engineer these symbols,
+    and at many times, even humans face difficulty to come up with symbols as they
+    may not be able to express it in words.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相比之下，传统的基于符号的系统（例如GOFAI（Boden，[2014](#bib.bib4)））可以“快速学习”，因为任何新情况都可以在没有学习阶段的情况下进行解释，前提是已有的符号能够表示它。然而，GOFAI的历史表明，工程化这些符号是困难的，许多时候，即使是人类也会面临困难，无法想出符号，因为他们可能无法用语言表达出来。
+- en: 'As can be seen, there are shortcomings with the above two approaches, and a
+    new kind of approach will be needed in order to learn fast and generalise to new
+    situations, in order to even have a chance at solving the ARC Challenge. In this
+    paper, we address this challenge by proposing to use Large Language Models (LLMs)
+    as a system grounded in functional action spaces to tackle the ARC challenge.
+    This can be said to be an intermediate ground between both deep learning and GOFAI
+    approaches - The functional action spaces are more flexible than symbols in GOFAI;
+    LLMs which are a form of deep learning that are adaptable to new situations via
+    prompting. Specifically the contributions of the paper are as follows:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如所见，上述两种方法存在缺点，为了快速学习并能泛化到新情况，我们需要一种新的方法，才能有机会解决ARC挑战。在本文中，我们通过提出使用大型语言模型（LLMs）作为一个在功能动作空间中构建的系统来解决ARC挑战，从而应对这一挑战。这可以说是深度学习和GOFAI方法之间的中间地带——功能动作空间比GOFAI中的符号更灵活；LLMs作为一种深度学习形式，通过提示能适应新情况。具体而言，本文的贡献如下：
+- en: •
+  id: totrans-16
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We showcase a novel method of using LLMs as a system of multiple expert agents
+    (without any pre-training) to solve the ARC Challenge
+  id: totrans-17
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们展示了一种新颖的方法，使用大型语言模型（LLMs）作为多个专家代理系统（无需任何预训练）来解决ARC挑战。
+- en: •
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We highlight the importance of a combination of multiple abstraction spaces
+    from which to associate the input space to the output space
+  id: totrans-19
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们强调从多个抽象空间的结合中，将输入空间与输出空间关联起来的重要性。
+- en: •
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We demonstrate the feasibility of grounding in functional space for program
+    synthesis by LLMs.
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们展示了在程序合成中，通过LLMs在功能空间中进行归约的可行性。
+- en: 2 Related Work
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: '![Refer to caption](img/928bc7d2f2f3454daa9a250cc7fba09b.png)'
+  id: totrans-23
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/928bc7d2f2f3454daa9a250cc7fba09b.png)'
+- en: 'Figure 2: 88% of ARC tasks can be solved by the Builder from just the description
+    alone given by the Describer, without input-output examples. Can GPT-4 function
+    as both the describer and the builder? Image reproduced from Fig. 4 of Acquaviva
+    et al. ([2021](#bib.bib1)).'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：88%的ARC任务仅通过描述者给出的描述即可由构建者解决，而无需输入输出示例。GPT-4能否既作为描述者又作为构建者？图像摘自Acquaviva等人（[2021](#bib.bib1)）的图4。
+- en: ARC Challenge. The ARC challenge (Chollet, [2019](#bib.bib7)) comprises 400
+    public training tasks, 400 public evaluation tasks and 200 private test tasks.
+    Each of these tasks has multiple "Task Demonstration" Input/Output grids, of which
+    the task-taker must infer a common relation out of them. This common relation
+    is then applied to the "Test Input", from which we get the "Test Output". The
+    "Test Output" must match perfectly for it to be considered solved. The grids comprise
+    grid sizes of 1x1 to 30x30, of which pixels can take on 10 different values.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ARC挑战。ARC挑战（Chollet，[2019](#bib.bib7)）包括400个公开训练任务、400个公开评估任务和200个私人测试任务。每个任务都有多个“任务示范”输入/输出网格，任务参与者必须从中推断出一个共同关系。这个共同关系随后应用于“测试输入”，从而得到“测试输出”。只有当“测试输出”完美匹配时，才算解决。网格的大小从1x1到30x30不等，像素可以取10个不同的值。
+- en: Domain Specific Language (DSL) Approaches. The majority of ARC Challenge solutions
+    are mainly DSL ones (Alford, [2021](#bib.bib2); Ferré, [2021](#bib.bib8); Xu et al.,
+    [2023a](#bib.bib19)). This is also the case for the first-place solution of the
+    ARC Kaggle competition ([https://www.kaggle.com/code/icecuber/arc-1st-place-solution](https://www.kaggle.com/code/icecuber/arc-1st-place-solution)).
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 领域特定语言（DSL）方法。大多数ARC挑战的解决方案主要是DSL方法（Alford，[2021](#bib.bib2); Ferré，[2021](#bib.bib8);
+    Xu等，[2023a](#bib.bib19)）。ARC Kaggle竞赛的第一名解决方案也采用了这种方法（[https://www.kaggle.com/code/icecuber/arc-1st-place-solution](https://www.kaggle.com/code/icecuber/arc-1st-place-solution)）。
+- en: 'LLM-Based approaches. One way to approach the ARC challenge will be to use
+    text to describe the visual characteristics of objects (Camposampiero et al.,
+    [2023](#bib.bib5)). Indeed, 88% of ARC tasks can be solved via language description
+    alone without input-output examples as shown in Fig. [2](#S2.F2 "Figure 2 ‣ 2
+    Related Work ‣ Large Language Model (LLM) as a System of Multiple Expert Agents:
+    An Approach to solve the Abstraction and Reasoning Corpus (ARC) Challenge") (Acquaviva
+    et al., [2021](#bib.bib1)). For certain problems, denoting pixels in terms of
+    objects can significantly boost the solve rate from 13 to 23 out of 50 object-related
+    ARC tasks (Xu et al., [2023b](#bib.bib20)). Some work has also been done to do
+    end-to-end input to program description generation with just LLMs alone to some
+    success (Min, [2023](#bib.bib11)). Other approaches have used Decision Transformers
+    (Chen et al., [2021](#bib.bib6)) to find a sequence of primitive actions from
+    the input to output (Park et al., [2023](#bib.bib14)), however, as noted by the
+    authors, huge amounts of data (10000 training data for 2000 testing data) are
+    needed to train this method, it is unlikely it can generalise to unseen inputs.
+    Recently, LLMs have been used to take the ASCII text view of the grid as input
+    for next token prediction and have solved 85 out of 800 ARC tasks (Mirchandani
+    et al., [2023](#bib.bib12)).'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于 LLM 的方法。一种解决 ARC 挑战的方式是使用文本描述物体的视觉特征（Camposampiero et al., [2023](#bib.bib5)）。事实上，如图
+    [2](#S2.F2 "图 2 ‣ 2 相关工作 ‣ 将大型语言模型（LLM）作为多个专家代理的系统：一种解决抽象与推理语料库（ARC）挑战的方法") 所示，88%
+    的 ARC 任务仅通过语言描述就能解决，无需输入-输出示例（Acquaviva et al., [2021](#bib.bib1)）。对于某些问题，将像素用物体表示可以显著提升解决率，从50个与物体相关的
+    ARC 任务中的13提高到23（Xu et al., [2023b](#bib.bib20)）。也有一些研究尝试仅通过 LLM 来生成端到端的输入到程序描述，并取得了一定成功（Min,
+    [2023](#bib.bib11)）。其他方法使用了决策变换器（Chen et al., [2021](#bib.bib6)）来从输入到输出找出一系列原始动作（Park
+    et al., [2023](#bib.bib14)），然而，正如作者所指出的那样，这种方法需要大量的数据（10000个训练数据与2000个测试数据），因此不太可能推广到未见过的输入。最近，LLM
+    被用于将网格的 ASCII 文本视图作为输入进行下一个令牌预测，并已解决了800个 ARC 任务中的85个（Mirchandani et al., [2023](#bib.bib12)）。
+- en: Code as Skills and Environmental Feedback. Voyager is an embodied lifelong learning
+    agent powered by LLMs (Wang et al., [2023](#bib.bib16)). It features a skill library
+    of functions to build up complex behaviour, and an iterative prompting mechanism
+    with the environment to learn from environmental feedback. Ghost in the Minecraft
+    (Zhu et al., [2023](#bib.bib21)) does something similar as well, though they constrain
+    the action space to a list of functions. Similarly, we use code generation with
+    primitive functions to approximate using a skill library, and use iterative prompting
+    using ARC task output as feedback to learn from the environment.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码作为技能与环境反馈。Voyager 是一个由大语言模型（LLMs）驱动的具象化终身学习代理（Wang et al., [2023](#bib.bib16)）。它拥有一个技能库，通过函数构建复杂行为，并且通过与环境的迭代提示机制从环境反馈中学习。Minecraft
+    中的 Ghost（Zhu et al., [2023](#bib.bib21)）也做了类似的工作，尽管他们将行动空间限制为一系列函数。同样，我们使用原始函数的代码生成来近似使用技能库，并通过使用
+    ARC 任务输出作为反馈的迭代提示，从环境中学习。
+- en: 'Our Method. In line with the existing LLM approaches, we agree that we should
+    use language as an alternate abstraction space in addition to the original pixel
+    grid. Unlike existing approaches, we believe we should use more than one abstraction
+    space. Hence, the LLM will be both the Builder and the Describer in Fig. [2](#S2.F2
+    "Figure 2 ‣ 2 Related Work ‣ Large Language Model (LLM) as a System of Multiple
+    Expert Agents: An Approach to solve the Abstraction and Reasoning Corpus (ARC)
+    Challenge"), but the Builder can also reference input-output pairs. We also believe
+    we should integrate LLMs with a kind of DSL approach, but can afford to have an
+    even more expressive DSL because an LLM is able to do matching of functions via
+    semantics much more effectively than traditional DSL approaches.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的方法。与现有的 LLM 方法一致，我们认为应该使用语言作为一种替代的抽象空间，除原始像素网格之外。与现有方法不同的是，我们认为应该使用多个抽象空间。因此，LLM
+    将在图 [2](#S2.F2 "图 2 ‣ 2 相关工作 ‣ 将大型语言模型（LLM）作为多个专家代理的系统：一种解决抽象与推理语料库（ARC）挑战的方法")
+    中既是构建者也是描述者，但构建者也可以参考输入-输出对。我们还认为应该将 LLM 与某种 DSL 方法结合使用，但由于 LLM 能通过语义匹配函数，比传统的
+    DSL 方法更有效，因此可以使用更具表现力的 DSL。
+- en: 3 Broad Overview of Method
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 方法概述
+- en: '![Refer to caption](img/57ec16f8102dc2d0250b086aca1d4f86.png)'
+  id: totrans-31
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/57ec16f8102dc2d0250b086aca1d4f86.png)'
+- en: 'Figure 3: Process Flowchart of LLMs as a System to solve the ARC Challenge.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：LLM 作为系统解决 ARC 挑战的流程图。
+- en: 'In this section, we provide an overview of our proposed approach and discuss
+    several key ideas behind it. We have not implemented out all parts of the proposed
+    approach, but it is already doing well. Generative Pre-trained Transformer 4 (GPT-4)
+    is a multimodal LLM created by OpenAI and released in March 2023 (OpenAI, [2023](#bib.bib13)).
+    For now, we exclusively use GPT-4 for our model, as we empirically observe that
+    GPT-3.5 and other open source models are not able to perform well enough for this
+    method to work. The overall method is shown in Fig. [3](#S3.F3 "Figure 3 ‣ 3 Broad
+    Overview of Method ‣ Large Language Model (LLM) as a System of Multiple Expert
+    Agents: An Approach to solve the Abstraction and Reasoning Corpus (ARC) Challenge").'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在本节中，我们概述了我们提出的方法，并讨论了其中的一些关键思想。我们尚未实现该方法的所有部分，但它已经取得了良好的效果。生成式预训练变换器 4（GPT-4）是由
+    OpenAI 创建并于 2023 年 3 月发布的多模态 LLM（OpenAI，[2023](#bib.bib13)）。目前，我们仅使用 GPT-4 来构建我们的模型，因为我们通过实验证明，GPT-3.5
+    和其他开源模型的表现不足以使该方法有效。整体方法如图 [3](#S3.F3 "Figure 3 ‣ 3 Broad Overview of Method ‣
+    Large Language Model (LLM) as a System of Multiple Expert Agents: An Approach
+    to solve the Abstraction and Reasoning Corpus (ARC) Challenge") 所示。'
+- en: Problem Type Classification (Not Implemented). ARC tasks test various concepts.
+    If we can use past examples to ground the LLM, and let the LLM decide what problem
+    category an ARC task belongs to, we can proceed with a specialised workflow to
+    target solving that particular style of task. Presently, we simply run through
+    all the various agent types and select the agent types which work. Implementing
+    this classifier will not affect performance but will significantly help reduce
+    the costs.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题类型分类（未实现）。ARC 任务测试了各种概念。如果我们能够利用过去的示例来为 LLM 提供基础，并让 LLM 决定一个 ARC 任务属于哪一类问题，我们可以使用专门的工作流来解决这种特定类型的任务。目前，我们只是运行所有各种代理类型，并选择有效的代理类型。实现这个分类器不会影响性能，但会显著帮助降低成本。
+- en: Useful Abstraction Spaces. While GPT-4 has proven to be a general purpose solver,
+    being (currently) a text-based model, GPT-4 lacks some of the innate human priors
+    necessary to solve the ARC challenge. For example, GPT-4 is not able to identify
+    objects accurately from text alone. Objects are defined as continuous sections
+    of the grid with the same non-zero value. Hence, providing such an object view
+    as an abstraction space using text greatly helps with the GPT-4’s ability to form
+    associations with the input-output pair and is better able to find a solution
+    (Xu et al., [2023b](#bib.bib20)). Moreover, we can provide more than one abstraction
+    space to GPT-4, which can increase the chance that one or more abstraction spaces
+    contain a simple mapping from input to output, thereby reducing the complexity
+    of the problem. Do note that these abstraction spaces are unchangeable, and are
+    fixed since the beginning of learning. Hence, the agents will have to do processing
+    based on these fixed priors.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有用的抽象空间。虽然 GPT-4 已被证明是一个通用解题工具，但作为一个（目前）基于文本的模型，GPT-4 缺乏一些人类固有的先验知识，这些先验知识对于解决
+    ARC 挑战是必要的。例如，GPT-4 仅凭文本无法准确识别物体。物体被定义为具有相同非零值的网格连续区域。因此，提供这样的物体视图作为抽象空间，使用文本大大有助于
+    GPT-4 与输入-输出对形成关联的能力，也更能找到解决方案（Xu 等人，[2023b](#bib.bib20)）。此外，我们可以为 GPT-4 提供多个抽象空间，这样可以增加一个或多个抽象空间包含从输入到输出的简单映射的机会，从而减少问题的复杂性。请注意，这些抽象空间是不可更改的，自学习开始以来就已固定。因此，代理将必须基于这些固定的先验知识进行处理。
+- en: Encoding Human Biases via Helper/Primitive Functions. An initial implementation
+    of using GPT-4 to solve ARC was done with just prompting the human biases and
+    action spaces via text. This did not do so well due to lack of grounding using
+    words alone. A key innovation in this work is to use primitive functions as action
+    spaces, as a way to encode human priors. If we could use functions for grounding,
+    and express the semantic meaning of the function in words, GPT-4 could use the
+    function to provide the code needed for the solution. Hence, the problem now becomes
+    finding out what are the primitive functions we need to encode in order for the
+    LLM to solve any generic ARC problem.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过帮助/原始函数编码人类偏见。最初使用 GPT-4 解决 ARC 问题时，只是通过文本提示人类偏见和动作空间。但由于仅使用语言缺乏基础支撑，这种方法的效果并不理想。本研究的一个关键创新是将原始函数作为动作空间，以此作为编码人类先验知识的方法。如果我们能够使用函数进行基础支撑，并用语言表达该函数的语义含义，GPT-4
+    就能使用该函数提供所需的代码来解决问题。因此，问题现在变成了找出我们需要编码哪些原始函数，以便 LLM 能够解决任何通用的 ARC 问题。
+- en: Using Memory for Additional Context (Not Implemented). New problems might mix
+    and match aspects of previous solutions, so having a memory bank to provide examples
+    of similar solved problems in the past can help to ground the LLM to better generate
+    the answer. This is currently not implemented due to constraints of context length.
+    Once the context length for GPT-4 increases or fine-tuning becomes available,
+    we intend to let each agent have memory of relevant previously solved problems
+    and their solutions, so that it can ground the agent’s output. This is akin to
+    Retrieval Augmented Generation (Lewis et al., [2020](#bib.bib9)).
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用记忆来提供额外上下文（尚未实现）。新问题可能会将之前解决方案的各个方面结合起来，因此拥有一个记忆库，提供过去类似问题解决的例子，可以帮助将 LLM
+    更好地基础化，从而生成答案。目前由于上下文长度的限制，这一功能尚未实现。一旦 GPT-4 的上下文长度增加或微调功能可用，我们计划让每个代理记住与当前任务相关的先前解决问题及其解决方案，以便能够将代理的输出基础化。这类似于检索增强生成（Lewis
+    等人，[2020](#bib.bib9)）。
+- en: Utilising Feedback from Environment. Another key idea is that a learning system
+    would need to utilise feedback from the environment, and so a recursive loop feeding
+    in feedback from the environment (whether there is compile error, whether the
+    code matches the intended output) can help a lot in getting the right answer.
+    This is akin to what is done in Voyager and Ghost in the MineCraft (Wang et al.,
+    [2023](#bib.bib16); Zhu et al., [2023](#bib.bib21)).
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用环境反馈。另一个关键思想是，学习系统需要利用来自环境的反馈，因此，采用一个递归循环来反馈环境的反馈（如是否存在编译错误，代码是否符合预期输出）可以在获得正确答案方面提供极大的帮助。这类似于在《星际探索者》和《鬼魂矿坑》中所做的工作（Wang
+    等人，[2023](#bib.bib16)；Zhu 等人，[2023](#bib.bib21)）。
+- en: LLMs as a System. Humans do not operate with only one system. We have various
+    systems to call for various tasks. Similarly, we can have multiple expert agents
+    for each task (such as Object View, Pixel View, Grid View) and call on them to
+    give their interpretation of the task, and select the most promising agent. This
+    greatly helps narrow the search space for the solution. Then, we utilise the specialised
+    functions this agent has and solve the problem. Interfacing this agent with environment
+    feedback, the problem-type specific abstraction space, past examples and action
+    spaces can greatly help filter and ground GPT-4 to generate a plausible solution.
+    We believe that, with better grounding via expert agents, better abstraction space
+    representations and better primitive function grounding, we will eventually be
+    able to solve most of the ARC tasks using the proposed approach.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM 作为一个系统。人类并非仅使用一个系统来操作，我们有多个系统来应对不同的任务。同样地，对于每个任务（如对象视图、像素视图、网格视图），我们可以拥有多个专家代理，并调用它们提供任务的解释，再从中选择最有前景的代理。这有助于大大缩小解决方案的搜索空间。接着，我们利用这个代理的专门功能来解决问题。通过将这个代理与环境反馈、特定问题类型的抽象空间、过去的例子以及行动空间进行接口连接，可以极大地帮助过滤和将
+    GPT-4 基础化，从而生成一个合理的解决方案。我们相信，通过专家代理提供更好的基础支持、更好的抽象空间表示和更好的原始功能基础，我们最终能够使用提出的方法解决大部分的
+    ARC 任务。
+- en: 4 Detailed Overview of Method
+  id: totrans-40
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 方法的详细概述
+- en: 'We now go into some details of our method. Refer to Appendix [A](#A1 "Appendix
+    A Full Prompt Details for GPT-4 ‣ Large Language Model (LLM) as a System of Multiple
+    Expert Agents: An Approach to solve the Abstraction and Reasoning Corpus (ARC)
+    Challenge") and [B](#A2 "Appendix B Primitive Functions and Conditional Functions
+    ‣ Large Language Model (LLM) as a System of Multiple Expert Agents: An Approach
+    to solve the Abstraction and Reasoning Corpus (ARC) Challenge") for the full GPT-4
+    prompt.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在进入方法的一些细节。完整的 GPT-4 提示请参考附录 [A](#A1 "附录 A GPT-4 提示的完整细节 ‣ 将大语言模型 (LLM) 作为多个专家代理的系统：解决抽象和推理语料库
+    (ARC) 挑战的一个方法") 和 [B](#A2 "附录 B 原始函数和条件函数 ‣ 将大语言模型 (LLM) 作为多个专家代理的系统：解决抽象和推理语料库
+    (ARC) 挑战的一个方法")。
+- en: 4.1 Different Abstraction Spaces
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 不同的抽象空间
+- en: We utilise various ways of encoding the abstraction spaces so that GPT-4 can
+    better associate between the Input-Output pairs. It has been shown in Image-Joint
+    Embedding Predictive Architecture (I-JEPA) (Assran et al., [2023](#bib.bib3))
+    and Stable Diffusion (Rombach et al., [2022](#bib.bib15)) that prediction in the
+    latent/abstraction space leads to better downstream tasks than predicting in the
+    input space. However, instead of just one abstraction space, we believe that there
+    are many possible abstraction spaces which are fixed, and it is up to the solver
+    to choose which is the best for the task at hand. We believe by incorporating
+    more useful views and refining current ones, we can solve more ARC tasks.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们利用多种方式对抽象空间进行编码，以便 GPT-4 更好地将输入输出对进行关联。已经在 Image-Joint 嵌入预测架构（I-JEPA）（Assran
+    等，[2023](#bib.bib3)）和稳定扩散（Rombach 等，[2022](#bib.bib15)）中证明，在潜在/抽象空间进行预测比在输入空间进行预测能带来更好的下游任务效果。然而，我们认为除了单一的抽象空间外，还有许多固定的可能的抽象空间，解题者可以选择最适合当前任务的抽象空间。我们相信，通过结合更多有用的视图并优化现有视图，我们可以解决更多的
+    ARC 任务。
+- en: 'For our method, we use only three views - Grid View, Object View, Pixel View
+    - and that has already achieved quite good results. In brief, Grid View provides
+    the entire grid representation, except we change the pixel numbers to characters
+    so that we do not bias GPT-4 to treat it as an arithmetic problem to perform arithmetic
+    on the pixel values. This also has the added benefit of ensuring that GPT-4 has
+    not seen the ARC tasks before as it is now of a different form. The Object View
+    groups pixels that are contiguous together, so that they can be manipulated as
+    a group. Pixel View gives the coordinates for each pixel, which can help with
+    more fine-grained movement tasks or relational tasks between pixels. Refer to
+    Appendix [C](#A3 "Appendix C Abstraction Views ‣ Large Language Model (LLM) as
+    a System of Multiple Expert Agents: An Approach to solve the Abstraction and Reasoning
+    Corpus (ARC) Challenge") for more details.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们的方法，我们仅使用三种视图——网格视图、对象视图、像素视图——并且已经取得了相当好的结果。简而言之，网格视图提供了整个网格表示，除了我们将像素数字更改为字符，以便不偏向
+    GPT-4 将其视为算术问题来对像素值进行运算。这还有一个额外的好处，即确保 GPT-4 之前没有见过 ARC 任务，因为它现在采用了不同的形式。对象视图将相邻的像素分组在一起，以便可以将其作为一组进行操作。像素视图为每个像素提供坐标，有助于更精细的运动任务或像素之间的关系任务。有关更多细节，请参阅附录
+    [C](#A3 "附录 C 抽象视图 ‣ 大型语言模型（LLM）作为多个专家代理的系统：解决抽象与推理语料库（ARC）挑战的一个方法")。
+- en: 4.2 JSON-based output format
+  id: totrans-45
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 基于 JSON 的输出格式
+- en: LLMs are well known for being verbose and also relatively free-form in the output,
+    making it hard for any automated program to use it. Here, we explicitly ask GPT-4
+    to output in a JSON format via prompting. This JSON format also facilities Chain-of-Thought
+    (CoT) prompting (Wei et al., [2022](#bib.bib17)), as it is done in a specific
+    sequence to encourage broad to specific thinking.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM 因其输出冗长且相对自由格式而著称，这使得任何自动化程序难以使用它。在这里，我们明确要求 GPT-4 通过提示以 JSON 格式输出。此 JSON
+    格式也有利于 Chain-of-Thought（CoT）提示（Wei 等， [2022](#bib.bib17)），因为它按照特定的顺序进行，鼓励从广泛到具体的思考方式。
+- en: 4.3 CoT Prompting
+  id: totrans-47
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 CoT 提示
+- en: CoT enables the output to be structured and the LLM will be able to condition
+    the generation of the later output based on the earlier ones. This enables a more
+    broad to specific style of prompting, helping the LLM to think and reflect on
+    various areas, narrowing the search space, and ultimately may help to solve the
+    problem.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CoT 使得输出可以结构化，LLM 能够根据之前的输出条件生成后续的输出。这使得提示方式从广泛到具体，帮助 LLM 思考并反思各个领域，缩小搜索空间，最终有助于解决问题。
+- en: 'Here, we do CoT prompting directly using JSON format (See Appendix [D](#A4
+    "Appendix D GPT-4 Output Examples ‣ Large Language Model (LLM) as a System of
+    Multiple Expert Agents: An Approach to solve the Abstraction and Reasoning Corpus
+    (ARC) Challenge") for some examples of GPT output in this JSON format). We ask
+    GPT-4 to output:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们直接使用 JSON 格式进行 CoT 提示（请参见附录 [D](#A4 "附录 D GPT-4 输出示例 ‣ 大型语言模型（LLM）作为多个专家代理的系统：解决抽象与推理语料库（ARC）挑战的一个方法"）查看一些
+    GPT 输出的 JSON 格式示例）。我们要求 GPT-4 输出：
+- en: '1.'
+  id: totrans-50
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: '"reflection": "reflect on the answer",'
+  id: totrans-51
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"reflection": "反思答案",'
+- en: '2.'
+  id: totrans-52
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: '"pixel_changes": "describe the changes between the input and output pixels,
+    focusing on movement or pattern changes",'
+  id: totrans-53
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"pixel_changes": "描述输入和输出像素之间的变化，重点是移动或模式变化",'
+- en: '3.'
+  id: totrans-54
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: '"object_changes": "describe the changes between the input and output objects,
+    focusing on movement, object number, size, shape, position, value, cell count",'
+  id: totrans-55
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"object_changes": "描述输入和输出对象之间的变化，重点关注移动、对象数量、大小、形状、位置、值、单元格计数",'
+- en: '4.'
+  id: totrans-56
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: '"helper_functions": "list any relevant helper_functions for this task",'
+  id: totrans-57
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"helper_functions": "列出此任务相关的所有辅助函数",'
+- en: '5.'
+  id: totrans-58
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '5.'
+- en: '"overall_pattern": "describe the simplest input-output relationship for all
+    input-output pairs",'
+  id: totrans-59
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"overall_pattern": "描述所有输入输出对的最简单的输入输出关系",'
+- en: '6.'
+  id: totrans-60
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '6.'
+- en: '"program_instructions": "Plan how to write the python function and what helper
+    functions and conditions to use",'
+  id: totrans-61
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"program_instructions": "计划如何编写 Python 函数，以及使用哪些辅助函数和条件",'
+- en: '7.'
+  id: totrans-62
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '7.'
+- en: '"python_program": "Python function named ’transform_grid’ that takes in a 2D
+    grid and generates a 2D grid. Output as a string in a single line with $\backslash$n
+    and $\backslash$t."'
+  id: totrans-63
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"python_program": "名为 ''transform_grid'' 的 Python 函数，接收一个 2D 网格并生成一个 2D 网格。输出为一个单行字符串，包含
+    $\backslash$n 和 $\backslash$t。"'
+- en: 4.4 Helper/Primitive Functions
+  id: totrans-64
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4 辅助/原始函数
+- en: For the functions, we basically zero-shot prompt by stating the function name
+    plus the input parameters and the description of the function. We find that this
+    format of zero-shot prompting works very well for most functions, especially if
+    the name of the function is already indicative of what it does. This is very similar
+    to the approach taken in Visual ChatGPT (Wu et al., [2023](#bib.bib18)), as well
+    as OpenAI Functions ([https://openai.com/blog/function-calling-and-other-api-updates](https://openai.com/blog/function-calling-and-other-api-updates)).
+    As this method of prompting is not sufficient to imbue biases that are not inherent
+    in text (i.e. rotation, flipping), we also provide one-shot examples of how to
+    use the function.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这些函数，我们基本上通过零-shot 提示来调用，即声明函数名称、输入参数以及函数的描述。我们发现这种零-shot 提示格式对大多数函数非常有效，特别是当函数名称本身就能暗示其功能时。这与
+    Visual ChatGPT（Wu 等，[2023](#bib.bib18)）以及 OpenAI Functions ([https://openai.com/blog/function-calling-and-other-api-updates](https://openai.com/blog/function-calling-and-other-api-updates))
+    中采用的方法非常相似。由于这种提示方法不足以传递文本中未固有的偏差（即旋转、翻转），我们还提供了如何使用该函数的一个-shot 示例。
+- en: '4.5 Conditional Functions:'
+  id: totrans-66
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.5 条件函数：
+- en: 'Rather than letting GPT-4 free-form generate its own code, we ask it to generate
+    a conditional flow on the primitive functions. This greatly helps to reduce compilation
+    errors. Such a conditional flow is needed, as some ARC tasks require using logic
+    that only applies if a particular condition is met (e.g., turn the shape red if
+    it has exactly 6 cells). Without this conditional flow, the program would need
+    many more steps before it can solve the problem. An example of such a conditional
+    flow is:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其让 GPT-4 自由生成代码，我们要求它在原始函数上生成条件流程。这大大帮助减少了编译错误。需要这种条件流程，因为某些 ARC 任务需要使用仅在特定条件满足时才适用的逻辑（例如，如果形状有恰好
+    6 个单元格，则将其变为红色）。如果没有这个条件流程，程序在解决问题之前需要更多的步骤。一个条件流程的示例是：
+- en: 'If {condition}: {Primitive Function}'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果 {条件}：{原始函数}
+- en: 5 Methodology
+  id: totrans-69
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 方法论
+- en: Select Problems by Context Length. We firstly filter the ARC training set problems
+    to only those whose Grid View and Object View (mono-color, no diagonals) can fit
+    into a context length of 3000 tokens. This is important because later when we
+    incorporate environmental feedback, we will need additional token length, and
+    by empirical observation, 3000 tokens is necessary to guarantee some buffer token
+    amount so that the entire prompt can fit within 8000 tokens later. This is the
+    current maximum context length for the GPT-4 web browser, as well as for the basic
+    GPT-4 API. In the future, we envision that our approach can work for more ARC
+    tasks when the context length for GPT-4 increases.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按上下文长度选择问题。我们首先从 ARC 训练集中筛选出那些其网格视图和对象视图（单色，无对角线）可以适应 3000 个令牌上下文长度的问题。这很重要，因为在后续加入环境反馈时，我们需要更多的令牌长度，并且通过经验观察，3000
+    个令牌是必要的，以保证有足够的令牌缓冲区，使得整个提示可以适应后续的 8000 个令牌。这是 GPT-4 Web 浏览器以及基础 GPT-4 API 的当前最大上下文长度。未来，我们设想，当
+    GPT-4 的上下文长度增加时，我们的方法可以适用于更多的 ARC 任务。
+- en: 'Mass Sampling and Filtering. Next, we use the OpenAI API for GPT-4 May 24 2023
+    version with a temperature of 0.7 to ensure a diverse range of outputs. We use
+    the OpenAI API and the web browser interface for GPT-4 interchangeably. We employ
+    a mass sampling and filtering process to generate code, much like in AlphaCode
+    (Li et al., [2022](#bib.bib10)) (see Fig. [4](#S5.F4 "Figure 4 ‣ 5 Methodology
+    ‣ Large Language Model (LLM) as a System of Multiple Expert Agents: An Approach
+    to solve the Abstraction and Reasoning Corpus (ARC) Challenge")). Grid View is
+    always there unless there is context length limitation. We can choose between
+    toggling Object View (10 types) and Pixel View for the agents (at least one must
+    be active), which leads to a total of $10\times 2=20$ agents (See Appendix [C](#A3
+    "Appendix C Abstraction Views ‣ Large Language Model (LLM) as a System of Multiple
+    Expert Agents: An Approach to solve the Abstraction and Reasoning Corpus (ARC)
+    Challenge") for details). We utilise each expert agent three times each, with
+    at most three feedback loop iterations, and filter the output codes which can
+    solve the Task Demonstration to try it out on the Task Input. If there are multiple
+    such codes, we randomly pick three to test it out. Any of these three solutions
+    passing the Test Input will be counted as a solve, which is in line with the Kaggle
+    competition and Lab 42’s [ARCathon](https://lab42.global/arcathon/).'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大规模采样与筛选。接下来，我们使用温度为0.7的OpenAI API（GPT-4，2023年5月24日版本）来确保输出的多样性。我们交替使用OpenAI
+    API和Web浏览器界面进行GPT-4的操作。我们采用大规模采样和筛选过程来生成代码，类似于AlphaCode（Li等人，[2022](#bib.bib10)）（见图[4](#S5.F4
+    "图4 ‣ 5 方法论 ‣ 将大型语言模型（LLM）作为多个专家代理系统：解决抽象与推理语料库（ARC）挑战的一个方法"））。网格视图通常是可用的，除非有上下文长度限制。我们可以在代理的对象视图（10种类型）和像素视图之间切换（至少有一个必须处于活动状态），这导致总共有$10\times
+    2=20$个代理（有关详细信息，请参见附录[C](#A3 "附录C 抽象视图 ‣ 将大型语言模型（LLM）作为多个专家代理系统：解决抽象与推理语料库（ARC）挑战的一个方法")）。我们每个专家代理使用三次，每次最多进行三轮反馈循环，并筛选出能解决任务演示的输出代码，用于在任务输入上进行尝试。如果有多个此类代码，我们随机挑选三种进行测试。任何三种解决方案通过测试输入将被视为解决方案，这与Kaggle竞赛和Lab
+    42的[ARCathon](https://lab42.global/arcathon/)一致。
+- en: '![Refer to caption](img/ff36aa6911ea522250bd499c2906d5ef.png)'
+  id: totrans-72
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/ff36aa6911ea522250bd499c2906d5ef.png)'
+- en: 'Figure 4: The overall Mass Sampling and Filtering process with various expert
+    agents'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：大规模采样与筛选过程与各种专家代理
+- en: 'Table 1: Number of tasks solved, not solved and partially solved (Program works
+    for Task Demonstration but not for Test Input/Output out of 111 Training Set tasks).
+    See Appendix [E](#A5 "Appendix E Task Solved Details ‣ Large Language Model (LLM)
+    as a System of Multiple Expert Agents: An Approach to solve the Abstraction and
+    Reasoning Corpus (ARC) Challenge") for breakdown of tasks solved by each view
+    type.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：已解决、未解决和部分解决的任务数（程序适用于任务演示，但不适用于测试输入/输出，共有111个训练集任务）。有关每种视图类型解决任务的详细信息，请参见附录[E](#A5
+    "附录E 任务解决详情 ‣ 将大型语言模型（LLM）作为多个专家代理系统：解决抽象与推理语料库（ARC）挑战的一个方法")。
+- en: '| Total Tasks | Tasks Solved | Tasks Not Solved | Tasks Partially Solved |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总任务数 | 已解决任务数 | 未解决任务数 | 部分解决任务数 |'
+- en: '| 111 | 50 | 58 | 3 |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| 111 | 50 | 58 | 3 |'
+- en: 'Table 2: Tasks not solved but with correct description'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：未解决任务但描述正确
+- en: '| Total Tasks Not Solved | Correct description |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总未解决任务数 | 描述正确 |'
+- en: '| 61 | 8 |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| 61 | 8 |'
+- en: 'Table 3: Tasks solved with iterative feedback loop after either incorrect output
+    or compile error'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：经过迭代反馈循环后解决的任务（在错误输出或编译错误之后）
+- en: '| Total | Incorrect Output | Compile Error |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总数 | 错误输出 | 编译错误 |'
+- en: '| 50 | 6 | 1 |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| 50 | 6 | 1 |'
+- en: 6 Results
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结果
+- en: 'Overall. Overall, as shown in Table [1](#S5.T1 "Table 1 ‣ 5 Methodology ‣ Large
+    Language Model (LLM) as a System of Multiple Expert Agents: An Approach to solve
+    the Abstraction and Reasoning Corpus (ARC) Challenge"), our method solves 50 out
+    of 111 Training Set ARC tasks which could fit within the context length. This
+    is about a 45% solve rate, which is quite remarkable as the current ARC world
+    record solve rate is 30.5% (though this is on the hidden test set), according
+    to [https://lab42.global/arcathon/updates/](https://lab42.global/arcathon/updates/).'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体情况。总体而言，如表[1](#S5.T1 "表1 ‣ 5 方法论 ‣ 将大型语言模型（LLM）作为多个专家代理系统：解决抽象与推理语料库（ARC）挑战的一个方法")所示，我们的方法解决了111个训练集ARC任务中的50个，这些任务能够适应上下文长度。解决率约为45%，这一成绩相当显著，因为当前ARC世界纪录的解决率为30.5%（尽管这是在隐藏测试集上的），根据[https://lab42.global/arcathon/updates/](https://lab42.global/arcathon/updates/)。
+- en: 'Coding Issues. To see how many of the unsolved problems are due to coding issues,
+    we check how many of them have the correct description as evaluated by a human,
+    but not have the correct code. This turns out to be 8 out of 61, as shown in Table
+    [2](#S5.T2 "Table 2 ‣ 5 Methodology ‣ Large Language Model (LLM) as a System of
+    Multiple Expert Agents: An Approach to solve the Abstraction and Reasoning Corpus
+    (ARC) Challenge") (See Appendix [E](#A5 "Appendix E Task Solved Details ‣ Large
+    Language Model (LLM) as a System of Multiple Expert Agents: An Approach to solve
+    the Abstraction and Reasoning Corpus (ARC) Challenge") for details). This means
+    that if we could learn the primitive/helper functions better and have a wider
+    range to choose from, we can improve solve rate. To solve the rest of the problems,
+    we will have to incorporate better views - it is observed that GPT-4 cannot solve
+    line continuation tasks, especially for diagonal lines, grid manipulation tasks,
+    and symmetry tasks easily, and these could easily be incorporated as additional
+    views.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编程问题。为了了解未解决的问题中有多少是由于编程问题导致的，我们检查有多少问题的描述是由人工评估为正确的，但代码不正确。结果显示，有61个问题中有8个符合此情况，如表[2](#S5.T2
+    "表 2 ‣ 5 方法 ‣ 大型语言模型 (LLM) 作为多个专家代理的系统：解决抽象和推理语料库 (ARC) 挑战的方法")所示（详见附录[E](#A5
+    "附录 E 任务解决详情 ‣ 大型语言模型 (LLM) 作为多个专家代理的系统：解决抽象和推理语料库 (ARC) 挑战的方法")）。这意味着，如果我们能够更好地学习原始/辅助函数并有更广泛的选择范围，我们可以提高解决率。为了完成其余的任务，我们将需要加入更好的视图——观察表明，GPT-4不能轻松解决行延续任务，特别是对角线、网格操作任务和对称性任务，而这些任务很容易作为附加视图进行整合。
+- en: 'Iterative Feedback. To see how much iterative environmental feedback helps,
+    we look at number of tasks solved with the iterative environment feedback loop.
+    This turns out to be 7 tasks out of 50, as shown in Table [3](#S5.T3 "Table 3
+    ‣ 5 Methodology ‣ Large Language Model (LLM) as a System of Multiple Expert Agents:
+    An Approach to solve the Abstraction and Reasoning Corpus (ARC) Challenge") (See
+    Appendix [E](#A5 "Appendix E Task Solved Details ‣ Large Language Model (LLM)
+    as a System of Multiple Expert Agents: An Approach to solve the Abstraction and
+    Reasoning Corpus (ARC) Challenge") for details). This is quite significant, and
+    highlights the importance of environmental feedback.'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 迭代反馈。为了了解迭代环境反馈有多大帮助，我们查看了在迭代环境反馈循环下解决的任务数量。结果显示，在50个任务中，有7个任务得到了解决，如表[3](#S5.T3
+    "表 3 ‣ 5 方法 ‣ 大型语言模型 (LLM) 作为多个专家代理的系统：解决抽象和推理语料库 (ARC) 挑战的方法")所示（详见附录[E](#A5
+    "附录 E 任务解决详情 ‣ 大型语言模型 (LLM) 作为多个专家代理的系统：解决抽象和推理语料库 (ARC) 挑战的方法")）。这非常重要，突出了环境反馈的重要性。
+- en: 7 Discussion
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 讨论
+- en: The results are promising, and GPT-4 agents with various combination of views
+    can solve different types of problems well, as compared to just using the original
+    Grid View. It was also sometimes observed that Object View had to go with Pixel
+    View for a consolidation of information across both views in order to solve the
+    task. This reinforces the view that there should not be just one abstraction space,
+    but multiple abstraction spaces which could be used in combination with each other.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果是有希望的，与仅使用原始网格视图相比，具有各种视图组合的GPT-4代理能够很好地解决不同类型的问题。还观察到，物体视图有时需要与像素视图配合使用，以便在两个视图之间整合信息，从而完成任务。这进一步证明了应该不止有一个抽象空间，而是应该有多个抽象空间，这些空间可以相互组合使用。
+- en: Empirical observation has shown that GPT-4 with primitive function grounding
+    can solve more tasks than without. It is a better way at encoding priors than
+    with just text alone. Overall, GPT-4 is great at solving tasks which are made
+    up of a combination of primitive functions.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实证观察表明，具有原始函数基础的GPT-4能够比没有它的情况解决更多任务。这是一种比单纯依赖文本更好的编码先验的方式。总体而言，GPT-4非常擅长解决由多个原始函数组合构成的任务。
+- en: It was observed that function names and descriptions are very important - GPT-4
+    tends to choose functions semantically similar to what it intends to do, and the
+    changing of a function name to something irrelevant may cause it not to be used.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有观察表明，函数名称和描述非常重要——GPT-4倾向于选择语义上与其意图相似的函数，而将函数名称更改为无关的名称可能导致该函数无法被使用。
+- en: 8 Improvements
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 改进
+- en: GPT-4 agents cannot do tasks that have no relevant priors encoded in the primitive
+    functions well, such as scaling of objects, symmetry, continuation of lines, overlay
+    of grids with logical rules, grid manipulation like cropping, translating, changing
+    of shape. Furthermore, it is weak when there is more than one relation, and this
+    type of problems benefit from the iterative environment feedback loop. By setting
+    the new input as the output that GPT-4’s program outputs, it is in effect taking
+    a step towards the solution and helps GPT-4 better associate the simpler input-output
+    relationship.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GPT-4 代理无法很好地完成没有相关先验知识编码在原始函数中的任务，例如物体的缩放、对称性、线条的延续、带有逻辑规则的网格叠加、网格操作如裁剪、平移、改变形状等。此外，当涉及到多个关系时，它的表现较弱，这类问题受益于迭代环境反馈循环。通过将新的输入设置为
+    GPT-4 程序输出的结果，实际上是在朝着解决方案迈进，并帮助 GPT-4 更好地关联简单的输入输出关系。
+- en: GPT-4 has been observed to use primitive functions not meant for the view, for
+    example, Pixel View Agent using the get_objects function. Hence, giving too much
+    context might affect performance. This is similar to Xu et al. ([2023b](#bib.bib20))
+    when the performance declined after adding in relations between objects. This
+    reinforces our idea that it is best to split up into multiple expert agents with
+    separate views and only relevant primitive functions.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GPT-4 已被观察到使用一些不适用于视图的原始函数，例如，Pixel View Agent 使用 `get_objects` 函数。因此，提供过多的上下文可能会影响性能。这与
+    Xu 等人（[2023b](#bib.bib20)）的研究相似，当他们在对象之间添加关系后，性能出现下降。这进一步验证了我们的观点，即最好将其拆分为多个具有独立视图的专家代理，并仅使用相关的原始函数。
+- en: 'Based on our experimental results, we propose new views/agents in Appendix
+    [F](#A6 "Appendix F Proposed Agent Types ‣ Large Language Model (LLM) as a System
+    of Multiple Expert Agents: An Approach to solve the Abstraction and Reasoning
+    Corpus (ARC) Challenge").'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据我们的实验结果，我们在附录 [F](#A6 "附录 F 提出的代理类型 ‣ 大语言模型（LLM）作为多专家代理系统：解决抽象推理语料库（ARC）挑战的方法")
+    中提出了新的视图/代理。
+- en: 9 Future Work
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 9 未来工作
+- en: Currently, we use all agents in a brute-force manner for a task. In order to
+    reduce computation (and cost), we could perhaps have a classifier which takes
+    in previous examples as input to learn how to classify a new problem into a category,
+    so that the right agents can be used to solve it.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们以暴力破解的方式使用所有代理来执行任务。为了减少计算（和成本），我们或许可以使用一个分类器，它接受先前的例子作为输入，学习如何将新问题分类到一个类别中，以便使用正确的代理来解决它。
+- en: Currently, the primitive functions are hand-engineered based on observation
+    of the first 50 tasks in the training set, and are also not a complete set. We
+    will try to incorporate a way for GPT-4 to be prompted to create new primitive
+    functions, and add those successful functions which could solve a new task to
+    the list of primitive functions, much like Voyager (Wang et al., [2023](#bib.bib16)).
+    One way is to add any transform_grid function that is successful as a new primitive
+    function, as long as the description of the function is different from existing
+    ones.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，原始函数是基于对训练集前 50 个任务的观察手工设计的，并且也不是一个完整的集合。我们将尝试加入一种方式，促使 GPT-4 创建新的原始函数，并将那些成功解决新任务的函数添加到原始函数列表中，类似于
+    Voyager（Wang 等人，[2023](#bib.bib16)）。一种方法是将任何成功的 `transform_grid` 函数作为新的原始函数加入，只要该函数的描述与现有函数不同。
+- en: 10 Conclusion
+  id: totrans-98
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 10 结论
+- en: Overall, LLMs as a system of multiple expert agents with environmental feedback
+    is a promising approach towards solving the ARC Challenge. To facilitate further
+    research using this approach, our code can be found at [https://github.com/tanchongmin/ARC-Challenge/](https://github.com/tanchongmin/ARC-Challenge/).
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，将大语言模型（LLM）作为一个多专家代理系统并结合环境反馈，是解决 ARC 挑战的一个有前景的方法。为了促进采用这种方法的进一步研究，我们的代码可以在
+    [https://github.com/tanchongmin/ARC-Challenge/](https://github.com/tanchongmin/ARC-Challenge/)
+    找到。
+- en: Acknowledgements
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 致谢
+- en: 'This research is supported by the National Research Foundation, Singapore under
+    its AI Singapore Programme (AISG Award No: AISG-GC-2019-002). Any opinions, findings
+    and conclusions or recommendations expressed in this material are those of the
+    author(s) and do not reflect the views of National Research Foundation, Singapore.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究得到了新加坡国家研究基金会在其人工智能新加坡计划（AISG 奖项编号：AISG-GC-2019-002）下的支持。本材料中表达的任何观点、发现、结论或建议均为作者（们）个人意见，不代表新加坡国家研究基金会的观点。
+- en: Many thanks for the various intelligent people who have encouraged me to pursue
+    the GPT4 route to solve ARC or have provided valuable insights - Pascal Kaufmann,
+    Rolf Pfister, Michael Hodel, Simon Strandgaard, Douglas Miles, Richard Cottrill,
+    Leonard Tan and many others. If your name is not here, do not worry, you can be
+    in the future paper improving on this work:)
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 非常感谢那些鼓励我走 GPT-4 路径来解决 ARC 问题或提供宝贵见解的各位聪明人——Pascal Kaufmann, Rolf Pfister, Michael
+    Hodel, Simon Strandgaard, Douglas Miles, Richard Cottrill, Leonard Tan 以及其他许多人。如果你的名字没有出现在这里，不用担心，未来的论文中你可以作为改进此工作的贡献者出现
+    :)
+- en: References
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Acquaviva et al. (2021) Acquaviva, S., Pu, Y., Kryven, M., Wong, C., Ecanow,
+    G. E., Nye, M., Sechopoulos, T., Tessler, M. H., and Tenenbaum, J. B. Communicating
+    natural programs to humans and machines. *arXiv preprint arXiv:2106.07824*, 2021.
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Acquaviva 等人（2021）Acquaviva, S., Pu, Y., Kryven, M., Wong, C., Ecanow, G. E.,
+    Nye, M., Sechopoulos, T., Tessler, M. H., 和 Tenenbaum, J. B. 向人类和机器传达自然程序。*arXiv
+    预印本 arXiv:2106.07824*，2021。
+- en: Alford (2021) Alford, S. *A Neurosymbolic Approach to Abstraction and Reasoning*.
+    PhD thesis, Massachusetts Institute of Technology, 2021.
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Alford（2021）Alford, S. *一种神经符号化的抽象与推理方法*。博士论文，麻省理工学院，2021。
+- en: Assran et al. (2023) Assran, M., Duval, Q., Misra, I., Bojanowski, P., Vincent,
+    P., Rabbat, M., LeCun, Y., and Ballas, N. Self-supervised learning from images
+    with a joint-embedding predictive architecture. In *Proceedings of the IEEE/CVF
+    Conference on Computer Vision and Pattern Recognition*, pp.  15619–15629, 2023.
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Assran 等人（2023）Assran, M., Duval, Q., Misra, I., Bojanowski, P., Vincent, P.,
+    Rabbat, M., LeCun, Y., 和 Ballas, N. 通过联合嵌入预测架构从图像中进行自监督学习。载于 *IEEE/CVF 计算机视觉与模式识别会议论文集*，pp.
+    15619–15629, 2023。
+- en: Boden (2014) Boden, M. A. 4 gofai. *The Cambridge handbook of artificial intelligence*,
+    pp.  89, 2014.
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Boden（2014）Boden, M. A. 4 GOFAI。*剑桥人工智能手册*，pp. 89, 2014。
+- en: Camposampiero et al. (2023) Camposampiero, G., Houmard, L., Estermann, B., Mathys,
+    J., and Wattenhofer, R. Abstract visual reasoning enabled by language. In *Proceedings
+    of the IEEE/CVF Conference on Computer Vision and Pattern Recognition*, pp.  2642–2646,
+    2023.
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Camposampiero 等人（2023）Camposampiero, G., Houmard, L., Estermann, B., Mathys,
+    J., 和 Wattenhofer, R. 通过语言实现的抽象视觉推理。载于 *IEEE/CVF 计算机视觉与模式识别会议论文集*，pp. 2642–2646,
+    2023。
+- en: 'Chen et al. (2021) Chen, L., Lu, K., Rajeswaran, A., Lee, K., Grover, A., Laskin,
+    M., Abbeel, P., Srinivas, A., and Mordatch, I. Decision transformer: Reinforcement
+    learning via sequence modeling. *Advances in neural information processing systems*,
+    34:15084–15097, 2021.'
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2021）Chen, L., Lu, K., Rajeswaran, A., Lee, K., Grover, A., Laskin,
+    M., Abbeel, P., Srinivas, A., 和 Mordatch, I. 决策变换器：通过序列建模进行强化学习。*神经信息处理系统进展*，34:15084–15097,
+    2021。
+- en: Chollet (2019) Chollet, F. On the measure of intelligence. *arXiv preprint arXiv:1911.01547*,
+    2019.
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chollet（2019）Chollet, F. 关于智能度量。*arXiv 预印本 arXiv:1911.01547*，2019。
+- en: Ferré (2021) Ferré, S. First steps of an approach to the arc challenge based
+    on descriptive grid models and the minimum description length principle. *arXiv
+    preprint arXiv:2112.00848*, 2021.
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ferré（2021）Ferré, S. 基于描述性网格模型和最小描述长度原则的 ARC 挑战方法的初步探索。*arXiv 预印本 arXiv:2112.00848*，2021。
+- en: Lewis et al. (2020) Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin,
+    V., Goyal, N., Küttler, H., Lewis, M., Yih, W.-t., Rocktäschel, T., et al. Retrieval-augmented
+    generation for knowledge-intensive nlp tasks. *Advances in Neural Information
+    Processing Systems*, 33:9459–9474, 2020.
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lewis 等人（2020）Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V.,
+    Goyal, N., Küttler, H., Lewis, M., Yih, W.-t., Rocktäschel, T., 等。用于知识密集型 NLP
+    任务的检索增强生成。*神经信息处理系统进展*，33:9459–9474, 2020。
+- en: Li et al. (2022) Li, Y., Choi, D., Chung, J., Kushman, N., Schrittwieser, J.,
+    Leblond, R., Eccles, T., Keeling, J., Gimeno, F., Dal Lago, A., et al. Competition-level
+    code generation with alphacode. *Science*, 378(6624):1092–1097, 2022.
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2022）Li, Y., Choi, D., Chung, J., Kushman, N., Schrittwieser, J., Leblond,
+    R., Eccles, T., Keeling, J., Gimeno, F., Dal Lago, A., 等。基于 Alphacode 的竞争级代码生成。*科学*，378(6624):1092–1097,
+    2022。
+- en: Min (2023) Min, T. J. C. An approach to solving the abstraction and reasoning
+    corpus (arc) challenge. *arXiv preprint arXiv:2306.03553*, 2023.
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Min（2023）Min, T. J. C. 一种解决抽象和推理语料库（ARC）挑战的方法。*arXiv 预印本 arXiv:2306.03553*，2023。
+- en: Mirchandani et al. (2023) Mirchandani, S., Xia, F., Florence, P., Ichter, B.,
+    Driess, D., Arenas, M. G., Rao, K., Sadigh, D., and Zeng, A. Large language models
+    as general pattern machines. *arXiv preprint arXiv:2307.04721*, 2023.
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mirchandani 等人（2023）Mirchandani, S., Xia, F., Florence, P., Ichter, B., Driess,
+    D., Arenas, M. G., Rao, K., Sadigh, D., 和 Zeng, A. 大型语言模型作为通用模式机器。*arXiv 预印本 arXiv:2307.04721*，2023。
+- en: OpenAI (2023) OpenAI. Gpt-4 technical report, 2023.
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI（2023）OpenAI. GPT-4 技术报告，2023。
+- en: 'Park et al. (2023) Park, J., Im, J., Hwang, S., Lim, M., Ualibekova, S., Kim,
+    S., and Kim, S. Unraveling the arc puzzle: Mimicking human solutions with object-centric
+    decision transformer. *arXiv preprint arXiv:2306.08204*, 2023.'
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 朴等人（2023）朴政，任哲，黄顺，林铭，乌阿利别科娃，金松，金善。解开ARC难题：模仿人类解决方案的基于对象的决策变换器。*arXiv预印本 arXiv:2306.08204*，2023年。
+- en: Rombach et al. (2022) Rombach, R., Blattmann, A., Lorenz, D., Esser, P., and
+    Ommer, B. High-resolution image synthesis with latent diffusion models. In *Proceedings
+    of the IEEE/CVF conference on computer vision and pattern recognition*, pp.  10684–10695,
+    2022.
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 罗姆巴赫等人（2022）罗姆巴赫，布拉特曼，洛伦茨，埃瑟，欧梅尔。利用潜在扩散模型进行高分辨率图像合成。*IEEE/CVF计算机视觉与模式识别大会论文集*，第10684–10695页，2022年。
+- en: 'Wang et al. (2023) Wang, G., Xie, Y., Jiang, Y., Mandlekar, A., Xiao, C., Zhu,
+    Y., Fan, L., and Anandkumar, A. Voyager: An open-ended embodied agent with large
+    language models. *arXiv preprint arXiv:2305.16291*, 2023.'
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 王等人（2023）王刚，谢宇，姜逸，曼德尔卡，肖冲，朱延，范林，阿南德库马尔。旅行者：一个开放式的具身代理与大型语言模型结合。*arXiv预印本 arXiv:2305.16291*，2023年。
+- en: Wei et al. (2022) Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi,
+    E., Le, Q. V., Zhou, D., et al. Chain-of-thought prompting elicits reasoning in
+    large language models. *Advances in Neural Information Processing Systems*, 35:24824–24837,
+    2022.
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 魏等人（2022）魏静，王轩，舒尔曼，博斯玛，夏飞，池恩，乐启，周东等。思维链提示在大型语言模型中引发推理。*神经信息处理系统进展*，35:24824–24837，2022年。
+- en: 'Wu et al. (2023) Wu, C., Yin, S., Qi, W., Wang, X., Tang, Z., and Duan, N.
+    Visual chatgpt: Talking, drawing and editing with visual foundation models. *arXiv
+    preprint arXiv:2303.04671*, 2023.'
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 吴等人（2023）吴昌，尹爽，祁文，王轩，唐泽，段宁。视觉ChatGPT：与视觉基础模型进行对话、绘图和编辑。*arXiv预印本 arXiv:2303.04671*，2023年。
+- en: Xu et al. (2023a) Xu, Y., Khalil, E. B., and Sanner, S. Graphs, constraints,
+    and search for the abstraction and reasoning corpus. In *Proceedings of the AAAI
+    Conference on Artificial Intelligence*, volume 37, pp.  4115–4122, 2023a.
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 许等人（2023a）许阳，哈利尔，桑纳。图形、约束与抽象推理语料库的搜索。在*AAAI人工智能会议论文集*，第37卷，第4115–4122页，2023a。
+- en: 'Xu et al. (2023b) Xu, Y., Li, W., Vaezipoor, P., Sanner, S., and Khalil, E. B.
+    Llms and the abstraction and reasoning corpus: Successes, failures, and the importance
+    of object-based representations. *arXiv preprint arXiv:2305.18354*, 2023b.'
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 许等人（2023b）许阳，李伟，瓦兹波尔，桑纳，哈利尔。大型语言模型与抽象推理语料库：成功、失败与基于对象的表示的重要性。*arXiv预印本 arXiv:2305.18354*，2023b。
+- en: 'Zhu et al. (2023) Zhu, X., Chen, Y., Tian, H., Tao, C., Su, W., Yang, C., Huang,
+    G., Li, B., Lu, L., Wang, X., et al. Ghost in the minecraft: Generally capable
+    agents for open-world enviroments via large language models with text-based knowledge
+    and memory. *arXiv preprint arXiv:2305.17144*, 2023.'
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 朱等人（2023）朱欣，陈瑜，田华，陶晨，苏文，杨超，黄光，李斌，陆亮，王轩等。我的世界中的幽灵：通过具有基于文本的知识和记忆的大型语言模型实现通用代理在开放世界环境中的应用。*arXiv预印本
+    arXiv:2305.17144*，2023年。
+- en: APPENDIX
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 附录
+- en: 'The appendix contains the following sections:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 附录包含以下章节：
+- en: A
+  id: totrans-127
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: A
+- en: Full Prompt Details for GPT-4 - This details the entire prompt used for GPT-4
+  id: totrans-128
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: GPT-4完整提示详情 - 详细说明了用于GPT-4的整个提示
+- en: B
+  id: totrans-129
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: B
+- en: Primitive Functions and Conditional Functions - This details all the primitive
+    functions and conditional functions used for the grounding of GPT-4
+  id: totrans-130
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 原始函数和条件函数 - 详细说明了用于GPT-4基础的所有原始函数和条件函数
+- en: C
+  id: totrans-131
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: C
+- en: Abstraction Views - This details the various abstraction views of Grid, Object
+    and Pixel
+  id: totrans-132
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 抽象视图 - 详细说明了网格、对象和像素的各种抽象视图
+- en: D
+  id: totrans-133
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: D
+- en: GPT-4 Output Examples - This showcases GPT-4’s output to the prompt
+  id: totrans-134
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: GPT-4输出示例 - 展示了GPT-4对提示的输出
+- en: E
+  id: totrans-135
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: E
+- en: Task Solved Details - This details the breakdown of the tasks solved by view
+    type
+  id: totrans-136
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 任务解决详情 - 详细说明了按视图类型解决的任务细分
+- en: F
+  id: totrans-137
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: F
+- en: Proposed Agent Types - This details the proposed agent types which may help
+    increase solve rate of GPT-4 for the ARC Challenge.
+  id: totrans-138
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 提议的代理类型 - 详细说明了可能有助于提高GPT-4在ARC挑战中解决率的代理类型。
+- en: Appendix A Full Prompt Details for GPT-4
+  id: totrans-139
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A GPT-4完整提示详情
+- en: This section details the prompts used for GPT-4\. The prompts are split up into
+    a user prompt and a system prompt, as required by the GPT-4 API. If we do not
+    use the API and use the web browser interface instead, we put the user prompt
+    at the start of the prompt and the system prompt at the end of the prompt with
+    the appropriate headings.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节详细介绍了GPT-4使用的提示。提示分为用户提示和系统提示，正如GPT-4 API所要求的。如果我们不使用API，而是使用Web浏览器接口，则将用户提示放在提示的开始，系统提示放在提示的末尾，并加上适当的标题。
+- en: A.1 User Prompt
+  id: totrans-141
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 用户提示
+- en: 'All coordinates are given as (row,col). Use get_size(grid) to return (len(grid),len(grid[0])).
+    To get objects, use get_objects(diag=False, by_row=False, by_col=False, by_color=False,
+    multicolor=False, more_info=True) # replace this with whatever object view was
+    used [JSON with various abstraction views of input/output, and input and output
+    grid size] [Environmental Feedback - Either empty if first iteration, otherwise
+    either Compile Error, or Output Error Message]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '所有坐标以（行，列）格式给出。使用get_size(grid)返回（len(grid)，len(grid[0])）。要获取对象，请使用get_objects(diag=False,
+    by_row=False, by_col=False, by_color=False, multicolor=False, more_info=True)
+    # 用你所使用的任何对象视图替换此处 [JSON格式的输入/输出抽象视图，以及输入和输出网格大小] [环境反馈 - 如果是第一次迭代，则为空，否则为编译错误或输出错误信息]'
+- en: A.2 Environmental Feedback (Compile Error Message)
+  id: totrans-143
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 环境反馈（编译错误信息）
+- en: 'Previous Code: [Code] Error Message: [Error Message] Previous Overall Pattern:
+    [Overall Pattern] Your code had compilation errors. Correct it.'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前的代码：[代码] 错误信息：[错误信息] 之前的整体模式：[整体模式] 你的代码存在编译错误。请修正。
+- en: A.3 Environmental Feedback (Output Error Message)
+  id: totrans-145
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 环境反馈（输出错误信息）
+- en: If there is an output error (code generated output does not match Task Demonstration
+    output), we treat this output as the new input and ask GPT-4 to get the new input-output
+    relation.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果出现输出错误（生成的代码输出与任务演示输出不匹配），我们将此输出视为新的输入，并要求GPT-4获取新的输入输出关系。
+- en: Use the transform_grid function to get the right relation from ’input’ to ’output’
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用transform_grid函数从“输入”到“输出”获取正确的关系。
+- en: A.4 System Prompt
+  id: totrans-148
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.4 系统提示
+- en: 'Refer to Appendix [B](#A2 "Appendix B Primitive Functions and Conditional Functions
+    ‣ Large Language Model (LLM) as a System of Multiple Expert Agents: An Approach
+    to solve the Abstraction and Reasoning Corpus (ARC) Challenge") for details for
+    the helper/primitive and conditional functions.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请参考附录[B](#A2 "附录B 基本函数和条件函数 ‣ 大型语言模型（LLM）作为多专家代理系统：一种解决抽象和推理语料库（ARC）挑战的方法")获取有关辅助/基本和条件函数的详细信息。
+- en: 'You are given a series of inputs and output pairs. The values from ’a’ to ’j’
+    represent different colors. ’.’ is a blank cell. For example, [[’.’,’a’,’.’],[’.’,’.’,’b’]]
+    represents a 2 row x 3 col grid with color a at position (1,0) and color b at
+    position (2,1). Coordinates are 2D positions (row, col), row representing row
+    number, col representing col number, with zero-indexing. Input/output pairs may
+    not reflect all possibilities, you are to infer the simplest possible relation.
+    [Helper/Primitive Functions Description + Example] [Conditional Functions Description
+    + Example] You are to output the following in json format: {’reflection’: ’reflect
+    on the answer’, ’pixel_changes’: ’describe the changes between the input and output
+    pixels, focusing on movement or pattern changes’, ’object_changes’: ’describe
+    the changes between the input and output objects, focusing on movement, object
+    number, size, shape, position, value, cell count’, ’helper_functions’: ’list any
+    relevant helper_functions for this task’, ’overall_pattern’: ’describe the simplest
+    input-output relationship for all input-output pairs’, ’program_instructions’:
+    ’Plan how to write the python function and what helper functions and conditions
+    to use’, ’python_program’: "Python function named ’transform_grid’ that takes
+    in a 2D grid and generates a 2D grid. Output as a string in a single line with
+    $\backslash$n and $\backslash$t."}. Do not use quotation marks ’ or " within the
+    fields unless it is required for the python code'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '给定一系列输入和输出对。''a''到 ''j'' 的值代表不同的颜色。''.''表示空白单元格。例如，[[''.'',''a'',''.''],[''.'',''.'',''b'']]表示一个2行3列的网格，其中颜色a位于位置(1,0)，颜色b位于位置(2,1)。坐标是二维位置（行，列），行表示行号，列表示列号，采用零索引。输入/输出对可能不涵盖所有可能性，你需要推断出最简单的关系。[辅助/基本函数描述
+    + 示例] [条件函数描述 + 示例] 你需要以JSON格式输出以下内容：{’reflection’: ’反思答案’, ’pixel_changes’: ’描述输入和输出像素之间的变化，重点在于移动或模式变化’,
+    ’object_changes’: ’描述输入和输出对象之间的变化，重点在于对象的移动、数量、大小、形状、位置、值、单元格数量’, ’helper_functions’:
+    ’列出此任务的相关辅助函数’, ’overall_pattern’: ’描述所有输入输出对的最简单的输入输出关系’, ’program_instructions’:
+    ’计划如何编写python函数，以及使用哪些辅助函数和条件’, ’python_program’: "命名为''transform_grid''的python函数，该函数接受一个二维网格并生成一个二维网格。输出为单行字符串，使用$\backslash$n和$\backslash$t"}.
+    除非需要用于python代码，否则请勿在字段内使用引号’或"。'
+- en: Appendix B Primitive Functions and Conditional Functions
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 基本函数和条件函数
+- en: This section details all the primitive functions and conditional functions used
+    for GPT-4\. Currently, these functions are not learnable, and are defined via
+    tuning by a human over the first 50 ARC training tasks. In the future, we intend
+    for these functions to be learned and expanded from a starting set independent
+    of human interaction.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节详细介绍了用于GPT-4的所有原始函数和条件函数。目前，这些函数无法学习，而是通过人工调整，在前50个ARC训练任务中定义的。未来，我们计划让这些函数通过学习逐步扩展，从一个独立于人工互动的初始集合开始。
+- en: For more information of how these functions were implemented, refer to the Jupyter
+    Notebook provided in [https://github.com/tanchongmin/ARC-Challenge](https://github.com/tanchongmin/ARC-Challenge).
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关这些函数如何实现的更多信息，请参考[https://github.com/tanchongmin/ARC-Challenge](https://github.com/tanchongmin/ARC-Challenge)中的Jupyter
+    Notebook。
+- en: B.1 Primitive Functions
+  id: totrans-154
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.1 原始函数
+- en: This is the way we prompted GPT-4 to understand the format for the primitive
+    (helper) functions. This is essentially the
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们提示GPT-4理解原始（辅助）函数格式的方式。基本上，这是
+- en: Each of the input-output relation can be done with one or more helper functions
+    chained together.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个输入-输出关系可以通过一个或多个辅助函数链式连接完成。
+- en: Some relations require other functions, which you will need to come up with
+    yourself.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些关系需要其他函数，你需要自己构思这些函数。
+- en: Objects are tight-fitted grids (no empty row or column) with a top left coordinate,
+    which can be used for easy manipulation of multiple coordinates.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象是紧密适配的网格（没有空行或列），具有左上坐标，可以方便地操作多个坐标。
+- en: You can create your own objects by just creating a dictionary with ’tl’ and
+    ’grid’
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以通过创建一个包含’tl’和’grid’的字典来创建你自己的对象
+- en: You can change an object’s position by using ’tl’ and its composition using
+    ’grid’.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以通过使用’tl’来改变对象的位置，通过使用’grid’来改变其组成。
+- en: You should start each program by copying input grid or empty_grid or crop_grid
+    of desired output size.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你应该通过复制输入网格、empty_grid或crop_grid来开始每个程序，确保其输出大小符合需求。
+- en: Then, fill the grid by using the fill helper functions.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，使用填充辅助函数来填充网格。
+- en: If you use the fill functions with a ’.’ value, it is equivalent to removing
+    parts of the grid.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用带有’.’值的填充函数，相当于删除网格的部分内容。
+- en: 'Helper functions:'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 辅助函数：
+- en: '- get_objects(grid,diag=False,by_row=False,by_col=False,by_color=False,multicolor=False,more_info
+    = True): Takes in grid, returns list of object dictionary: top-left coordinate
+    of object (’tl’), 2D grid (’grid’) by_row views splits objects by grid rows, by_col
+    splits objects by grid columns, by_color groups each color as one object, multicolor
+    means object can be more than one color. Empty cells within objects are represented
+    as ’$’. If more_info is True, also returns size of grid (’size’), cells in object
+    (’cell_count’), shape of object (’shape’)'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- get_objects(grid, diag=False, by_row=False, by_col=False, by_color=False,
+    multicolor=False, more_info=True): 输入网格，返回一个对象字典的列表：对象的左上坐标（’tl’），2D网格（’grid’）。by_row按网格行拆分对象，by_col按网格列拆分对象，by_color将每种颜色分组为一个对象，multicolor表示对象可以有多个颜色。对象内部的空单元格用’$’表示。如果more_info为True，还会返回网格的大小（’size’）、对象中的单元格数（’cell_count’）、对象的形状（’shape’）'
+- en: '- get_pixel_coords(grid): Returns a dictionary, with the keys the pixel values,
+    values the list of coords, in sorted order from most number of pixels to least'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- get_pixel_coords(grid): 返回一个字典，键是像素值，值是坐标的列表，按像素数从多到少排序'
+- en: '- empty_grid(row, col): returns an empty grid of height row and width col'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- empty_grid(row, col): 返回一个高度为row，宽度为col的空网格'
+- en: '- crop_grid(grid, tl, br): returns cropped section from top left to bottom
+    right of the grid'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- crop_grid(grid, tl, br): 返回从网格的左上角到右下角的裁剪部分'
+- en: '- tight_fit(grid): returns grid with all blank rows and columns removed'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- tight_fit(grid): 返回删除所有空白行和列后的网格'
+- en: '- combine_object(obj_1, obj_2): returns combined object from obj_1 and obj_2\.
+    if overlap, obj_2 overwrites obj_1'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- combine_object(obj_1, obj_2): 返回由obj_1和obj_2合成的对象。如果有重叠，obj_2将覆盖obj_1'
+- en: '- rotate_clockwise(grid, degree=90): returns rotated grid clockwise by a degree
+    of 90, 180, 270 degrees'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- rotate_clockwise(grid, degree=90): 返回顺时针旋转90、180或270度的网格'
+- en: '- horizontal_flip(grid): returns a horizontal flip of the grid'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- horizontal_flip(grid): 返回网格的水平翻转'
+- en: '- vertical_flip(grid): returns a vertical flip of the grid'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- vertical_flip(grid): 返回网格的垂直翻转'
+- en: '- replace(grid, grid_1, grid_2): replaces all occurences of grid_1 with grid_2
+    in grid'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- replace(grid, grid_1, grid_2): 在网格中将所有出现的grid_1替换为grid_2'
+- en: '- get_object_color(obj): returns color of object. if multicolor, returns first
+    color only'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- get_object_color(obj): 返回对象的颜色。如果是多色，返回第一个颜色'
+- en: '- change_object_color(obj, value): changes the object color to value'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- change_object_color(obj, value): 将对象颜色更改为value'
+- en: '- fill_object(grid, obj, align=False): fills grid with object. If align is
+    True, makes grid same size as object'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- fill_object(grid, obj, align=False)：用对象填充网格。如果align为True，调整网格大小与对象一致'
+- en: '- fill_row(grid, row_num, value, start_col=0, end_col=30): fills output grid
+    with a row of value at row_num from start_col to end_col (inclusive)'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- fill_row(grid, row_num, value, start_col=0, end_col=30)：在指定行号的输出网格中，从start_col到end_col（包含）填充value行'
+- en: '- fill_col(grid, col_num, value, start_row=0, end_row=30): fills output grid
+    with a column of value at col_num from start_row to end_row (inclusive)'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- fill_col(grid, col_num, value, start_row=0, end_row=30)：在指定列号的输出网格中，从start_row到end_row（包含）填充value列'
+- en: '- fill_between_coords(grid, coord_1, coord_2, value): fills line between coord_1
+    and coord_2 with value'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- fill_between_coords(grid, coord_1, coord_2, value)：用value填充coord_1到coord_2之间的行'
+- en: '- fill_rect(grid,tl,br,value): fills grid from tl to br with value. useful
+    to create rows, columns, rectangles'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- fill_rect(grid,tl,br,value)：用value填充从tl到br的网格，常用于创建行、列、矩形'
+- en: '- fill_value(grid, pos, value): fills grid at position with value'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- fill_value(grid, pos, value)：在指定位置填充网格'
+- en: This is the way we one-shot prompted GPT-4 for the primitive functions.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们一次性引导GPT-4理解原始函数的方式。
+- en: assert get_objects([[’a’,’a’,’a’],[’a’,’.’,’a’],[’a’,’a’,’a’]],more_info=False)==[{’tl’:(0,0),grid’:[[’a’,’a’,
+    ’a’],[’a’,’.’,’a’],[’a’,’a’,’a’]]} ,{’tl’:(1,1),’grid’:[[’$’]]}]
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert get_objects([[’a’,’a’,’a’],[’a’,’.’,’a’],[’a’,’a’,’a’]],more_info=False)==[{’tl’:(0,0),grid’:[[’a’,’a’,
+    ’a’],[’a’,’.’,’a’],[’a’,’a’,’a’]]} ,{’tl’:(1,1),’grid’:[[’$’]]}]
+- en: assert get_pixel_coords([[’a’,’a’],[’d’,’f’]])=={’a’:[(0, 0),(0, 1)],’d’:[(1,
+    0)],’f’:[(1, 1)]}
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert get_pixel_coords([[’a’,’a’],[’d’,’f’]])=={’a’:[(0, 0),(0, 1)],’d’:[(1,
+    0)],’f’:[(1, 1)]}
+- en: assert empty_grid(3, 2)==[[’.’,’.’], [’.’,’.’], [’.’,’.’]]
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert empty_grid(3, 2)==[[’.’,’.’], [’.’,’.’], [’.’,’.’]]
+- en: assert crop_grid([[’a’,’a’,’b’],[’.’,’a’,’b’]],(0, 0),(1, 1))==[[’a’,’a’],[’.’,’a’]]
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert crop_grid([[’a’,’a’,’b’],[’.’,’a’,’b’]],(0, 0),(1, 1))==[[’a’,’a’],[’.’,’a’]]
+- en: assert tight_fit([[’.’,’.’,’.’],[’.’,’a’,’.’],[’.’,’.’,’.’]])==[[’a’]]
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert tight_fit([[’.’,’.’,’.’],[’.’,’a’,’.’],[’.’,’.’,’.’]])==[[’a’]]
+- en: 'assert combine_object({’tl’:(0, 0),’grid’:[[’a’,’a’],[’a’,’.’]]},{’tl’: (1,
+    1),’grid’:[[’f’]]})=={’tl’:(0, 0),’grid’:[[’a’,’a’],[’a’,’f’]]}'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'assert combine_object({’tl’:(0, 0),’grid’:[[’a’,’a’],[’a’,’.’]]},{’tl’: (1,
+    1),’grid’:[[’f’]]})=={’tl’:(0, 0),’grid’:[[’a’,’a’],[’a’,’f’]]}'
+- en: assert rotate_clockwise([[’a’,’b’],[’d’,’e’]],90)==[[’d’,’a’],[’e’,’b’]]
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert rotate_clockwise([[’a’,’b’],[’d’,’e’]],90)==[[’d’,’a’],[’e’,’b’]]
+- en: assert rotate_clockwise([[’a’,’b’],[’d’,’e’]],270)==[[’b’,’e’],[’a’,’d’]]
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert rotate_clockwise([[’a’,’b’],[’d’,’e’]],270)==[[’b’,’e’],[’a’,’d’]]
+- en: assert horizontal_flip([[’a’,’b’,’c’],[’d’,’e’,’f’]])==[[’c’,’b’,’a’], [’f’,’e’,’d’]]
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert horizontal_flip([[’a’,’b’,’c’],[’d’,’e’,’f’]])==[[’c’,’b’,’a’], [’f’,’e’,’d’]]
+- en: assert vertical_flip([[’a’,’b’,’c’],[’d’,’e’,’f’]])==[[’d’,’e’,’f’],[’a’,’b’,’c’]]
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert vertical_flip([[’a’,’b’,’c’],[’d’,’e’,’f’]])==[[’d’,’e’,’f’],[’a’,’b’,’c’]]
+- en: assert replace([[’a’,’.’],[’a’,’a’]],[[’a’,’a’]],[[’c’,’c’]])==[[’a’,’.’],[’c’,’c’]]
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert replace([[’a’,’.’],[’a’,’a’]],[[’a’,’a’]],[[’c’,’c’]])==[[’a’,’.’],[’c’,’c’]]
+- en: assert change_object_color({’tl’:(0,0),’grid’:[[’a’,’.’]]},’b’)=={’tl’:(0,0),’grid’:[[’b’,’.’]]}
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert change_object_color({’tl’:(0,0),’grid’:[[’a’,’.’]]},’b’)=={’tl’:(0,0),’grid’:[[’b’,’.’]]}
+- en: assert get_object_color({’tl’:(0,0),’grid’:[[’a’,’.’]]})==’a’
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert get_object_color({’tl’:(0,0),’grid’:[[’a’,’.’]]})==’a’
+- en: assert fill_object([[’.’,’.’],[’.’,’.’]],{’tl’:(0, 1),’grid’:[[’c’],[’c’]]})==[[’.’,’c’],[’.’,’c’]]
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert fill_object([[’.’,’.’],[’.’,’.’]],{’tl’:(0, 1),’grid’:[[’c’],[’c’]]})==[[’.’,’c’],[’.’,’c’]]
+- en: assert fill_value([[’.’,’a’],[’.’,’a’]],(1,1),’b’)==[[’.’,’a’],[’.’,’b’]]
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert fill_value([[’.’,’a’],[’.’,’a’]],(1,1),’b’)==[[’.’,’a’],[’.’,’b’]]
+- en: assert fill_row([[’a’,’a’],[’c’,’a’]],0,’b’)==[[’b’,’b’],[’c’,’a’]]
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert fill_row([[’a’,’a’],[’c’,’a’]],0,’b’)==[[’b’,’b’],[’c’,’a’]]
+- en: assert fill_col([[’a’,’a’],[’c’,’a’]],0,’b’)==[[’b’,’a’],[’b’,’a’]]
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert fill_col([[’a’,’a’],[’c’,’a’]],0,’b’)==[[’b’,’a’],[’b’,’a’]]
+- en: assert fill_rect([[’a’,’a’],[’c’,’a’]],(0,0),(1,1),’b’)==[[’b’,’b’],[’b’,’b’]]
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert fill_rect([[’a’,’a’],[’c’,’a’]],(0,0),(1,1),’b’)==[[’b’,’b’],[’b’,’b’]]
+- en: assert fill_between_coords([[’.’,’.’]],(0,0),(0,1),’a’)==[[’a’,’a’]]
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert fill_between_coords([[’.’,’.’]],(0,0),(0,1),’a’)==[[’a’,’a’]]
+- en: B.2 Conditional Functions
+  id: totrans-203
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.2 条件函数
+- en: This is the way we prompted GPT-4 to understand the format for the conditional
+    functions.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们引导GPT-4理解条件函数格式的方式。
+- en: Each helper function can be conditional.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个辅助函数都可以是条件性的。
+- en: 'The conditions can be:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 条件可以是：
+- en: '- by attribute, such as shape, color, position, size, cell number of object'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 按属性，例如形状、颜色、位置、大小、对象的单元格数量'
+- en: '- the condition can be an attribute on all objects, for instance, objects with
+    the most common or least common value, or objects with the most or least common
+    shape'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 条件可以是所有对象的属性，例如，具有最常见或最不常见值的对象，或者具有最多或最少常见形状的对象'
+- en: '- by position of pixels, such as row or column'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 按像素的位置，例如行或列'
+- en: '- by neighbouring cell types or values'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- 按邻近单元格的类型或值'
+- en: There are some conditional functions to help you.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一些条件函数可以帮助你。
+- en: '- object_contains_color(obj, value): returns True/False if object contains
+    a certain value'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- object_contains_color(obj, value)：如果对象包含某个值，返回 True/False'
+- en: '- on_same_line(coord_1, coord_2): Returns True/False if coord_1 is on the same
+    line as coord_2\. line_type can be one of [’row’, ’col’, ’diag’]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '- on_same_line(coord_1, coord_2)：如果 coord_1 与 coord_2 在同一行上，返回 True/False。line_type
+    可以是 [’row’，’col’，’diag’] 中的一个。'
+- en: This is the way we one-shot prompted GPT-4 for the conditional functions.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们为条件函数向 GPT-4 提示的方式。
+- en: assert object_contains_color({’tl’:(0,0),’grid’:[[’a’]]},’a’)==True
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert object_contains_color({’tl’:(0,0),’grid’:[[’a’]]},’a’)==True
+- en: assert on_same_line((1,1),(1,2),’row’)==True
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert on_same_line((1,1),(1,2),’row’)==True
+- en: assert on_same_line((1,1),(2,1),’col’)==True
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert on_same_line((1,1),(2,1),’col’)==True
+- en: assert on_same_line((1,1),(2,2),’diag’)==True
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: assert on_same_line((1,1),(2,2),’diag’)==True
+- en: Appendix C Abstraction Views
+  id: totrans-219
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 C 抽象视图
+- en: This section details how each abstraction view is represented.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节详细说明了每个抽象视图的表示方式。
+- en: Grid View - This provides the entire grid in ASCII format, in a 2D array. This
+    is used when there are arbitrary patterns to find out. Note that we replace the
+    initial JSON task input of grids with 0-9, with grids of ’.’,’a’,’b’,’c’,’d’,’e’,’f’,’g’,’h’,’i’.
+    This not only serves to prevent GPT-4 from trying to perform arithmetic on pixel
+    values, but also eradicates the possibility that GPT-4 has seen the public training
+    or evaluation set online, because it is of a different form.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 网格视图 - 以 ASCII 格式提供整个网格，呈现为二维数组。用于当需要找出任意模式时。请注意，我们将初始 JSON 任务输入中的网格（0-9）替换为‘.’，‘a’，‘b’，‘c’，‘d’，‘e’，‘f’，‘g’，‘h’，‘i’。这不仅可以防止
+    GPT-4 对像素值进行算术运算，还消除了 GPT-4 已经看到在线公共训练或评估集的可能性，因为其形式不同。
+- en: Object View - This provides GPT-4 with an input view that groups contiguous
+    cells of the same or different colour (non-zero cells) together and gives their
+    attributes - top left coordinate, tight-fitted grid layout, shape, size, cell
+    count. This is used when we would like to manipulate groups of related cells as
+    one object.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象视图 - 该视图为 GPT-4 提供一种输入方式，将相同或不同颜色（非零单元格）相邻的单元格组合在一起，并给出它们的属性——左上坐标、紧凑的网格布局、形状、大小、单元格数量。当我们希望将一组相关的单元格作为一个对象进行操作时，会使用此视图。
+- en: Within object view, there are a few different types of categorising into objects.
+    This is loosely inspired from Michael Hodel’s DSL for ARC from [https://github.com/michaelhodel/arc-dsl](https://github.com/michaelhodel/arc-dsl).
+    We also have an option "more_info", which helps with reducing context length when
+    set to False. All in all, there are 10 different kinds of Object Views.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在对象视图中，有几种不同的方式对对象进行分类。这部分灵感来源于 Michael Hodel 的 [ARC DSL](https://github.com/michaelhodel/arc-dsl)。我们还提供了一个“more_info”选项，当该选项设置为
+    False 时，有助于减少上下文长度。总的来说，有 10 种不同的对象视图类型。
+- en: '1.'
+  id: totrans-224
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'Attribute 1 - Colour (2 possibilities): Mono Colour vs Multi Colour - One way
+    is to form objects is by grouping contiguous cells of the same connected either
+    horizontally or vertically. The other way is to group contiguous cells of any
+    colour except of colour ’.’ together. These two ways are termed "Mono Colour"
+    and "Multi Colour" respectively.'
+  id: totrans-225
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 属性 1 - 颜色（2种可能性）：单一颜色与多种颜色 - 一种方式是通过将相邻的同色单元格（水平方向或垂直方向相连）组合成一个对象。另一种方式是将任意颜色的相邻单元格（除了颜色‘.’）组合在一起。这两种方式分别被称为“单一颜色”和“多种颜色”。
+- en: '2.'
+  id: totrans-226
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'Attribute 2 - Constrains (5 possibilities): None/Row/Column/Colour/Diagonal
+    - Row or column is used when the pattern is confined to just the row or column.
+    Colour is used when we group objects by colour globally. It helps a lot to split
+    a difficult problem into a smaller confined one where GPT-4 can perform association.
+    Diagonal treats contiguous cells as diagonal connections as well.'
+  id: totrans-227
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 属性 2 - 限制条件（5种可能性）：无/行/列/颜色/对角线 - 当模式仅限于行或列时，使用行或列。颜色用于按颜色全局分组对象。当我们将一个复杂问题拆解成一个较小的受限问题时，GPT-4
+    可以执行关联，这会非常有帮助。对角线将相邻单元格视为对角线连接。
+- en: Pixel View - This provides GPT-4 with a view of the pixel value and all the
+    corresponding coordinates, in a dictionary form with the pixel value as the key
+    and the list of coordinates as the value. This is used when the input-output relation
+    involves changing a group of pixels. This can also be used to supplement Object
+    View. The benefit of using pixel view is that relations like shifting, adding
+    or removing pixels at various positions are immediately obvious to GPT-4 as compared
+    to Grid View. The downside though, is that pixel view is not robust to offsets
+    of positions - if the starting grid is not tight fitted and does not start at
+    (0,0), this can lead to problems with mapping.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像素视图 - 这为 GPT-4 提供了像素值及所有对应坐标的视图，以字典形式呈现，其中像素值为键，坐标列表为值。当输入输出关系涉及更改一组像素时，使用此视图。这也可以用来补充对象视图。使用像素视图的好处是，与网格视图相比，像素的移动、添加或删除等关系对
+    GPT-4 来说立刻显而易见。然而，缺点是像素视图对于位置的偏移不够健壮——如果起始网格没有紧密匹配，并且不从 (0,0) 开始，这可能会导致映射问题。
+- en: '![Refer to caption](img/09f4b2ca5b01001891ffc4d582b0a5fb.png)'
+  id: totrans-229
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明](img/09f4b2ca5b01001891ffc4d582b0a5fb.png)'
+- en: 'Figure 5: A sample grid for an ARC Challenge Task - taken from Task Demonstration
+    1 of ARC Training Set d037b0a7'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：一个用于 ARC 挑战任务的示例网格 - 来自 ARC 训练集 d037b0a7 的任务演示 1
+- en: 'Example: For Fig. [5](#A3.F5 "Figure 5 ‣ Appendix C Abstraction Views ‣ Large
+    Language Model (LLM) as a System of Multiple Expert Agents: An Approach to solve
+    the Abstraction and Reasoning Corpus (ARC) Challenge"), the abstraction spaces
+    will be represented in text as:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例：对于图 [5](#A3.F5 "图 5 ‣ 附录 C 抽象视图 ‣ 大型语言模型 (LLM) 作为多个专家代理的系统：解决抽象与推理语料库 (ARC)
+    挑战的方式")，抽象空间将以文本形式表示如下：
+- en: '1.'
+  id: totrans-232
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'Grid View: [[’.’,’.’,’f’],[’.’,’d’,’f’],[’c’,’d’,’f’]]'
+  id: totrans-233
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 网格视图：[[’.’,’.’,’f’],[’.’,’d’,’f’],[’c’,’d’,’f’]]
+- en: '2.'
+  id: totrans-234
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'Object View (Mono-Color): [{’tl’:(0,2), ’grid’:[[’f’],[’f’],[’f’]], ’size’:(3,1),
+    ’cell_count’:3, ’shape’:[[’x’],[’x’],[’x’]]}, {’tl’:(1,1), ’grid’:[[’d’],[’d’]],
+    ’size’:(2,1), ’cell_count’:2, ’shape’:[[’x’],[’x’]]}, {’tl’:(2,0), ’grid’:[[’c’]],
+    ’size’:(1,1), ’cell_count’:1, ’shape’:[[’x’]]}]'
+  id: totrans-235
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 对象视图（单色）：[{’tl’:(0,2), ’grid’:[[’f’],[’f’],[’f’]], ’size’:(3,1), ’cell_count’:3,
+    ’shape’:[[’x’],[’x’],[’x’]]}, {’tl’:(1,1), ’grid’:[[’d’],[’d’]], ’size’:(2,1),
+    ’cell_count’:2, ’shape’:[[’x’],[’x’]]}, {’tl’:(2,0), ’grid’:[[’c’]], ’size’:(1,1),
+    ’cell_count’:1, ’shape’:[[’x’]]}]
+- en: '3.'
+  id: totrans-236
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: 'Pixel View: {’f’:[(0,2),(1,2),(2,2)], ’d’:[(1,1),(2,1)], ’c’:[(2,0)]}'
+  id: totrans-237
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 像素视图：{’f’:[(0,2),(1,2),(2,2)], ’d’:[(1,1),(2,1)], ’c’:[(2,0)]}
+- en: Appendix D GPT-4 Output Examples
+  id: totrans-238
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 D GPT-4 输出示例
+- en: In this section, we showcase GPT-4’s output for a solved problem, and the output
+    for an unsolved problem.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节展示了 GPT-4 对已解决问题的输出，以及对未解决问题的输出。
+- en: D.1 GPT-4’s Output for Solved Problems
+  id: totrans-240
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.1 GPT-4 对已解决问题的输出
+- en: '![Refer to caption](img/48a75e1d53174d9ac5aa54e8d11a32c0.png)'
+  id: totrans-241
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明](img/48a75e1d53174d9ac5aa54e8d11a32c0.png)'
+- en: 'Figure 6: Training and Test Input/Output pairs for a Solved Problem, d0f5fe59,
+    using Object View'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：使用对象视图的已解决问题的训练和测试输入/输出对，d0f5fe59
+- en: This is the JSON output of GPT-4 formatted into key-value pairs, and the "python_program"
+    provided correctly solves the Test Input.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 GPT-4 格式化为键值对的 JSON 输出，并且提供的 "python_program" 正确解决了测试输入。
+- en: 'reflection: This task involves objects found in the grid which are simplified
+    and moved to a certain pattern in the output grid. The input grids contain a variety
+    of object shapes, some of which are isolated pieces while others are complex shapes.
+    These objects, regardless of their original form, are reduced to a single cell
+    in the output grid and relocated to the diagonal line from the top-left to the
+    bottom-right.'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反射：此任务涉及网格中找到的对象，这些对象被简化并移动到输出网格中的某个模式。输入网格包含各种形状的对象，其中一些是孤立的部分，另一些是复杂形状。无论这些对象的原始形态如何，它们都被简化为输出网格中的单个单元格，并重新定位到从左上角到右下角的对角线上。
+- en: 'pixel_changes: In the transformation from input to output, the number of pixels
+    with color ’h’ decreases. This decrease occurs because every ’h’ color object
+    is condensed to a single pixel in the output. Also, the pixels are relocated,
+    following a diagonal line from top left to bottom right, where the first object
+    is placed at (0,0), the second at (1,1), and so on, regardless of their initial
+    positions.'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: pixel_changes：在从输入到输出的转换中，颜色为 ’h’ 的像素数量减少。这个减少发生的原因是，每个 ’h’ 颜色的对象都被压缩为输出中的单个像素。而且，像素按照从左上到右下的对角线重新定位，第一对象放置在
+    (0,0)，第二个放置在 (1,1)，依此类推，无论它们的初始位置如何。
+- en: 'object_changes: The number of objects remains the same from input to output.
+    However, their size, shape, and positions change significantly. Each object, regardless
+    of its initial shape and size, is simplified to a single pixel in the output grid.
+    The position of the objects follows a specific pattern in the output: they are
+    relocated to the diagonal line from the top left to the bottom right. The sequence
+    of placement on the diagonal line is according to the order of the objects in
+    the input grid.'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'object_changes: 从输入到输出，对象的数量保持不变。然而，它们的大小、形状和位置发生了显著变化。每个对象，无论其初始的形状和大小如何，都被简化为输出网格中的一个单独像素。对象的位置遵循特定的模式：它们被重新定位到从左上角到右下角的对角线位置。对角线上对象的排列顺序依据输入网格中对象的顺序。'
+- en: 'helper_functions: The relevant helper functions for this task are get_objects()
+    for identifying objects in the input grid, fill_value() for placing single pixels
+    at specific locations in the output grid, and empty_grid() for initializing the
+    output grid.'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'helper_functions: 与此任务相关的辅助函数有get_objects()用于识别输入网格中的对象，fill_value()用于将单个像素放置在输出网格的特定位置，empty_grid()用于初始化输出网格。'
+- en: 'overall_pattern: The task takes an input grid containing a number of objects,
+    simplifies each object into a single cell, and repositions these cells along a
+    diagonal line from the top left to the bottom right. The order of placement on
+    the diagonal is according to the order of the objects in the input grid. The size
+    of the output grid is determined by the number of objects in the input grid.'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'overall_pattern: 该任务接收一个包含多个对象的输入网格，将每个对象简化为一个单独的单元格，并将这些单元格沿着从左上角到右下角的对角线重新排列。对角线上的放置顺序依据输入网格中对象的顺序。输出网格的大小由输入网格中的对象数量决定。'
+- en: 'program_instructions: 1\. Use get_objects() function to retrieve all objects
+    from the input grid. 2\. Create an empty grid using empty_grid(), where the number
+    of rows and columns equals the number of objects retrieved. 3\. Loop through each
+    object obtained from get_objects(). For each object, fill a cell in the new grid
+    with the object color at a diagonal position corresponding to the index of the
+    object in the objects list. This is done by calling fill_value() with the index
+    as both the row and column position.'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'program_instructions: 1\. 使用get_objects()函数从输入网格中获取所有对象。 2\. 使用empty_grid()创建一个空网格，其中行数和列数等于获取到的对象数量。
+    3\. 遍历从get_objects()获得的每个对象。对于每个对象，在新网格中对应对象在对象列表中的索引位置的对角线上填充该对象的颜色。通过调用fill_value()，将索引作为行和列位置来完成此操作。'
+- en: 'python_program: def transform_grid(grid): objects = get_objects(grid) new_grid
+    = empty_grid(len(objects), len(objects)) for i, obj in enumerate(objects): new_grid
+    = fill_value(new_grid, (i, i), get_object_color(obj)) return new_grid'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'python_program: def transform_grid(grid): objects = get_objects(grid) new_grid
+    = empty_grid(len(objects), len(objects)) for i, obj in enumerate(objects): new_grid
+    = fill_value(new_grid, (i, i), get_object_color(obj)) return new_grid'
+- en: D.2 GPT-4’s Output for Unsolved Problems
+  id: totrans-251
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.2 GPT-4对未解决问题的输出
+- en: '![Refer to caption](img/f8f809b10576d0e951a5c9127b5d3b1d.png)'
+  id: totrans-252
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/f8f809b10576d0e951a5c9127b5d3b1d.png)'
+- en: 'Figure 7: Training and Test Input/Output pairs for Iteration 1 for an unsolved
+    Problem, 2013d3e2, using Object View. There was a compile error.'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：使用对象视图对2013d3e2未解决问题的第一次迭代进行的训练和测试输入/输出对。程序存在编译错误。
+- en: '![Refer to caption](img/3ea495fcb663b91f2e09688e816e4d9b.png)'
+  id: totrans-254
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/3ea495fcb663b91f2e09688e816e4d9b.png)'
+- en: 'Figure 8: Training and Test Input/Output pairs for Iteration 2 for an unsolved
+    Problem, 2013d3e2, using Object View. There was an incorrect program output. The
+    run terminated at this iteration.'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 8：使用对象视图对2013d3e2未解决问题的第二次迭代进行的训练和测试输入/输出对。该程序输出不正确，运行在此迭代时终止。
+- en: This is the JSON output of GPT-4 formatted into key-value pairs, for Iteration
+    1 for 2013d3e2 using Object View, and the "python_program" had a compile error.
+    This is because it tried to crop from the object grid from the center rather than
+    the top left of the object. It also failed to set diagonal = True and multicolor
+    = True in the get_object settings.
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是GPT-4的JSON输出，格式化为键值对，用于2013d3e2的第一次迭代，采用对象视图，并且“python_program”存在编译错误。错误原因是它试图从对象网格的中心裁剪，而不是从对象的左上角裁剪。同时，它还未能在get_object设置中将diagonal设置为True，multicolor设置为True。
+- en: 'reflection: The task involves identifying a specific part of an object, cropping
+    it, and outputting it. The specific part of the object is always three rows high
+    and starts from the third column from the left. It’s interesting to note that
+    although the objects in the inputs are of different colors and shapes, the part
+    that needs to be cropped is always at the same location.'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'reflection: 这个任务涉及识别对象的特定部分，裁剪它并输出。对象的特定部分总是三行高，并从左侧第三列开始。值得注意的是，尽管输入中的对象有不同的颜色和形状，但需要裁剪的部分总是在相同的位置。'
+- en: 'pixel_changes: The pixels in the output are a subset of the pixels from the
+    input. They are always the pixels from the third, fourth, and fifth rows of the
+    object, starting from the third column from the left. The colors of the pixels
+    remain unchanged.'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'pixel_changes: 输出中的像素是输入像素的子集。它们始终来自对象的第三、第四和第五行，从左侧第三列开始。像素的颜色保持不变。'
+- en: 'object_changes: The size of the object is significantly reduced in the output.
+    It goes from a 6x6 square in the input to a 3x3 square in the output. The shape
+    of the object changes as a result of the cropping, but the relative positions
+    of the pixels within the output object remain the same as in the input object.'
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'object_changes: 在输出中，对象的大小显著缩小。它从输入中的6x6正方形变为输出中的3x3正方形。对象的形状因裁剪而改变，但输出对象中像素的相对位置与输入对象中的相同。'
+- en: 'helper_functions: The following helper functions would be relevant for this
+    task: get_objects, crop_grid, and fill_object.'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'helper_functions: 以下是与此任务相关的辅助函数：get_objects，crop_grid和fill_object。'
+- en: 'overall_pattern: The task requires identifying the single object in the input,
+    cropping a 3x3 square from it starting from the third column from the left, and
+    outputting the cropped section. The part of the object that needs to be cropped
+    is always the same and does not depend on the colors or the shape of the object.'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'overall_pattern: 该任务要求识别输入中的单一对象，从它中裁剪一个3x3的正方形，从左侧第三列开始，并输出裁剪后的部分。需要裁剪的对象部分总是相同的，且不依赖于对象的颜色或形状。'
+- en: 'program_instructions: 1\. Start with an empty grid of size 3x3\. 2\. Use the
+    get_objects function to identify the object in the input. 3\. Crop a 3x3 square
+    from the object starting from the third column from the left using the crop_grid
+    function. 4\. Use the fill_object function to fill the empty grid with the cropped
+    section.'
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'program_instructions: 1\. 从一个空的3x3网格开始。 2\. 使用get_objects函数识别输入中的对象。 3\. 使用crop_grid函数从对象中裁剪一个3x3的正方形，从左侧第三列开始。
+    4\. 使用fill_object函数将裁剪后的部分填充到空的网格中。'
+- en: 'python_program: def transform_grid(grid): output = empty_grid(3, 3) objects
+    = get_objects(grid) object = objects[0] cropped = crop_grid(object[’grid’], (2,
+    2), (4, 4)) fill_object(output, {’tl’: (0, 0), ’grid’: cropped}) return output'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'python_program: def transform_grid(grid): output = empty_grid(3, 3) objects
+    = get_objects(grid) object = objects[0] cropped = crop_grid(object[’grid’], (2,
+    2), (4, 4)) fill_object(output, {’tl’: (0, 0), ’grid’: cropped}) return output'
+- en: This is the JSON output of GPT-4 formatted into key-value pairs, for Iteration
+    2 for 2013d3e2 using Object View, and the "python_program" produced an incorrect
+    output. It managed to solve the earlier compile error by using a try-catch block
+    and just fill the first object’s grid if there is any error. The program is still
+    wrong because it decided to crop the object grid from the center rather than from
+    the top left corner. It also failed to set diagonal=True and multicolor = True
+    in the get_object settings.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是GPT-4的JSON输出，格式化为键值对，用于2013d3e2的迭代2，使用对象视图，且"python_program"产生了错误的输出。它通过使用try-catch块解决了先前的编译错误，并在发生错误时仅填充第一个对象的网格。程序仍然是错误的，因为它决定从对象网格的中心裁剪，而不是从左上角开始。它还未在get_object设置中将diagonal=True和multicolor=True设定好。
+- en: 'reflection: The task involves cropping a section from the input grid and outputting
+    that section as the output grid. The error suggests that the cropping area defined
+    in the function doesn’t match the actual area in the object, which results in
+    an out of range index error. pixel_changes: The pixels in the output are a subset
+    of the pixels in the input. A 3x3 section from the center of the only object in
+    the input grid is extracted and used to form the output grid. object_changes:
+    The object in the output grid is a cropped section from the object in the input
+    grid. There are no changes in the values of the pixels, the object simply reduces
+    in size to a 3x3 grid. The top left cell of the output object corresponds to the
+    cell in the third row and third column of the input object. helper_functions:
+    The helper functions used for this task are get_objects, crop_grid, and fill_object.
+    get_objects is used to get the object from the input grid. crop_grid is used to
+    crop a 3x3 section from the input object. fill_object is used to fill the output
+    grid with the cropped object. overall_pattern: The overall pattern is to identify
+    the only object in the input grid, crop a 3x3 section from it starting from the
+    third row and third column, and use this cropped section as the output grid. program_instructions:
+    Start by copying the input grid. Use get_objects to get the object from the input
+    grid. Crop a 3x3 section from the input object starting from the third row and
+    third column. Create an empty grid of size 3x3\. Fill this grid with the cropped
+    object and return it as the output. The python function will have to handle any
+    exception to avoid out of range index error when the object is smaller than expected.
+    python_program: def transform_grid(grid): output = empty_grid(3, 3) objects =
+    get_objects(grid) object = objects[0] try: cropped = crop_grid(object[’grid’],
+    (2, 2), (4, 4)) except IndexError: cropped = object[’grid’] fill_object(output,
+    ’tl’: (0, 0), ’grid’: cropped) return output'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '反射：该任务涉及从输入网格中裁剪出一部分区域，并将该部分作为输出网格。错误表明函数中定义的裁剪区域与对象中实际的区域不匹配，导致了超出范围的索引错误。像素变化：输出中的像素是输入中像素的子集。一个3x3的区域从输入网格中唯一对象的中心提取出来，并用来构建输出网格。对象变化：输出网格中的对象是从输入网格中的对象裁剪出来的一部分。像素值没有发生变化，唯一的变化是对象的大小缩小为3x3网格。输出对象的左上角单元格对应输入对象中第三行第三列的单元格。辅助函数：本任务中使用的辅助函数包括get_objects、crop_grid和fill_object。get_objects用于从输入网格中获取对象；crop_grid用于从输入对象中裁剪出一个3x3的区域；fill_object用于用裁剪的对象填充输出网格。整体模式：整体模式是识别输入网格中的唯一对象，从其第三行第三列开始裁剪出一个3x3的区域，并将该裁剪出的区域作为输出网格。程序指令：首先复制输入网格。使用get_objects从输入网格中获取对象。从输入对象中第三行第三列开始裁剪一个3x3的区域。创建一个空的3x3网格。用裁剪出的对象填充该网格，并将其作为输出返回。当对象比预期小的时候，Python函数需要处理任何异常，以避免超出范围的索引错误。python程序：  '
+- en: Appendix E Task Solved Details
+  id: totrans-266
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录E 任务解决详情
+- en: In this section, we provide a detailed breakdown of tasks solved in the main
+    paper. For more details, check out the .html files provided in the [Supplementary
+    Materials](https://tinyurl.com/yet363w8).
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们详细分解了主论文中解决的任务。更多细节，请查看[附加材料](https://tinyurl.com/yet363w8)中提供的.html文件。
+- en: 'Table [4](#A5.T4 "Table 4 ‣ Appendix E Task Solved Details ‣ Large Language
+    Model (LLM) as a System of Multiple Expert Agents: An Approach to solve the Abstraction
+    and Reasoning Corpus (ARC) Challenge") shows the breakdown of the view types used
+    to solve the 50 problems. As we can see, a variety of views are required, of which,
+    the most frequently used one is Object View with 23 uses. Pixel View is the next
+    most common with 19 uses. There is 1 task (d23f8c26) which used both Object View
+    and Pixel View. There are some tasks for which Grid View alone is the best - 7
+    of them. Using only one single view is bound to get poorer results than using
+    a combination of all these views. Some examples of tasks solved by the various
+    views are given in Figs. [10](#A5.F10 "Figure 10 ‣ Appendix E Task Solved Details
+    ‣ Large Language Model (LLM) as a System of Multiple Expert Agents: An Approach
+    to solve the Abstraction and Reasoning Corpus (ARC) Challenge"), [9](#A5.F9 "Figure
+    9 ‣ Appendix E Task Solved Details ‣ Large Language Model (LLM) as a System of
+    Multiple Expert Agents: An Approach to solve the Abstraction and Reasoning Corpus
+    (ARC) Challenge"), [11](#A5.F11 "Figure 11 ‣ Appendix E Task Solved Details ‣
+    Large Language Model (LLM) as a System of Multiple Expert Agents: An Approach
+    to solve the Abstraction and Reasoning Corpus (ARC) Challenge") and [12](#A5.F12
+    "Figure 12 ‣ Appendix E Task Solved Details ‣ Large Language Model (LLM) as a
+    System of Multiple Expert Agents: An Approach to solve the Abstraction and Reasoning
+    Corpus (ARC) Challenge").'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格[4](#A5.T4 "表格 4 ‣ 附录 E 任务解决细节 ‣ 大型语言模型（LLM）作为多个专家代理系统：一种解决抽象与推理语料库（ARC）挑战的方法")展示了用于解决50个问题的视图类型的分类。如我们所见，解决这些问题需要多种视图，其中使用最频繁的是对象视图，共使用了23次。像素视图是第二常用的，使用了19次。有一个任务（d23f8c26）同时使用了对象视图和像素视图。也有一些任务，仅使用网格视图效果最好，共7个任务。仅使用单一视图的结果通常不如结合使用多种视图。不同视图解决的任务示例如图[10](#A5.F10
+    "图 10 ‣ 附录 E 任务解决细节 ‣ 大型语言模型（LLM）作为多个专家代理系统：一种解决抽象与推理语料库（ARC）挑战的方法")、[9](#A5.F9
+    "图 9 ‣ 附录 E 任务解决细节 ‣ 大型语言模型（LLM）作为多个专家代理系统：一种解决抽象与推理语料库（ARC）挑战的方法")、[11](#A5.F11
+    "图 11 ‣ 附录 E 任务解决细节 ‣ 大型语言模型（LLM）作为多个专家代理系统：一种解决抽象与推理语料库（ARC）挑战的方法")和[12](#A5.F12
+    "图 12 ‣ 附录 E 任务解决细节 ‣ 大型语言模型（LLM）作为多个专家代理系统：一种解决抽象与推理语料库（ARC）挑战的方法")中给出。
+- en: 'Table 4: Number of Tasks solved by each View Type. Grid View is used by default
+    unless there is a limitation of the token length, in which case, it is toggled
+    off'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格4：每种视图类型解决的任务数量。默认使用网格视图，除非存在令牌长度的限制，在这种情况下，会关闭网格视图。
+- en: '| View Type | Number of Tasks Solved |'
+  id: totrans-270
+  prefs: []
+  type: TYPE_TB
+  zh: '| 视图类型 | 解决的任务数量 |'
+- en: '| --- | --- |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Total | 50 |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总计 | 50 |'
+- en: '| Object View | 23 |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对象视图 | 23 |'
+- en: '| Pixel View | 19 |'
+  id: totrans-274
+  prefs: []
+  type: TYPE_TB
+  zh: '| 像素视图 | 19 |'
+- en: '| Object & Pixel View | 1 |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对象与像素视图 | 1 |'
+- en: '| No Object & Pixel View (only Grid View) | 7 |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无对象与像素视图（仅网格视图） | 7 |'
+- en: '![Refer to caption](img/42d9c62c3d07bde9e98fe24ee9a1e555.png)![Refer to caption](img/0895b93f229b3e595f6379a4c78c3f2f.png)'
+  id: totrans-277
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/42d9c62c3d07bde9e98fe24ee9a1e555.png)![参见标题](img/0895b93f229b3e595f6379a4c78c3f2f.png)'
+- en: 'Figure 9: Examples of tasks solved using only Pixel View. They can be used
+    for a lot of situations and usually are the only performant view when the mapping
+    is by colour, especially for irregular shape mappings.'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图9：仅使用像素视图解决的任务示例。这些视图可以用于许多情况，通常在颜色映射时是唯一有效的视图，尤其是在不规则形状映射的情况下。
+- en: '![Refer to caption](img/d3babf6e9bdd94eecc13b76c1cc27367.png)![Refer to caption](img/143f20e7a84c3d04ef964659fc24411a.png)'
+  id: totrans-279
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/d3babf6e9bdd94eecc13b76c1cc27367.png)![参见标题](img/143f20e7a84c3d04ef964659fc24411a.png)'
+- en: 'Figure 10: Examples of tasks solved using only Object View. They are usually
+    tasks which involve changing attribute of an object (e.g. shape, size, colour)
+    or ranking object by attributes (e.g. size, cell count).'
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图10：仅使用对象视图解决的任务示例。这些任务通常涉及改变物体的属性（例如形状、大小、颜色）或按属性对物体进行排序（例如大小、细胞数）。
+- en: '![Refer to caption](img/6cfd0682bd72cf39901803732a2ea1ef.png)'
+  id: totrans-281
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/6cfd0682bd72cf39901803732a2ea1ef.png)'
+- en: 'Figure 11: Examples of task solved using both Object View and Pixel View. They
+    are usually tasks whereby we need to know the coordinates of the objects. Here,
+    the objects are split according to columns. The task here is to just preserve
+    the central column of pixels.'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图11：同时使用对象视图和像素视图解决的任务示例。这些任务通常需要知道物体的坐标。这里，物体根据列进行划分。任务就是保留像素的中间列。
+- en: '![Refer to caption](img/db1987e5eeef5732f811499cb60502f9.png)![Refer to caption](img/4445b326459773f2618c3df28fd542da.png)'
+  id: totrans-283
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/db1987e5eeef5732f811499cb60502f9.png)![参见说明文字](img/4445b326459773f2618c3df28fd542da.png)'
+- en: 'Figure 12: Examples of tasks solved using only Grid View. They are mainly rotation
+    and reflection tasks.'
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 12：仅使用网格视图解决的任务示例。这些任务主要是旋转和反射任务。
+- en: 'Tasks Not Solved But with Overall Description Right. List of tasks which are
+    not solved but have overall description right:'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 未解决的任务，但整体描述正确。未解决但整体描述正确的任务列表：
+- en: '1.'
+  id: totrans-286
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: ea786f4a
+  id: totrans-287
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: ea786f4a
+- en: '2.'
+  id: totrans-288
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 88a62173
+  id: totrans-289
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 88a62173
+- en: '3.'
+  id: totrans-290
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: 746b3537
+  id: totrans-291
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 746b3537
+- en: '4.'
+  id: totrans-292
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: 321b1fc6
+  id: totrans-293
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 321b1fc6
+- en: '5.'
+  id: totrans-294
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '5.'
+- en: 9565186b
+  id: totrans-295
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 9565186b
+- en: '6.'
+  id: totrans-296
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '6.'
+- en: a3df8b1e
+  id: totrans-297
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: a3df8b1e
+- en: '7.'
+  id: totrans-298
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '7.'
+- en: f25ffba3
+  id: totrans-299
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: f25ffba3
+- en: '8.'
+  id: totrans-300
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '8.'
+- en: 60b61512
+  id: totrans-301
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 60b61512
+- en: 'Tasks solved with Iterative Environment Feedback after Incorrect Output. See
+    Fig. [13](#A5.F13 "Figure 13 ‣ Appendix E Task Solved Details ‣ Large Language
+    Model (LLM) as a System of Multiple Expert Agents: An Approach to solve the Abstraction
+    and Reasoning Corpus (ARC) Challenge") for examples of such tasks. List of tasks
+    which are solved over two iterated steps:'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过编译错误后的迭代环境反馈解决的任务。请参见图 [13](#A5.F13 "图 13 ‣ 附录 E 任务解决详情 ‣ 将大语言模型（LLM）作为多个专家代理系统的应用：解决抽象推理语料库（ARC）挑战的方法")，查看此类任务的示例。经过两次迭代步骤解决的任务列表：
+- en: '1.'
+  id: totrans-303
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: aabf363d
+  id: totrans-304
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: aabf363d
+- en: '2.'
+  id: totrans-305
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 496994bd
+  id: totrans-306
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 496994bd
+- en: '3.'
+  id: totrans-307
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: 3618c87e
+  id: totrans-308
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 3618c87e
+- en: '4.'
+  id: totrans-309
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: 794b24be
+  id: totrans-310
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 794b24be
+- en: '5.'
+  id: totrans-311
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '5.'
+- en: 3c9b0459
+  id: totrans-312
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 3c9b0459
+- en: '6.'
+  id: totrans-313
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '6.'
+- en: ed36ccf7
+  id: totrans-314
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: ed36ccf7
+- en: 'Tasks solved with Iterative Environment Feedback after Compilation Error. See
+    Fig. [14](#A5.F14 "Figure 14 ‣ Appendix E Task Solved Details ‣ Large Language
+    Model (LLM) as a System of Multiple Expert Agents: An Approach to solve the Abstraction
+    and Reasoning Corpus (ARC) Challenge") for examples of such tasks. List of tasks
+    which are solved after compilation error fixed:'
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过编译错误后的迭代环境反馈解决的任务。请参见图 [14](#A5.F14 "图 14 ‣ 附录 E 任务解决详情 ‣ 将大语言模型（LLM）作为多个专家代理系统的应用：解决抽象推理语料库（ARC）挑战的方法")，查看此类任务的示例。修复编译错误后解决的任务列表：
+- en: '1.'
+  id: totrans-316
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 25d8a9c8
+  id: totrans-317
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 25d8a9c8
+- en: '![Refer to caption](img/46a83483adbb511191ab5e2b8b8a9d73.png)![Refer to caption](img/fc767efa865507e482b2d367f1b9f2bd.png)'
+  id: totrans-318
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/46a83483adbb511191ab5e2b8b8a9d73.png)![参见说明文字](img/fc767efa865507e482b2d367f1b9f2bd.png)'
+- en: 'Figure 13: Examples of tasks solved using Iterative Environment Feedback after
+    incorrect output. They are usually tasks which involve multiple different steps,
+    for example for the left task, changing colour of one object and removing another
+    object, and for the right task, reducing height of the column and shifting the
+    blue pixel to the bottom of the column.'
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 13：通过编译错误后的迭代环境反馈解决的任务示例。这些任务通常涉及多个不同的步骤，例如左侧任务涉及更改一个物体的颜色并移除另一个物体，右侧任务则涉及减少列的高度并将蓝色像素移至列底部。
+- en: '![Refer to caption](img/ec47dfc8a8c3b49b171227fe0a1ffa88.png)'
+  id: totrans-320
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/ec47dfc8a8c3b49b171227fe0a1ffa88.png)'
+- en: 'Figure 14: Examples of task solved using Iterative Environment Feedback after
+    compile error. They are usually tasks which invoke a function that is not well
+    explained in the prompt. Here, the program tried to do "output = copy(grid)" which
+    is in response to the prompt "You should start each program by copying input grid
+    or empty_grid or crop_grid of desired output size". We could eliminate this error
+    by simply elaborating the method to use in the prompt, for example, "You should
+    start each program by copying input grid using copy.deepcopy(grid)".'
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 14：通过编译错误后的迭代环境反馈解决的任务示例。这些任务通常涉及调用在提示中未充分解释的函数。例如，程序尝试执行 "output = copy(grid)"，这是响应提示
+    "你应该通过复制输入网格、空网格或裁剪网格来开始每个程序，以便获得所需的输出大小"。我们可以通过在提示中简单阐明使用的方法来消除此错误，例如，“你应该通过使用
+    copy.deepcopy(grid) 来复制输入网格，作为每个程序的开始”。
+- en: Appendix F Proposed Agent Types
+  id: totrans-322
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 F 提议的代理类型
+- en: This section details more of the proposed new agent types which may help increase
+    the solve rate of GPT-4 for the ARC Challenge.
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节详细介绍了更多拟议的新型代理类型，这些代理类型可能有助于提高 GPT-4 在 ARC 挑战中的解题率。
+- en: Better Object View. We can perhaps do better by infusing more coordinates into
+    the objects if we have context length. These coordinates would enable GPT-4 to
+    know exactly which cell the object is positioned on. This was omitted from Object
+    View because for most object-related tasks, only the top left coordinate was necessary
+    for translation, and so by omitting this we can reduce the context length. However,
+    having the full coordinate view could be helpful, especially when comparing the
+    change of one object to another. This can be seen when some tasks cannot be solved
+    by Object View or Pixel View alone, but must be solved with a combination of both
+    Object View and Pixel View.
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的物体视角。如果我们有足够的上下文长度，或许可以通过将更多坐标信息融入物体来提升表现。这些坐标将使GPT-4准确知道物体位于哪个单元格。这在物体视角中被省略，因为对于大多数物体相关的任务，翻译时只需要左上角的坐标，因此省略这一信息可以减少上下文长度。然而，拥有完整的坐标视图可能会有所帮助，尤其是在比较一个物体与另一个物体的变化时。这可以从一些任务中看出，有些任务仅靠物体视角或像素视角无法解决，必须结合物体视角和像素视角一起使用才能解决。
+- en: Object Relations View. Relations between objects is something that could be
+    improved. Right now, GPT-4 does not have the relative positions of all objects
+    from each other, and from the edges and corners of the grid. This may be helpful
+    in some tasks.
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 物体关系视角。物体之间的关系是一个可以改进的方面。目前，GPT-4并不具备所有物体相互之间以及物体与网格边缘和角落的相对位置。这在某些任务中可能会很有帮助。
+- en: Edge Detection View. We note that GPT-4 does not process shapes naturally, and
+    is lacking some idea of what a corner of the shape is, or what is the intersection
+    of the shape. This may be possible if we give it a view of which are the corners
+    of the object, which are the intersections, and this can help it to understand
+    the 2D grid better. This is akin to giving it some form of processing through
+    a Convolutional Neural Network (CNN) type network.
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 边缘检测视角。我们注意到，GPT-4并不能自然处理形状，缺乏对形状角落或形状交点的概念。如果我们能给它提供一个视图，标明物体的角落和交点，这可能有助于它更好地理解二维网格。这类似于通过卷积神经网络（CNN）类型的网络处理它。
+- en: Symmetry View. We observe that GPT-4 does not have a good understanding of symmetry
+    and fails to solve most tasks involving symmetry, especially rotational symmetry.
+    Hence, imbuing this view as well as relevant helper/primitive functions could
+    help with this kind of problems.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对称性视角。我们观察到，GPT-4对对称性缺乏良好的理解，未能解决涉及对称性的大多数任务，尤其是旋转对称性任务。因此，赋予这种视角以及相关的辅助/原始函数，可能有助于解决这类问题。
+- en: Difference View. We note that finding the differences between the input and
+    output grid is key to solving ARC tasks. Perhaps one way of grounding GPT-4 to
+    focus on the differences between input and output apart from prompting it with
+    text, is to explicitly calculate the differences between the input and output
+    over various aspects, and only show GPT-4 the ones that are different. This reduces
+    context length and could potentially help GPT-4 to attend to these differences
+    better. This is not strictly necessary as any good enough pattern associator can
+    already deduce what the differences and similarities are with just the raw attributes
+    without prompting - but this could perhaps nudge the answer towards the correct
+    one more easily. The human brain also actively seeks out differences and that
+    is how we learn, so having something to highlight differences could perhaps improve
+    the system better.
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 差异视角。我们注意到，找到输入和输出网格之间的差异是解决ARC任务的关键。或许，让GPT-4专注于输入和输出之间的差异的一种方式，是通过显式地计算输入和输出在各个方面的差异，并仅向GPT-4展示那些不同的部分，而不是仅通过文本提示。这可以减少上下文长度，并有可能帮助GPT-4更好地关注这些差异。这并非绝对必要，因为任何足够好的模式关联器，只凭借原始属性就可以推断出差异和相似性，无需提示——但这或许能更轻松地将答案引导到正确的方向。人脑也会主动寻找差异，这就是我们学习的方式，因此有一个突出差异的方式或许能改善系统表现。
+- en: Diagonal View. Being a token-based predictor, GPT-4 is actually quite weak at
+    predicting diagonals since 2D representation is not naturally imbued in tokens.
+    In fact, we observe that GPT-4 does row prediction better than both column and
+    diagonal prediction. As such, it would be better if we could frame any problem
+    as a row-based problem, including diagonals. One way to do this will be to rotate
+    the grid 45 degrees so that diagonals become rows and columns, do manipulation
+    on this grid, and then rotate it back -45 degrees so as to get back the original
+    input grid.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对角线视角。作为一个基于标记的预测模型，GPT-4 在预测对角线方面实际上相当薄弱，因为 2D 表示并没有自然地嵌入到标记中。事实上，我们观察到，GPT-4
+    在行预测上表现得比列和对角线预测更好。因此，如果我们能将任何问题框架化为行问题，包括对角线，效果会更好。实现这一点的一种方法是将网格旋转 45 度，使得对角线变成行和列，然后在这个网格上进行操作，最后再将其旋转回
+    -45 度，从而恢复到原始输入网格。

@@ -1,0 +1,3286 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 12:49:37'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'date: 2025-01-11 12:49:37'
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 重新思考LLM推理的界限：多代理讨论是关键吗？
+- en: 来源：[https://arxiv.org/html/2402.18272/](https://arxiv.org/html/2402.18272/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2402.18272/](https://arxiv.org/html/2402.18272/)
+- en: Qineng Wang^(1*)    Zihao Wang^(2*)    Ying Su²    Hanghang Tong³    Yangqiu
+    Song²
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Qineng Wang^(1*)    Zihao Wang^(2*)    Ying Su²    Hanghang Tong³    Yangqiu
+    Song²
+- en: ¹Zhejiang University    ²HKUST    ³UIUC
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹浙江大学    ²香港科技大学    ³伊利诺伊大学香槟分校
+- en: wongqineng73@zju.edu.cn, htong@illinois.edu
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: wongqineng73@zju.edu.cn, htong@illinois.edu
+- en: '{zwanggc,ysuay,yqsong}@cse.ust.hk'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{zwanggc,ysuay,yqsong}@cse.ust.hk'
+- en: Abstract
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Recent progress in LLMs discussion suggests that multi-agent discussion improves
+    the reasoning abilities of LLMs. In this work, we reevaluate this claim through
+    systematic experiments, where we propose a novel group discussion framework to
+    enrich the set of discussion mechanisms. Interestingly, our results show that
+    a single-agent LLM with strong prompts can achieve almost the same performance
+    as the best existing discussion approach on a wide range of reasoning tasks and
+    backbone LLMs. We observe that the multi-agent discussion performs better than
+    a single agent only when there is no demonstration in the prompt. Further study
+    reveals the common interaction mechanisms of LLMs during the discussion.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近关于大语言模型（LLMs）多代理讨论的研究表明，多个代理的讨论能提高LLMs的推理能力。在这项工作中，我们通过系统的实验重新评估这一观点，并提出了一种新的小组讨论框架来丰富讨论机制的集合。有趣的是，我们的结果表明，在广泛的推理任务和基础大语言模型上，一个具有强大提示的单代理LLM能够达到与现有最佳讨论方法几乎相同的性能。我们观察到，只有当提示中没有示范时，多代理讨论才会比单代理表现得更好。进一步的研究揭示了LLMs在讨论过程中的共同互动机制。
+- en: 'Rethinking the Bounds of LLM Reasoning:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重新思考LLM推理的界限：
+- en: Are Multi-Agent Discussions the Key?
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多代理讨论是关键吗？
+- en: Qineng Wang^(1*)  Zihao Wang^(2*)  Ying Su²  Hanghang Tong³  Yangqiu Song² ¹Zhejiang
+    University  ²HKUST  ³UIUC wongqineng73@zju.edu.cn, htong@illinois.edu {zwanggc,ysuay,yqsong}@cse.ust.hk
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Qineng Wang^(1*)  Zihao Wang^(2*)  Ying Su²  Hanghang Tong³  Yangqiu Song² ¹浙江大学  ²香港科技大学  ³伊利诺伊大学香槟分校
+    wongqineng73@zju.edu.cn, htong@illinois.edu {zwanggc,ysuay,yqsong}@cse.ust.hk
+- en: '^*^*footnotetext: These authors contributed equally to this work.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '^*^*footnotetext: 这些作者对本研究做出了同等贡献。'
+- en: 1 Introduction
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Large Language Models (LLMs) demonstrate strong abilities in language understanding
+    and generation OpenAI ([2022](https://arxiv.org/html/2402.18272v1#bib.bib30),
+    [2023](https://arxiv.org/html/2402.18272v1#bib.bib31)); Touvron et al. ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib37));
+    Zhang et al. ([2022a](https://arxiv.org/html/2402.18272v1#bib.bib53)); Chowdhery
+    et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib9)); Team et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib36)).
+    However, LLMs still fall short for reasoning tasks due to model deficiencies like
+    hallucination and reasoning perspective mistakes Xu et al. ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib45)).
+    To overcome these issues, numerous works have been proposed by simulating human
+    reasoning. Inspired by Society of Mind Minsky ([1988](https://arxiv.org/html/2402.18272v1#bib.bib29)),
+    multi-agent discussion frameworks such as Debate Du et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib13)),
+    MAD Liang et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib22)), and
+    ReConcile Chen et al. ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib7))
+    present a novel approach by involving multiple AI agents. Powered by LLMs, these
+    agents autonomously engage in discussions on given topics, improving the reasoning
+    abilities of LLMs by emulating the human discussion process. To further improve
+    the performance, most of multi-agent discussion frameworks leverage task-specific
+    examples, which are often termed as demonstrations Min et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib28)).
+    This is based on the insights that LLMs can learn from the context demonstrations
+    Brown et al. ([2020](https://arxiv.org/html/2402.18272v1#bib.bib5)). We note that
+    *all these discussion frameworks claim that they outperform the conventional methods
+    with a single agent*, such as Chain-of-Thought Wei et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib41)).
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）在语言理解和生成方面表现出强大的能力，OpenAI（[2022](https://arxiv.org/html/2402.18272v1#bib.bib30),
+    [2023](https://arxiv.org/html/2402.18272v1#bib.bib31)）；Touvron等人（[2023a](https://arxiv.org/html/2402.18272v1#bib.bib37)）；Zhang等人（[2022a](https://arxiv.org/html/2402.18272v1#bib.bib53)）；Chowdhery等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib9)）；Team等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib36)）。然而，由于模型缺陷，如幻觉和推理视角错误，LLMs在推理任务中仍然存在不足，Xu等人（[2023a](https://arxiv.org/html/2402.18272v1#bib.bib45)）。为了解决这些问题，许多工作通过模拟人类推理提出了新的方法。受到心智社会（Society
+    of Mind）Minsky（[1988](https://arxiv.org/html/2402.18272v1#bib.bib29)）的启发，像Debate
+    Du等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib13)）、MAD Liang等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib22)）和ReConcile
+    Chen等人（[2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)）等多智能体讨论框架，通过引入多个AI智能体，提出了一种新方法。这些智能体由LLMs驱动，在给定的主题上自主进行讨论，通过模拟人类讨论过程来提高LLMs的推理能力。为了进一步提高性能，大多数多智能体讨论框架利用了特定任务的示例，这些示例通常被称为示范，Min等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib28)）。这一点基于LLMs可以从上下文示范中学习的洞察，Brown等人（[2020](https://arxiv.org/html/2402.18272v1#bib.bib5)）。我们注意到，*所有这些讨论框架都声称它们优于传统的单智能体方法*，例如Chain-of-Thought
+    Wei等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib41)）。
+- en: 'Figure [1](https://arxiv.org/html/2402.18272v1#S1.F1 "Figure 1 ‣ 1 Introduction
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?")
+    presents a comparison between single-agent settings and multi-agent discussion
+    frameworks on FOLIO-wiki dataset Zhang et al. ([2023b](https://arxiv.org/html/2402.18272v1#bib.bib54));
+    Han et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib16)). In this figure,
+    ‘Demo’ means that the tested single agent is provided with a demonstration case,
+    ‘Q-Desc.’ indicates that the single agent is provided with detailed question description,
+    while ‘Direct’ refers to the single agent without demonstrations. We observe that
+    the single agent ‘Demo’ tends to reach a performance upper bound similar to that
+    of all discussion frameworks, which will be further elaborated on later. This
+    result suggests that the previous *claim* is NOT fully established.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图[1](https://arxiv.org/html/2402.18272v1#S1.F1 "图1 ‣ 1 引言 ‣ 重新思考LLM推理的边界：多智能体讨论是关键吗？")展示了单智能体设置与多智能体讨论框架在FOLIO-wiki数据集上的对比，Zhang等人（[2023b](https://arxiv.org/html/2402.18272v1#bib.bib54)）；Han等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib16)）。在此图中，“Demo”表示测试的单智能体提供了一个示范案例，“Q-Desc.”表示单智能体提供了详细的题目描述，而“Direct”指的是没有示范的单智能体。我们观察到，单智能体“Demo”往往能够达到与所有讨论框架相似的性能上限，稍后将对此进行进一步阐述。这个结果表明，之前的*主张*并没有完全成立。
+- en: '![Refer to caption](img/29a100d3601ee0df8e88d5b90bfede6e.png)'
+  id: totrans-19
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/29a100d3601ee0df8e88d5b90bfede6e.png)'
+- en: 'Figure 1: Comparative performance of single-agent settings and multi-agent
+    discussion frameworks on FOLIO-wiki dataset.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：单代理设置和多代理讨论框架在FOLIO-wiki数据集上的比较性能。
+- en: '![Refer to caption](img/c927cad23cd377336c0df7dd9e031f28.png)'
+  id: totrans-21
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/c927cad23cd377336c0df7dd9e031f28.png)'
+- en: 'Figure 2: Our proposed design pipeline of multi-agent discussion frameworks.
+    This pipeline operates by having agents starting with a kick-start prompt. Then,
+    agents will start discussion by obeying the rules defined in the algorithm and
+    come to a result in the end.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：我们提出的多代理讨论框架设计流程。该流程通过让代理从启动提示开始运作，接着代理们按照算法中定义的规则进行讨论，最终得出结果。
+- en: 'Based on the observation from Figure [1](https://arxiv.org/html/2402.18272v1#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent
+    Discussions the Key?"), in this paper, we conduct systematic experiments to provide
+    in-depth analysis. As a newly emergent topic, the number of available discussion
+    frameworks still remains limited. To provide a more comprehensive and detailed
+    comparison between the single-agent settings and discussion frameworks, as demonstrated
+    in Figure [3](https://arxiv.org/html/2402.18272v1#S2.F3 "Figure 3 ‣ 2 Preliminary
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?"),
+    we propose a new discussion framework named CMD, which is inspired by human group
+    discussion process. Our discussion pipeline considers multiple design aspects
+    shown in Figure [2](https://arxiv.org/html/2402.18272v1#S1.F2 "Figure 2 ‣ 1 Introduction
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?")
+    (see Section [2.1](https://arxiv.org/html/2402.18272v1#S2.SS1 "2.1 What is Multi-Agent
+    Discussion? ‣ 2 Preliminary ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent
+    Discussions the Key?") for more details). We further carry out a range of experiments
+    over standard reasoning benchmarks (ECQA Aggarwal et al. ([2021](https://arxiv.org/html/2402.18272v1#bib.bib1)),
+    GSM8k Cobbe et al. ([2021](https://arxiv.org/html/2402.18272v1#bib.bib10)), and
+    FOLIO-wiki Han et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib16));
+    Zhang et al. ([2023b](https://arxiv.org/html/2402.18272v1#bib.bib54))) using various
+    configurations within different parts of this pipeline.'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于图[1](https://arxiv.org/html/2402.18272v1#S1.F1 "图 1 ‣ 1 引言 ‣ 重新思考LLM推理的边界：多代理讨论是关键吗？")中的观察结果，本文通过系统的实验提供深入分析。作为一个新兴话题，现有的讨论框架仍然有限。为了提供更全面、更详细的单代理设置与讨论框架之间的比较，如图[3](https://arxiv.org/html/2402.18272v1#S2.F3
+    "图 3 ‣ 2 初步 ‣ 重新思考LLM推理的边界：多代理讨论是关键吗？")所示，我们提出了一种新的讨论框架，命名为CMD，灵感来自于人类小组讨论过程。我们的讨论流程考虑了多个设计方面，详见图[2](https://arxiv.org/html/2402.18272v1#S1.F2
+    "图 2 ‣ 1 引言 ‣ 重新思考LLM推理的边界：多代理讨论是关键吗？")（更多细节请参见第[2.1](https://arxiv.org/html/2402.18272v1#S2.SS1
+    "2.1 什么是多代理讨论？ ‣ 2 初步 ‣ 重新思考LLM推理的边界：多代理讨论是关键吗？")节）。我们进一步在标准推理基准上进行了一系列实验（ECQA
+    Aggarwal等（[2021](https://arxiv.org/html/2402.18272v1#bib.bib1)），GSM8k Cobbe等（[2021](https://arxiv.org/html/2402.18272v1#bib.bib10)），FOLIO-wiki
+    Han等（[2022](https://arxiv.org/html/2402.18272v1#bib.bib16)）；Zhang等（[2023b](https://arxiv.org/html/2402.18272v1#bib.bib54)））使用我们流程中不同部分的多种配置进行。
+- en: 'We find that multi-agent discussion does not necessarily enhance reasoning
+    when the prompt provided to an agent is sufficiently robust, which aligns with
+    the observation from Figure [1](https://arxiv.org/html/2402.18272v1#S1.F1 "Figure
+    1 ‣ 1 Introduction ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?"). Additionally, our experimental results reveal that multi-agent discussion
+    frameworks outperform single-agent setups when no demonstrations are provided.
+    We also find that agents powered by weaker LLMs like Bard Anil et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib3))
+    can improve its performance on reasoning with the assistance of the stronger LLMs
+    like Gemini Pro Team et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib36))
+    during interaction.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们发现，当提供给代理的提示足够强大时，多代理讨论并不一定增强推理能力，这与图[1](https://arxiv.org/html/2402.18272v1#S1.F1
+    "图 1 ‣ 1 引言 ‣ 重新思考LLM推理的边界：多代理讨论是关键吗？")中的观察结果一致。此外，我们的实验结果表明，在没有提供示范的情况下，多代理讨论框架的表现优于单代理设置。我们还发现，像Bard
+    Anil等（[2023](https://arxiv.org/html/2402.18272v1#bib.bib3)）这样由较弱的LLM驱动的代理，通过与像Gemini
+    Pro Team等（[2023](https://arxiv.org/html/2402.18272v1#bib.bib36)）强大LLM的互动，可以提升其推理能力。
+- en: 'In summary, our analysis provides a new way of understanding when to use multi-agent
+    discussion on reasoning. Our contributions are listed as follows: (1) We propose
+    a new multi-agent discussion framework CMD, which simulates human group discussion
+    process; (2) We observe that single agents with a strong prompt match the performance
+    of a multi-agent discussion using equally robust prompts; (3) We identify two
+    common types of discussion errors: judge mistake and wrong answer propagation;
+    (4) We find that without demonstrations, multi-agent discussions surpass the single
+    agent ; (5) In multi-LLMs multi-agent discussions, agents with stronger LLMs help
+    improve performance of agents with weaker LLMs.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，我们的分析为理解何时使用多智能体讨论进行推理提供了一个新的视角。我们的贡献如下：(1) 我们提出了一个新的多智能体讨论框架CMD，模拟了人类群体讨论过程；(2)
+    我们观察到，单一智能体在强提示下的表现与使用同样强大的提示的多智能体讨论相匹配；(3) 我们识别出两种常见的讨论错误：判断失误和错误答案传播；(4) 我们发现，在没有示范的情况下，多智能体讨论超越了单一智能体；(5)
+    在多LLM多智能体讨论中，强大的LLM帮助提高了弱LLM智能体的表现。
+- en: 2 Preliminary
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 初步研究
+- en: '![Refer to caption](img/0176c4b898708cad210dfde3ce0057f8.png)'
+  id: totrans-27
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/0176c4b898708cad210dfde3ce0057f8.png)'
+- en: 'Figure 3: Overview of the Conquer-and-Merge Discussion (CMD) Framework.'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：征服与合并讨论（CMD）框架概述。
+- en: 2.1 What is Multi-Agent Discussion?
+  id: totrans-29
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 什么是多智能体讨论？
+- en: Multi-agent discussion refers to an interactive setup where multiple agents,
+    each powered by an LLM, engage in an autonomous dialogue. Each agent is given
+    a prompt that outlines the necessary background knowledge and guides its behavior
+    throughout the discussion. Once the topic is given, these agents can carry on
+    the conversation independently.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多智能体讨论指的是一种互动设置，其中多个由大型语言模型（LLM）驱动的智能体进行自主对话。每个智能体会收到一个包含必要背景知识并指导其行为的提示。给定话题后，这些智能体可以独立进行对话。
+- en: 'Figure [2](https://arxiv.org/html/2402.18272v1#S1.F2 "Figure 2 ‣ 1 Introduction
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?")
+    illustrates a discussion design pipeline, which is structured into four main elements:
+    the Kick-start prompt, agents, algorithm, and result. The Kick-start prompt supplies
+    essential details such as background knowledge and the topic for discussion. This
+    information is then fed to an agent, which operates based on various LLMs. Next,
+    the algorithm lays out the specific rules of discussion, including the number
+    of rounds, decision-making processes (whether by a judge or through voting), and
+    the structure of the discussion (such as hierarchical). Lastly, ‘Result’ describes
+    how the final decisions are rendered and presented. We further provide a view
+    from symmetry for prompt-related mechanism (including discussion) in Appendix
+    [A](https://arxiv.org/html/2402.18272v1#A1 "Appendix A Discussion Engineering
+    and Agent Symmetry ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?").'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图[2](https://arxiv.org/html/2402.18272v1#S1.F2 "图2 ‣ 1 引言 ‣ 重新思考LLM推理的边界：多智能体讨论是关键吗？")展示了一个讨论设计流程图，结构包括四个主要元素：启动提示、智能体、算法和结果。启动提示提供了背景知识和讨论主题等关键信息。然后，这些信息传递给智能体，智能体基于各种LLM进行操作。接下来，算法定义了讨论的具体规则，包括回合数、决策过程（由评审或通过投票进行）以及讨论结构（如层级结构）。最后，“结果”描述了如何做出最终决策并呈现。我们进一步在附录[A](https://arxiv.org/html/2402.18272v1#A1
+    "附录A 讨论工程与智能体对称性 ‣ 重新思考LLM推理的边界：多智能体讨论是关键吗？")中提供了一个关于提示相关机制（包括讨论）的对称性视角。
+- en: 2.2 Existing Discussion Frameworks
+  id: totrans-32
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 现有讨论框架
+- en: 'Previous works on multi-agent discussion frameworks have already covered several
+    common discussion paradigms. In this paper, we consider the following discussion
+    frameworks for our experiments: Debate Du et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib13)),
+    MAD Liang et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib22)) and ReConcile
+    Chen et al. ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)).'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前关于多智能体讨论框架的研究已经涵盖了几种常见的讨论范式。在本文中，我们考虑了以下讨论框架进行实验：Debate Du等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib13)）、MAD
+    Liang等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib22)）和ReConcile Chen等人（[2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)）。
+- en: Debate replicates a simple turn-based discussion among agents. Initially, all
+    agents are prompted to address the assigned task, and their respective responses
+    are then incorporated into each agent’s input for the subsequent round. Typically,
+    this process consists of three rounds of discussion.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 辩论模拟了一个简单的基于回合的智能体讨论。最初，所有智能体都会被提示解决指定任务，然后他们各自的回答将被纳入到每个智能体的输入中，用于下一轮的讨论。通常，这个过程包括三轮讨论。
+- en: MAD introduces divergent thinking by involving two participants to discuss a
+    task from opposing perspectives. A judge then steps in to evaluate which viewpoint
+    seems more plausible or if further discussion is needed. The discussion is repeated
+    until a consensus is reached or the judge favors a particular solution.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MAD引入了发散性思维，通过让两个参与者从对立的角度讨论一个任务。然后，裁判介入评估哪个观点更具可信性，或者是否需要进一步讨论。讨论会持续进行，直到达成共识，或者裁判偏向某个特定解决方案。
+- en: ReConcile implements a round-table discussion with the agents powered by multiple
+    LLMs. It reaches a decision through a weighted voting system. In this process,
+    agents provide a confidence level for their answers, and agents in ReConcile utilize
+    these confidence levels as weights to cast votes and arrive at a final decision.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ReConcile实现了一个由多个LLM驱动的智能体圆桌讨论。它通过加权投票系统来达成决策。在这个过程中，智能体为他们的回答提供置信度，ReConcile中的智能体利用这些置信度作为权重进行投票，从而达成最终决定。
+- en: 'Despite these advancements, the number of multi-agent frameworks is still limited,
+    and none has yet to consider one of the most prevalent forms of discussion: group
+    discussion.'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这些进展已经取得，但多智能体框架的数量仍然有限，并且没有框架考虑到最普遍的讨论形式之一：小组讨论。
+- en: '3 CMD: Conquer-and-Merge Discussion'
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '3 CMD: 征服与合并讨论'
+- en: 'To provide a thorough comparison in following experiments, we identify and
+    rectify the gap in previous research, which has not suggested a group-discussion-based
+    framework. To address this, we introduce a novel framework for multi-agent group
+    discussion, referred to as CMD. In CMD, suppose there are $n$ agents $\mathcal{A}=\{A_{i}\}_{i=1}^{n}$
+    discussing a question $\mathcal{Q}$, and agent $A_{i}$ is powered by an LLM $\mathcal{L}_{i}$.
+    We use an array $H$ to store the history responses. The agents will discuss for
+    $\mathcal{R}$ rounds. During each turn $r$, every agent $A_{i}$ generates a response
+    $(v_{i},e_{i})=\texttt{CMD}(H|\mathcal{Q},r)$, where $v_{i}$ is the viewpoint
+    and $e_{i}$ denotes the explanation. Detailed description can be seen in Appendix
+    [B](https://arxiv.org/html/2402.18272v1#A2 "Appendix B CMD: Conquer and Merge
+    Discussion Framework ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent
+    Discussions the Key?").'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了在随后的实验中进行全面对比，我们识别并弥补了以往研究中的空白，之前的研究并未提出基于小组讨论的框架。为此，我们引入了一种新的多智能体小组讨论框架，称为CMD。在CMD框架中，假设有$n$个智能体$\mathcal{A}=\{A_{i}\}_{i=1}^{n}$正在讨论一个问题$\mathcal{Q}$，并且每个智能体$A_{i}$由一个大型语言模型（LLM）$\mathcal{L}_{i}$驱动。我们使用一个数组$H$来存储历史响应。智能体们将在$\mathcal{R}$轮中进行讨论。在每一轮$r$中，每个智能体$A_{i}$生成一个响应$(v_{i},e_{i})=\texttt{CMD}(H|\mathcal{Q},r)$，其中$v_{i}$是观点，$e_{i}$表示解释。详细描述可以在附录[B](https://arxiv.org/html/2402.18272v1#A2
+    "Appendix B CMD: Conquer and Merge Discussion Framework ‣ Rethinking the Bounds
+    of LLM Reasoning: Are Multi-Agent Discussions the Key?")中查看。'
+- en: 3.1 Message-Passing Algorithm
+  id: totrans-40
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 消息传递算法
+- en: 'For the synchronization of agent communications, we propose a message-passing
+    algorithm. Previous works on multi-agent discussion frameworks focus exclusively
+    on specific scenarios without designing a universal algorithm to synchronize agent
+    messages across various discussions. Moreover, discussion forms vary in architecture
+    and agents can be powered by different LLMs, where each LLM usually possesses
+    different calling protocols. Therefore, we design a message-passing algorithm
+    using a multi-threaded way to overcome these issues. The algorithm establishes
+    a receiving map $M$ for every agent to store the messages they should get in the
+    next turn. For each message $m_{j}$ from Agent $A_{i}$, the algorithm first confirms
+    the receivers $\mathcal{A}_{r}$, then add $m_{j}$ into the receiving map $M$ by
+    every agent $A_{k}\in\mathcal{A}_{r}$. When the next turn begins, the algorithm
+    will automatically push stored messages from $M$ to corresponding agents. Please
+    refer to Appendix [B.4](https://arxiv.org/html/2402.18272v1#A2.SS4 "B.4 Message-Passing
+    Algorithm ‣ Appendix B CMD: Conquer and Merge Discussion Framework ‣ Rethinking
+    the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?") for more detailed
+    pseudo code.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了同步代理之间的通信，我们提出了一种消息传递算法。以往关于多代理讨论框架的研究通常仅专注于特定场景，未设计出一种通用的算法来同步不同讨论中的代理消息。此外，讨论形式在架构上存在差异，代理可能由不同的LLM驱动，而每个LLM通常具有不同的调用协议。因此，我们设计了一种基于多线程方式的消息传递算法，以解决这些问题。该算法为每个代理建立一个接收映射
+    $M$，以存储它们在下一轮应该接收的消息。对于来自代理 $A_{i}$ 的每条消息 $m_{j}$，算法首先确认接收者 $\mathcal{A}_{r}$，然后将
+    $m_{j}$ 添加到每个代理 $A_{k}\in \mathcal{A}_{r}$ 的接收映射 $M$ 中。当下一轮开始时，算法将自动将存储在 $M$ 中的消息推送给相应的代理。有关更详细的伪代码，请参见附录
+    [B.4](https://arxiv.org/html/2402.18272v1#A2.SS4 "B.4 Message-Passing Algorithm
+    ‣ Appendix B CMD: Conquer and Merge Discussion Framework ‣ Rethinking the Bounds
+    of LLM Reasoning: Are Multi-Agent Discussions the Key?")。'
+- en: 3.2 Three Stages of CMD
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 CMD的三个阶段
+- en: 'As illustrated in Figure [3](https://arxiv.org/html/2402.18272v1#S2.F3 "Figure
+    3 ‣ 2 Preliminary ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?"), CMD consists of three stages: group discussion, voting and the final
+    decision stage. Typically, the final decision stage is reserved for instances
+    of a tie and is otherwise unnecessary. Below is a breakdown of each stage involved
+    in the CMD framework, and detailed introduction can be seen in Appendix [B.3](https://arxiv.org/html/2402.18272v1#A2.SS3
+    "B.3 CMD Stages ‣ Appendix B CMD: Conquer and Merge Discussion Framework ‣ Rethinking
+    the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?").'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如图 [3](https://arxiv.org/html/2402.18272v1#S2.F3 "Figure 3 ‣ 2 Preliminary
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?")
+    所示，CMD 由三个阶段组成：小组讨论、投票和最终决策阶段。通常，最终决策阶段是为了解决平局而保留的，否则不需要。以下是 CMD 框架中每个阶段的详细介绍，更多内容请参见附录
+    [B.3](https://arxiv.org/html/2402.18272v1#A2.SS3 "B.3 CMD Stages ‣ Appendix B
+    CMD: Conquer and Merge Discussion Framework ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?")。'
+- en: 'Stage 1: Group Discussion. During this stage, agents $\mathcal{A}$ are divided
+    into groups $\mathcal{G}=\{G_{k}\}^{t}_{k=1}$ with an equal size. All agents are
+    asked to solve task $\mathcal{Q}$ through discussion. For each agent $A_{i}\in
+    G_{k}$, all answers and explanations from $A_{i}\in G_{k}$ in the last round are
+    accessible where $A_{j}\in G_{k}$ and $j\neq i$. In contrast, they can only see
+    the answers without explanations from agents in other groups. After $\mathcal{R}$
+    rounds of discussions, CMD moves to the voting stage.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 阶段1：小组讨论。在此阶段，代理 $\mathcal{A}$ 被分成大小相等的小组 $\mathcal{G}=\{G_{k}\}^{t}_{k=1}$。所有代理都需要通过讨论来解决任务
+    $\mathcal{Q}$。对于每个代理 $A_{i}\in G_{k}$，可以访问 $A_{i}\in G_{k}$ 在上一轮中的所有答案和解释，但仅限于小组内的代理
+    $A_{j}\in G_{k}$ 且 $j\neq i$。与此不同的是，他们只能看到其他小组代理的答案，但没有解释。在经过 $\mathcal{R}$ 轮讨论后，CMD
+    进入投票阶段。
+- en: 'Stage 2: Voting. When discussion reaches the maximum number of rounds, all
+    agents $\mathcal{A}$ start voting. Each vote of agent in this discussion is treated
+    equally, therefore, the result is determined by the majority decision. In the
+    event of a tie, CMD transitions to stage 3\. Otherwise, the discussion process
+    concludes formally.'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 阶段2：投票。当讨论达到最大轮次时，所有代理 $\mathcal{A}$ 开始投票。每个代理在该次讨论中的投票被视为同等权重，因此，结果由多数决定。如果出现平局，CMD
+    进入阶段3。否则，讨论过程正式结束。
+- en: 'Stage 3: Final Decision. If a tie occurs, we introduce an extra agent $S$ in
+    the role of the secretary to make the final decision. Each proposed answer is
+    accompanied by an explanation selected from agents with the same opinion and provided
+    to the secretary for the final determination. To sum up, the final decision is
+    made by either $\mathtt{Vote}(\mathcal{A})$ or $S(V,O|\mathcal{Q})$ where $V=\{v_{i}\}^{n}$
+    and $O=\{o_{i}\}^{n}$, representing a set of viewpoints and a set of explanations
+    respectively.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 阶段 3：最终决策。如果出现平局，我们引入一个额外的代理 $S$ 作为秘书来做出最终决定。每个提出的答案都会附带一个解释，解释由持相同意见的代理选择，并提供给秘书以便最终确定。总结来说，最终决策由
+    $\mathtt{Vote}(\mathcal{A})$ 或 $S(V,O|\mathcal{Q})$ 做出，其中 $V=\{v_{i}\}^{n}$ 和
+    $O=\{o_{i}\}^{n}$，分别表示观点集和解释集。
+- en: 4 Experimental Setups
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验设置
+- en: 'In the experiments, we contrast single-agent setup with four established multi-agent
+    discussion frameworks: Debate, MAD, ReConcile, and CMD under various prompt conditions.
+    These methods are introduced in previous Sections [2.2](https://arxiv.org/html/2402.18272v1#S2.SS2
+    "2.2 Existing Discussion Frameworks ‣ 2 Preliminary ‣ Rethinking the Bounds of
+    LLM Reasoning: Are Multi-Agent Discussions the Key?") and [3](https://arxiv.org/html/2402.18272v1#S3
+    "3 CMD: Conquer-and-Merge Discussion ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?").'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在实验中，我们将单一代理设置与四种已有的多代理讨论框架进行对比：Debate、MAD、ReConcile 和 CMD，在不同的提示条件下进行比较。这些方法在前文的
+    [2.2](https://arxiv.org/html/2402.18272v1#S2.SS2 "2.2 Existing Discussion Frameworks
+    ‣ 2 Preliminary ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?") 和 [3](https://arxiv.org/html/2402.18272v1#S3 "3 CMD: Conquer-and-Merge
+    Discussion ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?") 章节中有介绍。'
+- en: 4.1 Implementation Details and Metrics
+  id: totrans-49
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 实现细节和度量标准
+- en: Our experiments are primarily implemented with three advanced LLMs, including
+    ChatGPT-3.5 OpenAI ([2022](https://arxiv.org/html/2402.18272v1#bib.bib30)), Gemini
+    Pro Team et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib36)) and Bard
+    Anil et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib3)). In particular,
+    we employ the gpt-35-turbo (0613) instance hosted on Azure OpenAI¹¹1https://oai.azure.com/
+    for ChatGPT-3.5, while the chat-bison-001 model represents Bard via PaLM2 architecture.
+    Gemini Pro and Bard interfaces operate through Google MakerSuite API²²2https://ai.google.dev/.
+    A uniform dialogue temperature of $0.25$ is configured across LLMs on CMD to ensure
+    consistency. For all multi-agent discussion frameworks, we set the maximum discussion
+    round number to 3\. Our evaluations use accuracy to measure performance across
+    all tasks.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验主要在三种先进的语言模型（LLM）上实现，包括 ChatGPT-3.5 OpenAI（[2022](https://arxiv.org/html/2402.18272v1#bib.bib30)）、Gemini
+    Pro Team 等（[2023](https://arxiv.org/html/2402.18272v1#bib.bib36)）和 Bard Anil 等（[2023](https://arxiv.org/html/2402.18272v1#bib.bib3)）。具体而言，我们在
+    Azure OpenAI¹¹1https://oai.azure.com/ 上使用 gpt-35-turbo (0613) 实例运行 ChatGPT-3.5，而
+    chat-bison-001 模型则通过 PaLM2 架构表示 Bard。Gemini Pro 和 Bard 接口通过 Google MakerSuite
+    API²²2https://ai.google.dev/ 操作。所有 LLM 的对话温度统一配置为 $0.25$，以确保一致性。对于所有多代理讨论框架，我们将最大讨论回合数设置为
+    3。我们的评估通过准确率来衡量各任务的表现。
+- en: 4.2 Downstream Tasks
+  id: totrans-51
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 下游任务
+- en: 'The frameworks are implemented on a suite of reasoning tasks, including a commonsense
+    reasoning task and two deductive reasoning tasks: (1) ECQA Aggarwal et al. ([2021](https://arxiv.org/html/2402.18272v1#bib.bib1)):
+    A QA dataset centered on commonsense knowledge, (2) GSM8K Cobbe et al. ([2021](https://arxiv.org/html/2402.18272v1#bib.bib10)):
+    A benchmark consists of math word problems, (3) FOLIO-wiki Zhang et al. ([2023b](https://arxiv.org/html/2402.18272v1#bib.bib54)):
+    A dataset adapted from FOLIO Han et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib16))
+    for both symbolic and natural language deductive reasoning. In alignment with
+    constraints imposed by computational resources and following precedents set by
+    earlier research Du et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib13));
+    Chen et al. ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)); Liang et al.
+    ([2023](https://arxiv.org/html/2402.18272v1#bib.bib22)), a subset of 100 instances
+    from the test sets of both ECQA and GSM8K are selectively sampled. For an in-depth
+    analysis, we choose to conduct a comprehensive experiments of all 460 cases within
+    the curated version of the FOLIO-wiki dataset, which removes the flawed cases
+    to ensure the result authenticity.'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该框架应用于一系列推理任务，包括常识推理任务和两个演绎推理任务：（1）ECQA Aggarwal et al. ([2021](https://arxiv.org/html/2402.18272v1#bib.bib1))：一个以常识知识为中心的QA数据集，（2）GSM8K
+    Cobbe et al. ([2021](https://arxiv.org/html/2402.18272v1#bib.bib10))：一个由数学文字问题组成的基准数据集，（3）FOLIO-wiki
+    Zhang et al. ([2023b](https://arxiv.org/html/2402.18272v1#bib.bib54))：一个改编自FOLIO
+    Han et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib16))的数据集，用于符号和自然语言演绎推理。根据计算资源的限制，并遵循早期研究中的前例（Du
+    et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib13))；Chen et al. ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib7))；Liang
+    et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib22))），我们从ECQA和GSM8K的测试集选择性抽取了100个实例。为了进行深入分析，我们选择对FOLIO-wiki数据集中的所有460个案例进行全面实验，其中去除了有缺陷的案例，以确保结果的真实性。
+- en: 5 Experiments on Single LLM
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 单一LLM实验
+- en: 'In this section, we conduct our experiments using a single LLM, ChatGPT-3.5\.
+    To gain the initial insights, we provide an in-depth analysis of the FOLIO-wiki
+    dataset, examining both single-agent settings and multi-agent discussions as detailed
+    in Section [5.1](https://arxiv.org/html/2402.18272v1#S5.SS1 "5.1 Analysis of FOLIO-wiki
+    Dataset ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?"). Afterward, we extend our experiments to
+    two other datasets GSM8K and ECQA in Section [5.2](https://arxiv.org/html/2402.18272v1#S5.SS2
+    "5.2 Evaluation on All Tasks ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds
+    of LLM Reasoning: Are Multi-Agent Discussions the Key?"). We also investigate
+    common mistakes made by discussions through a case study in Section [5.3](https://arxiv.org/html/2402.18272v1#S5.SS3
+    "5.3 Two Discussion Error Types: A Case Study ‣ 5 Experiments on Single LLM ‣
+    Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?").
+    Finally, we summarize our findings in Section [5.4](https://arxiv.org/html/2402.18272v1#S5.SS4
+    "5.4 Summary ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?").'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们使用单一的LLM，ChatGPT-3.5，进行实验。为了获得初步的洞察，我们对FOLIO-wiki数据集进行了深入分析，检查了单智能体设置和多智能体讨论，如[5.1节](https://arxiv.org/html/2402.18272v1#S5.SS1
+    "5.1 分析FOLIO-wiki数据集 ‣ 5 单一LLM实验 ‣ 重新思考LLM推理的界限：多智能体讨论是关键吗？")中详细说明的内容。之后，我们将实验扩展到其他两个数据集GSM8K和ECQA，在[5.2节](https://arxiv.org/html/2402.18272v1#S5.SS2
+    "5.2 对所有任务的评估 ‣ 5 单一LLM实验 ‣ 重新思考LLM推理的界限：多智能体讨论是关键吗？")中进行分析。我们还通过[5.3节](https://arxiv.org/html/2402.18272v1#S5.SS3
+    "5.3 两种讨论错误类型：案例研究 ‣ 5 单一LLM实验 ‣ 重新思考LLM推理的界限：多智能体讨论是关键吗？")的案例研究，调查了讨论中常见的错误。最后，我们在[5.4节](https://arxiv.org/html/2402.18272v1#S5.SS4
+    "5.4 总结 ‣ 5 单一LLM实验 ‣ 重新思考LLM推理的界限：多智能体讨论是关键吗？")中总结了我们的发现。
+- en: '| Prompt Components | Multi-Agent Discussion (%) | Single Agent (%) |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示组件 | 多智能体讨论（%） | 单智能体（%） |'
+- en: '| Q-Desc. | A-Desc. | Demo. | MAD (3) | Debate (3) | Debate (6) | CMD (6) |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| Q-描述 | A-描述 | 演示 | MAD (3) | 辩论 (3) | 辩论 (6) | CMD (6) |'
+- en: '| ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 64.13 | 70.00 | 69.13 | 73.26 | 70.22 |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 64.13 | 70.00 | 69.13 | 73.26 | 70.22 |'
+- en: '| ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 74.13 | 75.65 | 76.30 | 74.13 | 73.26 |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 74.13 | 75.65 | 76.30 | 74.13 | 73.26 |'
+- en: '| ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 68.91 | 71.96 | 71.74 | 73.89 | 71.30 |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 68.91 | 71.96 | 71.74 | 73.89 | 71.30 |'
+- en: '| ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{%
+    pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 71.96 | 70.22 | 70.00 | 71.09 | 73.91 |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{%
+    pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.765625,0.19140625,0.28515625}\definecolor[named]{pgfstrokecolor%
+    }{rgb}{0.765625,0.19140625,0.28515625}\pgfsys@color@rgb@stroke{0.765625}{0.191%
+    40625}{0.28515625}\pgfsys@color@rgb@fill{0.765625}{0.19140625}{0.28515625}% \usym{2717}}$
+    | 71.96 | 70.22 | 70.00 | 71.09 | 73.91 |'
+- en: '| ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{%
+    pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{%
+    pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | 74.13 | 75.65 | 74.78 | 77.39 | 76.09 |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{% pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{%
+    pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140%
+    625}{0.44921875}\usym{2713}}$ | ${\color[rgb]{0.05859375,0.44140625,0.44921875}\definecolor[named]{%
+    pgfstrokecolor}{rgb}{0.05859375,0.44140625,0.44921875}\pgfsys@color@rgb@stroke%
+    {0.05859375}{0.44140625}{0.0.44921875}\pgfsys@color@rgb@fill{0.05859375}{0.44140625}{0.44921875}\usym{2713}}$
+    | 74.13 | 75.65 | 74.78 | 77.39 | 76.09 |'
+- en: 'Table 1: Comparative performance of single-agent settings and multi-agent discussions
+    on FOLIO-wiki using ChatGPT-3.5\. Abbreviations are: detailed question descriptions
+    (Q-Desc.), and answer format descriptions (A-Desc.), demonstrations (Demo.). Only
+    the question itself is used as input when prompt components are disabled. The
+    number next to the framework represents the number of agents.'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：使用 ChatGPT-3.5 在 FOLIO-wiki 上单代理设置和多代理讨论的比较性能。缩写词包括：详细问题描述（Q-Desc.）和答案格式描述（A-Desc.）、示范（Demo.）。当禁用提示组件时，仅使用问题本身作为输入。框架旁边的数字表示代理的数量。
+- en: 5.1 Analysis of FOLIO-wiki Dataset
+  id: totrans-63
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 FOLIO-wiki 数据集分析
+- en: 'We begin by examining if multi-agent discussions are more effective than an
+    agent using the strongest prompt on FOLIO-wiki dataset. Drawing from previous
+    research Wei et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib41)); Ling
+    et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib23)) on crafting prompts
+    for reasoning tasks, we divide the prompt into three parts: a detailed question
+    description, which provides an in-depth background of the task; an answer format
+    description, which instructs how an agent should reply; and a task-specific demonstration,
+    which shows an example of a question and answer pair. For this task, we meticulously
+    craft a demonstration for input prompt. We start by labeling each premise. After
+    that, we quote all the premises and relate them to every step in the reasoning
+    process by using these labels, until the final step is reached. A labeled example
+    is similar to the case in Table [5](https://arxiv.org/html/2402.18272v1#A3.T5
+    "Table 5 ‣ C.2 Round 1 Answer ‣ Appendix C An CMD Example ‣ Rethinking the Bounds
+    of LLM Reasoning: Are Multi-Agent Discussions the Key?"). We then test the performance
+    of various combinations of these components for both single agents and discussions.'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们首先检查多智能体讨论是否比使用最强提示的智能体在FOLIO-wiki数据集上的表现更为有效。借鉴Wei等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib41)）和Ling等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib23)）关于推理任务提示设计的研究，我们将提示分为三部分：详细的问题描述，提供任务的深入背景；答案格式描述，指导智能体应如何回复；以及任务特定示范，展示一个问题和答案对的示例。对于这一任务，我们精心设计了输入提示的示范。我们首先标注每个前提。接下来，我们引用所有前提，并通过使用这些标签将它们与推理过程中的每一步联系起来，直到达到最后一步。一个标注示例类似于表格[5](https://arxiv.org/html/2402.18272v1#A3.T5
+    "Table 5 ‣ C.2 Round 1 Answer ‣ Appendix C An CMD Example ‣ Rethinking the Bounds
+    of LLM Reasoning: Are Multi-Agent Discussions the Key?")中的案例。然后，我们测试这些组件的不同组合在单一智能体和多智能体讨论中的表现。'
+- en: 'Single Agent. We conduct an evaluation of different prompt components with
+    a single agent, and the results are outlined in Table [1](https://arxiv.org/html/2402.18272v1#S5.T1
+    "Table 1 ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?"). This table shows that for both single-agent
+    settings and multi-agent discussions, the inclusion of a detailed question description
+    or a task-specific demonstration enhances reasoning abilities on the FOLIO-wiki
+    dataset. The detailed question description is helpful because the possible answers
+    to judge the correctness of a given proposition—true, false, or unknown—require
+    clarity. Without such clarity, agents often struggle to differentiate between
+    what is ‘false’ and what is ‘unknown’. Most notably, the addition of a demonstration
+    contributes significantly to improved performance, highlighting its value as the
+    most impactful component, in line with what prior studies have suggested Min et al.
+    ([2022](https://arxiv.org/html/2402.18272v1#bib.bib28)).'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '单一智能体。我们对不同的提示组件在单一智能体下进行了评估，结果如表格[1](https://arxiv.org/html/2402.18272v1#S5.T1
+    "Table 1 ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?")所示。该表格显示，对于单一智能体设置和多智能体讨论，包含详细问题描述或任务特定示范都会增强FOLIO-wiki数据集上的推理能力。详细的问题描述非常重要，因为判断一个给定命题的正确性——无论是真、假还是未知——需要明确性。没有这种明确性，智能体往往难以区分“假”和“未知”。最显著的是，示范的加入显著提升了性能，突显了其作为最有影响力组件的价值，这与之前的研究结果一致，Min等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib28)）也曾提出过这一点。'
+- en: 'Multi-Agent Discussions. We assess the same prompt components within multi-agent
+    discussion setups, and Table [1](https://arxiv.org/html/2402.18272v1#S5.T1 "Table
+    1 ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning: Are
+    Multi-Agent Discussions the Key?") reveals three key insights: (1) Demonstrations
+    and detailed question description enhance multi-agent discussions. (2) Despite
+    similar overall performance, most multi-agent discussions do not surpass the single
+    agent when a demonstration is introduced. (3) CMD performs better than both single-agent
+    setups and other multi-agent discussion frameworks on the FOLIO-wiki dataset.
+    Below is further analysis of our findings.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '多智能体讨论。我们在多智能体讨论设置中评估相同的提示组件，表格[1](https://arxiv.org/html/2402.18272v1#S5.T1
+    "Table 1 ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?")揭示了三个关键见解：（1）示范和详细的问题描述增强了多智能体讨论。（2）尽管整体表现相似，但在引入示范后，大多数多智能体讨论的表现并未超过单一智能体。（3）在FOLIO-wiki数据集上，CMD表现优于单一智能体设置和其他多智能体讨论框架。以下是我们发现的进一步分析。'
+- en: A Strong Single Agent is Comparable to Discussion Frameworks. Analyzing experiments
+    with single-agent settings and multi-agent discussions on the FOLIO-wiki dataset,
+    we find that task-specific demonstrations significantly enhance a single agent’s
+    performance. Additionally, we establish that a well-supported agent can perform
+    on par with discussion frameworks. Our analysis indicates that prompt engineering
+    can boost reasoning performance in large language models, with demonstrations
+    in both single-agent and multi-agent discussions pushing towards the upper bound
+    of performance.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 强大的单一代理与讨论框架相当。通过分析单一代理设置和多代理讨论在 FOLIO-wiki 数据集上的实验，我们发现特定任务的演示能够显著提升单一代理的表现。此外，我们还发现，经过充分支持的代理能够与讨论框架表现相当。我们的分析表明，提示工程能够提升大语言模型的推理表现，单一代理和多代理讨论中的演示均推动了性能的上限。
+- en: 5.2 Evaluation on All Tasks
+  id: totrans-68
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 所有任务的评估
+- en: '| Method | ECQA | GSM8K | FOLIO-wiki | Average |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | ECQA | GSM8K | FOLIO-wiki | 平均 |'
+- en: '| Direct | Demo | Direct | Demo | Direct | Demo | Direct | Demo |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| 直接 | 演示 | 直接 | 演示 | 直接 | 演示 | 直接 | 演示 |'
+- en: '| Single Agent | 63.00 | 67.00 | 69.00 | 83.00 | 70.22 | 76.09 | 67.41 | 75.63
+    |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单一代理 | 63.00 | 67.00 | 69.00 | 83.00 | 70.22 | 76.09 | 67.41 | 75.63 |'
+- en: '| MAD (3 Agents) | 55.00 | 58.00 | 74.00 | 78.00 | 61.25 | 74.13 | 63.42 |
+    70.04 |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| MAD (3 个代理) | 55.00 | 58.00 | 74.00 | 78.00 | 61.25 | 74.13 | 63.42 | 70.04
+    |'
+- en: '| Debate (3 Agents) | 67.00 | 65.00 | 78.00 | 81.00 | 70.00 | 75.65 | 71.67
+    | 73.88 |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| 辩论 (3 个代理) | 67.00 | 65.00 | 78.00 | 81.00 | 70.00 | 75.65 | 71.67 | 73.88
+    |'
+- en: '| Debate (6 Agents) | 65.00 | 64.00 | 74.00 | 78.00 | 69.13 | 74.78 | 69.38
+    | 72.26 |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| 辩论 (6 个代理) | 65.00 | 64.00 | 74.00 | 78.00 | 69.13 | 74.78 | 69.38 | 72.26
+    |'
+- en: '| CMD (6 Agents) | 64.00 | 63.00 | 75.00 | 83.00 | 73.26 | 77.39 | 70.75 |
+    74.46 |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| CMD (6 个代理) | 64.00 | 63.00 | 75.00 | 83.00 | 73.26 | 77.39 | 70.75 | 74.46
+    |'
+- en: 'Table 2: Results for all tasks, with and without demonstration settings included.
+    Using ChatGPT-3.5\.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：包含和不包含演示设置的所有任务结果，使用 ChatGPT-3.5。
+- en: 'In Section [5.1](https://arxiv.org/html/2402.18272v1#S5.SS1 "5.1 Analysis of
+    FOLIO-wiki Dataset ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM
+    Reasoning: Are Multi-Agent Discussions the Key?"), we discover that demonstrations
+    play a pivotal role in enhancing performance on FOLIO-wiki dataset. With this
+    insight in mind, we simplify our evaluation to two prompt scenarios: with (referred
+    as direct) and without demonstrations (referred as demo). The results presented
+    in Table [2](https://arxiv.org/html/2402.18272v1#S5.T2 "Table 2 ‣ 5.2 Evaluation
+    on All Tasks ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?") cover all tested reasoning tasks. The findings
+    show: (1) With demonstrations, discussion frameworks and single-agent settings
+    have comparable performance on average. This is consistent with our earlier observations.
+    (2) Without demonstrations, CMD tend to surpass single-agent settings, both on
+    average and in most individual tasks.'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[5.1节](https://arxiv.org/html/2402.18272v1#S5.SS1 "5.1 FOLIO-wiki 数据集分析 ‣ 单一
+    LLM 实验 ‣ 重新思考 LLM 推理的边界：多代理讨论是关键吗？")中，我们发现演示在提高 FOLIO-wiki 数据集的表现上起着关键作用。基于这一洞察，我们将评估简化为两种提示场景：有演示（称为直接）和无演示（称为演示）。表[2](https://arxiv.org/html/2402.18272v1#S5.T2
+    "表 2 ‣ 5.2 所有任务的评估 ‣ 单一 LLM 实验 ‣ 重新思考 LLM 推理的边界：多代理讨论是关键吗？")中展示的结果涵盖了所有测试的推理任务。研究结果表明：(1)
+    有演示时，讨论框架和单一代理设置的表现平均相当。这与我们之前的观察一致。(2) 无演示时，CMD 通常超过单一代理设置，无论是平均值还是大多数单独任务。
+- en: When Does Discussion Work Better? Most Multi-agent discussion frameworks, especially
+    CMD, achieve better performance compared with single-agent settings when neither
+    is supported by demonstrations. We believe this is because, during discussions,
+    the input from other agents can introduce new perspectives, leading to a more
+    thorough reasoning process. Therefore, this collaborative advantage makes multi-agent
+    discussions a more effective option in scenarios lacking specific expert knowledge
+    or detailed examples.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 何时讨论表现更好？大多数多代理讨论框架，特别是 CMD，在没有演示支持的情况下，相比单一代理设置表现更好。我们认为这是因为，在讨论过程中，其他代理的输入能够引入新的视角，从而导致更加深入的推理过程。因此，这种协作优势使得多代理讨论在缺乏特定专家知识或详细示例的情况下成为更有效的选择。
+- en: 'Why Does Discussion Frameworks Perform Differently on Tested Tasks? Table [2](https://arxiv.org/html/2402.18272v1#S5.T2
+    "Table 2 ‣ 5.2 Evaluation on All Tasks ‣ 5 Experiments on Single LLM ‣ Rethinking
+    the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?") indicates
+    that MAD is the least effective among the frameworks tested. We suspect that this
+    is because MAD incorporates a divergent thinking way, which asks agents to disagree
+    with each other. This can sometimes hinder reasoning by introducing irrelevant
+    information that complicates decision-making. We explore this further with an
+    error analysis in Section [5.3](https://arxiv.org/html/2402.18272v1#S5.SS3 "5.3
+    Two Discussion Error Types: A Case Study ‣ 5 Experiments on Single LLM ‣ Rethinking
+    the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?"). Additionally,
+    we observed unexpected behaviors from other discussion frameworks under specific
+    conditions or tasks. For example, Debate and CMD perform worse on ECQA dataset
+    when demonstrations are introduced. We hypothesize that because ECQA demands more
+    commonsense knowledge than purely analytical reasoning, the single-source interaction
+    stemming from a single LLM might cause agents to overthink. Instead of clarifying
+    misunderstandings, the increased dialogue may introduce complexity without addressing
+    the underlying knowledge gaps. In contrast to ECQA, datasets like GSM8K and FOLIO-wiki
+    place a greater emphasis on deductive reasoning abilities. In these cases, the
+    discussion process between agents can be beneficial as it allows them to identify
+    and address flaws in each other’s reasoning through interaction.'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为什么讨论框架在测试任务中表现不同？表[2](https://arxiv.org/html/2402.18272v1#S5.T2 "Table 2 ‣
+    5.2 Evaluation on All Tasks ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds
+    of LLM Reasoning: Are Multi-Agent Discussions the Key?")显示，MAD在所有测试框架中效果最差。我们怀疑这是因为MAD采用了一种发散性思维方式，要求智能体之间产生分歧。这有时会通过引入无关信息，阻碍推理，复杂化决策过程。我们在[5.3](https://arxiv.org/html/2402.18272v1#S5.SS3
+    "5.3 Two Discussion Error Types: A Case Study ‣ 5 Experiments on Single LLM ‣
+    Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?")节中进一步探讨了这一点。除此之外，我们还观察到在特定条件或任务下，其他讨论框架出现了意外行为。例如，当引入示范时，Debate和CMD在ECQA数据集上的表现较差。我们推测，ECQA比单纯的分析性推理更需要常识知识，因此源自单一LLM的单一交互可能导致智能体过度思考。增加的对话可能引入复杂性，而没有解决潜在的知识空白，而不是澄清误解。与ECQA不同，像GSM8K和FOLIO-wiki这样的数据集更注重推理能力。在这些情况下，智能体之间的讨论过程可能是有益的，因为它可以通过互动帮助它们识别和解决彼此推理中的缺陷。'
+- en: '5.3 Two Discussion Error Types: A Case Study'
+  id: totrans-80
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3 两种讨论错误类型：案例研究
+- en: '![Refer to caption](img/d9943600e929eff88c11c24357653906.png)'
+  id: totrans-81
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见标题说明](img/d9943600e929eff88c11c24357653906.png)'
+- en: 'Figure 4: Two common types of errors that may occur in multi-agent discussions
+    are judge mistake and wrong answer propagation. These issues can lead to circumstances
+    where a multi-agent discussion reaches an incorrect conclusion, even if single
+    agent can arrive at the correct one.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：多智能体讨论中可能出现的两种常见错误是判断错误和错误答案传播。这些问题可能导致多智能体讨论得出错误结论，即使单一智能体能够得出正确结论。
+- en: 'Our experiments show that multi-agent discussions can sometimes reach incorrect
+    conclusions on questions that a single agent answers correctly. Figure [4](https://arxiv.org/html/2402.18272v1#S5.F4
+    "Figure 4 ‣ 5.3 Two Discussion Error Types: A Case Study ‣ 5 Experiments on Single
+    LLM ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the
+    Key?") presents an example from the FOLIO-wiki dataset illustrating this point:
+    a single agent provides the correct answer, but multi-agent discussions lead to
+    an erroneous result. We identify two unique types of errors in multi-agent discussions:
+    (1) Judge Mistake: This occurs in situations where an agent serves as a judge
+    to decide on the final answer. If there are varying responses among agents, the
+    judge might select the incorrect option as the final verdict. Frameworks like
+    MAD and CMD  are susceptible to this error, particularly when decisions are made
+    during a tie. (2) Wrong Answer Propagation: This type of error happens when an
+    agent, influenced by the input from others, deviates from its initial correct
+    answer and adopts an incorrect consensus, spreading the mistake further in the
+    discussion. This is the most common mistake the multi-agent discussion can make,
+    even when most of their initial answers are correct.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们的实验表明，多智能体讨论有时会得出错误的结论，而这些问题在单一智能体回答正确时会发生。图[4](https://arxiv.org/html/2402.18272v1#S5.F4
+    "Figure 4 ‣ 5.3 Two Discussion Error Types: A Case Study ‣ 5 Experiments on Single
+    LLM ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the
+    Key?")展示了一个来自FOLIO-wiki数据集的例子，说明了这一点：单一智能体提供了正确的答案，但多智能体讨论导致了错误的结果。我们在多智能体讨论中识别了两种独特的错误类型：(1)
+    判断错误：当某个智能体充当裁判决定最终答案时，若多个智能体的回答不同，裁判可能会选出错误的选项作为最终判决。像MAD和CMD这样的框架容易发生这种错误，尤其是在决策时存在平局的情况下。(2)
+    错误答案传播：当某个智能体受到其他智能体输入的影响，偏离其初始正确答案并采纳错误的共识时，就会发生此类错误，错误在讨论中进一步传播。这是多智能体讨论中最常见的错误，即使大多数初始答案是正确的。'
+- en: 5.4 Summary
+  id: totrans-84
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.4 总结
+- en: '| Method Category | LLM | ECQA | GSM8K | FOLIO-wiki | Average |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法类别 | LLM | ECQA | GSM8K | FOLIO-wiki | 平均值 |'
+- en: '| Direct | Demo | Direct | Demo | Direct | Demo | Direct | Demo |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| 直接 | 示范 | 直接 | 示范 | 直接 | 示范 | 直接 | 示范 |'
+- en: '| Single Agent | Bard | 66.00 | 65.00 | 47.00 | 54.00 | 70.00 | 71.96 | 61.00
+    | 63.65 |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单一智能体 | Bard | 66.00 | 65.00 | 47.00 | 54.00 | 70.00 | 71.96 | 61.00 | 63.65
+    |'
+- en: '| Gemini Pro | 74.00 | 75.00 | 75.00 | 81.00 | 74.13 | 79.78 | 74.38 | 78.59
+    |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| Gemini Pro | 74.00 | 75.00 | 75.00 | 81.00 | 74.13 | 79.78 | 74.38 | 78.59
+    |'
+- en: '| ChatGPT-3.5 | 63.00 | 67.00 | 69.00 | 83.00 | 70.22 | 76.09 | 67.41 | 75.63
+    |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatGPT-3.5 | 63.00 | 67.00 | 69.00 | 83.00 | 70.22 | 76.09 | 67.41 | 75.63
+    |'
+- en: '| Discussion | ReConcile (Bard, Gemini, ChatGPT) | 70.00 | 71.00 | 78.00 |
+    83.00 | 80.34 | 81.09 | 76.11 | 78.36 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| 讨论 | ReConcile (Bard, Gemini, ChatGPT) | 70.00 | 71.00 | 78.00 | 83.00 |
+    80.34 | 81.09 | 76.11 | 78.36 |'
+- en: '| Group Discussion | CMD (Bard, Gemini, ChatGPT) | 73.00 | 72.00 | 78.00 |
+    82.00 | 79.78 | 81.96 | 76.93 | 78.66 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| 小组讨论 | CMD (Bard, Gemini, ChatGPT) | 73.00 | 72.00 | 78.00 | 82.00 | 79.78
+    | 81.96 | 76.93 | 78.66 |'
+- en: 'Table 3: Results from single-agent and CMD across multiple LLMs on all tasks
+    evaluated with two types of prompts: with demonstrations and without.'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 3：单一智能体和CMD在多个LLM上对所有任务的评估结果，使用两种类型的提示：有示范和无示范。
+- en: 'In this section, we evaluate various prompt component combinations for both
+    single-agent settings and multi-agent discussions. Our findings suggest that multi-agent
+    discussions are on par with a single agent when both have access to demonstrations.
+    However, in the absence of demonstrations, multi-agent discussions generally outperform
+    a single agent, making them a better option in scenarios where expert knowledge
+    or detailed examples are insufficient. We also highlight unusual outcomes and
+    present a case study to identify two frequent errors in multi-agent discussions:
+    Judge Mistake and Wrong Answer Propagation.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们评估了单一智能体设置和多智能体讨论中各种提示组件组合。我们的研究结果表明，当单一智能体和多智能体都可以访问示范时，多智能体讨论与单一智能体相当。然而，在缺乏示范的情况下，多智能体讨论通常优于单一智能体，因此在专家知识或详细示例不足的场景中，多智能体讨论是更好的选择。我们还突出了一些不寻常的结果，并通过案例研究识别了多智能体讨论中的两种常见错误：判断错误和错误答案传播。
+- en: 6 Experiments on Multiple LLMs
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 多LLM实验
+- en: 'In this section, we expand our experimental scope from a single LLM to multiple
+    LLMs for both single-agent settings and multi-agent discussion frameworks, which
+    allows us to test the validity of our previous findings in multi-LLM scenarios.
+    Specifically, we assess the performance of agents powered by three advanced LLMs:
+    ChatGPT-3.5, Gemini Pro, and Bard. In Section [6.1](https://arxiv.org/html/2402.18272v1#S6.SS1
+    "6.1 Validate Findings on Multiple LLMs Scenarios ‣ 6 Experiments on Multiple
+    LLMs ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the
+    Key?"), we compare the performance of three single-agent configurations, each
+    using a different LLM, against multi-agent discussions leveraging all three LLMs.
+    Our round-level analysis in Section [6.2](https://arxiv.org/html/2402.18272v1#S6.SS2
+    "6.2 Enhancing Agents in Weaker LLMs with Support from Stronger LLMs ‣ 6 Experiments
+    on Multiple LLMs ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?") yields another insight: an agent powered by stronger LLM can enhance
+    the performance of an agent powered by a less capable LLM.'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们将实验范围从单一 LLM 扩展到多个 LLM，涵盖单一智能体设置和多智能体讨论框架，这使我们能够在多 LLM 场景中测试之前研究结果的有效性。具体来说，我们评估了由三种先进
+    LLM 驱动的智能体的表现：ChatGPT-3.5、Gemini Pro 和 Bard。在[6.1](https://arxiv.org/html/2402.18272v1#S6.SS1
+    "6.1 在多个 LLM 场景中验证研究结果 ‣ 6 多个 LLM 实验 ‣ 重新思考 LLM 推理的界限：多智能体讨论是否是关键？")节中，我们比较了三种单一智能体配置（每种使用不同的
+    LLM）与利用所有三种 LLM 的多智能体讨论的表现。在[6.2](https://arxiv.org/html/2402.18272v1#S6.SS2 "6.2
+    在较弱 LLM 中通过强 LLM 的支持提升智能体 ‣ 6 多个 LLM 实验 ‣ 重新思考 LLM 推理的界限：多智能体讨论是否是关键？")节中的轮次分析提供了另一种见解：由更强
+    LLM 驱动的智能体能够提升由较弱 LLM 驱动的智能体的表现。
+- en: 6.1 Validate Findings on Multiple LLMs Scenarios
+  id: totrans-96
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1 在多个 LLM 场景中验证研究结果
+- en: 'In this section, we evaluate the performance of three single-agent settings,
+    each supported by a different LLM, and two multi-agent discussion frameworks,
+    ReConcile and CMD, across all tasks. We utilize two types of prompt settings for
+    each task: one with demonstrations and one without. For the CMD framework, we
+    organize six agents into two groups of three, with each agent in a group powered
+    by one of the LLMs: ChatGPT-3.5, Gemini Pro, or Bard. The results presented in
+    Table [3](https://arxiv.org/html/2402.18272v1#S5.T3 "Table 3 ‣ 5.4 Summary ‣ 5
+    Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent
+    Discussions the Key?") support our previous findings from Section [5](https://arxiv.org/html/2402.18272v1#S5
+    "5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent
+    Discussions the Key?") with some slight modifications.'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们评估了三种单一智能体设置（每种由不同的 LLM 支持）和两种多智能体讨论框架（ReConcile 和 CMD）在所有任务中的表现。我们为每个任务使用了两种类型的提示设置：一种包含示范，另一种不包含示范。对于
+    CMD 框架，我们将六个智能体分为两组，每组三个，每个智能体由以下三种 LLM 中的一种支持：ChatGPT-3.5、Gemini Pro 或 Bard。[表3](https://arxiv.org/html/2402.18272v1#S5.T3
+    "表3 ‣ 5.4 总结 ‣ 5 单一 LLM 实验 ‣ 重新思考 LLM 推理的界限：多智能体讨论是否是关键？")中呈现的结果支持我们在[第5节](https://arxiv.org/html/2402.18272v1#S5
+    "5 单一 LLM 实验 ‣ 重新思考 LLM 推理的界限：多智能体讨论是否是关键？")中的先前发现，虽然有一些细微的修改。
+- en: 'A Strong Single Agent is Comparable to Discussion Frameworks. Based on experimental
+    results from Table [3](https://arxiv.org/html/2402.18272v1#S5.T3 "Table 3 ‣ 5.4
+    Summary ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?"), we can find that discussion frameworks
+    perform comparably to a single agent powered by Gemini Pro when both are provided
+    with demonstrations. This consolidates our earlier conclusion that a ‘strong’
+    single agent—supported by both a well-designed prompt and a SOTA LLM—can rival
+    the performance of a multi-agent discussion framework.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 强大的单一智能体可与讨论框架相媲美。根据[表3](https://arxiv.org/html/2402.18272v1#S5.T3 "表3 ‣ 5.4
+    总结 ‣ 5 单一 LLM 实验 ‣ 重新思考 LLM 推理的界限：多智能体讨论是否是关键？")中的实验结果，我们可以发现，当提供示范时，讨论框架的表现与由
+    Gemini Pro 驱动的单一智能体相当。这巩固了我们之前的结论：一个‘强大的’单一智能体——通过精心设计的提示和最先进的 LLM 支持——可以与多智能体讨论框架的表现相媲美。
+- en: 'Discussion Frameworks Outperform Single Agents with No Demonstration. Table
+    [3](https://arxiv.org/html/2402.18272v1#S5.T3 "Table 3 ‣ 5.4 Summary ‣ 5 Experiments
+    on Single LLM ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?") reveals that, in multi-LLM scenarios, multi-agent discussions outperform
+    single agents when demonstrations are not provided. This outcome aligns with our
+    previous observations in single LLM settings. Furthermore, CMD and ReConcile demonstrate
+    similar performance when they both have no access to demonstrations and they are
+    both powered by same LLMs. This indicates that our findings are consistent on
+    different multi-LLM multi-agent discussions frameworks.'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 讨论框架在没有示范的情况下优于单一智能体。表[3](https://arxiv.org/html/2402.18272v1#S5.T3 "表3 ‣ 5.4总结
+    ‣ 5. 单一LLM实验 ‣ 重新思考LLM推理的边界：多智能体讨论是关键吗？")揭示，在多LLM场景中，当没有提供示范时，多智能体讨论优于单一智能体。这一结果与我们在单一LLM设置中的观察一致。此外，CMD和ReConcile在没有访问示范的情况下展示了相似的表现，并且它们都由相同的LLM驱动。这表明我们的发现适用于不同的多LLM多智能体讨论框架。
+- en: 6.2 Enhancing Agents in Weaker LLMs with Support from Stronger LLMs
+  id: totrans-100
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2 在较弱的LLM中通过强大的LLM支持增强智能体
+- en: '![Refer to caption](img/79f9bb79eac7656377728ffb0f2630a4.png)'
+  id: totrans-101
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/79f9bb79eac7656377728ffb0f2630a4.png)'
+- en: (a) ReConcile (Discussion)
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) ReConcile（讨论）
+- en: '![Refer to caption](img/035d003d049e20dc9ea7b3b68b7f9651.png)'
+  id: totrans-103
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/035d003d049e20dc9ea7b3b68b7f9651.png)'
+- en: (b) CMD (Group Discussion)
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) CMD（小组讨论）
+- en: 'Figure 5: Round-level performance of each LLM in multi-agent discussions on
+    FOLIO-wiki dataset.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：FOLIO-wiki数据集上每个LLM在多智能体讨论中的轮次表现。
+- en: 'As shown in Table [3](https://arxiv.org/html/2402.18272v1#S5.T3 "Table 3 ‣
+    5.4 Summary ‣ 5 Experiments on Single LLM ‣ Rethinking the Bounds of LLM Reasoning:
+    Are Multi-Agent Discussions the Key?"), single agents using Bard show the least
+    effectiveness in reasoning tasks such as those in the FOLIO-wiki dataset. However,
+    multi-LLM multi-agent frameworks remain competitive. To understand how a less
+    advanced LLM like Bard performs during multi-agent discussions, we further study
+    the round-by-round performance of each LLM engaged in the discussions. Figure
+    [5](https://arxiv.org/html/2402.18272v1#S6.F5 "Figure 5 ‣ 6.2 Enhancing Agents
+    in Weaker LLMs with Support from Stronger LLMs ‣ 6 Experiments on Multiple LLMs
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?")
+    demonstrates that agents with less capable LLMs like Bard and ChatGPT-3.5 gradually
+    enhance their performance over consecutive rounds with the support of the more
+    robust LLM, Gemini Pro. We infer that throughout the discussion, Gemini Pro assists
+    in bridging the gaps in knowledge and reasoning for the less advanced LLMs, guiding
+    towards a stronger line of reasoning. Notably, although there is a slight drop
+    in the performance of Gemini Pro during the second round, it demonstrates resilience
+    and recovers swiftly, largely maintaining its superior performance. Again, this
+    finding is applicable to different multi-LLM discussions, specifically for both
+    ReConcile and CMD.'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如表[3](https://arxiv.org/html/2402.18272v1#S5.T3 "表3 ‣ 5.4总结 ‣ 5. 单一LLM实验 ‣ 重新思考LLM推理的边界：多智能体讨论是关键吗？")所示，使用Bard的单一智能体在诸如FOLIO-wiki数据集这样的推理任务中表现最差。然而，多LLM多智能体框架仍然具有竞争力。为了了解像Bard这样不太先进的LLM在多智能体讨论中的表现，我们进一步研究了每个LLM在讨论中的轮次表现。图[5](https://arxiv.org/html/2402.18272v1#S6.F5
+    "图5 ‣ 6.2 在较弱的LLM中通过强大的LLM支持增强智能体 ‣ 6. 多LLM实验 ‣ 重新思考LLM推理的边界：多智能体讨论是关键吗？")显示，像Bard和ChatGPT-3.5这样的能力较弱的LLM在连轮的讨论中，借助更强大的LLM——Gemini
+    Pro的支持，逐渐提高了他们的表现。我们推测，在整个讨论过程中，Gemini Pro帮助弥补了较不先进LLM在知识和推理上的差距，指引它们走向更强的推理路径。值得注意的是，尽管Gemini
+    Pro在第二轮表现略有下降，但它展示了韧性，并迅速恢复，基本保持了其卓越的表现。再次强调，这一发现适用于不同的多LLM讨论，特别是对于ReConcile和CMD。
+- en: 7 Related Work
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 相关工作
+- en: 7.1 Prompting LLM for Reasoning
+  id: totrans-108
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.1 提示大型语言模型进行推理
+- en: Recent researches have experienced great progresses in building powerful LLMs
+    (Brown et al., [2020](https://arxiv.org/html/2402.18272v1#bib.bib5); OpenAI, [2022](https://arxiv.org/html/2402.18272v1#bib.bib30),
+    [2023](https://arxiv.org/html/2402.18272v1#bib.bib31)) or exploring the strategy
+    of adopting LLMs over many downstream tasks via prompt enigineering.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的研究在构建强大的大型语言模型（LLMs）（Brown等人，[2020](https://arxiv.org/html/2402.18272v1#bib.bib5);
+    OpenAI，[2022](https://arxiv.org/html/2402.18272v1#bib.bib30)，[2023](https://arxiv.org/html/2402.18272v1#bib.bib31)）方面取得了显著进展，或者通过提示工程探索在多个下游任务中采用LLMs的策略。
+- en: By training with different knowledge textual sources and parameter size, various
+    LLMs equipped with different reasoning capabilities are constructed, such as OPT
+    (Zhang et al., [2022a](https://arxiv.org/html/2402.18272v1#bib.bib53)), LLaMA
+    (Touvron et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib37), [b](https://arxiv.org/html/2402.18272v1#bib.bib38)),
+    BLOOM Scao et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib33)), and
+    PaLM Chowdhery et al. ([2022](https://arxiv.org/html/2402.18272v1#bib.bib9));
+    Anil et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib3)). Recently,
+    Gemini Pro Team et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib36))
+    extends the capabilities of LLMs to the field of multi-modality.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用不同的知识文本来源和参数规模进行训练，构建了具备不同推理能力的各种大型语言模型（LLMs），如OPT（Zhang等人，[2022a](https://arxiv.org/html/2402.18272v1#bib.bib53)）、LLaMA（Touvron等人，[2023a](https://arxiv.org/html/2402.18272v1#bib.bib37)，[b](https://arxiv.org/html/2402.18272v1#bib.bib38)）、BLOOM
+    Scao等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib33)）以及PaLM Chowdhery等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib9)）；Anil等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib3)）。最近，Gemini
+    Pro Team等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib36)）将LLMs的能力扩展到多模态领域。
+- en: Numerous advancements have been made in the field of improving reasoning abilities
+    of LLMs with prompt engineering. Chain of Thought (CoT) (Wei et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib41);
+    Kojima et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib19)) is a linear
+    problem-solving approach where each step builds upon the previous one. Fu et al.
+    ([2022](https://arxiv.org/html/2402.18272v1#bib.bib15)) propose to apply CoT to
+    multi-step reasoning tasks. To automate the CoT, Auto-CoT (Zhang et al., [2022b](https://arxiv.org/html/2402.18272v1#bib.bib55))
+    constructs demonstrations by sampling diverse questions and generating reasoning
+    chains. Active-Prompt (Diao et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib12))
+    aims to select the most uncertain questions for task-specific annotations. Other
+    prompt strategies designed to enhance reasoning in LLMs include the PS Prompt
+    (Wang et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib39)), which breaks
+    tasks into subtasks, ToT (Yao et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib49))
+    which expands on the reasoning process by considering multiple paths of reasoning
+    and self-evaluating choices, the effective GoT (Yao et al., [2023b](https://arxiv.org/html/2402.18272v1#bib.bib50)),
+    which frames thoughts as graphs, Natural Program (Ling et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib23))
+    which helps to improve the deductive reasoning tasks, re-reading prompt (Xu et al.,
+    [2023b](https://arxiv.org/html/2402.18272v1#bib.bib46)) which revisits the question
+    information embedded within input prompts.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在通过提示工程提高LLMs推理能力的领域，已取得许多进展。Chain of Thought（CoT）（Wei等人，[2022](https://arxiv.org/html/2402.18272v1#bib.bib41)；Kojima等人，[2022](https://arxiv.org/html/2402.18272v1#bib.bib19)）是一种线性问题解决方法，其中每一步都建立在前一步的基础上。Fu等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib15)）提议将CoT应用于多步骤推理任务。为了自动化CoT，Auto-CoT（Zhang等人，[2022b](https://arxiv.org/html/2402.18272v1#bib.bib55)）通过采样不同问题并生成推理链来构建演示。Active-Prompt（Diao等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib12)）旨在为特定任务选择最不确定的问题进行标注。其他旨在增强LLMs推理能力的提示策略包括PS
+    Prompt（Wang等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib39)），该策略将任务分解为子任务，ToT（Yao等人，[2023a](https://arxiv.org/html/2402.18272v1#bib.bib49)）通过考虑多条推理路径并自我评估选择来扩展推理过程，有效的GoT（Yao等人，[2023b](https://arxiv.org/html/2402.18272v1#bib.bib50)），该策略将思维框架表示为图，Natural
+    Program（Ling等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib23)），有助于提高演绎推理任务，重读提示（Xu等人，[2023b](https://arxiv.org/html/2402.18272v1#bib.bib46)），该策略重新审视输入提示中嵌入的问题信息。
+- en: 7.2 Multi-agent Discussion for Reasoning with LLMs
+  id: totrans-112
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.2 多代理讨论用于LLMs推理
+- en: Multi-agent discussion utilizes multiple LLMs as agents to collectively discuss
+    and reason given problems in an interactive way. Abundant researches have explored
+    how to improve the reasoning ability of single LLM, while multi-agent discussion
+    among LLMs is still under exploration.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多代理讨论利用多个LLMs作为代理，以互动的方式共同讨论和推理给定的问题。大量研究已经探讨了如何提高单个LLM的推理能力，而LLMs之间的多代理讨论仍在探索中。
+- en: The Multi-Agent Debate framework, introduced by Du et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib13)),
+    establishes a mechanism for symmetric discussions among agents. During the same
+    period, the MAD (Multi-Agent Debate) framework (Liang et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib22))
+    introduces an asymmetric mechanism design. It assigns different roles (debater
+    and judge) asymmetrically. Other similar works include Chan et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib6)).
+    Also, the ReConcile framework (Chen et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib7))
+    exemplifies an asymmetric discussion mechanism by involving different LLMs and
+    using a weighted voting mechanism. To understand discussion more deeply, Zhang
+    et al. ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib52)) aim to explain
+    such collaboration mechanism in a social psychology view.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Du 等人提出的多代理辩论框架（[2023](https://arxiv.org/html/2402.18272v1#bib.bib13)）建立了一个代理之间对称讨论的机制。在同一时期，MAD（多代理辩论）框架（Liang
+    等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib22)）提出了一个不对称机制设计。它不对称地分配不同的角色（辩手和裁判）。其他类似的工作包括
+    Chan 等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib6)）。此外，ReConcile 框架（Chen
+    等人，[2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)）通过涉及不同的 LLM 并使用加权投票机制，展示了一个不对称的讨论机制。为了更深入理解讨论，Zhang
+    等人（[2023a](https://arxiv.org/html/2402.18272v1#bib.bib52)）旨在从社会心理学视角解释这种协作机制。
+- en: Unlike these works, we aim to explore the potential effects of prompting contents
+    over the discussion process by our defined multi-agent group discussion framework
+    CMD.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与这些工作不同，我们的目标是通过我们定义的多代理小组讨论框架 CMD，探索提示内容对讨论过程的潜在影响。
+- en: 8 Conclusion
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 结论
+- en: In this paper, we re-examine the claim that multi-agent discussions are superior
+    to a single agent in reasoning tasks by conducting systematic experiments. We
+    introduce a novel framework CMD for a comprehensive and fair assessment. By conducting
+    experiments over standard benchmarks, we find that (1) A single agent with a strong
+    prompt and powered by a strong LLM achieves comparable performance with multi-LLM
+    multi-agent discussions; (2) In the absence of demonstrations, multi-agent discussion
+    frameworks outperform single agents on most tasks; (3) When multiple LLMs are
+    involved in multi-agent discussions, agents with stronger LLMs can enhance the
+    performance of agents with weaker LLMs as discussion progresses.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们通过系统的实验重新审视了多代理讨论在推理任务中是否优于单一代理的说法。我们引入了一个新的框架 CMD，以进行全面和公平的评估。通过在标准基准上进行实验，我们发现：(1)
+    一个拥有强大提示和强大 LLM 支持的单一代理，其表现与多 LLM 多代理讨论相当；(2) 在没有示范的情况下，多代理讨论框架在大多数任务中优于单一代理；(3)
+    当多个 LLM 参与多代理讨论时，强大 LLM 的代理可以在讨论进行中提升弱 LLM 代理的表现。
+- en: 9 Ethical Considerations
+  id: totrans-118
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 9 伦理考量
+- en: 'Our study employs publicly available datasets and LLMs accesses via official
+    APIs, ensuring responsible and ethical use. Specifically, our ethical considerations
+    can be summarized as follows:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的研究采用公开可用的数据集和通过官方 API 访问的 LLMs，确保负责任和道德的使用。具体而言，我们的伦理考虑可以总结如下：
+- en: Public Datasets. Datasets we use are designed for academic research. No personal
+    data has been processed.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 公共数据集。我们使用的数据集旨在学术研究。未处理任何个人数据。
+- en: Licensed API Usage. Our application of LLMs complies with the API usage policies,
+    maintaining fair use standards and respecting intellectual property.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 授权的 API 使用。我们对 LLMs 的应用符合 API 使用政策，遵循公平使用标准并尊重知识产权。
+- en: Transparency. We provide detailed experimentation methods to allow for result
+    reproduction and encourage transparent scientific practices.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 透明度。我们提供详细的实验方法，允许结果可复现，并鼓励透明的科学实践。
+- en: 10 Limitations
+  id: totrans-123
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 10 限制
+- en: Our research offers comprehensive experiments to study the performance of a
+    strong single agent and multi-agent discussions. However, several aspects highlighted
+    below can be further refined and explored in future work.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的研究提供了全面的实验，研究强大单一代理和多代理讨论的表现。然而，下面强调的几个方面可以在未来的工作中进一步完善和探索。
+- en: Enhancing Agent Complexity. Currently, all discussion frameworks including CMD considers
+    an LLM session as an AI Agent. This perspective simplifies the the concept of
+    LLM-based AI Agent defined in the literature Weng ([2023](https://arxiv.org/html/2402.18272v1#bib.bib42)).
+    By integrating more sophisticated techniques such as Tree-of-Thought Yao et al.
+    ([2023a](https://arxiv.org/html/2402.18272v1#bib.bib49)) or Cumulative Reasoning
+    Zhang et al. ([2023b](https://arxiv.org/html/2402.18272v1#bib.bib54)), or incorporating
+    with external tools or knowledge bases, we could potentially improve the overall
+    reasoning performance of multi-agent discussions.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 增强智能体复杂度。目前，所有讨论框架，包括CMD，都将LLM会话视为一个AI智能体。这种视角简化了文献中定义的基于LLM的AI智能体的概念（Weng，[2023](https://arxiv.org/html/2402.18272v1#bib.bib42)）。通过整合更复杂的技术，例如思想树（Tree-of-Thought，Yao
+    等人，[2023a](https://arxiv.org/html/2402.18272v1#bib.bib49)）或累积推理（Cumulative Reasoning，Zhang
+    等人，[2023b](https://arxiv.org/html/2402.18272v1#bib.bib54)），或结合外部工具或知识库，我们可能会提高多智能体讨论的整体推理表现。
+- en: Expanding Task Diversity. While our study mainly focuses on reasoning tasks
+    for assessing both single-agent settings and multi-agent discussions, the adaptive
+    nature of discussions allows for a broader types of applications. Future research
+    could explore the use of agent discussions in diverse scenarios such as real-world
+    strategic planning or the integration of agents into interactive gaming environments.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展任务多样性。虽然我们的研究主要集中在推理任务上，评估单一智能体设置和多智能体讨论，但讨论的自适应性使得其能够应用于更广泛的场景。未来的研究可以探索在各种情境下使用智能体讨论的可能性，例如现实世界的战略规划或将智能体集成到互动游戏环境中。
+- en: Experimenting with Additional LLMs. Due to computational and financial constraints,
+    our investigation is limited to testing three LLMs—Bard, Gemini Pro, and ChatGPT-3.5\.
+    Expanding our analysis to include additional LLMs could provide a more extensive
+    understanding of the capabilities and variances across different language models,
+    offering valuable insights into the generalizability and scalability of our findings
+    in multi-agent discussion frameworks.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 额外LLM实验。由于计算和财务的限制，我们的研究仅限于测试三种LLM——Bard、Gemini Pro和ChatGPT-3.5。将我们的分析扩展到包括其他LLM，可能会提供对不同语言模型的能力和差异的更全面理解，从而为我们在多智能体讨论框架中的发现的普适性和可扩展性提供有价值的见解。
+- en: References
+  id: totrans-128
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Aggarwal et al. (2021) Shourya Aggarwal, Divyanshu Mandowara, Vishwajeet Agrawal,
+    Dinesh Khandelwal, Parag Singla, and Dinesh Garg. 2021. Explanations for commonsenseqa:
+    New dataset and models. In *Proceedings of the 59th Annual Meeting of the Association
+    for Computational Linguistics and the 11th International Joint Conference on Natural
+    Language Processing (Volume 1: Long Papers)*, pages 3050–3065.'
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Aggarwal 等人（2021）Shourya Aggarwal, Divyanshu Mandowara, Vishwajeet Agrawal,
+    Dinesh Khandelwal, Parag Singla, 和 Dinesh Garg。2021年。《CommonsenseQA的解释：新数据集和模型》。在*第59届计算语言学协会年会及第11届国际联合自然语言处理会议（第一卷：长篇论文）*的会议记录中，3050–3065页。
+- en: 'Anderson (1972) Philip W Anderson. 1972. More is different: Broken symmetry
+    and the nature of the hierarchical structure of science. *Science*, 177(4047):393–396.'
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anderson（1972）Philip W Anderson。1972年。《更多即是不同：破缺对称与科学层次结构的本质》。*科学*，177(4047):393–396。
+- en: Anil et al. (2023) Rohan Anil, Andrew M Dai, Orhan Firat, Melvin Johnson, Dmitry
+    Lepikhin, Alexandre Passos, Siamak Shakeri, Emanuel Taropa, Paige Bailey, Zhifeng
+    Chen, et al. 2023. Palm 2 technical report. *arXiv preprint arXiv:2305.10403*.
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anil 等人（2023）Rohan Anil, Andrew M Dai, Orhan Firat, Melvin Johnson, Dmitry Lepikhin,
+    Alexandre Passos, Siamak Shakeri, Emanuel Taropa, Paige Bailey, Zhifeng Chen 等人。2023年。《Palm
+    2技术报告》。*arXiv 预印本 arXiv:2305.10403*。
+- en: 'Besta et al. (2023) Maciej Besta, Nils Blach, Ales Kubicek, Robert Gerstenberger,
+    Lukas Gianinazzi, Joanna Gajda, Tomasz Lehmann, Michal Podstawski, Hubert Niewiadomski,
+    Piotr Nyczyk, et al. 2023. Graph of thoughts: Solving elaborate problems with
+    large language models. *arXiv preprint arXiv:2308.09687*.'
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Besta 等人（2023）Maciej Besta, Nils Blach, Ales Kubicek, Robert Gerstenberger,
+    Lukas Gianinazzi, Joanna Gajda, Tomasz Lehmann, Michal Podstawski, Hubert Niewiadomski,
+    Piotr Nyczyk 等人。2023年。《思想图谱：用大型语言模型解决复杂问题》。*arXiv 预印本 arXiv:2308.09687*。
+- en: Brown et al. (2020) Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
+    Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+    Askell, et al. 2020. Language models are few-shot learners. *Advances in neural
+    information processing systems*, 33:1877–1901.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown 等人（2020）Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
+    Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+    Askell 等人。2020年。《语言模型是少样本学习者》。*神经信息处理系统进展*，33:1877–1901。
+- en: 'Chan et al. (2023) Chi-Min Chan, Weize Chen, Yusheng Su, Jianxuan Yu, Wei Xue,
+    Shanghang Zhang, Jie Fu, and Zhiyuan Liu. 2023. Chateval: Towards better llm-based
+    evaluators through multi-agent debate. *arXiv preprint arXiv:2308.07201*.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chan 等人（2023）Chi-Min Chan, Weize Chen, Yusheng Su, Jianxuan Yu, Wei Xue, Shanghang
+    Zhang, Jie Fu, 和 Zhiyuan Liu. 2023. Chateval：通过多代理辩论改进基于大型语言模型的评估者。 *arXiv 预印本
+    arXiv:2308.07201*。
+- en: 'Chen et al. (2023a) Justin Chih-Yao Chen, Swarnadeep Saha, and Mohit Bansal.
+    2023a. Reconcile: Round-table conference improves reasoning via consensus among
+    diverse llms. *arXiv preprint arXiv:2309.13007*.'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2023a）Justin Chih-Yao Chen, Swarnadeep Saha, 和 Mohit Bansal. 2023a.
+    Reconcile：圆桌会议通过多样化语言模型间的共识提高推理能力。 *arXiv 预印本 arXiv:2309.13007*。
+- en: Chen et al. (2023b) Xinyun Chen, Maxwell Lin, Nathanael Schärli, and Denny Zhou.
+    2023b. Teaching large language models to self-debug. *arXiv preprint arXiv:2304.05128*.
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2023b）Xinyun Chen, Maxwell Lin, Nathanael Schärli, 和 Denny Zhou. 2023b.
+    教授大型语言模型自我调试。 *arXiv 预印本 arXiv:2304.05128*。
+- en: 'Chowdhery et al. (2022) Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten
+    Bosma, Gaurav Mishra, Adam Roberts, Paul Barham, Hyung Won Chung, Charles Sutton,
+    Sebastian Gehrmann, et al. 2022. Palm: Scaling language modeling with pathways.
+    *arXiv preprint arXiv:2204.02311*.'
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chowdhery 等人（2022）Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten
+    Bosma, Gaurav Mishra, Adam Roberts, Paul Barham, Hyung Won Chung, Charles Sutton,
+    Sebastian Gehrmann 等人. 2022. Palm：通过路径扩展语言建模。 *arXiv 预印本 arXiv:2204.02311*。
+- en: Cobbe et al. (2021) Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen,
+    Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro
+    Nakano, et al. 2021. Training verifiers to solve math word problems. *arXiv preprint
+    arXiv:2110.14168*.
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cobbe 等人（2021）Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo
+    Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano
+    等人. 2021. 训练验证器来解决数学应用题。 *arXiv 预印本 arXiv:2110.14168*。
+- en: Daskalakis and Weinberg (2012) Constantinos Daskalakis and Seth Matthew Weinberg.
+    2012. Symmetries and optimal multi-dimensional mechanism design. In *Proceedings
+    of the 13th ACM conference on Electronic commerce*, pages 370–387.
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Daskalakis 和 Weinberg（2012）Constantinos Daskalakis 和 Seth Matthew Weinberg.
+    2012. 对称性与最优多维机制设计。在 *第13届ACM电子商务会议论文集*，第370–387页。
+- en: Diao et al. (2023) Shizhe Diao, Pengcheng Wang, Yong Lin, and Tong Zhang. 2023.
+    Active prompting with chain-of-thought for large language models. *arXiv preprint
+    arXiv:2302.12246*.
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Diao 等人（2023）Shizhe Diao, Pengcheng Wang, Yong Lin, 和 Tong Zhang. 2023. 使用思维链进行主动提示以提高大型语言模型的性能。
+    *arXiv 预印本 arXiv:2302.12246*。
+- en: Du et al. (2023) Yilun Du, Shuang Li, Antonio Torralba, Joshua B Tenenbaum,
+    and Igor Mordatch. 2023. Improving factuality and reasoning in language models
+    through multiagent debate. *arXiv preprint arXiv:2305.14325*.
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Du 等人（2023）Yilun Du, Shuang Li, Antonio Torralba, Joshua B Tenenbaum, 和 Igor
+    Mordatch. 2023. 通过多代理辩论提高语言模型的事实性和推理能力。 *arXiv 预印本 arXiv:2305.14325*。
+- en: Dua et al. (2022) Dheeru Dua, Shivanshu Gupta, Sameer Singh, and Matt Gardner.
+    2022. Successive prompting for decomposing complex questions. *arXiv preprint
+    arXiv:2212.04092*.
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dua 等人（2022）Dheeru Dua, Shivanshu Gupta, Sameer Singh, 和 Matt Gardner. 2022.
+    逐步提示：分解复杂问题的有效方法。 *arXiv 预印本 arXiv:2212.04092*。
+- en: Fu et al. (2022) Yao Fu, Hao Peng, Ashish Sabharwal, Peter Clark, and Tushar
+    Khot. 2022. Complexity-based prompting for multi-step reasoning. *arXiv preprint
+    arXiv:2210.00720*.
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fu 等人（2022）Yao Fu, Hao Peng, Ashish Sabharwal, Peter Clark, 和 Tushar Khot. 2022.
+    基于复杂度的多步骤推理提示。 *arXiv 预印本 arXiv:2210.00720*。
+- en: 'Han et al. (2022) Simeng Han, Hailey Schoelkopf, Yilun Zhao, Zhenting Qi, Martin
+    Riddell, Luke Benson, Lucy Sun, Ekaterina Zubova, Yujie Qiao, Matthew Burtell,
+    et al. 2022. Folio: Natural language reasoning with first-order logic. *arXiv
+    preprint arXiv:2209.00840*.'
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Han 等人（2022）Simeng Han, Hailey Schoelkopf, Yilun Zhao, Zhenting Qi, Martin Riddell,
+    Luke Benson, Lucy Sun, Ekaterina Zubova, Yujie Qiao, Matthew Burtell 等人. 2022.
+    Folio：使用一阶逻辑进行自然语言推理。 *arXiv 预印本 arXiv:2209.00840*。
+- en: 'Imani et al. (2023) Shima Imani, Liang Du, and Harsh Shrivastava. 2023. Mathprompter:
+    Mathematical reasoning using large language models. *arXiv preprint arXiv:2303.05398*.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Imani 等人（2023）Shima Imani, Liang Du, 和 Harsh Shrivastava. 2023. Mathprompter：使用大型语言模型进行数学推理。
+    *arXiv 预印本 arXiv:2303.05398*。
+- en: 'Khot et al. (2022) Tushar Khot, Harsh Trivedi, Matthew Finlayson, Yao Fu, Kyle
+    Richardson, Peter Clark, and Ashish Sabharwal. 2022. Decomposed prompting: A modular
+    approach for solving complex tasks. *arXiv preprint arXiv:2210.02406*.'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Khot 等人（2022）Tushar Khot, Harsh Trivedi, Matthew Finlayson, Yao Fu, Kyle Richardson,
+    Peter Clark, 和 Ashish Sabharwal. 2022. 分解提示：解决复杂任务的模块化方法。 *arXiv 预印本 arXiv:2210.02406*。
+- en: Kojima et al. (2022) Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yutaka
+    Matsuo, and Yusuke Iwasawa. 2022. Large language models are zero-shot reasoners.
+    *Advances in neural information processing systems*, 35:22199–22213.
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kojima 等人 (2022) Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yutaka Matsuo,
+    和 Yusuke Iwasawa. 2022. 大型语言模型是零-shot 推理器。*神经信息处理系统进展*, 35:22199–22213。
+- en: Laffont and Martimort (2000) Jean-Jacques Laffont and David Martimort. 2000.
+    Mechanism design with collusion and correlation. *Econometrica*, 68(2):309–342.
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Laffont 和 Martimort (2000) Jean-Jacques Laffont 和 David Martimort. 2000. 机制设计中的串通与关联。*Econometrica*,
+    68(2):309–342。
+- en: Li et al. (2022) Yifei Li, Zeqi Lin, Shizhuo Zhang, Qiang Fu, Bei Chen, Jian-Guang
+    Lou, and Weizhu Chen. 2022. On the advance of making language models better reasoners.
+    *arXiv preprint arXiv:2206.02336*.
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人 (2022) Yifei Li, Zeqi Lin, Shizhuo Zhang, Qiang Fu, Bei Chen, Jian-Guang
+    Lou, 和 Weizhu Chen. 2022. 使语言模型成为更好的推理者的进展。*arXiv 预印本 arXiv:2206.02336*。
+- en: Liang et al. (2023) Tian Liang, Zhiwei He, Wenxiang Jiao, Xing Wang, Yan Wang,
+    Rui Wang, Yujiu Yang, Zhaopeng Tu, and Shuming Shi. 2023. Encouraging divergent
+    thinking in large language models through multi-agent debate. *arXiv preprint
+    arXiv:2305.19118*.
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang 等人 (2023) Tian Liang, Zhiwei He, Wenxiang Jiao, Xing Wang, Yan Wang, Rui
+    Wang, Yujiu Yang, Zhaopeng Tu, 和 Shuming Shi. 2023. 通过多智能体辩论鼓励大型语言模型的发散性思维。*arXiv
+    预印本 arXiv:2305.19118*。
+- en: Ling et al. (2023) Zhan Ling, Yunhao Fang, Xuanlin Li, Zhiao Huang, Mingu Lee,
+    Roland Memisevic, and Hao Su. 2023. Deductive verification of chain-of-thought
+    reasoning. *arXiv preprint arXiv:2306.03872*.
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ling 等人 (2023) Zhan Ling, Yunhao Fang, Xuanlin Li, Zhiao Huang, Mingu Lee, Roland
+    Memisevic, 和 Hao Su. 2023. 链式推理的演绎验证。*arXiv 预印本 arXiv:2306.03872*。
+- en: 'Liu et al. (2022) Ruibo Liu, Jason Wei, Shixiang Shane Gu, Te-Yen Wu, Soroush
+    Vosoughi, Claire Cui, Denny Zhou, and Andrew M Dai. 2022. Mind’s eye: Grounded
+    language model reasoning through simulation. *arXiv preprint arXiv:2210.05359*.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人 (2022) Ruibo Liu, Jason Wei, Shixiang Shane Gu, Te-Yen Wu, Soroush Vosoughi,
+    Claire Cui, Denny Zhou, 和 Andrew M Dai. 2022. 心智之眼：通过模拟实现有根据的语言模型推理。*arXiv 预印本
+    arXiv:2210.05359*。
+- en: 'Lu et al. (2023) Pan Lu, Baolin Peng, Hao Cheng, Michel Galley, Kai-Wei Chang,
+    Ying Nian Wu, Song-Chun Zhu, and Jianfeng Gao. 2023. Chameleon: Plug-and-play
+    compositional reasoning with large language models. *arXiv preprint arXiv:2304.09842*.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Lu 等人 (2023) Pan Lu, Baolin Peng, Hao Cheng, Michel Galley, Kai-Wei Chang,
+    Ying Nian Wu, Song-Chun Zhu, 和 Jianfeng Gao. 2023. Chameleon: 插件式的大型语言模型组合推理。*arXiv
+    预印本 arXiv:2304.09842*。'
+- en: Madaan et al. (2022) Aman Madaan, Niket Tandon, Peter Clark, and Yiming Yang.
+    2022. Memory-assisted prompt editing to improve gpt-3 after deployment. *arXiv
+    preprint arXiv:2201.06009*.
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Madaan 等人 (2022) Aman Madaan, Niket Tandon, Peter Clark, 和 Yiming Yang. 2022.
+    记忆辅助提示编辑以改进部署后的 GPT-3。*arXiv 预印本 arXiv:2201.06009*。
+- en: 'Madaan et al. (2023) Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan,
+    Luyu Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang,
+    et al. 2023. Self-refine: Iterative refinement with self-feedback. *arXiv preprint
+    arXiv:2303.17651*.'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Madaan 等人 (2023) Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan,
+    Luyu Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang
+    等人. 2023. 自我精炼：带自反馈的迭代精炼。*arXiv 预印本 arXiv:2303.17651*。
+- en: 'Min et al. (2022) Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis,
+    Hannaneh Hajishirzi, and Luke Zettlemoyer. 2022. Rethinking the role of demonstrations:
+    What makes in-context learning work? *arXiv preprint arXiv:2202.12837*.'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Min 等人 (2022) Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis,
+    Hannaneh Hajishirzi, 和 Luke Zettlemoyer. 2022. 重新思考示范的角色：是什么让上下文学习有效？*arXiv 预印本
+    arXiv:2202.12837*。
+- en: Minsky (1988) Marvin Minsky. 1988. *Society of mind*. Simon and Schuster.
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Minsky (1988) Marvin Minsky. 1988. *心智社会*。Simon 和 Schuster。
+- en: OpenAI (2022) OpenAI. 2022. Chatgpt. [https://openai.com/blog/chatgpt](https://openai.com/blog/chatgpt).
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2022) OpenAI. 2022. Chatgpt. [https://openai.com/blog/chatgpt](https://openai.com/blog/chatgpt)。
+- en: OpenAI (2023) OpenAI. 2023. [Gpt-4 technical report](http://arxiv.org/abs/2303.08774).
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2023) OpenAI. 2023. [GPT-4 技术报告](http://arxiv.org/abs/2303.08774)。
+- en: Press et al. (2022) Ofir Press, Muru Zhang, Sewon Min, Ludwig Schmidt, Noah A
+    Smith, and Mike Lewis. 2022. Measuring and narrowing the compositionality gap
+    in language models. *arXiv preprint arXiv:2210.03350*.
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Press 等人 (2022) Ofir Press, Muru Zhang, Sewon Min, Ludwig Schmidt, Noah A Smith,
+    和 Mike Lewis. 2022. 测量和缩小语言模型中的组合性差距。*arXiv 预印本 arXiv:2210.03350*。
+- en: 'Scao et al. (2022) Teven Le Scao, Angela Fan, Christopher Akiki, Ellie Pavlick,
+    Suzana Ilić, Daniel Hesslow, Roman Castagné, Alexandra Sasha Luccioni, François
+    Yvon, Matthias Gallé, et al. 2022. Bloom: A 176b-parameter open-access multilingual
+    language model. *arXiv preprint arXiv:2211.05100*.'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Scao 等人 (2022) Teven Le Scao, Angela Fan, Christopher Akiki, Ellie Pavlick,
+    Suzana Ilić, Daniel Hesslow, Roman Castagné, Alexandra Sasha Luccioni, François
+    Yvon, Matthias Gallé 等人. 2022. Bloom：一个1760亿参数的开放获取多语言语言模型。*arXiv 预印本 arXiv:2211.05100*。
+- en: 'Shinn et al. (2023) Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik R
+    Narasimhan, and Shunyu Yao. 2023. Reflexion: Language agents with verbal reinforcement
+    learning. In *Thirty-seventh Conference on Neural Information Processing Systems*.'
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shinn et al. (2023) Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik R
+    Narasimhan, 和 Shunyu Yao. 2023. Reflexion：具备语言强化学习的语言代理。*第三十七届神经信息处理系统会议*。
+- en: Tapp (2021) Kristopher Tapp. 2021. *Symmetry*. Springer.
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Tapp (2021) Kristopher Tapp. 2021. *对称性*。Springer。
+- en: 'Team et al. (2023) Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu,
+    Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai,
+    Anja Hauth, et al. 2023. Gemini: a family of highly capable multimodal models.
+    *arXiv preprint arXiv:2312.11805*.'
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Team et al. (2023) Gemini 团队, Rohan Anil, Sebastian Borgeaud, Yonghui Wu, Jean-Baptiste
+    Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth 等.
+    2023. Gemini：一系列高能力的多模态模型。*arXiv 预印本 arXiv:2312.11805*。
+- en: 'Touvron et al. (2023a) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, et al. 2023a. Llama: Open and efficient foundation
+    language models. *arXiv preprint arXiv:2302.13971*.'
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Touvron et al. (2023a) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar 等. 2023a. Llama：开放和高效的基础语言模型。*arXiv 预印本 arXiv:2302.13971*。
+- en: 'Touvron et al. (2023b) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, et al. 2023b. Llama 2: Open foundation and fine-tuned chat models.
+    *arXiv preprint arXiv:2307.09288*.'
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Touvron et al. (2023b) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale 等. 2023b. Llama 2：开放的基础和微调的聊天模型。*arXiv 预印本 arXiv:2307.09288*。
+- en: 'Wang et al. (2023) Lei Wang, Wanyu Xu, Yihuai Lan, Zhiqiang Hu, Yunshi Lan,
+    Roy Ka-Wei Lee, and Ee-Peng Lim. 2023. Plan-and-solve prompting: Improving zero-shot
+    chain-of-thought reasoning by large language models. *arXiv preprint arXiv:2305.04091*.'
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023) Lei Wang, Wanyu Xu, Yihuai Lan, Zhiqiang Hu, Yunshi Lan,
+    Roy Ka-Wei Lee, 和 Ee-Peng Lim. 2023. 计划与解决提示：通过大型语言模型改进零-shot 思维链推理。*arXiv 预印本
+    arXiv:2305.04091*。
+- en: Wang et al. (2022) Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi,
+    Sharan Narang, Aakanksha Chowdhery, and Denny Zhou. 2022. Self-consistency improves
+    chain of thought reasoning in language models. *arXiv preprint arXiv:2203.11171*.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2022) Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi,
+    Sharan Narang, Aakanksha Chowdhery, 和 Denny Zhou. 2022. 自一致性提升语言模型中的思维链推理。*arXiv
+    预印本 arXiv:2203.11171*。
+- en: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei
+    Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. 2022. Chain-of-thought prompting elicits
+    reasoning in large language models. *Advances in Neural Information Processing
+    Systems*, 35:24824–24837.
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei
+    Xia, Ed Chi, Quoc V Le, Denny Zhou 等. 2022. 思维链提示在大型语言模型中激发推理。*神经信息处理系统进展*, 35:24824–24837。
+- en: Weng (2023) Lilian Weng. 2023. [Llm-powered autonomous agents](https://lilianweng.github.io/posts/2023-06-23-agent/).
+    *lilianweng.github.io*.
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Weng (2023) Lilian Weng. 2023. [基于 LLM 的自主代理](https://lilianweng.github.io/posts/2023-06-23-agent/)。*lilianweng.github.io*。
+- en: Weng et al. (2022) Yixuan Weng, Minjun Zhu, Shizhu He, Kang Liu, and Jun Zhao.
+    2022. Large language models are reasoners with self-verification. *arXiv preprint
+    arXiv:2212.09561*.
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Weng et al. (2022) Yixuan Weng, Minjun Zhu, Shizhu He, Kang Liu, 和 Jun Zhao.
+    2022. 大型语言模型是具备自我验证能力的推理者。*arXiv 预印本 arXiv:2212.09561*。
+- en: 'Xi et al. (2023) Zhiheng Xi, Senjie Jin, Yuhao Zhou, Rui Zheng, Songyang Gao,
+    Tao Gui, Qi Zhang, and Xuanjing Huang. 2023. Self-polish: Enhance reasoning in
+    large language models via problem refinement. *arXiv preprint arXiv:2305.14497*.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xi et al. (2023) Zhiheng Xi, Senjie Jin, Yuhao Zhou, Rui Zheng, Songyang Gao,
+    Tao Gui, Qi Zhang, 和 Xuanjing Huang. 2023. 自我优化：通过问题细化增强大型语言模型中的推理能力。*arXiv 预印本
+    arXiv:2305.14497*。
+- en: Xu et al. (2023a) Fangzhi Xu, Qika Lin, Jiawei Han, Tianzhe Zhao, Jun Liu, and
+    Erik Cambria. 2023a. Are large language models really good logical reasoners?
+    a comprehensive evaluation from deductive, inductive and abductive views. *arXiv
+    preprint arXiv:2306.09841*.
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xu et al. (2023a) Fangzhi Xu, Qika Lin, Jiawei Han, Tianzhe Zhao, Jun Liu, 和
+    Erik Cambria. 2023a. 大型语言模型真的是优秀的逻辑推理者吗？从演绎、归纳和溯因的全面评估。*arXiv 预印本 arXiv:2306.09841*。
+- en: Xu et al. (2023b) Xiaohan Xu, Chongyang Tao, Tao Shen, Can Xu, Hongbo Xu, Guodong
+    Long, and Jian-guang Lou. 2023b. Re-reading improves reasoning in language models.
+    *arXiv preprint arXiv:2309.06275*.
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xu et al. (2023b) Xiaohan Xu, Chongyang Tao, Tao Shen, Can Xu, Hongbo Xu, Guodong
+    Long, 和 Jian-guang Lou. 2023b. 重读提高语言模型中的推理能力。*arXiv 预印本 arXiv:2309.06275*。
+- en: 'Xue et al. (2023) Tianci Xue, Ziqi Wang, Zhenhailong Wang, Chi Han, Pengfei
+    Yu, and Heng Ji. 2023. Rcot: Detecting and rectifying factual inconsistency in
+    reasoning by reversing chain-of-thought. *arXiv preprint arXiv:2305.11499*.'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xue等人（2023）Tianci Xue、Ziqi Wang、Zhenhailong Wang、Chi Han、Pengfei Yu和Heng Ji。2023。Rcot：通过逆转思维链检测和修正推理中的事实不一致。*arXiv预印本arXiv:2305.11499*。
+- en: 'Yang et al. (2022) Zhicheng Yang, Jinghui Qin, Jiaqi Chen, Liang Lin, and Xiaodan
+    Liang. 2022. Logicsolver: Towards interpretable math word problem solving with
+    logical prompt-enhanced learning. *arXiv preprint arXiv:2205.08232*.'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yang等人（2022）Zhicheng Yang、Jinghui Qin、Jiaqi Chen、Liang Lin和Xiaodan Liang。2022。Logicsolver：通过逻辑提示增强学习推动可解释的数学问题解决。*arXiv预印本arXiv:2205.08232*。
+- en: 'Yao et al. (2023a) Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Thomas L
+    Griffiths, Yuan Cao, and Karthik Narasimhan. 2023a. Tree of thoughts: Deliberate
+    problem solving with large language models. *arXiv preprint arXiv:2305.10601*.'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao等人（2023a）Shunyu Yao、Dian Yu、Jeffrey Zhao、Izhak Shafran、Thomas L Griffiths、Yuan
+    Cao和Karthik Narasimhan。2023a。思维树：通过大型语言模型进行深思熟虑的问题解决。*arXiv预印本arXiv:2305.10601*。
+- en: Yao et al. (2023b) Yao Yao, Zuchao Li, and Hai Zhao. 2023b. Beyond chain-of-thought,
+    effective graph-of-thought reasoning in large language models. *arXiv preprint
+    arXiv:2305.16582*.
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao等人（2023b）Yao Yao、Zuchao Li和Hai Zhao。2023b。超越思维链，在大型语言模型中有效的思维图推理。*arXiv预印本arXiv:2305.16582*。
+- en: 'Zelikman et al. (2022) Eric Zelikman, Yuhuai Wu, Jesse Mu, and Noah Goodman.
+    2022. Star: Bootstrapping reasoning with reasoning. *Advances in Neural Information
+    Processing Systems*, 35:15476–15488.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zelikman等人（2022）Eric Zelikman、Yuhuai Wu、Jesse Mu和Noah Goodman。2022。Star：通过推理引导推理。*神经信息处理系统进展*，35：15476–15488。
+- en: 'Zhang et al. (2023a) Jintian Zhang, Xin Xu, and Shumin Deng. 2023a. Exploring
+    collaboration mechanisms for llm agents: A social psychology view. *arXiv preprint
+    arXiv:2310.02124*.'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2023a）Jintian Zhang、Xin Xu和Shumin Deng。2023a。探索LLM代理的协作机制：一种社会心理学视角。*arXiv预印本arXiv:2310.02124*。
+- en: 'Zhang et al. (2022a) Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe,
+    Moya Chen, Shuohui Chen, Christopher Dewan, Mona Diab, Xian Li, Xi Victoria Lin,
+    et al. 2022a. Opt: Open pre-trained transformer language models. *arXiv e-prints*,
+    pages arXiv–2205.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2022a）Susan Zhang、Stephen Roller、Naman Goyal、Mikel Artetxe、Moya Chen、Shuohui
+    Chen、Christopher Dewan、Mona Diab、Xian Li、Xi Victoria Lin等。2022a。Opt：开放预训练变换器语言模型。*arXiv电子预印本*，页码arXiv–2205。
+- en: Zhang et al. (2023b) Yifan Zhang, Jingqin Yang, Yang Yuan, and Andrew Chi-Chih
+    Yao. 2023b. Cumulative reasoning with large language models. *arXiv preprint arXiv:2308.04371*.
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2023b）Yifan Zhang、Jingqin Yang、Yang Yuan和Andrew Chi-Chih Yao。2023b。与大型语言模型的累积推理。*arXiv预印本arXiv:2308.04371*。
+- en: Zhang et al. (2022b) Zhuosheng Zhang, Aston Zhang, Mu Li, and Alex Smola. 2022b.
+    Automatic chain of thought prompting in large language models. *arXiv preprint
+    arXiv:2210.03493*.
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2022b）Zhuosheng Zhang、Aston Zhang、Mu Li和Alex Smola。2022b。在大型语言模型中自动生成思维链提示。*arXiv预印本arXiv:2210.03493*。
+- en: Appendix A Discussion Engineering and Agent Symmetry
+  id: totrans-184
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 讨论工程与代理对称性
+- en: This section introduces a general framework to understand the discussion engineering
+    of large language models. Let $\mathcal{L}$ be a Large Language Model (LLM) and
+    $x$ be the input text, the forward inference generates a response of surprising
+    quality, which is written as
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节介绍了理解大型语言模型讨论工程的一般框架。设$\mathcal{L}$为大型语言模型（LLM），$x$为输入文本，前向推理生成了令人惊讶的高质量响应，表示为
+- en: '|  | $\displaystyle\hat{y}=\mathcal{L}(x).$ |  | (1) |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\hat{y}=\mathcal{L}(x).$ |  | (1) |'
+- en: Given the high price of obtaining one large language model, one essential research
+    question is to unlock the reasoning capability of large language models so that
+    they can perform better on various tasks. One of the key directions is prompt
+    engineering, where the format and content of the input texts are decorated to
+    improve performances for downstream tasks. Specifically, for a task $\mathcal{T}$,
+    the original input $x$ is decorated as a task-specific prompt input $p(x;\mathcal{T},\mathcal{L})$.
+    The function $p(\cdot;\mathcal{T},\mathcal{L})$ is denoted as a prompt decorator
+    for $\mathcal{T}$ and $\mathcal{L}$. Then, output $\hat{y}$ is generated by prompt
+    engineering, which is written as
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于获得一个大型语言模型的高昂成本，一个重要的研究问题是解锁大型语言模型的推理能力，使其能够在各种任务上表现得更好。关键方向之一是提示工程，其中输入文本的格式和内容经过修饰，以提高下游任务的表现。具体而言，对于任务$\mathcal{T}$，原始输入$x$被修饰为任务特定的提示输入$p(x;\mathcal{T},\mathcal{L})$。函数$p(\cdot;\mathcal{T},\mathcal{L})$表示为$\mathcal{T}$和$\mathcal{L}$的提示装饰器。然后，输出$\hat{y}$通过提示工程生成，表示为
+- en: '|  | $\displaystyle\hat{y}=\mathcal{L}(p(x;\mathcal{T},\mathcal{L})).$ |  |
+    (2) |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\hat{y}=\mathcal{L}(p(x;\mathcal{T},\mathcal{L})).$ |  |
+    (2) |'
+- en: Another way to improve the reasoning capability of $\mathcal{L}(x)$ is to leverage
+    multiple times of inference of large language models, leading to a way larger
+    space for mechanism design. The output $\hat{y}$ derived by mechanism $\mathcal{M}$
+    is considered as
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提高 $\mathcal{L}(x)$ 推理能力的另一种方式是利用大规模语言模型的多次推理，从而为机制设计提供更大的空间。通过机制 $\mathcal{M}$
+    得出的输出 $\hat{y}$ 被认为是
+- en: '|  | $\displaystyle\hat{y}=M\left(x;\{(\mathcal{L}_{i},p_{i}(\cdot,\mathcal{T},%
+    \mathcal{L}_{i}))\}_{i=1}^{n}\right),$ |  | (3) |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\hat{y}=M\left(x;\{(\mathcal{L}_{i},p_{i}(\cdot,\mathcal{T},\mathcal{L}_{i}))\}_{i=1}^{n}\right),$
+    |  | (3) |'
+- en: where $M$ is the mechanism pipeline, $\mathcal{L}_{i}$ is the $i$-th inference
+    of LLM, and $p_{i}(\cdot,\mathcal{T},\mathcal{L}_{i})$ is the corresponding prompt
+    decorator. A mechanism $\mathcal{M}$ is designed by jointly considering $\mathcal{M}=(M,\{(\mathcal{L}_{i},p_{i})\}_{i=1}^{n})$,
+    i.e., how to organize prompt decorated LLM inferences into the mechanism pipeline
+    $M$.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中 $M$ 是机制管道，$\mathcal{L}_{i}$ 是 LLM 的第 $i$ 次推理，$p_{i}(\cdot,\mathcal{T},\mathcal{L}_{i})$
+    是相应的提示装饰器。机制 $\mathcal{M}$ 是通过联合考虑 $\mathcal{M}=(M,\{(\mathcal{L}_{i},p_{i})\}_{i=1}^{n})$
+    来设计的，即如何将提示装饰过的 LLM 推理组织成机制管道 $M$。
+- en: 'The discussion engineering, characterized by the mechanism $\mathcal{M}=(M,\{(\mathcal{L}_{i},p_{i})\}_{i=1}^{n})$,
+    includes careful designs at three levels: (1) the ($i$-th) inference $\mathcal{L}_{i}$
+    of an LLM, (2) the prompt decorator $p_{i}$ for the inference $\mathcal{L}_{i}$,
+    and (3) the mechanism $M(\cdot,\{\mathcal{L}_{i},p_{i}\})$ to organize the inferences
+    of LLMs. We further introduce the symmetry of the multi-agent system of LLMs to
+    demonstrate the complexity of $\mathcal{M}$. Under our framework, several examples
+    are discussed.'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 讨论工程，特点是机制 $\mathcal{M}=(M,\{(\mathcal{L}_{i},p_{i})\}_{i=1}^{n})$，包括三个层次的精心设计：（1）LLM
+    的第 ($i$) 次推理 $\mathcal{L}_{i}$，（2）用于推理 $\mathcal{L}_{i}$ 的提示装饰器 $p_{i}$，以及（3）机制
+    $M(\cdot,\{\mathcal{L}_{i},p_{i}\})$ 用于组织 LLM 的推理。我们进一步介绍了 LLM 多代理系统的对称性，以展示 $\mathcal{M}$
+    的复杂性。在我们的框架下，讨论了若干例子。
+- en: A.1 Agent symmetry in discussion engineering
+  id: totrans-193
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 讨论工程中的代理对称性
+- en: Symmetry and its breaking is a fundamental concept and widely investigated in
+    science (Anderson, [1972](https://arxiv.org/html/2402.18272v1#bib.bib2)). Symmetry
+    also plays an important role in the context of mechanism design of multiple agents (Laffont
+    and Martimort, [2000](https://arxiv.org/html/2402.18272v1#bib.bib20); Daskalakis
+    and Weinberg, [2012](https://arxiv.org/html/2402.18272v1#bib.bib11)). Here we
+    introduce a formal description to justify the agent symmetry of the mechanism
+    $\mathcal{M}$.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对称性及其打破是一个基本概念，在科学中广泛研究（Anderson, [1972](https://arxiv.org/html/2402.18272v1#bib.bib2)）。在多代理机制设计的背景下，对称性也起着重要作用（Laffont
+    和 Martimort, [2000](https://arxiv.org/html/2402.18272v1#bib.bib20); Daskalakis
+    和 Weinberg, [2012](https://arxiv.org/html/2402.18272v1#bib.bib11)）。在这里，我们引入了一个形式化的描述来证明机制
+    $\mathcal{M}$ 的代理对称性。
+- en: Definition 1  (Computational graph).
+  id: totrans-195
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 定义 1  （计算图）。
+- en: Given the mechanism $\mathcal{M}=(M,\{(\mathcal{L}_{i},p_{i})\}_{i=1}^{n})$,
+    let $G=(V\cup\{x,y\},E)$ be the directed graph whose node set $V\cup\{x,y\}$ includes
+    the inference operation of LLM and the computational input node and output nodes.
+    $x$ is the node to emit the input text, $y$ is the node that takes the inputs
+    from one or multiple inferences and emits the final output, and $v_{i}\in V$ is
+    the inference node that describes the $i$-th LLM inference with $(\mathcal{L}_{i},p_{i})$.
+    The directed edge in $(v_{i},v_{k})\in E$ describes the output of inference node
+    $v_{i}$ is then the input of inference node $v_{k}$.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定机制 $\mathcal{M}=(M,\{(\mathcal{L}_{i},p_{i})\}_{i=1}^{n})$，令 $G=(V\cup\{x,y\},E)$
+    为有向图，其中节点集 $V\cup\{x,y\}$ 包括 LLM 的推理操作以及计算输入节点和输出节点。$x$ 是发出输入文本的节点，$y$ 是从一个或多个推理中接收输入并发出最终输出的节点，$v_{i}\in
+    V$ 是描述第 $i$ 次 LLM 推理的推理节点，具有 $(\mathcal{L}_{i},p_{i})$。有向边 $(v_{i},v_{k})\in E$
+    描述推理节点 $v_{i}$ 的输出是推理节点 $v_{k}$ 的输入。
+- en: We note that the graph $G$ contains all the necessary information to determine
+    the mechanism $\mathcal{M}$.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们注意到图 $G$ 包含了所有必要的信息来确定机制 $\mathcal{M}$。
+- en: Then we introduce how the LLM agents are associated with the computational graph.
+    To make an LLM conversational session, the entire conversational history is always
+    concatenated as part of the input of each inference call, resulting in many additional
+    connections of the computational graph. The presence of agents allows us to conceptually
+    assume the agents “know” the information in the conversation history, and then
+    the complexity of the graph can be largely reduced. In this paper, we consider
+    the computational graph with agents, so the connections that feed conversation
+    history to the inference nodes are ignored for simplicity.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们介绍如何将LLM代理与计算图关联起来。为了进行LLM对话会话，整个对话历史总是作为每次推理调用的输入的一部分被串联起来，从而导致计算图中许多额外的连接。代理的存在使我们可以在概念上假设代理“知道”对话历史中的信息，然后图的复杂性可以大大减少。在本文中，我们考虑具有代理的计算图，因此为简化起见，忽略了将对话历史传递给推理节点的连接。
+- en: Let $\mathcal{A}=\{A_{1},...,A_{m}\}$ be the set of $m$ discussion agents. The
+    inference call of an agent also concatenates its conversation history, denoted
+    as $A_{j}(x)$.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设$\mathcal{A}=\{A_{1},...,A_{m}\}$是$m$个讨论代理的集合。一个代理的推理调用还会串联其对话历史，记作$A_{j}(x)$。
+- en: Definition 2  (Agent assignment).
+  id: totrans-200
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 定义2（代理分配）。
+- en: Let $\mathcal{A}=\{A_{1},...,A_{m}\}$ be the set of $m$ discussion agents. Each
+    inference node $v_{i}\in V$ is assigned to an agent $A_{j}\in\mathcal{A}$. Let
+    $[n]$ present integers from $1$ to $n$, $\alpha:[n]\mapsto[m]$ is the assignment
+    map that assigns the $i$-th inference to the $\alpha(i)$-th agent. Let $P\in\{0,1\}^{n\times
+    m}$ be the agent-inference assignment matrix, such that
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设$\mathcal{A}=\{A_{1},...,A_{m}\}$是$m$个讨论代理的集合。每个推理节点$v_{i}\in V$被分配给代理$A_{j}\in\mathcal{A}$。设$[n]$表示从$1$到$n$的整数，$\alpha:[n]\mapsto[m]$是分配映射，将第$i$个推理分配给第$\alpha(i)$个代理。设$P\in\{0,1\}^{n\times
+    m}$是代理-推理分配矩阵，使得
+- en: '|  | $\displaystyle P_{ij}=\left\{\begin{array}[]{cc}1&j=\alpha(i),\\ 0&j\neq\alpha(i)\end{array}\right..$
+    |  | (6) |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle P_{ij}=\left\{\begin{array}[]{cc}1&j=\alpha(i),\\ 0&j\neq\alpha(i)\end{array}\right..$
+    |  | (6) |'
+- en: The assignment matrix $P$ is equivalent to the assignment map $\alpha$.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分配矩阵$P$等价于分配映射$\alpha$。
+- en: Then a multi-agent discussion mechanism is defined by the triple $D=(\mathcal{M},\mathcal{A},\alpha)=(G,\mathcal{A},\alpha)$,
+    which is the central object of discussion engineering. Then, we can further introduce
+    the concept of the coloring of the computational graph.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后通过三元组$D=(\mathcal{M},\mathcal{A},\alpha)=(G,\mathcal{A},\alpha)$定义一个多代理讨论机制，这是讨论工程的核心对象。然后，我们可以进一步引入计算图的着色概念。
+- en: Definition 3  (Agent coloring of the computational graph).
+  id: totrans-205
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 定义3（计算图的代理着色）。
+- en: Given the the multi-agent discussion $D=(G,\mathcal{A},\alpha)$, then each inference
+    node $v_{i}$ is described by $(\mathcal{L}_{i},p_{i})=(A_{\alpha(i)},p_{i})$.
+    Let $c_{i}^{D}=(A_{\alpha(i)},p_{i})$ be the color of $v_{i}$ and $C^{D}(v_{i})=c_{i}^{D}$
+    be the color mapping of nodes, and $\mathcal{C}^{D}=(V,E,C^{D})$ be a colored
+    computational graph.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定多代理讨论$D=(G,\mathcal{A},\alpha)$，则每个推理节点$v_{i}$由$(\mathcal{L}_{i},p_{i})=(A_{\alpha(i)},p_{i})$来描述。设$c_{i}^{D}=(A_{\alpha(i)},p_{i})$为$v_{i}$的颜色，$C^{D}(v_{i})=c_{i}^{D}$为节点的颜色映射，$\mathcal{C}^{D}=(V,E,C^{D})$为着色的计算图。
+- en: Then the agent symmetry is established by the permutation operation over the
+    agent set $\mathcal{A}$. Then we can discuss the symmetry by the agent permutation.
+    We begin with the concept of mechanism invariance.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后通过对代理集$\mathcal{A}$进行置换操作来建立代理对称性。接下来我们可以通过代理置换来讨论对称性。我们从机制不变性的概念开始。
+- en: Definition 4  (Mechanism invariance under the agent permutation).
+  id: totrans-208
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 定义4（代理置换下的机制不变性）。
+- en: Given the multi-agent discussion $D=(G,\mathcal{A},\alpha)$ and a permutation
+    mapping $\pi:[m]\mapsto[m]$, the new discussion $D_{\pi}=(G,\mathcal{A},\pi\circ\alpha)$
+    is derived by applying $\pi$ to the agents. We say a discussion $D$ is invariant
+    under $\pi$ if and only if there is an isomorphism $\phi$ between two colored
+    graphs $\mathcal{C}^{D}=(V,E,C^{D})$ and $\mathcal{C}^{D_{\pi}}=(V,E,C^{D_{\pi}})$,
+    such that
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定多代理讨论$D=(G,\mathcal{A},\alpha)$和一个置换映射$\pi:[m]\mapsto[m]$，通过对代理应用$\pi$得到新的讨论$D_{\pi}=(G,\mathcal{A},\pi\circ\alpha)$。我们说讨论$D$在$\pi$下是不变的，当且仅当存在一个同构$\phi$，使得两个着色图$\mathcal{C}^{D}=(V,E,C^{D})$和$\mathcal{C}^{D_{\pi}}=(V,E,C^{D_{\pi}})$之间存在同构关系，其中
+- en: (1)
+  id: totrans-210
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (1)
+- en: $\phi$ is a bijection,
+  id: totrans-211
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: $\phi$是一个双射，
+- en: (2)
+  id: totrans-212
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (2)
+- en: $\forall(v_{i},v_{j})\in E,(\phi(v_{i}),\phi(v_{j}))\in E$,
+  id: totrans-213
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: $\forall(v_{i},v_{j})\in E,(\phi(v_{i}),\phi(v_{j}))\in E$，
+- en: (3)
+  id: totrans-214
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (3)
+- en: $\forall v\in V,C^{D}(v)=C^{D_{\pi}}(\phi(v))$.
+  id: totrans-215
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: $\forall v\in V,C^{D}(v)=C^{D_{\pi}}(\phi(v))$。
+- en: We can also define the model invariance to justify the symmetry in the multi-model
+    setting (Chen et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)).
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以定义模型不变性，以证明多模型设置中的对称性（Chen et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)）。
+- en: Definition 5  (Model invariance under the agent permutation).
+  id: totrans-217
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 定义 5（在智能体置换下的模型不变性）。
+- en: Given the agent $\mathcal{A}=\{A_{1},...,A_{m}\}$, and their underlying LLM
+    $\{L_{1},..,L_{m}\}$ (i.e., ChatGPT, GPT4, etc.), the permutation $\pi:[m]\mapsto[m]$
+    is invariant if for $i=1,...,m$ $L_{i}=L_{\pi(i)}$.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定智能体 $\mathcal{A}=\{A_{1},...,A_{m}\}$ 及其底层LLM $\{L_{1},..,L_{m}\}$（即 ChatGPT、GPT4
+    等），如果对于 $i=1,...,m$，$L_{i}=L_{\pi(i)}$，则置换 $\pi:[m]\mapsto[m]$ 是不变的。
+- en: Following the definition of invariance, the symmetry group of agents is naturally
+    defined following the standard algebra (Tapp, [2021](https://arxiv.org/html/2402.18272v1#bib.bib35)).
+    The largest possible symmetry group for a discussion of $m$ agents is the group
+    $S_{m}$. However, the group $S_{m}$ is not always the symmetry group of a given
+    multi-agent discussion mechanism $D$, the reasons for not achieving the largest
+    symmetry group can be due to the asymmetry in the mechanism and asymmetry in models,
+    respectively. Furthermore, for asymmetric mechanisms, there are two major ways
+    of symmetry breaking. Referring to the three conditions of establishing the isomorphism,
+    the dissatisfaction of condition (2) implies the asymmetry in the computational
+    graph or asymmetry in the mechanism pipeline $M$, and that of condition (3) implies
+    the asymmetry in prompt decorators.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据不变性的定义，智能体的对称群是根据标准代数自然定义的（Tapp, [2021](https://arxiv.org/html/2402.18272v1#bib.bib35)）。讨论
+    $m$ 个智能体时，最大的可能对称群是群 $S_{m}$。然而，群 $S_{m}$ 并不总是给定多智能体讨论机制 $D$ 的对称群，未能达到最大对称群的原因可能分别是机制中的不对称性和模型中的不对称性。此外，对于不对称机制，存在两种主要的对称破缺方式。根据建立同构的三个条件，条件（2）不满足意味着计算图中的不对称性或机制管道
+    $M$ 中的不对称性，而条件（3）不满足意味着提示装饰器中的不对称性。
+- en: 'Appendix B CMD: Conquer and Merge Discussion Framework'
+  id: totrans-220
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B CMD：征服与合并讨论框架
+- en: B.1 Motivation
+  id: totrans-221
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.1 动机
+- en: 'The Debate framework proposes that an increased number of agents and discussion
+    rounds will result in improved performance in multi-agent discussions (Du et al.,
+    [2023](https://arxiv.org/html/2402.18272v1#bib.bib13)). Also, the ReConcile framework
+    asserts that a greater number of discussion rounds leads to a higher level of
+    consensus among agents, and the higher the consensus among agents, the more accurate
+    the discussion outcomes become (Chen et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)).
+    However, as the number of agents increases in a discussion, it leads to increased
+    overhead in each round of discussion: 1\. Each agent has to read more viewpoints
+    from others, resulting in a sharp rise in input tokens. 2\. The increase in input
+    tokens puts significant pressure on language models with context token limitations.
+    Inspired by real-life group discussions, we propose a variant framework for Debate
+    called CMD. Fig [3](https://arxiv.org/html/2402.18272v1#S2.F3 "Figure 3 ‣ 2 Preliminary
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?")
+    shows the overview of our method.'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 辩论框架提出，增加智能体数量和讨论轮次将提高多智能体讨论的性能（Du et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib13)）。此外，ReConcile
+    框架断言，更多的讨论轮次将导致智能体之间更高的共识，而智能体之间的共识越高，讨论结果就越准确（Chen et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib7)）。然而，随着讨论中智能体数量的增加，每一轮讨论的开销也会增加：1.
+    每个智能体需要阅读更多其他智能体的观点，导致输入令牌急剧增加。2. 输入令牌的增加给具有上下文令牌限制的语言模型带来了巨大的压力。受到现实生活中小组讨论的启发，我们提出了辩论框架的变体，称为
+    CMD。图 [3](https://arxiv.org/html/2402.18272v1#S2.F3 "图 3 ‣ 2 初步 ‣ 重新思考 LLM 推理的边界：多智能体讨论是关键吗？")
+    展示了我们方法的概览。
+- en: B.2 Problem Definition
+  id: totrans-223
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.2 问题定义
+- en: Assume that there are $n$ agents $\mathcal{A}=\{A_{i}\}_{i=1}^{m}$ are discussing
+    the given debate task $\mathcal{Q}$, and each agent is a session created from
+    a LLM. Suppose that the maximum number of the discussion rounds is $R$, the current
+    round is $r$, the current discussion level is $L$, and the current active agents
+    set is $\mathcal{A^{\prime}}$. For each agent $A_{i}\in\mathcal{A^{\prime}}$,
+    an answer it generates is $Ans_{i}=(v_{i},e_{i})$, where $v_{i}$ denotes the viewpoint
+    and $e_{i}$ denotes the explanation. A debate history is $H^{(r)}=\bigcup_{i=1}^{t}Ans_{i}$
+    where $t=\left|\mathcal{A^{\prime}}\right|$. $Ans_{i}^{(r)}$ is generated through
+    the input prompt $A_{i}(\mathcal{Q},Ans_{i}^{(r-1)},O_{i}^{(r-1)})$, where $O_{i}^{(r)}$
+    indicates the opinions generated by $A_{j\neq i}$ in $(r-1)$-th round. The formal
+    definition of $O_{i}^{(r)}$ is
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设有 $n$ 个代理 $\mathcal{A}=\{A_{i}\}_{i=1}^{m}$ 正在讨论给定的辩论任务 $\mathcal{Q}$，每个代理是由一个大型语言模型（LLM）创建的会话。假设讨论的最大回合数为
+    $R$，当前回合为 $r$，当前讨论层级为 $L$，当前活跃的代理集合为 $\mathcal{A^{\prime}}$。对于每个代理 $A_{i}\in\mathcal{A^{\prime}}$，它生成的答案为
+    $Ans_{i}=(v_{i},e_{i})$，其中 $v_{i}$ 表示观点，$e_{i}$ 表示解释。辩论历史是 $H^{(r)}=\bigcup_{i=1}^{t}Ans_{i}$，其中
+    $t=\left|\mathcal{A^{\prime}}\right|$。$Ans_{i}^{(r)}$ 是通过输入提示 $A_{i}(\mathcal{Q},Ans_{i}^{(r-1)},O_{i}^{(r-1)})$
+    生成的，其中 $O_{i}^{(r)}$ 表示在 $(r-1)$ 回合中由 $A_{j\neq i}$ 生成的观点。$O_{i}^{(r)}$ 的正式定义是
+- en: '|  | $O_{i}^{(r)}=\bigcup_{j=1,j\neq i}^{\left&#124;H^{(r-1)}\right&#124;}\left(v_{i},e_{i}%
+    \cdot\mathbbmss{1}\{\mathtt{Group}^{(L)}(A_{i})=\mathtt{Group}^{(L)}(A_{j})\}%
+    \right).$ |  | (7) |'
+  id: totrans-225
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $O_{i}^{(r)}=\bigcup_{j=1,j\neq i}^{\left\|H^{(r-1)}\right\|}\left(v_{i},e_{i}%
+    \cdot\mathbbmss{1}\{\mathtt{Group}^{(L)}(A_{i})=\mathtt{Group}^{(L)}(A_{j})\}%
+    \right).$ |  | (7) |'
+- en: This represents that $A_{i}$ will receive all information from the group members
+    while it can only receive viewpoints from agents that are not in the same group.
+    Our goal is to obtain the final result $a$ through an unweighted vote. In the
+    event of a tie, either $a$ can be made by a secretary $S$, or representatives
+    from each group will proceed to the next level of discussion until the tie is
+    resolved. Each discussion group has only one representative. Note that $\mathcal{Q}$
+    can be described differently for each $A_{i}$. For example, different agents may
+    be asked to hold different views at first.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着 $A_{i}$ 将接收来自小组成员的所有信息，但它只能接收来自不在同一小组的代理的观点。我们的目标是通过无权重投票得到最终结果 $a$。如果发生平局，$a$
+    可以由一个秘书 $S$ 做出，或者每个小组的代表将继续进行下一轮讨论，直到平局被打破。每个讨论小组只有一个代表。请注意，$\mathcal{Q}$ 对每个
+    $A_{i}$ 可以有不同的描述。例如，不同的代理可能一开始会被要求持有不同的观点。
+- en: 'Algorithm 1 CMD: A Conquer and Merge Style Multi-Agents Discussion Framework'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 CMD：一种征服与合并风格的多代理讨论框架
+- en: 1:Debate Task $\mathcal{Q}$, Maximum Discussion Rounds $R$, Agents $\mathcal{A}=\{A_{i}\}_{i=1}^{n}$,
+    Secretary $S$2:Final Result $a$3:function CMD($\mathcal{Q},R,\mathcal{A},S$)4:     $\mathcal{A^{\prime}}\leftarrow\mathcal{A}$
+    $\triangleright$ Initialize current active agents5:     $N{g}\leftarrow n/3$ $\triangleright$
+    Initialize group numbers, every 3 agents a group6:     $r\leftarrow 0,L\leftarrow
+    0$ $\triangleright$ Initialize current round and current discussion level7:     $L_{max}\leftarrow\mathtt{getMaxLevel}(\mathcal{A},S)$8:     $M_{g}\leftarrow\mathtt{genGroupMap}(\mathcal{A},N_{g},L_{max})$
+    $\triangleright$ Assign agents as groups based on discussion levels9:     $Ans_{i}\leftarrow\emptyset,O_{i}\leftarrow\emptyset,H\leftarrow[]$
+    $\triangleright$ Initialize answer, others’ opinions and history10:     while $L\leq
+    L_{max}$ do11:         while $r\leq R$ do12:              if $r>0$ then $\triangleright$
+    Stage 213:                  Update $O_{i}$ from $H$14:              end if15:              $H\leftarrow[]$16:              for each
+    $A_{i}\in\mathcal{A^{\prime}}$ do17:                  $Ans_{i}\leftarrow A_{i}(\mathcal{Q},Ans_{i},O_{i})$
+    $\triangleright$ $Ans_{i}=(v_{i},e_{i})$18:                  $H\leftarrow H+[Ans_{i}]$19:              end for20:              $r\leftarrow
+    r+1$21:         end while22:         $a\leftarrow\mathtt{AnswerVote}(H)$23:         if $a\neq$
+    Tie then break24:         else if $S$ is not None then $\triangleright$ Check
+    if the secretary mode is on25:              $a\leftarrow S(\mathcal{Q},H)$; break26:         else$\triangleright$
+    Secretary mode is off, representative mode is on27:              $L\leftarrow
+    L+1$28:              $\mathcal{A^{\prime}}\leftarrow\mathtt{currentActiveAgents}(L,M_{g})$29:         end if30:         $r\leftarrow
+    0$ $\triangleright$ The higher-level discussion has commenced31:     end while32:     return
+    $a$33:end function
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1: 辩论任务 $\mathcal{Q}$，最大讨论轮数 $R$，参与者 $\mathcal{A}=\{A_{i}\}_{i=1}^{n}$，秘书 $S$2:
+    最终结果 $a$3: 函数 CMD($\mathcal{Q},R,\mathcal{A},S$)4:      $\mathcal{A^{\prime}}\leftarrow\mathcal{A}$
+    $\triangleright$ 初始化当前活跃的参与者5:      $N{g}\leftarrow n/3$ $\triangleright$ 初始化小组数量，每3个参与者组成一个小组6:
+         $r\leftarrow 0,L\leftarrow 0$ $\triangleright$ 初始化当前轮次和当前讨论等级7:      $L_{max}\leftarrow\mathtt{getMaxLevel}(\mathcal{A},S)$8:
+         $M_{g}\leftarrow\mathtt{genGroupMap}(\mathcal{A},N_{g},L_{max})$ $\triangleright$
+    根据讨论等级将参与者分配到不同的小组9:      $Ans_{i}\leftarrow\emptyset,O_{i}\leftarrow\emptyset,H\leftarrow[]$
+    $\triangleright$ 初始化答案、他人观点和历史记录10:      while $L\leq L_{max}$ do11:          while
+    $r\leq R$ do12:                if $r>0$ then $\triangleright$ 阶段 213:                    从
+    $H$ 更新 $O_{i}$14:                end if15:                $H\leftarrow[]$16:                for
+    each $A_{i}\in\mathcal{A^{\prime}}$ do17:                    $Ans_{i}\leftarrow
+    A_{i}(\mathcal{Q},Ans_{i},O_{i})$ $\triangleright$ $Ans_{i}=(v_{i},e_{i})$18:
+                       $H\leftarrow H+[Ans_{i}]$19:                end for20:                $r\leftarrow
+    r+1$21:            end while22:        $a\leftarrow\mathtt{AnswerVote}(H)$23:
+           if $a\neq$ Tie then break24:        else if $S$ is not None then $\triangleright$
+    检查是否开启了秘书模式25:            $a\leftarrow S(\mathcal{Q},H)$; break26:        else
+    $\triangleright$ 秘书模式关闭，代表模式开启27:            $L\leftarrow L+1$28:            $\mathcal{A^{\prime}}\leftarrow\mathtt{currentActiveAgents}(L,M_{g})$29:
+           end if30:        $r\leftarrow 0$ $\triangleright$ 高级讨论开始31:    end while32:
+       return $a$33: end 函数'
+- en: B.3 CMD Stages
+  id: totrans-229
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.3 CMD阶段
+- en: Generally, there are three stages in CMD. In stage 1, the group map and all
+    states will be initialized, then all the participants will generate their initial
+    answers. Then, in stage 2, the participants will continue the discussion during
+    the remaining rounds in groups. When the discussion round reaches the maximum
+    number, it moves to stage 3\. In this stage, all participants will vote to get
+    the final answer.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，CMD包含三个阶段。在阶段1中，将初始化小组映射和所有状态，随后所有参与者将生成他们的初始答案。接下来，在阶段2中，参与者将在剩余的轮次中继续以小组形式进行讨论。当讨论轮数达到最大值时，将进入阶段3。在这个阶段，所有参与者将进行投票，以获得最终答案。
+- en: •
+  id: totrans-231
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: $\mathsf{Stage\ 1:\ Group\ Discussion\ Initialization.}$ In this stage, $\mathcal{A^{\prime}}$
+    will be initialized as all participants. All participating agents are initially
+    assigned names in uppercase letters, and they are then grouped in sets of three.
+    For $\mathtt{getMaxLevel}$, if secretary mode is on, then it will be set to $1$.
+    Otherwise, it will be determined based on the current number of agents. For $\mathtt{getGroupMap}$,
+    the algorithm will automatically generate the groups for all levels. Higher-level
+    groups are generated among the current representatives. All active agents will
+    generate their first response $Ans_{i}$.
+  id: totrans-232
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: $\mathsf{阶段\ 1:\ 小组讨论初始化.}$ 在这个阶段，$\mathcal{A^{\prime}}$将初始化为所有参与者。所有参与者最初会被分配大写字母作为名称，然后按三人一组的方式进行分组。对于$\mathtt{getMaxLevel}$，如果开启了秘书模式，则其值将设为$1$。否则，将根据当前参与者的数量来决定。对于$\mathtt{getGroupMap}$，算法将自动生成所有等级的小组。较高级别的小组将在当前代表中生成。所有活跃的参与者将生成他们的第一次回应$Ans_{i}$。
+- en: •
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: $\mathsf{Stage\ 2:\ Multi\ Rounds\ Discussion.}$ In this stage, the active agents
+    will continue to discuss in the remaining rounds. Assume current round number
+    is $r$, for each agent $A_{i}\in\mathcal{A^{\prime}}$,
+  id: totrans-234
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: $\mathsf{阶段\ 2:\ 多轮\ 讨论}$。在这一阶段，活跃代理将继续在剩余轮次中进行讨论。假设当前轮次编号为 $r$，对于每个代理 $A_{i}\in\mathcal{A^{\prime}}$，
+- en: '1.'
+  id: totrans-235
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: The algorithm will start to update the opinions history $O_{i}^{(r-1)}$ from
+    $H$. For each record $h_{j}$ whose sender $A_{j}(j\neq i)$ stored in $H$, if $A_{j}$
+    and $A_{i}$ are in the same group, $O_{i}^{(r-1)}$ will record both the viewpoint
+    and explanation from $h_{j}$; otherwise, $O_{i}^{(r-1)}$ will only record the
+    viewpoint from $h_{j}$. After traversing all the records in $H$, $O_{i}$ will
+    first gather all opinions of agents from other groups, then $O_{i}^{(r-1)}$ will
+    gather local group explanations based on group members opinions.
+  id: totrans-236
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 算法将开始从 $H$ 中更新观点历史记录 $O_{i}^{(r-1)}$。对于 $H$ 中每条记录 $h_{j}$，其发送者为 $A_{j}(j\neq
+    i)$，如果 $A_{j}$ 和 $A_{i}$ 属于同一小组，$O_{i}^{(r-1)}$ 将记录 $h_{j}$ 的观点和解释；否则，$O_{i}^{(r-1)}$
+    只会记录 $h_{j}$ 的观点。在遍历完 $H$ 中所有记录后，$O_{i}$ 将首先收集来自其他小组的所有意见，然后 $O_{i}^{(r-1)}$ 将基于小组成员的意见收集本小组的解释。
+- en: '2.'
+  id: totrans-237
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: To save up tokens, last round history $H$ will be reset. Then, the new prompt
+    $p_{i}^{(r)}$ will be generated based on $(\mathcal{Q},Ans_{i}^{(r-1)},O_{i}^{(r-1)})$.
+    $A_{i}$ will make a response $Ans_{i}=(v_{i},e_{i})$ when given $p_{i}^{(r)}$.
+    At last, $Ans_{i}$ will be appended to current round history $H$ for the further
+    use.
+  id: totrans-238
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 为了节省令牌，上一轮历史记录 $H$ 将被重置。然后，将基于 $(\mathcal{Q},Ans_{i}^{(r-1)},O_{i}^{(r-1)})$
+    生成新的提示 $p_{i}^{(r)}$。当给定 $p_{i}^{(r)}$ 时，$A_{i}$ 将做出响应 $Ans_{i}=(v_{i},e_{i})$。最后，$Ans_{i}$
+    将被追加到当前轮次历史记录 $H$ 中，以供进一步使用。
+- en: '3.'
+  id: totrans-239
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: Repeat 1\. and 2\. until the maximum number of discussion rounds is reached.
+  id: totrans-240
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 重复 1. 和 2. 直到达到最大讨论轮次。
+- en: •
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: $\mathsf{Stage\ 3:\ Vote\ for\ the\ Final\ Result.}$ In this stage, all agents
+    will vote based on their final viewpoints stored in the history $H^{(r)}$ to obtain
+    the result $a$. If there is no tie, then $a$ will be the final result, thus the
+    discussion is over. If there is a tie and secretary mode is on, then the final
+    result will be obtained through $S$ based on the viewpoints and explanations from
+    all sides. If there is a tie and representative mode is on, then the discussion
+    will move to the higher level, and deactivate agents that do not represent their
+    groups. The representatives will be assigned to new groups, and return to $\mathsf{Stage\
+    2}$ for further discussion. If there is still a tie, new representatives will
+    be designated for further discussion, until either the tie is resolved or only
+    one agent is activated for the discussion.
+  id: totrans-242
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: $\mathsf{阶段\ 3:\ 投票\ 得出\ 最终\ 结果}$。在这一阶段，所有代理将基于他们存储在历史记录 $H^{(r)}$ 中的最终观点进行投票，以获得结果
+    $a$。如果没有平局，$a$ 将成为最终结果，讨论结束。如果出现平局并且启用了秘书模式，则最终结果将通过 $S$ 根据各方的观点和解释得出。如果出现平局并且启用了代表模式，讨论将提升到更高的层次，停用那些不代表其小组的代理。代表将被分配到新的小组，并返回到
+    $\mathsf{阶段\ 2}$ 进行进一步讨论。如果仍然平局，则会指定新的代表继续讨论，直到平局被打破或只剩下一个代理参与讨论。
+- en: B.4 Message-Passing Algorithm
+  id: totrans-243
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.4 消息传递算法
+- en: Below is the detailed message-passing algorithm that synchronize all agents
+    messages during the discussion process. This algorithm supports various discussion
+    architectures.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下是详细的信息传递算法，用于在讨论过程中同步所有代理的消息。该算法支持多种讨论架构。
+- en: 'Algorithm 2 MesSync: A Message-Passing Algorithm for Multi-Agents Communication'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 2 MesSync：用于多代理通信的消息传递算法
+- en: 1:Discussion Rule $\mathcal{R}$, Agents $\mathcal{A}=\{A_{i}\}_{i=1}^{n}$, Agent
+    Attribute Table $\mathcal{T}=\{bot_{i}\}_{i=1}^{n}$, Agent Initial Prompt Messages
+    $\mathcal{M}=\{p_{j}\}_{j=1}^{t}$2:function MesSync($\mathcal{R},\mathcal{A},\mathcal{T},\mathcal{M}$)3:     $Q_{msg}\leftarrow\mathcal{M}$
+    $\triangleright$ Initialize messages storage queue4:     $Q_{send}\leftarrow[]$
+    $\triangleright$ Initialize messages to be sent queue5:     $S\leftarrow\mathcal{R}.S_{first}$
+    $\triangleright$ Initialize the first speaker6:     $d\leftarrow 0$ $\triangleright$
+    Initialize the discussion depth to 07:     while $Q_{msg}\neq\emptyset$ or not
+    $\mathcal{R}.\mathtt{isOver}$ do8:         if $Q_{msg}$ is $\emptyset$ then9:              $Q_{msg}\leftarrow\mathtt{pushSilenceMessage}(d)$10:         end if11:         $d\leftarrow\mathtt{peekDepth}(Q_{msg})$
+    $\triangleright$ Peek the discussion depth of the first message12:         $M_{d}\leftarrow\mathtt{popAllMessagesAtDepth}(Q_{msg},d)$13:         for each
+    $A_{i}\in\mathcal{A}$ do14:              $m_{i}\leftarrow\mathcal{R}.\mathtt{mergeCommonMessages}(M_{d},A_{i})$15:              $Q_{send}.\mathtt{push}(m_{i})$16:         end for17:         $m^{\prime}\leftarrow
+    Q_{send}.\mathtt{pop}()$18:         $\mathtt{isHold}\leftarrow m^{\prime}.\mathtt{hold}$
+    $\triangleright$ Signal to merge messages from this round with the next19:         $H\leftarrow\{\}$
+    $\triangleright$ Initialize the map of messages to hold in the current depth20:         $d_{next}\leftarrow
+    d+2$ if $\mathtt{isHold}$ else $d+1$21:         while $m^{\prime}$ and $m^{\prime}.d<d_{next}$ do22:              if $m^{\prime}.\mathtt{hold}$ then
+    $H[m^{\prime}.\mathtt{name}]\leftarrow m^{\prime}.\mathtt{content}$23:              else24:                  $S\leftarrow
+    m^{\prime}.\mathtt{name}$25:                  $M_{raw}\leftarrow m^{\prime}.\mathtt{content}\cup
+    H[S]$26:                  $t_{in}\leftarrow\mathcal{R}.\mathtt{modifyRawInput}(M_{raw})$27:                  $t_{out}\leftarrow\mathtt{sendText2Bot}(t_{in},S,d,\mathcal{T})$28:                  $t_{out}\leftarrow\mathcal{R}.\mathtt{validateOutput}(t_{in},t_{out},S,d)$29:                  $\mathcal{A^{\prime}}\leftarrow\mathcal{R}.\mathtt{getReceivers}(S,d)$
+    $\triangleright$ Get the receivers of the new message30:                  if $\mathcal{A^{\prime}}\neq\emptyset$ then31:                       $m_{new}\leftarrow\mathtt{genMessage}(t_{out},S,\mathcal{A^{\prime}},d_{next})$
+    $\triangleright$ (content, sender, receivers, depth)32:                       $Q_{msg}.\mathtt{push}(m_{new})$33:                  end if34:              end if35:              $m^{\prime}\leftarrow
+    Q_{send}.\mathtt{pop}()$36:         end while37:         if $\mathcal{R}.\mathtt{isOver}$ then
+    break38:         end if39:     end while40:end function
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1:讨论规则 $\mathcal{R}$，代理 $\mathcal{A}=\{A_{i}\}_{i=1}^{n}$，代理属性表 $\mathcal{T}=\{bot_{i}\}_{i=1}^{n}$，代理初始提示消息
+    $\mathcal{M}=\{p_{j}\}_{j=1}^{t}$2:函数 MesSync($\mathcal{R},\mathcal{A},\mathcal{T},\mathcal{M}$)3:     $Q_{msg}\leftarrow\mathcal{M}$
+    $\triangleright$ 初始化消息存储队列4:     $Q_{send}\leftarrow[]$ $\triangleright$ 初始化待发送消息队列5:     $S\leftarrow\mathcal{R}.S_{first}$
+    $\triangleright$ 初始化首个发言人6:     $d\leftarrow 0$ $\triangleright$ 初始化讨论深度为 07:     当
+    $Q_{msg}\neq\emptyset$ 或者 $\mathcal{R}.\mathtt{isOver}$ 为假时，执行8:         如果 $Q_{msg}$
+    为 $\emptyset$，则9:              $Q_{msg}\leftarrow\mathtt{pushSilenceMessage}(d)$10:         结束 如果11:         $d\leftarrow\mathtt{peekDepth}(Q_{msg})$
+    $\triangleright$ 查看第一个消息的讨论深度12:         $M_{d}\leftarrow\mathtt{popAllMessagesAtDepth}(Q_{msg},d)$13:         对于每个
+    $A_{i}\in\mathcal{A}$，执行14:              $m_{i}\leftarrow\mathcal{R}.\mathtt{mergeCommonMessages}(M_{d},A_{i})$15:              $Q_{send}.\mathtt{push}(m_{i})$16:         结束 对于17:         $m^{\prime}\leftarrow
+    Q_{send}.\mathtt{pop}()$18:         $\mathtt{isHold}\leftarrow m^{\prime}.\mathtt{hold}$
+    $\triangleright$ 信号表示将本轮消息与下一轮合并19:         $H\leftarrow\{\}$ $\triangleright$
+    初始化当前深度下需要保留的消息映射20:         $d_{next}\leftarrow d+2$ 如果 $\mathtt{isHold}$ 为真，否则
+    $d+1$21:         当 $m^{\prime}$ 存在并且 $m^{\prime}.d<d_{next}$ 时，执行22:              如果
+    $m^{\prime}.\mathtt{hold}$，则 $H[m^{\prime}.\mathtt{name}]\leftarrow m^{\prime}.\mathtt{content}$23:              否则24:                  $S\leftarrow
+    m^{\prime}.\mathtt{name}$25:                  $M_{raw}\leftarrow m^{\prime}.\mathtt{content}\cup
+    H[S]$26:                  $t_{in}\leftarrow\mathcal{R}.\mathtt{modifyRawInput}(M_{raw})$27:                  $t_{out}\leftarrow\mathtt{sendText2Bot}(t_{in},S,d,\mathcal{T})$28:                  $t_{out}\leftarrow\mathcal{R}.\mathtt{validateOutput}(t_{in},t_{out},S,d)$29:                  $\mathcal{A^{\prime}}\leftarrow\mathcal{R}.\mathtt{getReceivers}(S,d)$
+    $\triangleright$ 获取新消息的接收者30:                  如果 $\mathcal{A^{\prime}}\neq\emptyset$，则31:                       $m_{new}\leftarrow\mathtt{genMessage}(t_{out},S,\mathcal{A^{\prime}},d_{next})$
+    $\triangleright$ （内容，发送者，接收者，深度）32:                       $Q_{msg}.\mathtt{push}(m_{new})$33:                  结束 如果34:              结束 如果35:              $m^{\prime}\leftarrow
+    Q_{send}.\mathtt{pop}()$36:          结束 当37:          如果 $\mathcal{R}.\mathtt{isOver}$，则跳出38:          结束 如果39:      结束 当40:结束 函数
+- en: Appendix C An CMD Example
+  id: totrans-247
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 C 一个 CMD 示例
+- en: In the upcoming demonstration, we’ll walk you through the CMD framework from
+    the viewpoint of agent A among six agents using ChatGPT-3.5.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在接下来的演示中，我们将从六个代理中的代理 A 的角度，向您展示 CMD 框架，使用的是 ChatGPT-3.5。
+- en: C.1 Meta Prompt
+  id: totrans-249
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.1 元提示
+- en: '|   System |'
+  id: totrans-250
+  prefs: []
+  type: TYPE_TB
+  zh: '|   系统 |'
+- en: '| You will be asked to answer a correctness verification task of a deductive
+    reasoing proposition. |'
+  id: totrans-251
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你将被要求回答一个关于推理命题正确性的验证任务。 |'
+- en: '| Use knowledge only comes from the given premises. |'
+  id: totrans-252
+  prefs: []
+  type: TYPE_TB
+  zh: '| 仅使用来自给定前提的知识。 |'
+- en: '| The suffix of your answer should be the your opinion of one of these answer
+    type: |'
+  id: totrans-253
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你的答案后缀应该是你对以下回答类型的意见： |'
+- en: '| 1\. [Correct], 2\. [Incorrect], 3\. [Unknown]. |'
+  id: totrans-254
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1\. [正确]，2\. [错误]，3\. [未知]。 |'
+- en: '| Do not omit the brackets. |'
+  id: totrans-255
+  prefs: []
+  type: TYPE_TB
+  zh: '| 不要省略括号。 |'
+- en: '|   |'
+  id: totrans-256
+  prefs: []
+  type: TYPE_TB
+  zh: '|   |'
+- en: 'Table 4: Vanilla Prompt'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格4：基础提示 |
+- en: C.2 Round 1 Answer
+  id: totrans-258
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.2 第一轮回答 |
+- en: '|   Assistant (ChatGPT-3.5) - Agent A |'
+  id: totrans-259
+  prefs: []
+  type: TYPE_TB
+  zh: '| 助手（ChatGPT-3.5）- 代理A |'
+- en: '| First let’s write down all the premises with labels: |'
+  id: totrans-260
+  prefs: []
+  type: TYPE_TB
+  zh: '| 首先，我们将所有前提和标签列出： |'
+- en: '| #1\. Neocrepidodera Corpulentas are flea beetles or moths. |'
+  id: totrans-261
+  prefs: []
+  type: TYPE_TB
+  zh: '| #1\. Neocrepidodera Corpulenta是跳蚤甲虫还是蛾子。 |'
+- en: '| #2\. The species Neocrepidodera Corpulenta is in the Chrysomelidae family.
+    |'
+  id: totrans-262
+  prefs: []
+  type: TYPE_TB
+  zh: '| #2\. 物种Neocrepidodera Corpulenta属于短翅甲科（Chrysomelidae）。 |'
+- en: '| #3\. There are no moths within the Chrysomelidae family. |'
+  id: totrans-263
+  prefs: []
+  type: TYPE_TB
+  zh: '| #3\. 短翅甲科内没有蛾子。 |'
+- en: '| Next, let’s answer the question step by step with reference to the question
+    and reasoning process: |'
+  id: totrans-264
+  prefs: []
+  type: TYPE_TB
+  zh: '| 接下来，我们将一步一步地参考问题和推理过程来回答问题： |'
+- en: '| #4\. (by #1, #2) Neocrepidodera Corpulenta is either a flea beetle or a moth,
+    and it is in the Chrysomelidae family. |'
+  id: totrans-265
+  prefs: []
+  type: TYPE_TB
+  zh: '| #4\. （由#1，#2得出）Neocrepidodera Corpulenta要么是跳蚤甲虫，要么是蛾子，并且它属于短翅甲科。 |'
+- en: '| #5\. (by #3, #4) Since there are no moths within the Chrysomelidae family,
+    Neocrepidodera Corpulenta must be a flea beetle. |'
+  id: totrans-266
+  prefs: []
+  type: TYPE_TB
+  zh: '| #5\. （由#3，#4得出）由于短翅甲科中没有蛾子，Neocrepidodera Corpulenta必须是跳蚤甲虫。 |'
+- en: '| Final Step (by #5): Neocrepidodera Corpulenta is a flea beetle, so the proposition
+    “There are no flea beetles within the Chrysomelidae family” is [Incorrect]. |'
+  id: totrans-267
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终步骤（由#5得出）：Neocrepidodera Corpulenta是跳蚤甲虫，因此命题“短翅甲科内没有跳蚤甲虫”是[错误]的。 |'
+- en: '|   |'
+  id: totrans-268
+  prefs: []
+  type: TYPE_TB
+  zh: '|   |'
+- en: 'Table 5: The Answer of Agent A in Round 1'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格5：代理A在第一轮中的答案 |
+- en: C.3 Middle System and User Prompts in Round 1
+  id: totrans-270
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.3 第一轮中的中间系统和用户提示 |
+- en: '|   System |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '|   系统 |'
+- en: '| There are 2 groups of people discussing on the same topic. I will provide
+    you the detailed opinions and reasoning steps from your group member and opinions
+    from other group members. Use these opinions and your previous opinion as additional
+    advice, note that they maybe wrong. Do not copy other’s entire answer, modify
+    the part you believe is wrong. |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| 有2个小组正在讨论同一主题。我将提供来自你小组成员的详细意见和推理步骤，以及其他小组成员的意见。请根据这些意见以及你之前的意见作为额外建议，注意它们可能是错误的。不要复制他人的完整答案，修改你认为错误的部分。
+    |'
+- en: '| Other group members’ opinions: |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 其他组员的意见： |'
+- en: '| Three agents think the proposition is Incorrect. |'
+  id: totrans-274
+  prefs: []
+  type: TYPE_TB
+  zh: '| 三名代理认为命题是错误的。 |'
+- en: '| Your group’s opinions: |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你们小组的意见： |'
+- en: '| One agent thinks the proposition is Correct. Below is his answer: |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 一名代理认为命题是正确的。以下是他的回答： |'
+- en: '| First let’s write down all the premises with labels: |'
+  id: totrans-277
+  prefs: []
+  type: TYPE_TB
+  zh: '| 首先，我们将所有前提和标签列出： |'
+- en: '| $\cdots$ |'
+  id: totrans-278
+  prefs: []
+  type: TYPE_TB
+  zh: '| $\cdots$ |'
+- en: '| Next, let’s answer the question step by step with reference to the question
+    and reasoning process: |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| 接下来，我们将一步一步地参考问题和推理过程来回答问题： |'
+- en: '| #4\. (by #1, #2) Neocrepidodera Corpulenta is either a flea beetle or a moth,
+    and it is in the Chrysomelidae family. |'
+  id: totrans-280
+  prefs: []
+  type: TYPE_TB
+  zh: '| #4\. （由#1，#2得出）Neocrepidodera Corpulenta要么是跳蚤甲虫，要么是蛾子，并且它属于短翅甲科。 |'
+- en: '| #5\. (by #3) There are no moths within the Chrysomelidae family. |'
+  id: totrans-281
+  prefs: []
+  type: TYPE_TB
+  zh: '| #5\. （由#3得出）短翅甲科内没有蛾子。 |'
+- en: '| #6\. (by #4, #5) Neocrepidodera Corpulenta cannot be a moth because there
+    are no moths in the Chrysomelidae family. |'
+  id: totrans-282
+  prefs: []
+  type: TYPE_TB
+  zh: '| #6\. （由#4，#5得出）Neocrepidodera Corpulenta不能是蛾子，因为短翅甲科内没有蛾子。 |'
+- en: '| Final Step (by #6): The proposition “There are no flea beetles within the
+    Chrysomelidae family” is [Correct] because Neocrepidodera Corpulenta, which is
+    in the Chrysomelidae family, cannot be a moth according to premise #5. |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终步骤（由#6得出）：命题“短翅甲科内没有跳蚤甲虫”是[正确]的，因为Neocrepidodera Corpulenta属于短翅甲科，且根据前提#5，它不能是蛾子。
+    |'
+- en: '| One agent thinks the proposition is Incorrect. Below is his answer: |'
+  id: totrans-284
+  prefs: []
+  type: TYPE_TB
+  zh: '| 一名代理认为命题是错误的。以下是他的回答： |'
+- en: '| $\cdots$ |'
+  id: totrans-285
+  prefs: []
+  type: TYPE_TB
+  zh: '| $\cdots$ |'
+- en: '| Next, let’s answer the question step by step with reference to the question
+    and reasoning process: |'
+  id: totrans-286
+  prefs: []
+  type: TYPE_TB
+  zh: '| 接下来，我们将一步一步地参考问题和推理过程来回答问题： |'
+- en: '| #4\. (by #1, #2) Neocrepidodera Corpulenta is a species of Neocrepidodera
+    Corpulentas, so it is either a flea beetle or a moth. |'
+  id: totrans-287
+  prefs: []
+  type: TYPE_TB
+  zh: '| #4\. （由#1，#2得出）Neocrepidodera Corpulenta是Neocrepidodera Corpulenta物种的一部分，因此它要么是跳蚤甲虫，要么是蛾子。
+    |'
+- en: '| #5\. (by #3, #4) Since there are no moths within the Chrysomelidae family,
+    Neocrepidodera Corpulenta must be a flea beetle. |'
+  id: totrans-288
+  prefs: []
+  type: TYPE_TB
+  zh: '| #5\. （由 #3，#4 提出）由于叶甲科中没有蛾子，Neocrepidodera Corpulenta 必须是跳蚤甲虫。 |'
+- en: '| Final Step (by #5): The proposition states that there are no flea beetles
+    within the Chrysomelidae family. However, from premise #2, we know that Neocrepidodera
+    Corpulenta, which is a flea beetle, is in the Chrysomelidae family. Therefore,
+    the proposition is [Incorrect]. |'
+  id: totrans-289
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终步骤（由 #5 提出）：命题声明叶甲科中没有跳蚤甲虫。然而，依据前提 #2，我们知道 Neocrepidodera Corpulenta 作为跳蚤甲虫，属于叶甲科。因此，命题是[错误]的。
+    |'
+- en: '| User |'
+  id: totrans-290
+  prefs: []
+  type: TYPE_TB
+  zh: '| 用户 |'
+- en: '| Use the provided opinions and your previous answer as additional advice critically,
+    please provide an updated answer. Make sure to state your opinion over proposition
+    at the end of the response in the given format: [Correct], [Incorrect] or [Unknown],
+    and such format should be only used to determine the correctness of the proposition.
+    |'
+  id: totrans-291
+  prefs: []
+  type: TYPE_TB
+  zh: '| 请批判性地使用提供的意见和你之前的回答作为额外的建议，提供更新后的回答。确保在回答的最后按给定格式说明你对命题的看法：[正确]、[错误]或[未知]，此格式仅用于确定命题的正确性。
+    |'
+- en: '|   |'
+  id: totrans-292
+  prefs: []
+  type: TYPE_TB
+  zh: '|   |'
+- en: 'Table 6: Middle System Prompt at the End of Round 1'
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6：第二轮结束时的中间系统提示
+- en: C.4 Round 2 Answer
+  id: totrans-294
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.4 第二轮回答
+- en: '|   Assistant (ChatGPT-3.5) - Agent A |'
+  id: totrans-295
+  prefs: []
+  type: TYPE_TB
+  zh: '|   助手（ChatGPT-3.5）- 代理人 A |'
+- en: '| Based on the opinions provided by the other group members and my previous
+    answer, I will critically evaluate the reasoning steps and provide an updated
+    answer. |'
+  id: totrans-296
+  prefs: []
+  type: TYPE_TB
+  zh: '| 根据其他组员提供的意见和我之前的回答，我将批判性地评估推理步骤，并提供更新后的回答。 |'
+- en: '| The first agent from my group argues that the proposition is correct. Their
+    reasoning is as follows: |'
+  id: totrans-297
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我的组中的第一个代理人认为命题是正确的。他们的推理如下： |'
+- en: '| #4\. (by #1, #2) Neocrepidodera Corpulenta is either a flea beetle or a moth,
+    and it is in the Chrysomelidae family. |'
+  id: totrans-298
+  prefs: []
+  type: TYPE_TB
+  zh: '| #4\. （由 #1，#2 提出）Neocrepidodera Corpulenta 要么是跳蚤甲虫，要么是蛾子，并且它属于叶甲科。 |'
+- en: '| #5\. (by #3) There are no moths within the Chrysomelidae family. |'
+  id: totrans-299
+  prefs: []
+  type: TYPE_TB
+  zh: '| #5\. （由 #3 提出）叶甲科中没有蛾子。 |'
+- en: '| #6\. (by #4, #5) Neocrepidodera Corpulenta cannot be a moth because there
+    are no moths in the Chrysomelidae family. |'
+  id: totrans-300
+  prefs: []
+  type: TYPE_TB
+  zh: '| #6\. （由 #4，#5 提出）Neocrepidodera Corpulenta 不能是蛾子，因为叶甲科中没有蛾子。 |'
+- en: '| Final Step (by #6): The proposition “There are no flea beetles within the
+    Chrysomelidae family” is [Correct] because Neocrepidodera Corpulenta, which is
+    in the Chrysomelidae family, cannot be a moth according to premise #5. |'
+  id: totrans-301
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终步骤（由 #6 提出）：命题“叶甲科中没有跳蚤甲虫”是[正确]的，因为根据前提 #5，Neocrepidodera Corpulenta 作为属于叶甲科的物种，不能是蛾子。
+    |'
+- en: '| The second agent from my group argues that the proposition is incorrect.
+    Their reasoning is as follows: |'
+  id: totrans-302
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我的组中的第二个代理人认为这个命题是错误的。他们的推理如下： |'
+- en: '| #4\. (by #1, #2) Neocrepidodera Corpulenta is a species of Neocrepidodera
+    Corpulentas, so it is either a flea beetle or a moth. |'
+  id: totrans-303
+  prefs: []
+  type: TYPE_TB
+  zh: '| #4\. （由 #1，#2 提出）Neocrepidodera Corpulenta 是一种 Neocrepidodera Corpulenta
+    物种，所以它要么是跳蚤甲虫，要么是蛾子。 |'
+- en: '| #5\. (by #3, #4) Since there are no moths within the Chrysomelidae family,
+    Neocrepidodera Corpulenta must be a flea beetle. |'
+  id: totrans-304
+  prefs: []
+  type: TYPE_TB
+  zh: '| #5\. （由 #3，#4 提出）由于叶甲科中没有蛾子，Neocrepidodera Corpulenta 必须是跳蚤甲虫。 |'
+- en: '| Final Step (by #5): The proposition states that there are no flea beetles
+    within the Chrysomelidae family. However, from premise #2, we know that Neocrepidodera
+    Corpulenta, which is a flea beetle, is in the Chrysomelidae family. Therefore,
+    the proposition is [Incorrect]. |'
+  id: totrans-305
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终步骤（由 #5 提出）：命题声明叶甲科中没有跳蚤甲虫。然而，依据前提 #2，我们知道 Neocrepidodera Corpulenta 作为跳蚤甲虫，属于叶甲科。因此，命题是[错误]的。
+    |'
+- en: '| After critically evaluating the reasoning steps, I agree with the second
+    agent from my group that the proposition is incorrect. Neocrepidodera Corpulenta
+    is a species of Neocrepidodera Corpulentas, which are either flea beetles or moths
+    according to premise #1\. Since Neocrepidodera Corpulenta is in the Chrysomelidae
+    family according to premise #2, it cannot be concluded that there are no flea
+    beetles within the Chrysomelidae family. Therefore, the proposition is [Incorrect].
+    |'
+  id: totrans-306
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在批判性评估推理步骤后，我同意我的组中第二个代理人的观点，认为该命题是错误的。根据前提 #1，Neocrepidodera Corpulenta
+    是一种 Neocrepidodera Corpulenta 物种，这些物种要么是跳蚤甲虫，要么是蛾子。由于根据前提 #2，Neocrepidodera Corpulenta
+    属于叶甲科，因此不能得出叶甲科中没有跳蚤甲虫的结论。因此，该命题是[错误]的。 |'
+- en: '|   |'
+  id: totrans-307
+  prefs: []
+  type: TYPE_TB
+  zh: '|   |'
+- en: 'Table 7: The Answer of Agent A in Round 2'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7：代理人 A 在第二轮的回答
+- en: C.5 Middle System Prompt at the End of Round 2
+  id: totrans-309
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.5 第二轮结束时的中间系统提示
+- en: '|   System |'
+  id: totrans-310
+  prefs: []
+  type: TYPE_TB
+  zh: '|   系统 |'
+- en: '| There are 2 groups of people discussing on the same topic. I will provide
+    you the detailed opinions and reasoning steps from your group member and opinions
+    from other group members. Use these opinions and your previous opinion as additional
+    advice, note that they maybe wrong. Do not copy other’s entire answer, modify
+    the part you believe is wrong. |'
+  id: totrans-311
+  prefs: []
+  type: TYPE_TB
+  zh: '| 有2组人在讨论相同的话题。我将提供你所在小组成员的详细意见和推理步骤，以及其他组员的意见。请使用这些意见以及你之前的意见作为额外参考，注意它们可能是错误的。不要照搬其他人的完整答案，修改你认为错误的部分。
+    |'
+- en: '| Other group members’ opinions: |'
+  id: totrans-312
+  prefs: []
+  type: TYPE_TB
+  zh: '| 其他组员的意见： |'
+- en: '| Three agents think the proposition is Incorrect. |'
+  id: totrans-313
+  prefs: []
+  type: TYPE_TB
+  zh: '| 三个代理人认为该命题是错误的。 |'
+- en: '| Your group’s opinions: |'
+  id: totrans-314
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你所在小组的意见： |'
+- en: '| Two agents think the proposition is Incorrect. Below are their answers: |'
+  id: totrans-315
+  prefs: []
+  type: TYPE_TB
+  zh: '| 两个代理人认为该命题是错误的。以下是他们的回答： |'
+- en: '| $\cdots$ |'
+  id: totrans-316
+  prefs: []
+  type: TYPE_TB
+  zh: '| $\cdots$ |'
+- en: '| User |'
+  id: totrans-317
+  prefs: []
+  type: TYPE_TB
+  zh: '| 用户 |'
+- en: '| This part is the same user part shown in table [6](https://arxiv.org/html/2402.18272v1#A3.T6
+    "Table 6 ‣ C.3 Middle System and User Prompts in Round 1 ‣ Appendix C An CMD Example
+    ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?").
+    |'
+  id: totrans-318
+  prefs: []
+  type: TYPE_TB
+  zh: '| 这部分与表[6](https://arxiv.org/html/2402.18272v1#A3.T6 "表6 ‣ C.3 第一轮中的中间系统和用户提示
+    ‣ 附录C 一个CMD示例 ‣ 重新思考大语言模型推理的边界：多代理人讨论是关键吗？")中展示的用户部分相同。 |'
+- en: '|   |'
+  id: totrans-319
+  prefs: []
+  type: TYPE_TB
+  zh: '|   |'
+- en: 'Table 8: Middle System Prompt at the End of Round 2'
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表8：第二轮结束时的中间系统提示
+- en: C.6 Round 3 Answer
+  id: totrans-321
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.6 第3轮回答
+- en: '|   Assistant (ChatGPT-3.5) - Agent A |'
+  id: totrans-322
+  prefs: []
+  type: TYPE_TB
+  zh: '| 助手（ChatGPT-3.5）- 代理人A |'
+- en: '| Based on the opinions provided by the other group members and my previous
+    answer, here is an updated response: |'
+  id: totrans-323
+  prefs: []
+  type: TYPE_TB
+  zh: '| 根据其他组员提供的意见和我之前的回答，以下是更新后的回应： |'
+- en: '| First, let’s write down all the premises with labels: |'
+  id: totrans-324
+  prefs: []
+  type: TYPE_TB
+  zh: '| 首先，让我们写下所有带标签的前提： |'
+- en: '| #1\. Neocrepidodera Corpulentas are flea beetles or moths. |'
+  id: totrans-325
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第1步：Neocrepidodera Corpulenta 是跳蚤甲虫或蛾子。 |'
+- en: '| #2\. The species Neocrepidodera Corpulenta is in the Chrysomelidae family.
+    |'
+  id: totrans-326
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第2步：物种 Neocrepidodera Corpulenta 属于叶甲科。 |'
+- en: '| #3\. There are no moths within the Chrysomelidae family. |'
+  id: totrans-327
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第3步：叶甲科内没有蛾子。 |'
+- en: '| Next, let’s answer the question step by step with reference to the question
+    and reasoning process: |'
+  id: totrans-328
+  prefs: []
+  type: TYPE_TB
+  zh: '| 接下来，让我们逐步回答这个问题，参考问题和推理过程： |'
+- en: '| #4\. (by #1, #2) Neocrepidodera Corpulenta is either a flea beetle or a moth,
+    and it is in the Chrysomelidae family. |'
+  id: totrans-329
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第4步（第1步，第2步）：Neocrepidodera Corpulenta 要么是跳蚤甲虫，要么是蛾子，且它属于叶甲科。 |'
+- en: '| #5\. (by #3) There are no moths within the Chrysomelidae family. |'
+  id: totrans-330
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第5步（第3步）：叶甲科内没有蛾子。 |'
+- en: '| #6\. (by #4, #5) Neocrepidodera Corpulenta cannot be a moth because there
+    are no moths in the Chrysomelidae family. |'
+  id: totrans-331
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第6步（第4步，第5步）：Neocrepidodera Corpulenta 不能是蛾子，因为叶甲科内没有蛾子。 |'
+- en: '| Final Step (by #6): The proposition “There are no flea beetles within the
+    Chrysomelidae family” contradicts the given premises, as Neocrepidodera Corpulenta,
+    which is in the Chrysomelidae family, is a flea beetle. Therefore, the proposition
+    is [Incorrect]. |'
+  id: totrans-332
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终步骤（第6步）：命题“在叶甲科内没有跳蚤甲虫”与给定的前提相矛盾，因为叶甲科中的 Neocrepidodera Corpulenta 是跳蚤甲虫。因此，命题是[错误的]。
+    |'
+- en: '| After critically evaluating the reasoning steps and considering the opinions
+    provided by the other group members, I agree that the proposition is [Incorrect].
+    The given premises state that Neocrepidodera Corpulenta is in the Chrysomelidae
+    family and that it is either a flea beetle or a moth. Since there are no moths
+    within the Chrysomelidae family, it can be concluded that Neocrepidodera Corpulenta
+    must be a flea beetle. Therefore, the proposition “There are no flea beetles within
+    the Chrysomelidae family” contradicts the given premises. |'
+  id: totrans-333
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在对推理步骤进行批判性评估，并考虑到其他组员提供的意见后，我同意该命题是[错误的]。给定的前提指出，Neocrepidodera Corpulenta
+    属于叶甲科，且它要么是跳蚤甲虫，要么是蛾子。由于叶甲科中没有蛾子，可以得出结论，Neocrepidodera Corpulenta 必须是跳蚤甲虫。因此，命题“在叶甲科内没有跳蚤甲虫”与给定的前提相矛盾。
+    |'
+- en: '|   |'
+  id: totrans-334
+  prefs: []
+  type: TYPE_TB
+  zh: '|   |'
+- en: 'Table 9: The Answer of Agent A in Round 3'
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表9：代理人A在第3轮的回答
+- en: Appendix D CMD Secretary - A Tie Case Solution
+  id: totrans-336
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录D CMD秘书 - 平局情况解决方案
+- en: 'In the event of a tie between two groups, we suggest employing a secretary
+    to resolve such cases. The complete chat transcript below in table [10](https://arxiv.org/html/2402.18272v1#A4.T10
+    "Table 10 ‣ Appendix D CMD Secretary - A Tie Case Solution ‣ Rethinking the Bounds
+    of LLM Reasoning: Are Multi-Agent Discussions the Key?") illustrates a scenario
+    where the secretary provides the ultimate resolution.'
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '| 如果两组之间出现平局，我们建议聘用一名秘书来解决这种情况。下面的完整聊天记录表格[10](https://arxiv.org/html/2402.18272v1#A4.T10
+    "表10 ‣ 附录D CMD秘书 - 平局解决 ‣ 重新思考LLM推理的界限：多代理讨论是关键吗？")展示了秘书提供最终决策的情景。 |'
+- en: '|   System |'
+  id: totrans-338
+  prefs: []
+  type: TYPE_TB
+  zh: '|   系统 |'
+- en: '| 6 agents are discussing the correctness of a proposition based on the given
+    premises. The given premises are: $\cdots$ The proposition is: “IBM has an office
+    in London or Zurich.” |'
+  id: totrans-339
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6个代理正在根据给定的前提讨论一个命题的正确性。给定的前提是：$\cdots$ 这个命题是：“IBM在伦敦或苏黎世有办公室。” |'
+- en: '| However, now there is a draw: |'
+  id: totrans-340
+  prefs: []
+  type: TYPE_TB
+  zh: '| 然而，现在出现了平局： |'
+- en: '| Three agents think the proposition is Correct. Below is one of their answers:
+    $\cdots$ |'
+  id: totrans-341
+  prefs: []
+  type: TYPE_TB
+  zh: '| 三个代理认为这个命题是正确的。以下是他们其中一个答案：$\cdots$ |'
+- en: '| Three agents think the proposition is Unknown. Below is one of their answers:
+    $\cdots$ |'
+  id: totrans-342
+  prefs: []
+  type: TYPE_TB
+  zh: '| 三个代理认为这个命题是未知的。以下是他们其中一个答案：$\cdots$ |'
+- en: '| User |'
+  id: totrans-343
+  prefs: []
+  type: TYPE_TB
+  zh: '| 用户 |'
+- en: '| Your task is to carefully determine which opinion is more plausible. Answer
+    opinion types are: [Correct], [Incorrect], [Unknown]. You should give your response
+    in the required format. You are forbidden to copy others’ reasoning steps. You
+    can only use the given premises and your reasoning steps to answer the question.
+    |'
+  id: totrans-344
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你的任务是仔细判断哪个观点更有可能是正确的。答案类型有：[正确]，[错误]，[未知]。你应按要求的格式回答问题。禁止复制他人的推理步骤。你只能使用给定的前提和自己的推理步骤来回答问题。
+    |'
+- en: '| Here are the instructions how you organize your answer format: |'
+  id: totrans-345
+  prefs: []
+  type: TYPE_TB
+  zh: '| 以下是如何组织你的答案格式的说明： |'
+- en: '| First, let’s write down all the premises with labels. The labels look like
+    “#{premise_number}.” |'
+  id: totrans-346
+  prefs: []
+  type: TYPE_TB
+  zh: '| 首先，让我们将所有前提写下来，并加上标签。这些标签看起来像“#{premise_number}”。 |'
+- en: '| Next, let’s answer the question step by step with reference to the question
+    and reasoing process. There will be a prefix in your every reasoning step with
+    the format “#{number} (by {list_of_premises_and_steps_used})”. In your final step,
+    you should come to your conclusion with the format “Final Step (by {list_of_premises_and_steps_used}):”.
+    |'
+  id: totrans-347
+  prefs: []
+  type: TYPE_TB
+  zh: '| 接下来，让我们参考问题和推理过程，逐步回答问题。在你的每一步推理中，都要加上前缀，格式为“#{number}（由{list_of_premises_and_steps_used}提供）”。在最后一步，你应该以“最终步骤（由{list_of_premises_and_steps_used}提供）”的格式得出结论。
+    |'
+- en: '| The suffix of your answer should be the answer type: [Correct], [Incorrect]
+    or [Unknown]. |'
+  id: totrans-348
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你的回答末尾应该是答案类型：[正确]，[错误] 或 [未知]。 |'
+- en: '| Here are several hints to help you conclude the final answer: |'
+  id: totrans-349
+  prefs: []
+  type: TYPE_TB
+  zh: '| 以下是一些提示，帮助你得出最终答案： |'
+- en: '| 1\. Pay attention to the logic of quantifiers and distinguish the meanings
+    of quantifiers such as “all” and “some”. |'
+  id: totrans-350
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1\. 注意量词的逻辑，并区分“所有”和“某些”等量词的意义。 |'
+- en: '| 2\. When two quantifiers are connected as the premise of existence, the conclusion
+    may not be established, that is, it is unknown. |'
+  id: totrans-351
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2\. 当两个量词作为存在的前提连接时，结论可能无法成立，也就是说，结果是未知的。 |'
+- en: '| Assistant (ChatGPT-3.5) - Secretary |'
+  id: totrans-352
+  prefs: []
+  type: TYPE_TB
+  zh: '| 助手（ChatGPT-3.5）- 秘书 |'
+- en: '| First, let’s write down all the premises with labels: |'
+  id: totrans-353
+  prefs: []
+  type: TYPE_TB
+  zh: '| 首先，让我们将所有前提写下来，并加上标签： |'
+- en: '| #1\. Evangelos Eleftheriou is a Greek electrical engineer. |'
+  id: totrans-354
+  prefs: []
+  type: TYPE_TB
+  zh: '| #1\. Evangelos Eleftheriou是一位希腊电气工程师。 |'
+- en: '| #2\. Evangelos Eleftheriou worked for IBM in Zurich. |'
+  id: totrans-355
+  prefs: []
+  type: TYPE_TB
+  zh: '| #2\. Evangelos Eleftheriou曾在苏黎世为IBM工作。 |'
+- en: '| #3\. If a company has employees working for them somewhere, then they have
+    an office there. |'
+  id: totrans-356
+  prefs: []
+  type: TYPE_TB
+  zh: '| #3\. 如果一家公司在某地有员工为其工作，那么它在那里就有办公室。 |'
+- en: '| #4\. IBM is a company. |'
+  id: totrans-357
+  prefs: []
+  type: TYPE_TB
+  zh: '| #4\. IBM是一家公司。 |'
+- en: '| Next, let’s answer the question step by step with reference to the question
+    and reasoning process: |'
+  id: totrans-358
+  prefs: []
+  type: TYPE_TB
+  zh: '| 接下来，让我们参考问题和推理过程，逐步回答问题： |'
+- en: '| #5 (by #4, #3) Since IBM is a company, and according to premise #3, if a
+    company has employees working for them somewhere, then they have an office there.
+    Therefore, IBM has an office in Zurich. |'
+  id: totrans-359
+  prefs: []
+  type: TYPE_TB
+  zh: '| #5（由#4，#3提供）由于IBM是一家公司，根据前提#3，如果一家公司在某地有员工在为其工作，那么它在那里就有办公室。因此，IBM在苏黎世有办公室。
+    |'
+- en: '| Now, let’s consider the opinions of the other group members: |'
+  id: totrans-360
+  prefs: []
+  type: TYPE_TB
+  zh: '| 现在，让我们考虑其他组员的意见： |'
+- en: '| - One agent thinks the proposition is Correct. |'
+  id: totrans-361
+  prefs: []
+  type: TYPE_TB
+  zh: '| - 一名代理认为这个命题是正确的。 |'
+- en: '| - Two agents think the proposition is Unknown. |'
+  id: totrans-362
+  prefs: []
+  type: TYPE_TB
+  zh: '| - 两个代理认为这个命题是未知的。 |'
+- en: '| Considering the opinions of the other group members, there is disagreement
+    regarding the correctness of the proposition. However, based on the premises and
+    the reasoning process, it can be concluded that IBM has an office in Zurich. |'
+  id: totrans-363
+  prefs: []
+  type: TYPE_TB
+  zh: '| 考虑到其他小组成员的意见，关于命题的正确性存在分歧。然而，根据前提和推理过程，可以得出结论：IBM在苏黎世有办公室。|'
+- en: '| Final Step (by #5): Since IBM has an office in Zurich, the proposition “IBM
+    has an office in London or Zurich” is [Correct]. |'
+  id: totrans-364
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终步骤（第5步）：由于IBM在苏黎世有办公室，命题“IBM在伦敦或苏黎世有办公室”是[正确的]。|'
+- en: '|   |'
+  id: totrans-365
+  prefs: []
+  type: TYPE_TB
+  zh: '|   |'
+- en: 'Table 10: Secretary to solve a tie case.'
+  id: totrans-366
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格10：秘书解决平局案例。
+- en: Appendix E Extended Related Work
+  id: totrans-367
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录E 扩展相关工作
+- en: E.1 Large language models $\mathcal{L}$
+  id: totrans-368
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: E.1 大语言模型 $\mathcal{L}$
+- en: With the advent of large language models (LLMs) like GPT-3 (Brown et al., [2020](https://arxiv.org/html/2402.18272v1#bib.bib5)),
+    chatGPT (OpenAI, [2022](https://arxiv.org/html/2402.18272v1#bib.bib30)), GPT-4
+    (OpenAI, [2023](https://arxiv.org/html/2402.18272v1#bib.bib31)), Llama series
+    (Touvron et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib37), [b](https://arxiv.org/html/2402.18272v1#bib.bib38))
+    and PaLM 2 (Anil et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib3)),
+    prompt engineering is a burgeoning field that focuses on optimizing the output
+    of language models by crafting effective input prompts.
+  id: totrans-369
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着像GPT-3（Brown等人，[2020](https://arxiv.org/html/2402.18272v1#bib.bib5)）、chatGPT（OpenAI，[2022](https://arxiv.org/html/2402.18272v1#bib.bib30)）、GPT-4（OpenAI，[2023](https://arxiv.org/html/2402.18272v1#bib.bib31)）、Llama系列（Touvron等人，[2023a](https://arxiv.org/html/2402.18272v1#bib.bib37)，[b](https://arxiv.org/html/2402.18272v1#bib.bib38)）和PaLM
+    2（Anil等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib3)）等大型语言模型的出现，提示工程成为一个蓬勃发展的领域，旨在通过精心设计有效的输入提示来优化语言模型的输出。
+- en: E.2 Prompt decorator $p(\cdot;\mathcal{T},\mathcal{L})$ for reasoning
+  id: totrans-370
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: E.2 推理提示装饰器 $p(\cdot;\mathcal{T},\mathcal{L})$
+- en: Numerous advancements have been made in the field of improving reasoning abilities
+    of LLMs with prompt engineering. Chain of Thought (CoT) (Wei et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib41);
+    Kojima et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib19)) is a linear
+    problem-solving approach where each step builds upon the previous one. Fu et al.
+    ([2022](https://arxiv.org/html/2402.18272v1#bib.bib15)) propose to apply CoT to
+    multi-step reasoning tasks. To automate the CoT, Auto-CoT (Zhang et al., [2022b](https://arxiv.org/html/2402.18272v1#bib.bib55))
+    constructs demonstrations by sampling diverse questions and generating reasoning
+    chains. Active-Prompt (Diao et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib12))
+    aims to select the most uncertain questions for task-specific annotations. Other
+    prompt strategies include PS prompt (Wang et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib39))
+    which divides task into subtasks then solve them, effective GoT (Yao et al., [2023b](https://arxiv.org/html/2402.18272v1#bib.bib50))
+    which models human thought processes as a graph rather than a chain, Natural Program
+    (Ling et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib23)) which helps
+    to improve the deductive reasoning tasks, re-reading prompt (Xu et al., [2023b](https://arxiv.org/html/2402.18272v1#bib.bib46))
+    which revisits the question information embedded within input prompts.
+  id: totrans-371
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在提升大语言模型（LLM）推理能力的领域中，提示工程取得了众多进展。思维链（Chain of Thought，CoT）（Wei等人，[2022](https://arxiv.org/html/2402.18272v1#bib.bib41);
+    Kojima等人，[2022](https://arxiv.org/html/2402.18272v1#bib.bib19)）是一种线性的解决问题方法，每一步都建立在前一步的基础上。Fu等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib15)）建议将CoT应用于多步骤推理任务。为了自动化思维链，Auto-CoT（Zhang等人，[2022b](https://arxiv.org/html/2402.18272v1#bib.bib55)）通过采样多样化问题并生成推理链来构建示范。Active-Prompt（Diao等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib12)）旨在选择最不确定的问题进行任务特定注解。其他提示策略包括PS提示（Wang等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib39)），它将任务分解为子任务然后逐一解决；有效的GoT（Yao等人，[2023b](https://arxiv.org/html/2402.18272v1#bib.bib50)），它将人类思维过程建模为图而不是链；自然程序（Natural
+    Program，Ling等人，[2023](https://arxiv.org/html/2402.18272v1#bib.bib23)），它有助于提高演绎推理任务的能力；重读提示（Xu等人，[2023b](https://arxiv.org/html/2402.18272v1#bib.bib46)），它重新审视输入提示中包含的提问信息。
+- en: E.3 Mechanism $\mathcal{M}$ for reasoning
+  id: totrans-372
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: E.3 推理机制 $\mathcal{M}$
+- en: In addition to focusing on the design of prompts themselves, some works incorporate
+    different mechanisms to assist language models in reasoning.
+  id: totrans-373
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了专注于提示设计本身，一些研究还结合了不同的机制来帮助语言模型进行推理。
+- en: 'The design directions of these mechanisms include: 1\. Breaking down the reasoning
+    process into multiple stages, with possible verification at each stage. 2\. Optimizing
+    the reasoning process via ensemble methods. 3\. Iteratively prompting the model
+    for reflection and correction. 4\. Utilizing external tools to aid in reasoning.
+    These approaches aim to enhance the overall reasoning capabilities of language
+    models by introducing additional support and guidance throughout the process.'
+  id: totrans-374
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些机制的设计方向包括：1. 将推理过程分解为多个阶段，每个阶段可能进行验证。2. 通过集成方法优化推理过程。3. 迭代提示模型进行反思和纠正。4. 利用外部工具辅助推理。这些方法旨在通过在整个过程中引入额外的支持和指导，提升语言模型的整体推理能力。
+- en: Break Down the Reasoning Process into Multiple Stages. Self-Polish (Xi et al.,
+    [2023](https://arxiv.org/html/2402.18272v1#bib.bib44)) make models to progressively
+    refine given problems with multiple stages of prompts. Additionally, some works
+    (Khot et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib18); Press et al.,
+    [2022](https://arxiv.org/html/2402.18272v1#bib.bib32); Dua et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib14);
+    Zhang et al., [2023b](https://arxiv.org/html/2402.18272v1#bib.bib54)) study over
+    decomposing the tasks into smaller tasks, and use an individual prompt to solve
+    each subtask.
+  id: totrans-375
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将推理过程分解为多个阶段。Self-Polish（Xi 等， [2023](https://arxiv.org/html/2402.18272v1#bib.bib44)）通过多阶段提示逐步完善给定的问题。此外，一些研究（Khot
+    等， [2022](https://arxiv.org/html/2402.18272v1#bib.bib18)；Press 等， [2022](https://arxiv.org/html/2402.18272v1#bib.bib32)；Dua
+    等， [2022](https://arxiv.org/html/2402.18272v1#bib.bib14)；Zhang 等， [2023b](https://arxiv.org/html/2402.18272v1#bib.bib54)）研究了将任务分解为更小的子任务，并使用单独的提示来解决每个子任务。
+- en: 'Optimize the Reasoning Process via Ensemble Methods. Tree of Thoughts (ToT)
+    (Yao et al., [2023a](https://arxiv.org/html/2402.18272v1#bib.bib49)) expands on
+    the reasoning process by considering multiple paths of reasoning and self-evaluating
+    choices. Graph of Thoughts (GoT) (Besta et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib4))
+    further advances this by modeling information as an arbitrary graph, enabling
+    complex networks of thoughts. And some works propose to first sample reasoning
+    pathsvthen vote for the best one, including self-consistency (Wang et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib40))
+    and step-aware verifier (Li et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib21)).
+    Discussion Engineering is also one category of ensemble methods. We leave it to
+    section [7](https://arxiv.org/html/2402.18272v1#S7 "7 Related Work ‣ Rethinking
+    the Bounds of LLM Reasoning: Are Multi-Agent Discussions the Key?") for further
+    introduction.'
+  id: totrans-376
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '通过集成方法优化推理过程。Tree of Thoughts（ToT）（Yao 等， [2023a](https://arxiv.org/html/2402.18272v1#bib.bib49)）通过考虑多条推理路径并自我评估选择，扩展了推理过程。Graph
+    of Thoughts（GoT）（Besta 等， [2023](https://arxiv.org/html/2402.18272v1#bib.bib4)）进一步通过将信息建模为任意图形来推动这一进展，从而实现复杂的思维网络。还有一些研究提出先对推理路径进行采样，然后投票选出最佳路径，包括自我一致性（Wang
+    等， [2022](https://arxiv.org/html/2402.18272v1#bib.bib40)）和基于步骤的验证器（Li 等， [2022](https://arxiv.org/html/2402.18272v1#bib.bib21)）。讨论工程也是集成方法的一种类型。我们将在第[7](https://arxiv.org/html/2402.18272v1#S7
+    "7 Related Work ‣ Rethinking the Bounds of LLM Reasoning: Are Multi-Agent Discussions
+    the Key?")节进一步介绍。'
+- en: Iteratively Prompt the Model for Reflection and Correction. These works (Zelikman
+    et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib51); Weng et al., [2022](https://arxiv.org/html/2402.18272v1#bib.bib43);
+    Shinn et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib34); Madaan et al.,
+    [2023](https://arxiv.org/html/2402.18272v1#bib.bib27); Chen et al., [2023b](https://arxiv.org/html/2402.18272v1#bib.bib8);
+    Xue et al., [2023](https://arxiv.org/html/2402.18272v1#bib.bib47)) are mainly
+    based on iteratively asking model to find the mistakes or inconsistencies among
+    previous reasoning steps or the knowledge, then solve them one by one.
+  id: totrans-377
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 迭代提示模型进行反思和纠正。这些研究（Zelikman 等， [2022](https://arxiv.org/html/2402.18272v1#bib.bib51)；Weng
+    等， [2022](https://arxiv.org/html/2402.18272v1#bib.bib43)；Shinn 等， [2023](https://arxiv.org/html/2402.18272v1#bib.bib34)；Madaan
+    等， [2023](https://arxiv.org/html/2402.18272v1#bib.bib27)；Chen 等， [2023b](https://arxiv.org/html/2402.18272v1#bib.bib8)；Xue
+    等， [2023](https://arxiv.org/html/2402.18272v1#bib.bib47)）主要基于反复要求模型找出之前推理步骤或知识中的错误或不一致，然后逐一解决这些问题。
+- en: Utilize External Tools or Knowledge to Aid in Reasoning. Mind’s Eye (Liu et al.,
+    [2022](https://arxiv.org/html/2402.18272v1#bib.bib24)) proposes to use physical
+    simulator to help models reason in the physical world. There are also other works
+    Lu et al. ([2023](https://arxiv.org/html/2402.18272v1#bib.bib25)); Imani et al.
+    ([2023](https://arxiv.org/html/2402.18272v1#bib.bib17)) will equip models with
+    tools to solve problems. Further more, some works like MemPrompt (Madaan et al.,
+    [2022](https://arxiv.org/html/2402.18272v1#bib.bib26)) and LogicSolver Yang et al.
+    ([2022](https://arxiv.org/html/2402.18272v1#bib.bib48)) use external knowledge
+    to assist LLMs with reasoning.
+  id: totrans-378
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用外部工具或知识辅助推理。Mind’s Eye（Liu 等人，[2022](https://arxiv.org/html/2402.18272v1#bib.bib24)）提出使用物理模拟器帮助模型在物理世界中进行推理。还有其他一些工作，如
+    Lu 等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib25)）；Imani 等人（[2023](https://arxiv.org/html/2402.18272v1#bib.bib17)）将为模型配备工具来解决问题。更进一步，一些工作如
+    MemPrompt（Madaan 等人， [2022](https://arxiv.org/html/2402.18272v1#bib.bib26)）和 LogicSolver
+    Yang 等人（[2022](https://arxiv.org/html/2402.18272v1#bib.bib48)）使用外部知识来帮助大型语言模型进行推理。

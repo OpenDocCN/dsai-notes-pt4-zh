@@ -1,0 +1,2604 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 13:01:19'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:01:19
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 我们是否应该走向疯狂？对大型语言模型的多智能体辩论策略的探讨
+- en: 来源：[https://arxiv.org/html/2311.17371/](https://arxiv.org/html/2311.17371/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2311.17371/](https://arxiv.org/html/2311.17371/)
+- en: Andries Smit    Nathan Grinsztajn    Paul Duckworth    Thomas D. Barrett   
+    Arnu Pretorius
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Andries Smit    Nathan Grinsztajn    Paul Duckworth    Thomas D. Barrett   
+    Arnu Pretorius
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Recent advancements in large language models (LLMs) underscore their potential
+    for responding to inquiries in various domains. However, ensuring that generative
+    agents provide accurate and reliable answers remains an ongoing challenge. In
+    this context, multi-agent debate (MAD) has emerged as a promising strategy for
+    enhancing the truthfulness of LLMs. We benchmark a range of debating and prompting
+    strategies to explore the trade-offs between cost, time, and accuracy. Importantly,
+    we find that multi-agent debating systems, in their current form, do not reliably
+    outperform other proposed prompting strategies, such as self-consistency and ensembling
+    using multiple reasoning paths. However, when performing hyperparameter tuning,
+    several MAD systems, such as Multi-Persona, perform better. This suggests that
+    MAD protocols might not be inherently worse than other approaches, but that they
+    are more sensitive to different hyperparameter settings and difficult to optimize.
+    We build on these results to offer insights into improving debating strategies,
+    such as adjusting agent agreement levels, which can significantly enhance performance
+    and even surpass all other non-debate protocols we evaluated. We provide an open-source
+    repository to the community with several state-of-the-art protocols together with
+    evaluation scripts to benchmark across popular research datasets.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，大型语言模型（LLMs）的进展凸显了它们在各个领域回应询问的潜力。然而，确保生成式智能体提供准确可靠的答案仍然是一个持续的挑战。在此背景下，多智能体辩论（MAD）作为提升LLM真实性的有前景策略应运而生。我们对一系列辩论和提示策略进行了基准测试，以探索成本、时间和准确性之间的权衡。重要的是，我们发现，目前形式的多智能体辩论系统并不能可靠地超越其他提出的提示策略，如自我一致性和通过多条推理路径进行集成。然而，在进行超参数调优时，一些MAD系统，如多角色（Multi-Persona），表现更好。这表明，MAD协议可能并不比其他方法本质上差，而是对不同的超参数设置更为敏感，且更难以优化。我们在此基础上提出了一些改进辩论策略的见解，如调整智能体的协议一致性，这可以显著提升性能，甚至超越我们评估的所有其他非辩论协议。我们向社区提供一个开源仓库，包含几种最先进的协议，并附带评估脚本，用于在流行的研究数据集上进行基准测试。
+- en: Machine Learning, ICML
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 机器学习，ICML
+- en: 1 Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Truthful question-answering assistants require a plethora of skills that until
+    recently were considered out-of-reach of generative language models. Such agents
+    require advanced natural language reading comprehension, along with accurate recall
+    and manipulation of expert or technical knowledge. Following the increase in performance
+    and popularity of large language models (LLMs) (Brown et al., [2020](https://arxiv.org/html/2311.17371v3#bib.bib3);
+    OpenAI, [2023](https://arxiv.org/html/2311.17371v3#bib.bib21)), there is a growing
+    hope that these models could assist humans in various domains like medicine (Liévin
+    et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib19); Han et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib7);
+    Nori et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20); Wang et al.,
+    [2023a](https://arxiv.org/html/2311.17371v3#bib.bib31); Singhal et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib28)),
+    education (Pardos & Bhandari, [2023](https://arxiv.org/html/2311.17371v3#bib.bib24);
+    Kumar et al., [2024](https://arxiv.org/html/2311.17371v3#bib.bib15)), and law
+    (Lai et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib16)). As a way
+    to improve the reasoning abilities of these systems, prompting strategies have
+    received significant attention, starting with few-shot (Brown et al., [2020](https://arxiv.org/html/2311.17371v3#bib.bib3)),
+    and chain-of-thought (CoT) (Wei et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib34);
+    Kojima et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib14)). To further
+    improve performance, a wide variety of strategies have been proposed to use interactive
+    reasoning between multiple LLMs, by either generating answers in parallel to maintain
+    a form of self-consistency (Wang et al., [2023b](https://arxiv.org/html/2311.17371v3#bib.bib32)),
+    or promoting models to simulate debate. These multi-agent approaches have recently
+    seen an uptake in applications, e.g. language generation (Chan et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib4)),
+    machine translation and arithmetic reasoning (Liang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib18)),
+    mathematical and strategic reasoning (Du et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib5)),
+    negotiation and bargaining (Fu et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib6)),
+    and notably, medical Q&A (Anil et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib1);
+    Singhal et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib28); Nori et al.,
+    [2023](https://arxiv.org/html/2311.17371v3#bib.bib20)). How to best utilize multiple
+    agents for effective interactive reasoning is a prescient research question. However,
+    to the best of our knowledge, there is no work comparing strategies, and there
+    is no consensus for selecting one strategy over another.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 真实的问答助手需要大量技能，而这些技能直到最近仍被认为是生成语言模型所无法达到的。这些智能体需要先进的自然语言阅读理解能力，以及准确地回忆和处理专家或技术知识。随着大型语言模型（LLMs）性能和受欢迎程度的提高（Brown
+    等， [2020](https://arxiv.org/html/2311.17371v3#bib.bib3); OpenAI，[2023](https://arxiv.org/html/2311.17371v3#bib.bib21)），人们越来越希望这些模型能在医学（Liévin
+    等，[2022](https://arxiv.org/html/2311.17371v3#bib.bib19); Han 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib7);
+    Nori 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib20); Wang 等，[2023a](https://arxiv.org/html/2311.17371v3#bib.bib31);
+    Singhal 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib28)）、教育（Pardos & Bhandari，[2023](https://arxiv.org/html/2311.17371v3#bib.bib24);
+    Kumar 等，[2024](https://arxiv.org/html/2311.17371v3#bib.bib15)）和法律（Lai 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib16)）等领域帮助人类。为了提高这些系统的推理能力，提示策略受到了广泛关注，最初是少量示例（Brown
+    等，[2020](https://arxiv.org/html/2311.17371v3#bib.bib3)），然后是思维链（CoT）（Wei 等，[2022](https://arxiv.org/html/2311.17371v3#bib.bib34);
+    Kojima 等，[2022](https://arxiv.org/html/2311.17371v3#bib.bib14)）。为了进一步提高性能，提出了多种策略，通过多个
+    LLM 之间的互动推理来实现，方法包括并行生成答案以保持自我一致性（Wang 等，[2023b](https://arxiv.org/html/2311.17371v3#bib.bib32)），或推动模型模拟辩论。这些多智能体方法最近在多个应用领域得到了应用，例如语言生成（Chan
+    等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib4)）、机器翻译和算术推理（Liang 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib18)）、数学和战略推理（Du
+    等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib5)）、谈判和讨价还价（Fu 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib6)），以及特别是在医学问答（Anil
+    等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib1); Singhal 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib28);
+    Nori 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib20)）。如何最有效地利用多个智能体进行互动推理是一个重要的研究课题。然而，尽我们所知，目前尚未有研究比较不同策略，也没有关于选择某一策略而非其他策略的共识。
+- en: In this paper, we benchmark various prompting strategies, which include multi-agent
+    debate (MAD), for answering multiple-choice questions across a wide range of domains.
+    We explore the impact on, and trade-offs between, critical factors such as factual
+    accuracy, time and cost. We provide an open-source suite of single-agent and MAD
+    implementations for the research community to build upon, with a unified API to
+    easily build and evaluate MAD systems. Finally, we demonstrate that by utilizing
+    specific prompting strategies, LLMs exhibit improved reasoning abilities. Concretely,
+    we provide a novel debate prompting strategy able to modulate the level of agreement
+    between agents during a debate and improve upon the state-of-the-art for Q&A for
+    a given model class.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文基准化了各种提示策略，其中包括用于回答多选问题的多代理辩论（MAD），涵盖多个领域。我们探索了事实准确性、时间和成本等关键因素之间的影响和权衡。我们为研究社区提供了一个开源的单一代理和MAD实现套件，配备统一的API，便于轻松构建和评估MAD系统。最后，我们展示了通过利用特定的提示策略，LLM在推理能力上有所提升。具体而言，我们提供了一种新颖的辩论提示策略，能够调节代理之间辩论时的共识程度，并在给定模型类别的问答任务中超越现有的最先进技术。
+- en: 2 Multi-Agent Debate
+  id: totrans-13
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 多代理辩论
+- en: Current state-of-the-art models for Q&A are dominated by generative LLMs. To
+    make them more truthful and reliable, they are often fine-tuned for specific use
+    cases. In medicine, for example, such models include Med-PaLM (Singhal et al.,
+    [2022](https://arxiv.org/html/2311.17371v3#bib.bib27)), Med-PaLM2 (Singhal et al.,
+    [2023](https://arxiv.org/html/2311.17371v3#bib.bib28)), MedAlpaca (Han et al.,
+    [2023](https://arxiv.org/html/2311.17371v3#bib.bib7)), Galactica (Taylor et al.,
+    [2022](https://arxiv.org/html/2311.17371v3#bib.bib29)), ClinicalGPT (Wang et al.,
+    [2023a](https://arxiv.org/html/2311.17371v3#bib.bib31)) and Medprompt  (Nori et al.,
+    [2023](https://arxiv.org/html/2311.17371v3#bib.bib20)). Furthermore, many single-agent
+    prompting strategies have been investigated in the context of medical Q&A. For
+    example, Liévin et al. ([2022](https://arxiv.org/html/2311.17371v3#bib.bib19))
+    applied CoT reasoning on top of Instruct GPT-3 (Ouyang et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib23)),
+    and achieves noticeable performance improvements.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当前，最先进的问答模型由生成型大语言模型（LLMs）主导。为了使其更具真实性和可靠性，这些模型通常会针对特定的应用场景进行微调。例如，在医学领域，这些模型包括Med-PaLM（Singhal等人，[2022](https://arxiv.org/html/2311.17371v3#bib.bib27)），Med-PaLM2（Singhal等人，[2023](https://arxiv.org/html/2311.17371v3#bib.bib28)），MedAlpaca（Han等人，[2023](https://arxiv.org/html/2311.17371v3#bib.bib7)），Galactica（Taylor等人，[2022](https://arxiv.org/html/2311.17371v3#bib.bib29)），ClinicalGPT（Wang等人，[2023a](https://arxiv.org/html/2311.17371v3#bib.bib31)）和Medprompt（Nori等人，[2023](https://arxiv.org/html/2311.17371v3#bib.bib20)）。此外，许多单一代理提示策略已在医学问答的背景下进行研究。例如，Liévin等人（[2022](https://arxiv.org/html/2311.17371v3#bib.bib19)）在Instruct
+    GPT-3（Ouyang等人，[2022](https://arxiv.org/html/2311.17371v3#bib.bib23)）的基础上应用了链式推理（CoT），并取得了显著的性能提升。
+- en: Recently, several MAD strategies have been proposed to improve upon the enhanced
+    reasoning capabilities of single-agent prompting methods leading to improved performance
+    on challenging natural language tasks (Du et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib5);
+    Liang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib18); Chan et al.,
+    [2023](https://arxiv.org/html/2311.17371v3#bib.bib4)). Likewise, Generative agents (Park
+    et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib25)), multi-persona (Wang
+    et al., [2023c](https://arxiv.org/html/2311.17371v3#bib.bib33)), and CAMEL (Li
+    et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib17)) study the behaviour
+    of agents taking on different roles or personas within multi-agent interactions.
+    One major reason why debate strategies can be an effective tool is the ability
+    of LLMs to adapt to additional information given in-context (Zhang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib35)).
+    This facilitates multiple LLMs to participate in multi-agent and/or multi-round
+    debates entirely using in-context prompting. That is, the agents adapt their behaviour
+    based on information provided by other agents at inference time, with no gradient-based
+    parameter updates being required.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，提出了几种MAD策略，以提高单一智能体提示方法的增强推理能力，从而在具有挑战性的自然语言任务上取得更好的表现（Du et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib5);
+    Liang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib18); Chan et al.,
+    [2023](https://arxiv.org/html/2311.17371v3#bib.bib4)）。同样，生成型智能体（Park et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib25)）、多重人格（Wang
+    et al., [2023c](https://arxiv.org/html/2311.17371v3#bib.bib33)）和CAMEL（Li et al.,
+    [2023](https://arxiv.org/html/2311.17371v3#bib.bib17)）研究了在多智能体互动中，智能体扮演不同角色或人格的行为。辩论策略成为有效工具的一个主要原因是大语言模型（LLM）能够适应在上下文中提供的额外信息（Zhang
+    et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib35)）。这使得多个LLM能够通过完全依赖上下文提示参与多智能体和/或多轮辩论。也就是说，智能体根据推理时其他智能体提供的信息调整其行为，而无需基于梯度的参数更新。
+- en: In our study, we investigate several prompting strategies for Q&A. Whilst we
+    note that some of these strategies were introduced specifically for the medical
+    Q&A domain, each provides novel perspectives on how to utilize multiple collaborative
+    agents. We briefly introduce each strategy here.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的研究中，我们探讨了几种针对问答的提示策略。虽然我们注意到其中一些策略是专门为医学问答领域引入的，但每种策略都提供了如何利用多个协作智能体的独特视角。我们在这里简要介绍每种策略。
+- en: Society of Minds (SoM)  Du et al. ([2023](https://arxiv.org/html/2311.17371v3#bib.bib5))
+    propose a MAD approach where multiple agents each provide their answers to each
+    other in order to effectively collaborate. Optionally, answers are summarized
+    before being added to the history that is available to the agents in future rounds.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 心智社会（SoM）Du et al. ([2023](https://arxiv.org/html/2311.17371v3#bib.bib5))提出了一种MAD方法，其中多个智能体相互提供各自的答案，以有效地协作。可选地，答案在加入到未来回合中智能体可以访问的历史记录之前，会被总结。
+- en: Multi-Persona  (Liang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib18))
+    propose a MAD strategy to encourage divergent agent outcomes via prompting different
+    personalities, i.e. an affirmative agent (angel) and a negative agent (devil)
+    each provide an answer to a judge agent who manages the process and obtains a
+    final solution. The judge has additional agency to end the debate early if it
+    is satisfied with the answers provided.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Multi-Persona（Liang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib18)）提出了一种MAD策略，通过提示不同的人格来鼓励智能体产生不同的结果，即一名肯定的智能体（天使）和一名否定的智能体（魔鬼）各自提供一个答案给一名管理过程并得出最终解决方案的评判智能体。如果评判智能体对提供的答案满意，它还具有提前结束辩论的权限。
+- en: 'ChatEval  (Chan et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib4))
+    propose three MAD modes: (1) *one-on-one*, where each agent answers the provided
+    question in turn, and each agent is provided with the history of all previous
+    agents’ answers; (2) *simultaneous-talk*, where agents asynchronously generate
+    responses in each round to nullify the effects of agent order; and (3) *simultaneous-talk-with-summarizer*,
+    which additionally summarizes answers provided in each round and overwrites the
+    history available to all agents in future rounds.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ChatEval（Chan et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib4)）提出了三种MAD模式：（1）*一对一*，每个智能体轮流回答提供的问题，每个智能体都可以查看所有前一个智能体的回答历史；（2）*同时对话*，智能体在每一轮中异步生成回应，从而消除智能体顺序的影响；（3）*同时对话与总结者*，在每一轮中，智能体的回答会被总结并覆盖历史记录，供所有智能体在未来回合中使用。
+- en: Self-consistency (Wang et al., [2023b](https://arxiv.org/html/2311.17371v3#bib.bib32))
+    samples multiple reasoning paths given a fixed prompt and selects the most frequent
+    answer. Whilst this is not a debate per se, as samples are rolled out independently,
+    it relies on multiple API calls so we distinguish it from the single agent case
+    that uses a single API call.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自一致性（Wang 等人，[2023b](https://arxiv.org/html/2311.17371v3#bib.bib32)）在给定固定提示的情况下采样多个推理路径，并选择最频繁的答案。虽然这本质上不是辩论，因为样本是独立展开的，但它依赖于多个
+    API 调用，因此我们将其与使用单个 API 调用的单代理情况区分开来。
+- en: Ensemble Refinement (ER)  (Singhal et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib28))
+    extends self-consistency. After multiple reasoning paths are sampled, a second
+    stage concatenates them into a list of student reasonings, after which multiple
+    rounds of aggregation are performed conditioned on this list.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 集成优化（Ensemble Refinement，ER）(Singhal 等人，[2023](https://arxiv.org/html/2311.17371v3#bib.bib28))
+    扩展了自一致性方法。在多条推理路径被采样后，第二阶段将它们连接成一系列学生推理，随后基于此列表进行多轮聚合。
+- en: 'Medprompt  (Nori et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20))
+    enhances AI-driven medical question answering by combining few-shot exemplar selection
+    with a two-stage process: preprocessing correct GPT-4 training set responses as
+    few-shot examples, and an inference step employing a k-Nearest Neighbours (kNN)
+    lookup and ensemble refinement for answer generation. This approach ensures high
+    accuracy and reliability by using only the most relevant and validated examples.
+    Medprompt’s effectiveness is demonstrated in its superior performance on the MedQA
+    benchmark, showcasing its potential for medical diagnostics. In this work, we
+    do not employ the kNN approach as it requires a training and test set split. We
+    believe this might provide Medprompt an unfair advantage in this evaluation as
+    other protocols do not use a training set. Therefore, we only implement subcomponents
+    of the full Medprompt, specifically, question randomization with few-shot chain-of-thought
+    ensembling (Nori et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20)).'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Medprompt（Nori 等人，[2023](https://arxiv.org/html/2311.17371v3#bib.bib20)）通过将少量示例选择与两阶段过程相结合，增强了由人工智能驱动的医学问答。该过程包括：将正确的
+    GPT-4 训练集回答作为少量示例进行预处理，以及一个推理步骤，采用 k 最近邻（kNN）查找和集成优化生成答案。这种方法通过仅使用最相关和已验证的示例，确保了高准确性和可靠性。Medprompt
+    的有效性在 MedQA 基准测试中得到了验证，展示了其在医学诊断中的潜力。在本研究中，我们没有采用 kNN 方法，因为它需要训练集和测试集的划分。我们认为这可能使
+    Medprompt 在评估中占据不公平的优势，因为其他协议并未使用训练集。因此，我们仅实现了 Medprompt 的子组件，具体来说是带有少量示例链式思维集成的提问随机化（Nori
+    等人，[2023](https://arxiv.org/html/2311.17371v3#bib.bib20)）。
+- en: System Flexible Round Numbers Judge Summarizer Sequential Interactions Multi
+    API Calls Asymmetric Agents Medprompt ✓ ✓ Society of Minds ✓ ✓ ✓ Ensemble Refinement
+    ✓ ✓ ✓ ✓ ChatEval ✓ ✓ ✓ ✓ ✓ Self-consistency ✓ Single-agent Solo Performance Prompting
+    ✓ ✓ ✓ Multi-Persona ✓ ✓ ✓ ✓ ✓
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 系统 | 灵活的回合数 | 判定总结器 | 顺序交互 | 多次 API 调用 | 非对称代理 | Medprompt | ✓ | ✓ | 社会心智 |
+    ✓ | ✓ | ✓ | 集成优化 | ✓ | ✓ | ✓ | ✓ | ChatEval | ✓ | ✓ | ✓ | ✓ | ✓ | 自一致性 | ✓ | 单代理单独表现
+    | 提示 | ✓ | ✓ | 多角色人格 | ✓ | ✓ | ✓ | ✓ | ✓
+- en: 'Table 1: Feature comparison of various debating systems. The presence of a
+    feature is indicated by a checkmark.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：各种辩论系统的特征对比。特征的存在通过勾选标记表示。
+- en: 'We summarize the features of these various systems in Table [1](https://arxiv.org/html/2311.17371v3#S2.T1
+    "Table 1 ‣ 2 Multi-Agent Debate ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs"). Each strategy determines the high-level debate prompts
+    and how the agents share answers and histories to collaborate. However, in each
+    case, there are multiple possible agent-level prompts available, including: (1) zero-shot
+    Q&A prompt, (2) zero-shot chain-of-thought (CoT) (Kojima et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib14)),
+    (3) few-shot examples (Brown et al., [2020](https://arxiv.org/html/2311.17371v3#bib.bib3))
+    which provides five Q&A examples but no reasoning, (4) Solo Performance Prompting
+    (SPP) (or Multi-persona self-collaboration) (Wang et al., [2023c](https://arxiv.org/html/2311.17371v3#bib.bib33))
+    which utilizes a single agent that mimics an internal debate, and (5) few-shot
+    chain-of-thought (FS-CoT) (Wei et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib34))
+    which combines step-by-step reasoning steps, along with five Q&A examples and
+    explanations¹¹1The few-shot Q&A examples with explanations are provided for each
+    medical dataset in Singhal et al. ([2023](https://arxiv.org/html/2311.17371v3#bib.bib28)).
+    The step-by-step explanations were generated by a panel of qualified clinicians
+    who identified the best examples and crafted the few-shot prompts as part of the
+    Med-PaLM project.. We provide the complete lists of all debate and agent-level
+    prompts in Appendices [A.5](https://arxiv.org/html/2311.17371v3#A1.SS5 "A.5 Debate
+    Prompts ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs") and [A.6](https://arxiv.org/html/2311.17371v3#A1.SS6
+    "A.6 Agent Prompts ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs").'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在表格[1](https://arxiv.org/html/2311.17371v3#S2.T1 "Table 1 ‣ 2 Multi-Agent
+    Debate ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")中总结了这些不同系统的特点。每种策略决定了高级辩论提示，并且说明了代理如何共享答案和历史记录以进行协作。然而，在每种情况下，都有多个可用的代理级提示，包括：（1）零-shot问答提示，（2）零-shot思维链（CoT）(Kojima
+    et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib14))，（3）少量示例（Brown et
+    al., [2020](https://arxiv.org/html/2311.17371v3#bib.bib3)），提供五个问答示例，但没有推理，（4）单人表现提示（SPP）（或多重人格自我协作）（Wang
+    et al., [2023c](https://arxiv.org/html/2311.17371v3#bib.bib33)），利用一个单独的代理模拟内部辩论，和（5）少量思维链（FS-CoT）（Wei
+    et al., [2022](https://arxiv.org/html/2311.17371v3#bib.bib34)），结合了逐步推理步骤，并且提供五个问答示例和解释¹¹1这些带解释的少量问答示例在Singhal等人（[2023](https://arxiv.org/html/2311.17371v3#bib.bib28)）的医学数据集中提供。逐步的解释是由一组合格的临床医生生成的，他们确定了最佳示例并在Med-PaLM项目中设计了这些少量提示。我们在附录[A.5](https://arxiv.org/html/2311.17371v3#A1.SS5
+    "A.5 Debate Prompts ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at
+    Multi-Agent Debate Strategies for LLMs")和[A.6](https://arxiv.org/html/2311.17371v3#A1.SS6
+    "A.6 Agent Prompts ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs")中提供了所有辩论和代理级提示的完整列表。
+- en: '![Refer to caption](img/f299f26933c2c487bbb7081a1e0724cb.png)![Refer to caption](img/e539b067579b117248fc5fb2c432139a.png)'
+  id: totrans-26
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/f299f26933c2c487bbb7081a1e0724cb.png)![参见标题](img/e539b067579b117248fc5fb2c432139a.png)'
+- en: 'Figure 1: Benchmark of experiment configurations on MedQA dataset. Left: Accuracy
+    vs average cost ($) per question. The size of the dots reflects the average number
+    of API calls required per question. Right: Summarizes accuracy grouped by strategy,
+    sorted by average performance (black dot). The X represents improved performance
+    using our proposed *agreement modulation*, described in Section [3](https://arxiv.org/html/2311.17371v3#S3.SS0.SSS0.Px5
+    "Improving MAD via agreement modulation ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs").'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：MedQA数据集上的实验配置基准。左：每个问题的准确性与平均成本（$）的关系。点的大小反映了每个问题所需的API调用平均次数。右：按策略分组的准确性汇总，按平均表现（黑点）排序。X轴代表使用我们提出的*协议调节*所带来的性能提升，如第[3](https://arxiv.org/html/2311.17371v3#S3.SS0.SSS0.Px5
+    "Improving MAD via agreement modulation ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs")节所述。
+- en: 3 Experiments
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 实验
+- en: As base agents for the MAD implementations, we utilize GPT-3 (Brown et al.,
+    [2020](https://arxiv.org/html/2311.17371v3#bib.bib3)) with the 3.5-turbo engine.
+    GPT-3 is a large-scale transformer-based generative LLM (Vaswani et al., [2017](https://arxiv.org/html/2311.17371v3#bib.bib30);
+    Kaplan et al., [2020](https://arxiv.org/html/2311.17371v3#bib.bib13)) available
+    via API calls. Although not the current most powerful model available via API,
+    we selected GPT-3.5 for its optimal balance between performance and cost efficiency,
+    crucial for conducting a broad range of experiments, whereas more powerful models
+    would’ve been prohibitively expensive. However, we informally note that some of
+    our preliminary experiments with more advanced models like GPT-4 suggested similar
+    findings, although these tests were limited to a smaller subset of data.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为MAD实现的基础代理，我们使用GPT-3（Brown 等，[2020](https://arxiv.org/html/2311.17371v3#bib.bib3)），采用3.5-turbo引擎。GPT-3是一个基于变换器的大规模生成式LLM（Vaswani
+    等，[2017](https://arxiv.org/html/2311.17371v3#bib.bib30)；Kaplan 等，[2020](https://arxiv.org/html/2311.17371v3#bib.bib13)），通过API调用提供。尽管它不是当前通过API提供的最强大模型，但我们选择GPT-3.5是因为其在性能与成本效率之间的最佳平衡，这对进行广泛的实验至关重要，而更强大的模型则可能过于昂贵。然而，我们非正式地指出，一些初步实验使用更先进的模型，如GPT-4，虽然这些测试仅限于较小的数据子集，但也得出了相似的结论。
+- en: 'We evaluate each system using seven datasets: three medical datasets, and three
+    more general datasets requiring reasoning. For the medical tasks, we follow the
+    evaluation protocol in Med-PaLM2 (Singhal et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib28))
+    and evaluate the above strategies on the following multiple-choice question-answering
+    datasets:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用七个数据集对每个系统进行评估：三个医学数据集和三个更具推理要求的通用数据集。对于医学任务，我们遵循Med-PaLM2 （Singhal 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib28)）中的评估协议，并在以下多项选择问答数据集上评估上述策略：
+- en: •
+  id: totrans-31
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: MedQA (Jin et al., [2021](https://arxiv.org/html/2311.17371v3#bib.bib11)) comprising
+    of 1273 general medical knowledge questions from the US medical licensing exam
+    (USMLE). Each question has 4-5 answer choices. In this work, we focus on the 4-answer
+    version of MedQA as used to evaluate Med-PaLM2 (Liang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib18))
+    and Medprompt (Nori et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20)).
+  id: totrans-32
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: MedQA （Jin 等，[2021](https://arxiv.org/html/2311.17371v3#bib.bib11)）包含1273个来自美国医学执照考试（USMLE）的一般医学知识问题。每个问题有4到5个答案选项。在本研究中，我们重点关注MedQA的4答案版本，这一版本用于评估Med-PaLM2 （Liang
+    等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib18)）和Medprompt （Nori 等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib20)）。
+- en: •
+  id: totrans-33
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: PubMedQA (Jin et al., [2019](https://arxiv.org/html/2311.17371v3#bib.bib12))
+    containing 500 open domain questions, context and answers.
+  id: totrans-34
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: PubMedQA （Jin 等，[2019](https://arxiv.org/html/2311.17371v3#bib.bib12)）包含500个开放领域的问题、上下文和答案。
+- en: •
+  id: totrans-35
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: MMLU (clinical topics only) (Hendrycks et al., [2021](https://arxiv.org/html/2311.17371v3#bib.bib8))
+    consisting of 123 medical questions covering anatomy, clinical knowledge, college
+    medicine, medical genetics, professional medicine, and college biology.
+  id: totrans-36
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: MMLU（仅限临床主题）（Hendrycks 等，[2021](https://arxiv.org/html/2311.17371v3#bib.bib8)），由123个医学问题组成，涵盖解剖学、临床知识、大学医学、医学遗传学、专业医学和大学生物学。
+- en: The other datasets are difficult reasoning tasks, based on the assumptions that
+    MAD strategies might particularly shine on datasets requiring complex and commonsense
+    reasoning and be better able to escape reasoning traps.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他数据集则是需要复杂推理任务的，基于MAD策略可能特别适用于那些需要复杂和常识推理的数据集，并能更好地避免推理陷阱。
+- en: •
+  id: totrans-38
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'CosmosQA (Huang et al., [2019](https://arxiv.org/html/2311.17371v3#bib.bib9)):
+    A dataset of 7,000 general knowledge questions focusing on commonsense-based reading
+    comprehension. It requires understanding narratives and interpreting causes and
+    effects not explicitly mentioned. We subsampled 500 questions for economic and
+    time feasibility.'
+  id: totrans-39
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: CosmosQA （Huang 等，[2019](https://arxiv.org/html/2311.17371v3#bib.bib9)）：一个包含7,000个常识性阅读理解问题的数据集，重点是基于常识的推理理解。它要求理解叙事内容并解释未明确提及的因果关系。为了经济和时间的可行性，我们从中抽取了500个问题。
+- en: •
+  id: totrans-40
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'CIAR  (Liang et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib18)):
+    The Counter-Intuitive Arithmetic Reasoning (CIAR) dataset consists of 50 multiple-choice
+    questions. It is designed to evaluate reasoning abilities of LLMs, challenging
+    them to use slow, logical thinking over intuitive responses. We added at the end
+    of the question the two suggested answers to turn it into a multiple-choice question-answering
+    task.'
+  id: totrans-41
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: CIAR（梁等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib18)）：反直觉算术推理（CIAR）数据集包含50道多项选择题，旨在评估大型语言模型（LLMs）的推理能力，挑战它们使用缓慢、逻辑性的思维而非直觉反应。我们在问题末尾添加了两个建议答案，将其转变为多项选择题解答任务。
+- en: •
+  id: totrans-42
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'GPQA (Rein et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib26)):
+    This dataset contains 448 multiple-choice questions written by domain experts
+    in biology, physics, and chemistry. It tests the limits of both human experts
+    and AI systems, with questions that are ‘Google-proof’ and demand high-level understanding
+    and reasoning.'
+  id: totrans-43
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: GPQA（Rein等，[2023](https://arxiv.org/html/2311.17371v3#bib.bib26)）：该数据集包含448道由生物学、物理学和化学领域专家编写的多项选择题，测试人类专家和人工智能系统的极限，题目设计为“Google无解”，要求具有高级的理解和推理能力。
+- en: •
+  id: totrans-44
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Chess (bench Team, [2021](https://arxiv.org/html/2311.17371v3#bib.bib2)): This
+    benchmark task focuses on the ability of AI systems to understand and track the
+    state of a chess game based on natural language descriptions. The task is divided
+    into subtasks created from real games played on Lichess and synthetic games generated
+    by random search over the chess game tree. To account for the effect of context
+    length, the subtasks are further divided into Short, Medium, and Long. Each subtask
+    consists of 1,000 games. We use the Short setting in our study.'
+  id: totrans-45
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 国际象棋（基准测试团队，[2021](https://arxiv.org/html/2311.17371v3#bib.bib2)）：该基准任务侧重于人工智能系统根据自然语言描述理解和跟踪国际象棋游戏状态的能力。任务分为由Lichess上真实对局和通过在国际象棋游戏树上随机搜索生成的合成对局所构成的子任务。为了考虑上下文长度的影响，这些子任务进一步分为短期、中期和长期。每个子任务包含1,000场游戏。我们在研究中使用了短期设置。
+- en: We measure additional agent-level and debate-level metrics (comprehensive lists
+    of all additional metrics are provided in Appendices [A.3](https://arxiv.org/html/2311.17371v3#A1.SS3
+    "A.3 Additional Debate Metrics ‣ Appendix A Appendix ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs") and [A.4](https://arxiv.org/html/2311.17371v3#A1.SS4
+    "A.4 Additional Agent Metrics ‣ Appendix A Appendix ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs")). Examples of agent-level metrics
+    include whether an individual agent answered a given question correctly or not
+    and the debate round in which it first provided the correct answer. Examples of
+    debate-level metrics include whether any agent involved in the debate provided
+    a correct answer and whether the agents came to a consensus by the final round.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们衡量了额外的代理级和辩论级指标（所有附加指标的完整列表可以在附录[A.3](https://arxiv.org/html/2311.17371v3#A1.SS3
+    "A.3 额外的辩论指标 ‣ 附录 A ‣ 我们是否应该去做MAD？对LLMs的多代理辩论策略的分析")和[A.4](https://arxiv.org/html/2311.17371v3#A1.SS4
+    "A.4 额外的代理指标 ‣ 附录 A ‣ 我们是否应该去做MAD？对LLMs的多代理辩论策略的分析")中找到）。代理级指标的例子包括某个代理是否正确回答了给定问题，以及它首次提供正确答案的辩论轮次。辩论级指标的例子包括任何参与辩论的代理是否提供了正确答案，以及代理们是否在最后一轮达成了一致。
+- en: Results
+  id: totrans-47
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 结果
+- en: First, we attempt to see whether various prompting protocols affect performance
+    significantly enough to justify their API costs. In Figure [1](https://arxiv.org/html/2311.17371v3#S2.F1
+    "Figure 1 ‣ 2 Multi-Agent Debate ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs"), we present a scatter plot of the results of each
+    experiment on the MedQA dataset, while equivalent analyses for the other datasets
+    are given in Appendix [A.1](https://arxiv.org/html/2311.17371v3#A1.SS1 "A.1 Extended
+    results on additional datasets ‣ Appendix A Appendix ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs"). In the left panel, we show
+    the accuracy vs cost (measured in USD), where the size of each point reflects
+    the average number of API calls required per question (we also plot accuracy vs
+    time, and accuracy vs average prompt length in Appendix [A.1](https://arxiv.org/html/2311.17371v3#A1.SS1
+    "A.1 Extended results on additional datasets ‣ Appendix A Appendix ‣ Should we
+    be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")). These variations,
+    where applicable, include changing the number of agents, rounds, reasoning and
+    aggregation steps, altering agent prompts, implementing round summarization, adjusting
+    sampling parameters, and modifying other system-specific hyperparameters. For
+    a full breakdown of the experimental configurations used for each system, see
+    Appendix [A.2](https://arxiv.org/html/2311.17371v3#A1.SS2 "A.2 Table of Experiments
+    ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies
+    for LLMs"). In the right panel, we summarize accuracy over all configurations
+    per strategy.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们尝试查看各种提示协议是否会显著影响性能，从而使其API成本得到合理的 justification。在图 [1](https://arxiv.org/html/2311.17371v3#S2.F1
+    "Figure 1 ‣ 2 Multi-Agent Debate ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs")中，我们展示了每个实验在MedQA数据集上的散点图，其他数据集的等效分析见附录 [A.1](https://arxiv.org/html/2311.17371v3#A1.SS1
+    "A.1 Extended results on additional datasets ‣ Appendix A Appendix ‣ Should we
+    be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")。在左侧面板中，我们展示了准确性与成本（以美元为单位）的关系，其中每个点的大小反映了每个问题所需的API调用的平均次数（我们还在附录 [A.1](https://arxiv.org/html/2311.17371v3#A1.SS1
+    "A.1 Extended results on additional datasets ‣ Appendix A Appendix ‣ Should we
+    be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")中绘制了准确性与时间、准确性与平均提示长度的关系）。这些变化（如适用）包括改变代理的数量、回合数、推理和聚合步骤，调整代理提示，实施回合总结，调整采样参数以及修改其他系统特定的超参数。有关每个系统使用的实验配置的完整拆解，请参见附录 [A.2](https://arxiv.org/html/2311.17371v3#A1.SS2
+    "A.2 Table of Experiments ‣ Appendix A Appendix ‣ Should we be going MAD? A Look
+    at Multi-Agent Debate Strategies for LLMs")。在右侧面板中，我们总结了每种策略在所有配置下的准确性。
+- en: We see the highest performing debating strategy from those introduced in Section [2](https://arxiv.org/html/2311.17371v3#S2
+    "2 Multi-Agent Debate ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies
+    for LLMs") is SoM with multiple different configurations achieving 61% on MedQA.
+    However, the recently introduced Medprompt strategy (Nori et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20)),
+    which does not use debate, performs the best overall. It also has lower costs
+    associated with it. Somewhat concerning for the domain of medical Q&A, is that
+    the single agent’s performance, along with self-consistency, can be manipulated
+    via prompts to achieve a high variance. We also note that Multi-Persona performs
+    consistently about 7% worse than the Medprompt strategy. We revisit this in Section
+    [3](https://arxiv.org/html/2311.17371v3#S3.SS0.SSS0.Px5 "Improving MAD via agreement
+    modulation ‣ 3 Experiments ‣ Should we be going MAD? A Look at Multi-Agent Debate
+    Strategies for LLMs").
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们看到，在第 [2](https://arxiv.org/html/2311.17371v3#S2 "2 Multi-Agent Debate ‣ Should
+    we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")节中介绍的所有辩论策略中，SoM策略表现最好，多个不同配置在MedQA上达到了61%的准确率。然而，最近提出的Medprompt策略 (Nori
+    et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20))，该策略不使用辩论，整体表现最好。它的成本也较低。对于医学问答领域来说，有些令人担忧的地方在于，单个代理的表现以及自我一致性，可以通过提示进行操控，从而导致较高的方差。我们还注意到，Multi-Persona策略的表现始终比Medprompt策略差约7%。我们将在第 [3](https://arxiv.org/html/2311.17371v3#S3.SS0.SSS0.Px5
+    "Improving MAD via agreement modulation ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs")节中重新探讨这一问题。
+- en: System MedQA PubMedQA MMLU CosmosQA CIAR GPQA Chess Medprompt 0.65 (0.63) 0.77
+    (0.77) 0.74 (0.73) 0.48 (0.47) 0.54 (0.50) 0.27 (0.25) 0.32 (0.30) Society of
+    Mind 0.64 (0.61) 0.74 (0.71) 0.73 (0.70) 0.44 (0.39) 0.56 (0.46) 0.27 (0.25) 0.26
+    (0.25) Ensemble Refinement 0.64 (0.60) 0.74 (0.72) 0.76 (0.74) 0.45 (0.40) 0.48
+    (0.46) 0.32 (0.26) 0.32 (0.25) ChatEval 0.60 (0.60) 0.75 (0.73) 0.71 (0.69) 0.45
+    (0.43) 0.48 (0.43) 0.26 (0.25) 0.32 (0.23) Self-Consistency 0.60 (0.60) 0.74 (0.72)
+    0.78 (0.75) 0.46 (0.46) 0.56 (0.52) 0.24 (0.29) 0.27 (0.21) Single Agent 0.60
+    (0.59) 0.75 (0.70) 0.76 (0.72) 0.45 (0.43) 0.50 (0.50) 0.33 (0.28) 0.27 (0.18)
+    Multi-Persona 0.58 (0.57) 0.70 (0.69) 0.72 (0.69) 0.46 (0.42) 0.52 (0.50) 0.29
+    (0.29) 0.33 (0.29)
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 系统 MedQA PubMedQA MMLU CosmosQA CIAR GPQA Chess Medprompt 0.65 (0.63) 0.77 (0.77)
+    0.74 (0.73) 0.48 (0.47) 0.54 (0.50) 0.27 (0.25) 0.32 (0.30) Society of Mind 0.64
+    (0.61) 0.74 (0.71) 0.73 (0.70) 0.44 (0.39) 0.56 (0.46) 0.27 (0.25) 0.26 (0.25)
+    Ensemble Refinement 0.64 (0.60) 0.74 (0.72) 0.76 (0.74) 0.45 (0.40) 0.48 (0.46)
+    0.32 (0.26) 0.32 (0.25) ChatEval 0.60 (0.60) 0.75 (0.73) 0.71 (0.69) 0.45 (0.43)
+    0.48 (0.43) 0.26 (0.25) 0.32 (0.23) Self-Consistency 0.60 (0.60) 0.74 (0.72) 0.78
+    (0.75) 0.46 (0.46) 0.56 (0.52) 0.24 (0.29) 0.27 (0.21) Single Agent 0.60 (0.59)
+    0.75 (0.70) 0.76 (0.72) 0.45 (0.43) 0.50 (0.50) 0.33 (0.28) 0.27 (0.18) Multi-Persona
+    0.58 (0.57) 0.70 (0.69) 0.72 (0.69) 0.46 (0.42) 0.52 (0.50) 0.29 (0.29) 0.33 (0.29)
+- en: 'Table 2: Best performance achieved by each system on various datasets. The
+    highest score for each system on each dataset is listed, with the median performance
+    over the datasets shown in parentheses.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：每个系统在不同数据集上取得的最佳表现。列出了每个系统在每个数据集上的最高得分，并在括号中显示了各数据集上的中位表现。
+- en: '![Refer to caption](img/29e5b94da9bbcf7b3ae0887c56d6063a.png)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/29e5b94da9bbcf7b3ae0887c56d6063a.png)'
+- en: (a) PubMedQA Total Accuracy
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) PubMedQA 总准确率
+- en: '![Refer to caption](img/f2652188e4aa0549c396f582d8f9abea.png)'
+  id: totrans-54
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/f2652188e4aa0549c396f582d8f9abea.png)'
+- en: (b) MMLU Total Accuracy
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) MMLU 总准确率
+- en: '![Refer to caption](img/891b22e332fa918e3ef6ddadae684a63.png)'
+  id: totrans-56
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/891b22e332fa918e3ef6ddadae684a63.png)'
+- en: (c) CosmosQA Total Accuracy
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) CosmosQA 总准确率
+- en: '![Refer to caption](img/0661ea573d501ded7aa03fb8f120294f.png)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/0661ea573d501ded7aa03fb8f120294f.png)'
+- en: (d) CIAR Total Accuracy
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) CIAR 总准确率
+- en: '![Refer to caption](img/d3a6e90b04314ee76ff78199aeb2cd88.png)'
+  id: totrans-60
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/d3a6e90b04314ee76ff78199aeb2cd88.png)'
+- en: (e) GPQA Total Accuracy
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (e) GPQA 总准确率
+- en: '![Refer to caption](img/d2e8e694b5066aed31a8e542754022bb.png)'
+  id: totrans-62
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/d2e8e694b5066aed31a8e542754022bb.png)'
+- en: (f) Chess Total Accuracy
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (f) Chess 总准确率
+- en: 'Figure 2: Boxplots illustrating the distribution of total accuracy across different
+    datasets for each QA system. These plots demonstrate the variability and robustness
+    of each system’s performance.'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：箱形图展示了各QA系统在不同数据集上的总准确率分布。这些图表展示了每个系统表现的变异性和鲁棒性。
+- en: While there is a noticeable trend indicating improved performance with increased
+    cost and API usage, our findings reveal that the relationship between performance
+    and resource investment is complex and highly dependent on specific hyperparameters
+    and dataset/system configurations. Notably, some MAD strategies do not consistently
+    outperform more cost-effective non-debating approaches like Medprompt, even with
+    optimized prompting. This suggests that, beyond a certain threshold, additional
+    computing does not guarantee better results, and performance is both nuanced and
+    contingent on the right combination of hyperparameters and system design. This
+    variability underscores the need for further evaluations, as undertaken in the
+    following section, to develop a clearer picture of these trends.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管我们观察到随着成本和API使用的增加，表现有所提升，但我们的研究结果表明，表现与资源投入之间的关系复杂且高度依赖于特定的超参数和数据集/系统配置。值得注意的是，一些MAD策略在优化提示的情况下，并没有始终优于像Medprompt这样的更具成本效益的非辩论方法。这表明，在某一阈值之后，额外的计算并不能保证更好的结果，表现既细致入微，又取决于超参数和系统设计的正确组合。这种变异性强调了进一步评估的必要性，正如接下来章节所进行的那样，以便更清楚地了解这些趋势。
+- en: The utility of debate
+  id: totrans-66
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 辩论的效用
+- en: Next, we consider the utility of debate in prompting strategies. Recent protocols
+    like Ensemble Refinement (Singhal et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib28))
+    and Medprompt (Nori et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20))
+    have deviated away from debating altogether, raising questions about its efficacy.
+    Recall that we include three standard medical datasets (MedQA, PubMedQA and MMLU),
+    while also including three other reasoning datasets (CosmosQA, CIAR and GPQA).
+    These datasets are constructed in such a way as to require small amounts of logical
+    deduction to answer successfully. This might give debating protocols an advantage
+    as there are multiple rounds of outputs between agents, which could be used to
+    build on logical arguments before concluding. We now evaluate all our system setups
+    across these seven datasets. The scores (out of 1.0) for the best-performing configurations
+    for each QA system can be found in Table [2](https://arxiv.org/html/2311.17371v3#S3.T2
+    "Table 2 ‣ Results ‣ 3 Experiments ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs").
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们考虑辩论在提示策略中的效用。最近的协议，如集成细化（Singhal et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib28)）和Medprompt（Nori
+    et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib20)），已经完全偏离了辩论，提出了其有效性的问题。回想一下，我们包括了三个标准的医学数据集（MedQA、PubMedQA和MMLU），同时还包括了三个其他推理数据集（CosmosQA、CIAR和GPQA）。这些数据集的构建方式需要进行少量的逻辑推理才能成功回答。这可能使得辩论协议具有优势，因为代理之间有多轮输出，可以在得出结论之前，基于逻辑论点进行进一步的构建。现在，我们在这七个数据集上评估所有的系统设置。每个QA系统最佳配置的分数（满分为1.0）可以在表格[2](https://arxiv.org/html/2311.17371v3#S3.T2
+    "Table 2 ‣ Results ‣ 3 Experiments ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs")中找到。
+- en: Table [2](https://arxiv.org/html/2311.17371v3#S3.T2 "Table 2 ‣ Results ‣ 3 Experiments
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs") indicates
+    that no protocol dominates on all datasets. Medprompt seems to perform the best
+    overall. Interestingly enough the debating protocols do not outperform the other
+    protocols on the reasoning datasets. To further investigate this we provide box
+    plots, in Figure [2](https://arxiv.org/html/2311.17371v3#S3.F2 "Figure 2 ‣ Results
+    ‣ 3 Experiments ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies
+    for LLMs"), which show the distribution of performances for each QA system across
+    the other datasets (MedQA’s results can be found in Figure [1](https://arxiv.org/html/2311.17371v3#S2.F1
+    "Figure 1 ‣ 2 Multi-Agent Debate ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs")). These boxplots help to visualize the variability
+    and robustness of each system under different conditions.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格[2](https://arxiv.org/html/2311.17371v3#S3.T2 "Table 2 ‣ Results ‣ 3 Experiments
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")显示，没有一个协议在所有数据集上占据主导地位。Medprompt似乎整体表现最好。有趣的是，辩论协议在推理数据集上的表现并没有超过其他协议。为了进一步调查这一点，我们提供了箱线图，见图[2](https://arxiv.org/html/2311.17371v3#S3.F2
+    "Figure 2 ‣ Results ‣ 3 Experiments ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs")，该图展示了每个QA系统在其他数据集上的表现分布（MedQA的结果可以在图[1](https://arxiv.org/html/2311.17371v3#S2.F1
+    "Figure 1 ‣ 2 Multi-Agent Debate ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs")中找到）。这些箱线图有助于可视化每个系统在不同条件下的变异性和稳健性。
+- en: The protocols with the most variance in performance seem to be Ensemble Refinement,
+    Self-Consistency and single-agent implementations. Medprompt seems to perform
+    consistently well, except on the GPQA dataset, with low variance. It seems that
+    MAD protocols are more sensitive to hyperparameters. We investigate this further
+    in the next section.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能变异性最大的协议似乎是集成细化、自我一致性和单代理实现。Medprompt似乎表现得比较稳定，除了在GPQA数据集上表现较差，其他情况的变异性较低。看来，MAD协议对超参数更为敏感。我们将在下一节进一步探讨这一点。
+- en: Is MAD simply sensitive to hyperparameters?
+  id: totrans-70
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: MAD仅仅对超参数敏感吗？
+- en: To benchmark MAD’s sensitivity to hyperparameter choices, we adopt a K-fold
+    approach. We divide the medical and non-medical datasets into two groups. For
+    each method and each dataset, we gather the hyperparameter combination which has
+    the highest average accuracy on the two held-out datasets of the same category,
+    and use this combination to compute the final accuracy.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估MAD对超参数选择的敏感性，我们采用了K折交叉验证方法。我们将医学和非医学数据集分成两组。对于每种方法和每个数据集，我们收集具有最高平均准确率的超参数组合，这些超参数组合来自同一类别中保留的两个数据集，并使用该组合来计算最终准确率。
+- en: The results are presented in Figure [3](https://arxiv.org/html/2311.17371v3#S3.F3
+    "Figure 3 ‣ Is MAD simply sensitive to hyperparameters? ‣ 3 Experiments ‣ Should
+    we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs"). Notably,
+    within medical datasets, every evaluated system outperforms single-agent methods,
+    with the exception of Multi-Persona. Self-Consistency and Medprompt emerge as
+    the top performers. Conversely, in the context of non-medical datasets, single-agent
+    methods surpass all evaluated systems except for Multi-Persona and Self-Consistency.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果如图[3](https://arxiv.org/html/2311.17371v3#S3.F3 "图3 ‣ MAD是否仅对超参数敏感？ ‣ 3 实验
+    ‣ 我们是否应该走向极端？——LLM多代理辩论策略的探讨")所示。值得注意的是，在医学数据集内，所有评估的系统都优于单代理方法，唯独Multi-Persona除外。Self-Consistency和Medprompt表现为最佳。相反，在非医学数据集的背景下，单代理方法超过了所有评估的系统，只有Multi-Persona和Self-Consistency例外。
+- en: '![Refer to caption](img/d5dbd004b3570162d12ef2e94c4653ce.png)![Refer to caption](img/9c6ab98480ab9546dcfbb5d9f673bf3a.png)'
+  id: totrans-73
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/d5dbd004b3570162d12ef2e94c4653ce.png)![参见说明](img/9c6ab98480ab9546dcfbb5d9f673bf3a.png)'
+- en: 'Figure 3: *Comparing medical vs non-medical datasets*. The red line indicates
+    the average performance of single-agent systems. Left: Accuracy averaged over
+    the three medical datasets. Right: Accuracy averaged over the three non-medical
+    datasets.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：*比较医学数据集与非医学数据集*。红线表示单代理系统的平均表现。左侧：三种医学数据集的平均准确度。右侧：三种非医学数据集的平均准确度。
+- en: These findings indicate that hyperparameter choices significantly influence
+    system performance, with optimal settings tending to be dataset-specific. Moreover,
+    they underscore that superior performance of various protocols over a standard
+    single-agent approach is not assured for new datasets. It appears that dataset-specific
+    fine-tuning is crucial for maximizing performance.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些发现表明，超参数的选择显著影响系统性能，最优设置往往是特定数据集的。进一步强调，尽管不同协议在性能上优于标准的单代理方法，但对于新数据集并不总能保证优越表现。看来，针对特定数据集的微调对于最大化性能至关重要。
+- en: Measuring the performance boost from debating
+  id: totrans-76
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 测量辩论带来的性能提升
+- en: 'In Figure [4](https://arxiv.org/html/2311.17371v3#S3.F4 "Figure 4 ‣ Measuring
+    the performance boost from debating ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs"), we observe the relative improvement
+    in accuracy achieved by the debate process compared to the initial answer provided
+    by the first agent. Notably, the performance varies across the three systems:
+    ChatEval exhibits a modest enhancement, Society of Mind shows a substantial increase,
+    and Multi-Persona, intriguingly, leads to a decrease in performance. This divergence
+    in outcomes, coupled with the findings in Table [2](https://arxiv.org/html/2311.17371v3#S3.T2
+    "Table 2 ‣ Results ‣ 3 Experiments ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs") which reveal only minor differences in final accuracy
+    among these systems, suggests that the initial quality of responses in the first
+    round may vary significantly.'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在图[4](https://arxiv.org/html/2311.17371v3#S3.F4 "图4 ‣ 测量辩论带来的性能提升 ‣ 3 实验 ‣ 我们是否应该走向极端？——LLM多代理辩论策略的探讨")中，我们观察到辩论过程相较于第一代理提供的初始答案，准确度的相对提升。特别是，性能在三种系统之间有所不同：ChatEval表现出适度的提升，Mind
+    Society显示出显著的提高，而Multi-Persona则有趣地导致了性能的下降。结合表[2](https://arxiv.org/html/2311.17371v3#S3.T2
+    "表2 ‣ 结果 ‣ 3 实验 ‣ 我们是否应该走向极端？——LLM多代理辩论策略的探讨")中的发现，表明这些系统最终的准确度差异较小，这提示第一轮回答的初始质量可能会有显著差异。
+- en: '![Refer to caption](img/f379d7f72cc2890b494c71c536a93e7b.png)'
+  id: totrans-78
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/f379d7f72cc2890b494c71c536a93e7b.png)'
+- en: 'Figure 4: Relative accuracy improvements, averaged on all datasets, between
+    the answer of the first agent given during the first and last round, as well as
+    with the final answer.'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：第一轮与最后一轮给出的第一代理答案之间的相对准确度提升，平均计算于所有数据集，以及与最终答案的比较。
+- en: '![Refer to caption](img/2ac7255144f0f609c5dab3b7ab1f2aca.png)![Refer to caption](img/514db4c00c4173fbc75db38e566be1b9.png)'
+  id: totrans-80
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/2ac7255144f0f609c5dab3b7ab1f2aca.png)![参见说明](img/514db4c00c4173fbc75db38e566be1b9.png)'
+- en: 'Figure 5: Left: Multi-Persona’s accuracy according to the agreement fixed by
+    the prompt. Right: Multi-Persona’s accuracy according to the averaged agreement
+    during the first debate round.'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：左侧：根据提示固定的协议，Multi-Persona的准确度。右侧：根据第一轮辩论中的平均协议，Multi-Persona的准确度。
+- en: '![Refer to caption](img/5c47c067aeeafbd86225798b465e709d.png)![Refer to caption](img/4f9606f440e57b60ecfdae0f11261454.png)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/5c47c067aeeafbd86225798b465e709d.png)![参见说明](img/4f9606f440e57b60ecfdae0f11261454.png)'
+- en: 'Figure 6: Left: Accuracy on USMLE as we increase agreement intensity in our
+    prompt. Right: Accuracy vs actual induced debate agreement.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：左：随着我们在提示中增加一致性强度，USMLE的准确性变化。右：准确性与实际引导的辩论一致性的关系。
+- en: An unexpected aspect of this analysis is that the Multi-Persona system reduces
+    the overall performance compared to relying solely on the initial response of
+    the first agent. This can be attributed to the role of the second agent (the “devil”),
+    which is deliberately designed to contradict or disagree, even if the initial
+    response was correct. We show in the next section that this prior willingness
+    for different agents to agree with each other at the outset of a debate, is indeed
+    a very important “hyperparameter”.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一分析的一个意外方面是，与仅依赖第一个代理人初始回答相比，Multi-Persona系统的整体表现有所下降。这可以归因于第二个代理人（“魔鬼”）的角色，该角色被故意设计为反对或不同意，即使初始回答是正确的。我们在下一部分中展示了，代理人之间在辩论开始时的这种一致性意愿，确实是一个非常重要的“超参数”。
+- en: Improving MAD via agreement modulation
+  id: totrans-85
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 通过一致性调节改进MAD
+- en: 'Our previous experiments led us to hypothesise that the degree to which agents
+    agree with one another during a debate may significantly affect debating performance.
+    Here we test this hypothesis by developing a new MAD prompting strategy that modulates
+    (via prompts) the degree to which agents within a debate agree with each other
+    at the outset. Our prompt takes the following simple form: “you should agree with
+    the other agents X% of the time”. We call X in this prompt the agent’s agreement
+    intensity.'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们之前的实验使我们假设，在辩论过程中，代理人之间的意见一致程度可能会显著影响辩论表现。在这里，我们通过开发一种新的MAD提示策略来检验这一假设，该策略通过提示调节辩论中代理人之间在开始时的意见一致程度。我们的提示采用以下简单的形式：“你应该在X%的时间内与其他代理人达成一致。”我们将此提示中的X称为代理人的一致性强度。
+- en: 'Multi-Persona is an ideal testbed for this method, as it uses only two agents
+    with different system prompts. Specifically, we provide the “angel” agent with
+    the question, and we modulate the disagreement using the “devil”’s system prompt.
+    Figure [5](https://arxiv.org/html/2311.17371v3#S3.F5 "Figure 5 ‣ Measuring the
+    performance boost from debating ‣ 3 Experiments ‣ Should we be going MAD? A Look
+    at Multi-Agent Debate Strategies for LLMs") shows the effect of modulating the
+    agent’s agreement on the 6 datasets. We can see that this parameter has a significant
+    effect on the performance and that modulating the agreement in the prompt has
+    the effect of modifying the agreement on the first debate round, which in turn
+    affects the outcome and the final accuracy. Strikingly, the tendency is not always
+    the same for each dataset: while MedQA and PubMedQA directly benefit from a high
+    agreement, CIAR follows a reverse pattern. As CIAR was created to be counter-intuitive,
+    it is therefore probable that prompting the second agent to strongly disagree
+    raises the chance of arriving at the correct answer during the debate.'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Multi-Persona是此方法的理想测试平台，因为它仅使用两个具有不同系统提示的代理人。具体来说，我们给“天使”代理人提供问题，并通过“魔鬼”的系统提示来调节不同意见的程度。图[5](https://arxiv.org/html/2311.17371v3#S3.F5
+    "图5 ‣ 测量辩论带来的表现提升 ‣ 3 实验 ‣ 我们是否应该采用MAD？探索多代理辩论策略对LLM的影响")展示了在6个数据集上调节代理人一致性的效果。我们可以看到，这个参数对表现有显著影响，且在提示中调节一致性会影响第一次辩论轮次中的一致性，从而影响最终的结果和准确性。令人惊讶的是，这种趋势在每个数据集上并不总是相同：尽管MedQA和PubMedQA直接受益于高度一致性，CIAR却呈现出相反的模式。由于CIAR被设计为反直觉，因此很可能通过提示第二个代理人强烈不同意，可以提高辩论过程中得到正确答案的机会。
+- en: To investigate further, we select the highest performing configurations of debating
+    approaches from Figure [1](https://arxiv.org/html/2311.17371v3#S2.F1 "Figure 1
+    ‣ 2 Multi-Agent Debate ‣ Should we be going MAD? A Look at Multi-Agent Debate
+    Strategies for LLMs"), namely SoM, ChatEval and Multi-Persona, and a subset of
+    MedQA dataset (376 multi-choice USMLE Q&A (Han et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib7))).
+    We opted for this subset due to its high-quality questions. In Figure [6](https://arxiv.org/html/2311.17371v3#S3.F6
+    "Figure 6 ‣ Measuring the performance boost from debating ‣ 3 Experiments ‣ Should
+    we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs") (left), we
+    plot the performance of each strategy as we increase the prompted agreement intensity
+    from zero to 100%. Figure [6](https://arxiv.org/html/2311.17371v3#S3.F6 "Figure
+    6 ‣ Measuring the performance boost from debating ‣ 3 Experiments ‣ Should we
+    be going MAD? A Look at Multi-Agent Debate Strategies for LLMs") (right) we plot
+    the accuracy vs the actual observed debate consensus, i.e. how frequently all
+    the agents agree upon a final answer at the end of the debate.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进一步研究，我们从图[1](https://arxiv.org/html/2311.17371v3#S2.F1 "图1 ‣ 2 多智能体辩论 ‣ 我们是否应该走向疯狂？探讨LLM的多智能体辩论策略")中选择了表现最好的辩论方法配置，具体包括SoM、ChatEval和Multi-Persona，以及MedQA数据集的一个子集（376个多项选择题USMLE问答（Han
+    et al., [2023](https://arxiv.org/html/2311.17371v3#bib.bib7)））。我们选择这个子集是因为它的问题质量较高。在图[6](https://arxiv.org/html/2311.17371v3#S3.F6
+    "图6 ‣ 辩论对性能提升的衡量 ‣ 3 实验 ‣ 我们是否应该走向疯狂？探讨LLM的多智能体辩论策略")（左）中，我们绘制了随着提示同意强度从零增加到100%时，各个策略的性能。在图[6](https://arxiv.org/html/2311.17371v3#S3.F6
+    "图6 ‣ 辩论对性能提升的衡量 ‣ 3 实验 ‣ 我们是否应该走向疯狂？探讨LLM的多智能体辩论策略")（右）中，我们绘制了准确度与实际观察到的辩论共识之间的关系，即所有智能体在辩论结束时最终达成一致答案的频率。
+- en: We can see that modulating the agreement intensity in this way provides a substantial
+    ($\approx$15%) improvement in performance for Multi-Persona, and ($\approx$5%)
+    for SoM on the USMLE dataset. ChatEval, on the contrary, is hardly affected by
+    this prompting mechanism, suggesting that the agent’s agreement is not as easily
+    modulable for every system. Building on this finding, we apply the 90% agreement
+    intensity agent prompts to Multi-Persona on the full MedQA dataset and demonstrate
+    (as far as we are aware) a new state-of-the-art result (for GPT-3), highlighted
+    in Figure [1](https://arxiv.org/html/2311.17371v3#S2.F1 "Figure 1 ‣ 2 Multi-Agent
+    Debate ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")
+    by the red cross symbol.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以看到，通过这种方式调节同意强度，Multi-Persona在USMLE数据集上提供了显著的性能提升（约15%），而SoM的提升约为5%。相反，ChatEval几乎不受这种提示机制的影响，表明对于每个系统来说，智能体的同意并不是那么容易调节的。基于这一发现，我们将90%的同意强度应用于Multi-Persona，并在完整的MedQA数据集上展示了（据我们所知）一个新的最先进的结果（针对GPT-3），该结果在图[1](https://arxiv.org/html/2311.17371v3#S2.F1
+    "图1 ‣ 2 多智能体辩论 ‣ 我们是否应该走向疯狂？探讨LLM的多智能体辩论策略")中通过红色叉号符号突出显示。
+- en: Analysis of debating behaviour
+  id: totrans-90
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 辩论行为分析
+- en: Our experiments section concludes with an exploration of the dynamics within
+    MAD systems, specifically through their performance on the MedQA test set. We
+    assess Multi-Persona, ChatEval, and Society of Mind, focusing on key aspects such
+    as consensus accuracy, independent correct answer identification, the adaptability
+    reflected in answer changes, and the breadth of initial perspectives. These facets
+    are depicted in Figure [7](https://arxiv.org/html/2311.17371v3#S3.F7 "Figure 7
+    ‣ Analysis of debating behaviour ‣ 3 Experiments ‣ Should we be going MAD? A Look
+    at Multi-Agent Debate Strategies for LLMs"), offering insights into each system’s
+    strategic approach to debate and problem-solving.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验部分以对MAD系统内部动态的探索作为结尾，特别是通过它们在MedQA测试集上的表现。我们评估了Multi-Persona、ChatEval和思维社会，重点关注共识准确度、独立正确答案识别、答案变化中的适应性以及初始观点的广度等关键方面。这些方面在图[7](https://arxiv.org/html/2311.17371v3#S3.F7
+    "图7 ‣ 辩论行为分析 ‣ 3 实验 ‣ 我们是否应该走向疯狂？探讨LLM的多智能体辩论策略")中得以展示，提供了对每个系统辩论和解决问题战略方法的深入了解。
+- en: '![Refer to caption](img/9d694b64a296ad7c0583d0b87a26f8fd.png)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/9d694b64a296ad7c0583d0b87a26f8fd.png)'
+- en: (a) Best system runs
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 最佳系统运行
+- en: '![Refer to caption](img/fd70a437b20edf733b1cd0d3379c387e.png)'
+  id: totrans-94
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/fd70a437b20edf733b1cd0d3379c387e.png)'
+- en: (b) Multi-Persona
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 多角色
+- en: '![Refer to caption](img/14798678e53c70c3f4aee4384c00b7e8.png)'
+  id: totrans-96
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/14798678e53c70c3f4aee4384c00b7e8.png)'
+- en: (c) ChatEval
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) ChatEval
+- en: '![Refer to caption](img/25b3a5b62f6ffbef10da66d6ed48b61d.png)'
+  id: totrans-98
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/25b3a5b62f6ffbef10da66d6ed48b61d.png)'
+- en: (d) Society of Mind
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 思维社会
+- en: 'Figure 7: *Debating Behavior of MAD Strategies.* The first plot compares the
+    top runs for each of the systems, while the other three plots compare the top
+    three runs for each system. Each plot quantifies the performance on MedQA by measuring
+    several factors: the accuracy of the final consensus among agents (scaled to 1.0),
+    the instances of any agent identifying the correct answer independently (also
+    scaled to 1.0), the frequency of agents changing their answers during the debate,
+    and the diversity of initial answers provided. The descriptions for each axis
+    include the range of scores observed, from minimum to maximum.'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图 7: *MAD 策略的辩论行为*。第一张图比较了每个系统的最佳运行结果，而其他三张图则比较了每个系统的前三次运行。每张图通过测量多个因素来量化 MedQA
+    上的表现：代理之间最终一致的准确性（缩放至 1.0），任何代理独立识别正确答案的实例（同样缩放至 1.0），代理在辩论过程中改变答案的频率，以及初始答案的多样性。每个轴的描述包括从最小值到最大值的得分范围。'
+- en: The four spider plots offer a more detailed analysis of the debating behavior
+    of MAD strategies, providing insights into the effectiveness of each system through
+    various metrics. The initial plot compares the three systems, with Society of
+    Mind (SoM) notably exhibiting the largest surface area, suggesting it outperforms
+    others across all debating metrics. This is further supported in the subsequent
+    plots, which analyze the top three runs for each system and show that larger areas
+    are indicative of better performance. These visualizations emphasize the importance
+    of a balanced system, indicating that excellence in one aspect is not enough;
+    a system must perform well across multiple dimensions of the debate process. A
+    full description of each of the metrics is provided in Appendix [A.3](https://arxiv.org/html/2311.17371v3#A1.SS3
+    "A.3 Additional Debate Metrics ‣ Appendix A Appendix ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs").
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 四个蜘蛛图提供了对 MAD 策略辩论行为的更详细分析，通过各种指标提供了对每个系统有效性的洞察。初始图表比较了三个系统，其中心智社会（SoM）明显展示了最大的表面积，这表明它在所有辩论指标上表现优于其他系统。后续图表进一步支持了这一点，分析了每个系统的前三次运行，显示出更大的面积通常意味着更好的表现。这些可视化强调了平衡系统的重要性，表明在某一方面的卓越表现是不够的；系统必须在辩论过程的多个维度上都表现良好。每个指标的详细说明可在附录
+    [A.3](https://arxiv.org/html/2311.17371v3#A1.SS3 "A.3 Additional Debate Metrics
+    ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies
+    for LLMs")中找到。
+- en: For example, when agents change their answers during a debate, this reevaluation
+    must lead to more accurate conclusions. Arbitrary changes without a strategic
+    basis could prevent consensus. This underlines the need for a balanced approach
+    where agents not only reconsider their positions but also enhance their decision-making
+    accuracy, contributing to the system’s overall effectiveness.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，当代理在辩论过程中更改他们的答案时，这种重新评估必须导致更准确的结论。没有战略依据的随意更改可能会妨碍达成共识。这强调了需要一种平衡的方法，在这种方法中，代理不仅要重新考虑自己的立场，还要提高决策的准确性，从而提高系统的整体有效性。
+- en: Evaluating using other APIs
+  id: totrans-103
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 使用其他 API 进行评估
+- en: We assess the capability of GPT-4 (OpenAI et al., [2024](https://arxiv.org/html/2311.17371v3#bib.bib22))
+    and Mixtral 8x7B (Jiang et al., [2024](https://arxiv.org/html/2311.17371v3#bib.bib10))
+    on the MedQA dataset, applying the optimal agreement modulation value identified
+    for Multi-Persona with GPT-3.5 on USMLE. Results shown in Figures [8](https://arxiv.org/html/2311.17371v3#S3.F8
+    "Figure 8 ‣ Evaluating using other APIs ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs") and [9](https://arxiv.org/html/2311.17371v3#S3.F9
+    "Figure 9 ‣ Evaluating using other APIs ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs").
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们评估了 GPT-4（OpenAI 等，[2024](https://arxiv.org/html/2311.17371v3#bib.bib22)）和
+    Mixtral 8x7B（Jiang 等，[2024](https://arxiv.org/html/2311.17371v3#bib.bib10)）在 MedQA
+    数据集上的能力，应用了在 USMLE 上为 Multi-Persona 与 GPT-3.5 确定的最佳一致性调节值。结果如图 [8](https://arxiv.org/html/2311.17371v3#S3.F8
+    "Figure 8 ‣ Evaluating using other APIs ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs") 和 [9](https://arxiv.org/html/2311.17371v3#S3.F9
+    "Figure 9 ‣ Evaluating using other APIs ‣ 3 Experiments ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs")所示。
+- en: '![Refer to caption](img/4363f20f213a4fbd8f96598c07ae533b.png)![Refer to caption](img/c3ef751c2c70443f5616adb5e0a5f3fd.png)'
+  id: totrans-105
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/4363f20f213a4fbd8f96598c07ae533b.png)![参考标题](img/c3ef751c2c70443f5616adb5e0a5f3fd.png)'
+- en: 'Figure 8: Benchmark of experiment configurations of GPT-4 on MedQA dataset.
+    Left: Accuracy vs average cost ($) per question. The size of the dots reflects
+    the average number of API calls required per question. Right: Summarizes accuracy
+    grouped by strategy, sorted by average performance (black dot).'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 8：GPT-4 在 MedQA 数据集上的实验配置基准。左侧：每个问题的准确度与平均成本（$）之间的关系。点的大小反映了每个问题所需的平均 API
+    调用次数。右侧：按策略汇总的准确度，按平均表现（黑点）排序。
+- en: '![Refer to caption](img/5699863e3f9c379445aaf8e646e95ee8.png)![Refer to caption](img/019d8d032f7dcc89723008699e15aa0b.png)'
+  id: totrans-107
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅图注](img/5699863e3f9c379445aaf8e646e95ee8.png)![请参阅图注](img/019d8d032f7dcc89723008699e15aa0b.png)'
+- en: 'Figure 9: Benchmark of experiment configurations of Mixtral 8x7B on MedQA dataset.
+    Left: Accuracy vs average cost ($) per question. The size of the dots reflects
+    the average number of API calls required per question. Right: Summarizes accuracy
+    grouped by strategy, sorted by average performance (black dot).'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 9：Mixtral 8x7B 在 MedQA 数据集上的实验配置基准。左侧：每个问题的准确度与平均成本（$）之间的关系。点的大小反映了每个问题所需的平均
+    API 调用次数。右侧：按策略汇总的准确度，按平均表现（黑点）排序。
+- en: The results from GPT-3.5 suggest that hyperparameter settings can be effectively
+    transferred to GPT-4\. However, this transferability does not extend well to Mixtral
+    8x7B. This discrepancy might be attributed to architectural differences, which
+    could affect how hyperparameters influence model performance. We leave this for
+    future research.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 来自 GPT-3.5 的结果表明，超参数设置可以有效地转移到 GPT-4。然而，这种可转移性在 Mixtral 8x7B 上表现不佳。这一差异可能归因于架构差异，这可能会影响超参数如何影响模型性能。我们将此留待未来研究。
+- en: Code availability
+  id: totrans-110
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代码可用性
+- en: Source code for this work, including all MAD implementations and configurations,
+    is publicly available at [https://github.com/instadeepai/DebateLLM](https://github.com/instadeepai/DebateLLM).
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究的源代码，包括所有 MAD 实现和配置，公开可用，访问地址为 [https://github.com/instadeepai/DebateLLM](https://github.com/instadeepai/DebateLLM)。
+- en: 4 Conclusions
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 结论
+- en: The investigations detailed in this work have demonstrated that MAD approaches
+    currently do not outperform other ensembling methods such as Medprompt and self-consistency
+    using their original implementations. MAD typically requires a higher number of
+    API calls, increasing the number of tokens to produce and process and ultimately,
+    the total running cost of the system. Interestingly, we found that this might
+    primarily be due to MAD protocols being more sensitive to hyperparameters and
+    not necessarily that debate inherently performs worse than single-agent methods.
+    To strengthen this claim, we demonstrated that a simple prompt-based manipulation
+    of the degree to which agents agree with each other, referred to as the agreement
+    intensity, could provide significant performance gains. By tuning this agreement
+    intensity for Multi-Persona, it went from being the worst-performing protocol
+    to the best-performing, beating out methods such as Medprompt and Self-Consistency.
+    Therefore, while MAD systems currently trail behind other prompting strategies,
+    we believe they hold significant potential to transform the prompting landscape.
+    To foster further exploration, we have made our code repository open-source, for
+    others to easily reproduce all our experiments and further pursue interesting
+    related research directions.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究中详细调查的结果表明，MAD 方法目前在表现上不优于其他集成方法，如 Medprompt 和自一致性，使用其原始实现时效果并不突出。MAD 通常需要更多的
+    API 调用，这增加了所需生成和处理的 tokens 数量，并最终提高了系统的总体运行成本。有趣的是，我们发现这可能主要是由于 MAD 协议对超参数的敏感性较高，而不一定是辩论方法本身比单一代理方法差。为了加强这一观点，我们演示了通过简单的提示方式调整代理之间的同意程度，称为同意强度，可以显著提升性能。通过调整
+    Multi-Persona 的同意强度，它从表现最差的协议变成了表现最好的，超越了如 Medprompt 和自一致性等方法。因此，尽管 MAD 系统目前落后于其他提示策略，我们相信它们在变革提示领域方面具有巨大潜力。为了促进进一步探索，我们已将我们的代码库开源，供他人轻松重现我们的所有实验，并进一步深入有趣的相关研究方向。
+- en: Limitations
+  id: totrans-114
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 局限性
+- en: We utilize API calls to a publicly available LLM (Brown et al., [2020](https://arxiv.org/html/2311.17371v3#bib.bib3))
+    which, whilst sufficient in the context of our investigation, exposes us to variable
+    inference time calls and unforeseen model updates. Moreover, large-scale API-based
+    benchmarking incurs substantial financial and time costs, which both limit the
+    experiment scales and provide a barrier of entry to replication and extension
+    efforts. For these reasons, future works could extend this line of work using
+    open-source models and in-house infrastructure.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们利用对公开可用 LLM 的 API 调用（Brown 等人，[2020](https://arxiv.org/html/2311.17371v3#bib.bib3)），虽然在我们的研究背景下足够，但这使我们暴露于可变的推理时间调用和不可预见的模型更新。此外，基于大规模
+    API 的基准测试会产生可观的财务和时间成本，这不仅限制了实验的规模，也对复制和扩展工作形成了障碍。因此，未来的工作可以使用开源模型和内部基础设施来扩展这一研究方向。
+- en: Impact Statement
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 影响声明
+- en: This study furthers the field of machine learning by evaluating multi-agent
+    debate (MAD) strategies and other prompting methods within question-answering
+    datasets. Our results show that MAD approaches could be as effective as, or even
+    superior to, other strategies like Medprompt and Self-Consistency. An open-source
+    toolkit is provided to promote additional research in this domain. While this
+    research aims to improve the precision of large language models (LLMs) in answering
+    questions, with a significant focus on healthcare applications, it is crucial
+    to consider the potential risks associated with these advancements. Specifically,
+    medical question-answering systems can sometimes yield incorrect predictions in
+    unforeseen ways, and there is a risk that these systems may exhibit undue confidence
+    in their erroneous responses. Such inaccuracies, especially in the medical domain,
+    could lead to misinformation or misdiagnosis, potentially impacting patient care
+    and outcomes. Therefore, while this work contributes valuable insights and tools
+    for enhancing LLM capabilities, it is imperative to proceed with caution, incorporating
+    robust validation, transparency, and ethical considerations to mitigate risks
+    and ensure these technologies are deployed in a manner that safeguards public
+    health and trust.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究通过评估多代理辩论（MAD）策略和其他提示方法在问答数据集中的表现，推动了机器学习领域的发展。我们的结果表明，MAD 方法可以与其他策略如 Medprompt
+    和 Self-Consistency 一样有效，甚至更为优越。提供了一个开源工具包，以促进该领域的进一步研究。尽管本研究旨在提高大语言模型（LLM）在回答问题时的精度，尤其是在医疗应用方面，但考虑到这些进展可能带来的潜在风险仍然至关重要。具体而言，医学问答系统有时会在不可预见的情况下产生错误的预测，并且这些系统可能对其错误的回答表现出不应有的自信。尤其在医学领域，这种不准确性可能导致错误信息或误诊，进而影响患者护理和结果。因此，尽管本研究为提升
+    LLM 能力提供了宝贵的见解和工具，但必须谨慎行事，结合严格的验证、透明度和伦理考量，以降低风险，确保这些技术的部署能保护公共健康和信任。
+- en: References
+  id: totrans-118
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Anil et al. (2023) Anil, R., Dai, A. M., Firat, O., Johnson, M., Lepikhin, D.,
+    Passos, A., Shakeri, S., Taropa, E., Bailey, P., Chen, Z., et al. Palm 2 technical
+    report. *arXiv preprint arXiv:2305.10403*, 2023.
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anil 等人（2023）Anil, R., Dai, A. M., Firat, O., Johnson, M., Lepikhin, D., Passos,
+    A., Shakeri, S., Taropa, E., Bailey, P., Chen, Z., 等人。Palm 2 技术报告。*arXiv 预印本 arXiv:2305.10403*，2023年。
+- en: 'bench Team (2021) bench Team, B. Chess state tracking, 2021. URL [https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/chess_state_tracking](https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/chess_state_tracking).
+    Accessed: 2024-05-27.'
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: bench Team（2021）bench Team, B. 国际象棋状态跟踪，2021年。网址 [https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/chess_state_tracking](https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/chess_state_tracking)。访问时间：2024年5月27日。
+- en: Brown et al. (2020) Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D.,
+    Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. Language
+    models are few-shot learners. *Advances in neural information processing systems*,
+    33:1877–1901, 2020.
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown 等人（2020）Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal,
+    P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., 等人。语言模型是少样本学习者。*神经信息处理系统进展*，33:1877–1901，2020年。
+- en: 'Chan et al. (2023) Chan, C.-M., Chen, W., Su, Y., Yu, J., Xue, W., Zhang, S.,
+    Fu, J., and Liu, Z. Chateval: Towards better llm-based evaluators through multi-agent
+    debate. *arXiv preprint arXiv:2308.07201*, 2023.'
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chan 等人（2023）Chan, C.-M., Chen, W., Su, Y., Yu, J., Xue, W., Zhang, S., Fu,
+    J., 和 Liu, Z. Chateval：通过多代理辩论推动更好的基于 LLM 的评估器。*arXiv 预印本 arXiv:2308.07201*，2023年。
+- en: Du et al. (2023) Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., and Mordatch,
+    I. Improving factuality and reasoning in language models through multiagent debate.
+    *arXiv preprint arXiv:2305.14325*, 2023.
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Du 等人（2023）Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., 和 Mordatch, I. 通过多智能体辩论提高语言模型的事实性和推理能力。*arXiv
+    预印本 arXiv:2305.14325*，2023年。
+- en: Fu et al. (2023) Fu, Y., Peng, H., Khot, T., and Lapata, M. Improving language
+    model negotiation with self-play and in-context learning from ai feedback. *arXiv
+    preprint arXiv:2305.10142*, 2023.
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fu 等人（2023）Fu, Y., Peng, H., Khot, T., 和 Lapata, M. 通过自我博弈和上下文学习改进语言模型的谈判能力。*arXiv
+    预印本 arXiv:2305.10142*，2023年。
+- en: Han et al. (2023) Han, T., Adams, L. C., Papaioannou, J.-M., Grundmann, P.,
+    Oberhauser, T., Löser, A., Truhn, D., and Bressem, K. K. Medalpaca–an open-source
+    collection of medical conversational ai models and training data. *arXiv preprint
+    arXiv:2304.08247*, 2023.
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Han 等人（2023）Han, T., Adams, L. C., Papaioannou, J.-M., Grundmann, P., Oberhauser,
+    T., Löser, A., Truhn, D., 和 Bressem, K. K. Medalpaca——一个开源的医学对话式 AI 模型及训练数据集。*arXiv
+    预印本 arXiv:2304.08247*，2023年。
+- en: Hendrycks et al. (2021) Hendrycks, D., Burns, C., Basart, S., Zou, A., Mazeika,
+    M., Song, D., and Steinhardt, J. Measuring massive multitask language understanding.
+    In *International conference on learning representations*, 2021.
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hendrycks 等人（2021）Hendrycks, D., Burns, C., Basart, S., Zou, A., Mazeika, M.,
+    Song, D., 和 Steinhardt, J. 测量大规模多任务语言理解能力。发表于 *国际学习表征会议*，2021年。
+- en: 'Huang et al. (2019) Huang, L., Bras, R. L., Bhagavatula, C., and Choi, Y. Cosmos
+    QA: machine reading comprehension with contextual commonsense reasoning. *CoRR*,
+    abs/1909.00277, 2019. URL [http://arxiv.org/abs/1909.00277](http://arxiv.org/abs/1909.00277).'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Huang 等人（2019）Huang, L., Bras, R. L., Bhagavatula, C., 和 Choi, Y. Cosmos QA:
+    具有上下文常识推理的机器阅读理解。*CoRR*，abs/1909.00277，2019年。网址：[http://arxiv.org/abs/1909.00277](http://arxiv.org/abs/1909.00277)'
+- en: Jiang et al. (2024) Jiang, A. Q., Sablayrolles, A., Roux, A., Mensch, A., Savary,
+    B., Bamford, C., Chaplot, D. S., de las Casas, D., Hanna, E. B., Bressand, F.,
+    Lengyel, G., Bour, G., Lample, G., Lavaud, L. R., Saulnier, L., Lachaux, M.-A.,
+    Stock, P., Subramanian, S., Yang, S., Antoniak, S., Scao, T. L., Gervet, T., Lavril,
+    T., Wang, T., Lacroix, T., and Sayed, W. E. Mixtral of experts, 2024.
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jiang 等人（2024）Jiang, A. Q., Sablayrolles, A., Roux, A., Mensch, A., Savary,
+    B., Bamford, C., Chaplot, D. S., de las Casas, D., Hanna, E. B., Bressand, F.,
+    Lengyel, G., Bour, G., Lample, G., Lavaud, L. R., Saulnier, L., Lachaux, M.-A.,
+    Stock, P., Subramanian, S., Yang, S., Antoniak, S., Scao, T. L., Gervet, T., Lavril,
+    T., Wang, T., Lacroix, T., 和 Sayed, W. E. Mixtral of experts，2024年。
+- en: Jin et al. (2021) Jin, D., Pan, E., Oufattole, N., Weng, W.-H., Fang, H., and
+    Szolovits, P. What disease does this patient have? a large-scale open domain question
+    answering dataset from medical exams. *Applied Sciences*, 11(14):6421, 2021.
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jin 等人（2021）Jin, D., Pan, E., Oufattole, N., Weng, W.-H., Fang, H., 和 Szolovits,
+    P. 这个病人得了什么病？来自医学考试的大规模开放领域问答数据集。*应用科学*，11(14):6421，2021年。
+- en: 'Jin et al. (2019) Jin, Q., Dhingra, B., Liu, Z., Cohen, W. W., and Lu, X. Pubmedqa:
+    A dataset for biomedical research question answering. *arXiv preprint arXiv:1909.06146*,
+    2019.'
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Jin 等人（2019）Jin, Q., Dhingra, B., Liu, Z., Cohen, W. W., 和 Lu, X. Pubmedqa:
+    用于生物医学研究问题回答的数据集。*arXiv 预印本 arXiv:1909.06146*，2019年。'
+- en: Kaplan et al. (2020) Kaplan, J., McCandlish, S., Henighan, T., Brown, T. B.,
+    Chess, B., Child, R., Gray, S., Radford, A., Wu, J., and Amodei, D. Scaling laws
+    for neural language models. *arXiv preprint arXiv:2001.08361*, 2020.
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kaplan 等人（2020）Kaplan, J., McCandlish, S., Henighan, T., Brown, T. B., Chess,
+    B., Child, R., Gray, S., Radford, A., Wu, J., 和 Amodei, D. 神经语言模型的规模定律。*arXiv
+    预印本 arXiv:2001.08361*，2020年。
+- en: Kojima et al. (2022) Kojima, T., Gu, S. S., Reid, M., Matsuo, Y., and Iwasawa,
+    Y. Large language models are zero-shot reasoners. *Advances in neural information
+    processing systems*, 35:22199–22213, 2022.
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kojima 等人（2022）Kojima, T., Gu, S. S., Reid, M., Matsuo, Y., 和 Iwasawa, Y. 大语言模型是零样本推理者。*神经信息处理系统进展*，35:22199–22213，2022年。
+- en: Kumar et al. (2024) Kumar, H., Musabirov, I., Reza, M., Shi, J., Wang, X., Williams,
+    J. J., Kuzminykh, A., and Liut, M. Impact of guidance and interaction strategies
+    for llm use on learner performance and perception, 2024.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kumar 等人（2024）Kumar, H., Musabirov, I., Reza, M., Shi, J., Wang, X., Williams,
+    J. J., Kuzminykh, A., 和 Liut, M. 指导和互动策略对大语言模型使用对学习者表现和感知的影响，2024年。
+- en: 'Lai et al. (2023) Lai, J., Gan, W., Wu, J., Qi, Z., and Yu, P. S. Large language
+    models in law: A survey, 2023.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lai 等人（2023）Lai, J., Gan, W., Wu, J., Qi, Z., 和 Yu, P. S. 大语言模型在法律中的应用：一项调查，2023年。
+- en: 'Li et al. (2023) Li, G., Hammoud, H. A. A. K., Itani, H., Khizbullin, D., and
+    Ghanem, B. Camel: Communicative agents for ”mind” exploration of large scale language
+    model society. *arXiv preprint arXiv:2303.17760*, 2023.'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li 等人（2023）Li, G., Hammoud, H. A. A. K., Itani, H., Khizbullin, D., 和 Ghanem,
+    B. Camel: 用于大规模语言模型社会的“思维”探索的通信代理。*arXiv 预印本 arXiv:2303.17760*，2023年。'
+- en: Liang et al. (2023) Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang, R.,
+    Yang, Y., Tu, Z., and Shi, S. Encouraging divergent thinking in large language
+    models through multi-agent debate. *arXiv preprint arXiv:2305.19118*, 2023.
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang et al. (2023) Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang, R.,
+    Yang, Y., Tu, Z., 和 Shi, S. 《通过多代理辩论促进大型语言模型的发散性思维》。*arXiv预印本 arXiv:2305.19118*,
+    2023。
+- en: Liévin et al. (2022) Liévin, V., Hother, C. E., and Winther, O. Can large language
+    models reason about medical questions? *arXiv preprint arXiv:2207.08143*, 2022.
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liévin et al. (2022) Liévin, V., Hother, C. E., 和 Winther, O. 《大型语言模型能推理医学问题吗？》*arXiv预印本
+    arXiv:2207.08143*, 2022。
+- en: Nori et al. (2023) Nori, H., Lee, Y. T., Zhang, S., Carignan, D., Edgar, R.,
+    Fusi, N., King, N., Larson, J., Li, Y., Liu, W., Luo, R., McKinney, S. M., Ness,
+    R. O., Poon, H., Qin, T., Usuyama, N., White, C., and Horvitz, E. Can generalist
+    foundation models outcompete special-purpose tuning? case study in medicine, 2023.
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nori et al. (2023) Nori, H., Lee, Y. T., Zhang, S., Carignan, D., Edgar, R.,
+    Fusi, N., King, N., Larson, J., Li, Y., Liu, W., Luo, R., McKinney, S. M., Ness,
+    R. O., Poon, H., Qin, T., Usuyama, N., White, C., 和 Horvitz, E. 《通用基础模型能否超越专用调优？医学领域的案例研究》，2023。
+- en: OpenAI (2023) OpenAI. GPT-4 Technical Report. Technical report, OpenAI, 2023.
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2023) OpenAI。《GPT-4技术报告》。技术报告，OpenAI，2023。
+- en: OpenAI et al. (2024) OpenAI et al. Gpt-4 technical report, 2024.
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI et al. (2024) OpenAI 等。《GPT-4技术报告》，2024。
+- en: Ouyang et al. (2022) Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright,
+    C., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., et al. Training language
+    models to follow instructions with human feedback. *Advances in Neural Information
+    Processing Systems*, 35:27730–27744, 2022.
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ouyang et al. (2022) Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright,
+    C., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., 等。《训练语言模型以跟随指令并通过人类反馈进行优化》。*神经信息处理系统进展*,
+    35:27730–27744, 2022。
+- en: Pardos & Bhandari (2023) Pardos, Z. A. and Bhandari, S. Learning gain differences
+    between chatgpt and human tutor generated algebra hints. *arXiv preprint arXiv:2302.06871*,
+    2023.
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pardos & Bhandari (2023) Pardos, Z. A. 和 Bhandari, S. 《ChatGPT与人类导师生成的代数提示的学习增益差异》。*arXiv预印本
+    arXiv:2302.06871*, 2023。
+- en: 'Park et al. (2023) Park, J. S., O’Brien, J. C., Cai, C. J., Morris, M. R.,
+    Liang, P., and Bernstein, M. S. Generative agents: Interactive simulacra of human
+    behavior. *arXiv preprint arXiv:2304.03442*, 2023.'
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Park et al. (2023) Park, J. S., O’Brien, J. C., Cai, C. J., Morris, M. R., Liang,
+    P., 和 Bernstein, M. S. 《生成型代理：人类行为的交互式模拟》。*arXiv预印本 arXiv:2304.03442*, 2023。
+- en: 'Rein et al. (2023) Rein, D., Hou, B. L., Stickland, A. C., Petty, J., Pang,
+    R. Y., Dirani, J., Michael, J., and Bowman, S. R. Gpqa: A graduate-level google-proof
+    q&a benchmark, 2023.'
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Rein et al. (2023) Rein, D., Hou, B. L., Stickland, A. C., Petty, J., Pang,
+    R. Y., Dirani, J., Michael, J., 和 Bowman, S. R. 《Gpqa：一个研究生级别的Google-proof问答基准》，2023。
+- en: Singhal et al. (2022) Singhal, K., Azizi, S., Tu, T., Mahdavi, S. S., Wei, J.,
+    Chung, H. W., Scales, N., Tanwani, A., Cole-Lewis, H., Pfohl, S., et al. Large
+    language models encode clinical knowledge. *arXiv preprint arXiv:2212.13138*,
+    2022.
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Singhal et al. (2022) Singhal, K., Azizi, S., Tu, T., Mahdavi, S. S., Wei, J.,
+    Chung, H. W., Scales, N., Tanwani, A., Cole-Lewis, H., Pfohl, S., 等。《大型语言模型编码临床知识》。*arXiv预印本
+    arXiv:2212.13138*, 2022。
+- en: Singhal et al. (2023) Singhal, K., Tu, T., Gottweis, J., Sayres, R., Wulczyn,
+    E., Hou, L., Clark, K., Pfohl, S., Cole-Lewis, H., Neal, D., et al. Towards expert-level
+    medical question answering with large language models. *arXiv preprint arXiv:2305.09617*,
+    2023.
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Singhal et al. (2023) Singhal, K., Tu, T., Gottweis, J., Sayres, R., Wulczyn,
+    E., Hou, L., Clark, K., Pfohl, S., Cole-Lewis, H., Neal, D., 等。《通过大型语言模型实现专家级医学问答》。*arXiv预印本
+    arXiv:2305.09617*, 2023。
+- en: 'Taylor et al. (2022) Taylor, R., Kardas, M., Cucurull, G., Scialom, T., Hartshorn,
+    A., Saravia, E., Poulton, A., Kerkez, V., and Stojnic, R. Galactica: A large language
+    model for science. *arXiv preprint arXiv:2211.09085*, 2022.'
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Taylor et al. (2022) Taylor, R., Kardas, M., Cucurull, G., Scialom, T., Hartshorn,
+    A., Saravia, E., Poulton, A., Kerkez, V., 和 Stojnic, R. 《Galactica：一个用于科学的大型语言模型》。*arXiv预印本
+    arXiv:2211.09085*, 2022。
+- en: Vaswani et al. (2017) Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones,
+    L., Gomez, A. N., Kaiser, Ł., and Polosukhin, I. Attention is all you need. *Advances
+    in neural information processing systems*, 30, 2017.
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Vaswani et al. (2017) Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones,
+    L., Gomez, A. N., Kaiser, Ł., 和 Polosukhin, I. 《注意力机制即一切》。*神经信息处理系统进展*, 30, 2017。
+- en: 'Wang et al. (2023a) Wang, G., Yang, G., Du, Z., Fan, L., and Li, X. Clinicalgpt:
+    Large language models finetuned with diverse medical data and comprehensive evaluation.
+    *arXiv preprint arXiv:2306.09968*, 2023a.'
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023a) Wang, G., Yang, G., Du, Z., Fan, L., 和 Li, X. 《ClinicalGPT：通过多样的医疗数据和综合评估对大型语言模型进行微调》。*arXiv预印本
+    arXiv:2306.09968*, 2023a。
+- en: Wang et al. (2023b) Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang,
+    S., Chowdhery, A., and Zhou, D. Self-consistency improves chain of thought reasoning
+    in language models. In *International conference on learning representations*,
+    2023b.
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人 (2023b) Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang,
+    S., Chowdhery, A., 和 Zhou, D. 自一致性提升语言模型中的思维链推理。发表于 *国际学习表征大会*，2023b。
+- en: 'Wang et al. (2023c) Wang, Z., Mao, S., Wu, W., Ge, T., Wei, F., and Ji, H.
+    Unleashing cognitive synergy in large language models: A task-solving agent through
+    multi-persona self-collaboration. *arXiv preprint arXiv:2307.05300*, 2023c.'
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人 (2023c) Wang, Z., Mao, S., Wu, W., Ge, T., Wei, F., 和 Ji, H. 释放大型语言模型中的认知协同：通过多角色自我协作解决任务的代理。发表于
+    *arXiv 预印本 arXiv:2307.05300*，2023c。
+- en: Wei et al. (2022) Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi,
+    E., Le, Q. V., Zhou, D., et al. Chain-of-thought prompting elicits reasoning in
+    large language models. *Advances in Neural Information Processing Systems*, 35:24824–24837,
+    2022.
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等人 (2022) Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi, E.,
+    Le, Q. V., Zhou, D., 等人。思维链提示在大型语言模型中引发推理。发表于 *神经信息处理系统进展*，35:24824–24837，2022。
+- en: Zhang et al. (2023) Zhang, Y., Zhang, F., Yang, Z., and Wang, Z. What and how
+    does in-context learning learn? bayesian model averaging, parameterization, and
+    generalization. *arXiv preprint arXiv:2305.19420*, 2023.
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人 (2023) Zhang, Y., Zhang, F., Yang, Z., 和 Wang, Z. 在上下文学习中学习了什么和如何学习？贝叶斯模型平均化、参数化与泛化。发表于
+    *arXiv 预印本 arXiv:2305.19420*，2023。
+- en: Appendix A Appendix
+  id: totrans-154
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 附录
+- en: A.1 Extended results on additional datasets
+  id: totrans-155
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 在附加数据集上的扩展结果
+- en: 'We provide a comprehensive suite of GPT-3 results for each strategy on each
+    dataset: MedQA, PubMedQA, MMLU, CIAR, GPQA, CosmosQA and Chess. For each scenario,
+    we plot accuracy against average time used to answer each question, accuracy relative
+    to average tokens used per question, and accuracy in comparison to the total USD
+    cost. Additionally, a box plot to summarize the performance of each strategy.
+    These results can be viewed in Figures [10](https://arxiv.org/html/2311.17371v3#A1.F10
+    "Figure 10 ‣ A.1 Extended results on additional datasets ‣ Appendix A Appendix
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs"),
+    [11](https://arxiv.org/html/2311.17371v3#A1.F11 "Figure 11 ‣ A.1 Extended results
+    on additional datasets ‣ Appendix A Appendix ‣ Should we be going MAD? A Look
+    at Multi-Agent Debate Strategies for LLMs"), [12](https://arxiv.org/html/2311.17371v3#A1.F12
+    "Figure 12 ‣ A.1 Extended results on additional datasets ‣ Appendix A Appendix
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs"),
+    [13](https://arxiv.org/html/2311.17371v3#A1.F13 "Figure 13 ‣ A.1 Extended results
+    on additional datasets ‣ Appendix A Appendix ‣ Should we be going MAD? A Look
+    at Multi-Agent Debate Strategies for LLMs"), [14](https://arxiv.org/html/2311.17371v3#A1.F14
+    "Figure 14 ‣ A.1 Extended results on additional datasets ‣ Appendix A Appendix
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs"),
+    and [15](https://arxiv.org/html/2311.17371v3#A1.F15 "Figure 15 ‣ A.1 Extended
+    results on additional datasets ‣ Appendix A Appendix ‣ Should we be going MAD?
+    A Look at Multi-Agent Debate Strategies for LLMs").'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为每种策略在每个数据集上提供了全面的 GPT-3 结果：MedQA、PubMedQA、MMLU、CIAR、GPQA、CosmosQA 和 Chess。对于每个场景，我们绘制了准确性与每个问题的平均回答时间、准确性与每个问题使用的平均标记数之间的关系，以及准确性与总美元成本的比较。此外，还提供了一个箱形图来总结每种策略的表现。这些结果可以在图
+    [10](https://arxiv.org/html/2311.17371v3#A1.F10 "Figure 10 ‣ A.1 Extended results
+    on additional datasets ‣ Appendix A Appendix ‣ Should we be going MAD? A Look
+    at Multi-Agent Debate Strategies for LLMs")、[11](https://arxiv.org/html/2311.17371v3#A1.F11
+    "Figure 11 ‣ A.1 Extended results on additional datasets ‣ Appendix A Appendix
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")、[12](https://arxiv.org/html/2311.17371v3#A1.F12
+    "Figure 12 ‣ A.1 Extended results on additional datasets ‣ Appendix A Appendix
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")、[13](https://arxiv.org/html/2311.17371v3#A1.F13
+    "Figure 13 ‣ A.1 Extended results on additional datasets ‣ Appendix A Appendix
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs")、[14](https://arxiv.org/html/2311.17371v3#A1.F14
+    "Figure 14 ‣ A.1 Extended results on additional datasets ‣ Appendix A Appendix
+    ‣ Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs") 和
+    [15](https://arxiv.org/html/2311.17371v3#A1.F15 "Figure 15 ‣ A.1 Extended results
+    on additional datasets ‣ Appendix A Appendix ‣ Should we be going MAD? A Look
+    at Multi-Agent Debate Strategies for LLMs") 中查看。
+- en: '![Refer to caption](img/88ddaa85fd857be4a01ed4b94262ac52.png)'
+  id: totrans-157
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/88ddaa85fd857be4a01ed4b94262ac52.png)'
+- en: (a) Accuracy versus the average time per question
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 准确性与每个问题的平均回答时间
+- en: '![Refer to caption](img/d45a5d5b3a234beee987cd48303df6c3.png)'
+  id: totrans-159
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/d45a5d5b3a234beee987cd48303df6c3.png)'
+- en: (b) Accuracy versus Average tokens per question
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 准确性与每个问题的平均标记数
+- en: '![Refer to caption](img/95c9b17985752d18b7157a1076e342d9.png)'
+  id: totrans-161
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/95c9b17985752d18b7157a1076e342d9.png)'
+- en: (c) Accuracy versus the total cost
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 准确率与总成本
+- en: '![Refer to caption](img/2389f737750b6d76f484d26be040d407.png)'
+  id: totrans-163
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/2389f737750b6d76f484d26be040d407.png)'
+- en: (d) Accuracy by strategy
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 按策略分类的准确率
+- en: 'Figure 10: MedQA experimental results.'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 10：MedQA 实验结果。
+- en: '![Refer to caption](img/b5fee5120dd775d9043dbceda4ddaa00.png)'
+  id: totrans-166
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/b5fee5120dd775d9043dbceda4ddaa00.png)'
+- en: (a) Accuracy versus the average time per question
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 准确率与每个问题的平均时间
+- en: '![Refer to caption](img/bcebd454a45869180af51912459ce097.png)'
+  id: totrans-168
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/bcebd454a45869180af51912459ce097.png)'
+- en: (b) Accuracy versus Average tokens per question
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 准确率与每个问题的平均标记数
+- en: '![Refer to caption](img/bcf9c731e974de1def6887a1da67c0f4.png)'
+  id: totrans-170
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/bcf9c731e974de1def6887a1da67c0f4.png)'
+- en: (c) Accuracy versus the total cost
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 准确率与总成本
+- en: '![Refer to caption](img/d26590cfda48a3ffa38c68a6ea97f1ce.png)'
+  id: totrans-172
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/d26590cfda48a3ffa38c68a6ea97f1ce.png)'
+- en: (d) Accuracy by strategy
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 按策略分类的准确率
+- en: 'Figure 11: PubMedQA experimental results.'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 11：PubMedQA 实验结果。
+- en: '![Refer to caption](img/7bc070f91ae188727762222184930688.png)'
+  id: totrans-175
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/7bc070f91ae188727762222184930688.png)'
+- en: (a) Accuracy versus the average time per question
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 准确率与每个问题的平均时间
+- en: '![Refer to caption](img/d51c27654541845e7cd0a3a00e45c8a1.png)'
+  id: totrans-177
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/d51c27654541845e7cd0a3a00e45c8a1.png)'
+- en: (b) Accuracy versus Average tokens per question
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 准确率与每个问题的平均标记数
+- en: '![Refer to caption](img/0355d2c4d4841b8b13ee5de6d8d7019d.png)'
+  id: totrans-179
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/0355d2c4d4841b8b13ee5de6d8d7019d.png)'
+- en: (c) Accuracy versus the total cost
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 准确率与总成本
+- en: '![Refer to caption](img/71274f1ead7b912c9ab7b9b139474fec.png)'
+  id: totrans-181
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/71274f1ead7b912c9ab7b9b139474fec.png)'
+- en: (d) Accuracy by strategy
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 按策略分类的准确率
+- en: 'Figure 12: MMLU experimental results.'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 12：MMLU 实验结果。
+- en: '![Refer to caption](img/03d97a249ef75c327f733474442ba5c8.png)'
+  id: totrans-184
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/03d97a249ef75c327f733474442ba5c8.png)'
+- en: (a) Accuracy versus the average time per question
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 准确率与每个问题的平均时间
+- en: '![Refer to caption](img/e45a8bed4b3704082c23af249ad1db23.png)'
+  id: totrans-186
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/e45a8bed4b3704082c23af249ad1db23.png)'
+- en: (b) Accuracy versus Average tokens per question
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 准确率与每个问题的平均标记数
+- en: '![Refer to caption](img/f102dd77e1a3c4b555a7547fc898fec8.png)'
+  id: totrans-188
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/f102dd77e1a3c4b555a7547fc898fec8.png)'
+- en: (c) Accuracy versus the total cost
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 准确率与总成本
+- en: '![Refer to caption](img/26b27201996f70e6d513ee0dcfaa0d67.png)'
+  id: totrans-190
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/26b27201996f70e6d513ee0dcfaa0d67.png)'
+- en: (d) Accuracy by strategy
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 按策略分类的准确率
+- en: 'Figure 13: CosmosQA experimental results.'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 13：CosmosQA 实验结果。
+- en: '![Refer to caption](img/7e7e88b038091e5b863d222ac0ac1885.png)'
+  id: totrans-193
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/7e7e88b038091e5b863d222ac0ac1885.png)'
+- en: (a) Accuracy versus the average time per question
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 准确率与每个问题的平均时间
+- en: '![Refer to caption](img/f33ec08c8d99eea12202803f3701cde2.png)'
+  id: totrans-195
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/f33ec08c8d99eea12202803f3701cde2.png)'
+- en: (b) Accuracy versus Average tokens per question
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 准确率与每个问题的平均标记数
+- en: '![Refer to caption](img/3fd2687ab0560f11e1b32e435740e2e3.png)'
+  id: totrans-197
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/3fd2687ab0560f11e1b32e435740e2e3.png)'
+- en: (c) Accuracy versus the total cost
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 准确率与总成本
+- en: '![Refer to caption](img/3f575c3ec341c1f21b32b7d032225cbc.png)'
+  id: totrans-199
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/3f575c3ec341c1f21b32b7d032225cbc.png)'
+- en: (d) Accuracy by strategy
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 按策略分类的准确率
+- en: 'Figure 14: CIAR experimental results.'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 14：CIAR 实验结果。
+- en: '![Refer to caption](img/95caf3e3d034b40f92468efed6fa646d.png)'
+  id: totrans-202
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/95caf3e3d034b40f92468efed6fa646d.png)'
+- en: (a) Accuracy versus the average time per question
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 准确率与每个问题的平均时间
+- en: '![Refer to caption](img/2da6fabe476b1c934c141e1fd345376f.png)'
+  id: totrans-204
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/2da6fabe476b1c934c141e1fd345376f.png)'
+- en: (b) Accuracy versus Average tokens per question
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 准确率与每个问题的平均标记数
+- en: '![Refer to caption](img/459f9b09003288e67f4b5e8e420cd14c.png)'
+  id: totrans-206
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/459f9b09003288e67f4b5e8e420cd14c.png)'
+- en: (c) Accuracy versus the total cost
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 准确率与总成本
+- en: '![Refer to caption](img/1f9d913da52cc510617f22ab82ec60ac.png)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/1f9d913da52cc510617f22ab82ec60ac.png)'
+- en: (d) Accuracy by strategy
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 按策略分类的准确率
+- en: 'Figure 15: GPQA experimental results.'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 15：GPQA 实验结果。
+- en: '![Refer to caption](img/081d18081ed19f82d986e953da60fcfd.png)'
+  id: totrans-211
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/081d18081ed19f82d986e953da60fcfd.png)'
+- en: (a) Accuracy versus the average time per question
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 准确率与每个问题的平均时间
+- en: '![Refer to caption](img/0084e5391e0edc22cae6acdd37a23c94.png)'
+  id: totrans-213
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/0084e5391e0edc22cae6acdd37a23c94.png)'
+- en: (b) Accuracy versus Average tokens per question
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 准确率与每个问题的平均标记数
+- en: '![Refer to caption](img/a49cad4c9f2d58446c847d92b95fc562.png)'
+  id: totrans-215
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/a49cad4c9f2d58446c847d92b95fc562.png)'
+- en: (c) Accuracy versus the total cost
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 准确率与总成本
+- en: '![Refer to caption](img/dcf896f085d5f3a21f9990692d7be227.png)'
+  id: totrans-217
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/dcf896f085d5f3a21f9990692d7be227.png)'
+- en: (d) Accuracy by strategy
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 按策略分类的准确率
+- en: 'Figure 16: Chess experimental results.'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 16：国际象棋实验结果。
+- en: A.2 Table of Experiments
+  id: totrans-220
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 实验表格
+- en: A complete table of all configurations for each experiment is provided in Table LABEL:app:tab:full-results-table.
+    This includes the names of the debate and agent prompts used. A full description
+    of each of these prompts can be found in Appendix [A.6](https://arxiv.org/html/2311.17371v3#A1.SS6
+    "A.6 Agent Prompts ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs").
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有实验的完整配置表可以在表格LABEL:app:tab:full-results-table中找到。表中包括了使用的辩论和代理提示词的名称。每个提示词的详细描述可以在附录[A.6](https://arxiv.org/html/2311.17371v3#A1.SS6
+    "A.6 Agent Prompts ‣ Appendix A Appendix ‣ Should we be going MAD? A Look at Multi-Agent
+    Debate Strategies for LLMs")中找到。
+- en: 'Table 3: Complete table of experiment configurations.'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：实验配置的完整表格。
+- en: '| System Name | Debate Prompt | Agent prompt | Debate Config | MedQA | PubMedQA
+    | MMLU | CosmosQA | CIAR | GPQA |'
+  id: totrans-223
+  prefs: []
+  type: TYPE_TB
+  zh: '| 系统名称 | 辩论提示 | 代理提示 | 辩论配置 | MedQA | PubMedQA | MMLU | CosmosQA | CIAR | GPQA
+    |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-224
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '|  |  |  |  | Score | Cost $ | Score | Cost $ | Score | Cost $ | Score | Cost
+    $ | Score | Cost $ | Score | Cost $ |'
+  id: totrans-225
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  |  |  | 分数 | 成本 $ | 分数 | 成本 $ | 分数 | 成本 $ | 分数 | 成本 $ | 分数 | 成本 $ | 分数
+    | 成本 $ |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+    | --- | --- | --- |'
+  id: totrans-226
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+    | --- | --- | --- |'
+- en: '| Single Agent |  | CoT |  | 0.68 | 0.43 | 0.74 | 1.50 | 0.57 | 3.82 | 0.42
+    | 1.50 | 0.48 | 0.15 | 0.25 | 1.35 |'
+  id: totrans-227
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单代理 |  | CoT |  | 0.68 | 0.43 | 0.74 | 1.50 | 0.57 | 3.82 | 0.42 | 1.50 |
+    0.48 | 0.15 | 0.25 | 1.35 |'
+- en: '| Single Agent |  | CoT |  | 0.60 | 0.43 | 0.72 | 1.50 | 0.52 | 3.82 | 0.43
+    | 1.50 | 0.44 | 0.15 | 0.25 | 1.41 |'
+  id: totrans-228
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单代理 |  | CoT |  | 0.60 | 0.43 | 0.72 | 1.50 | 0.52 | 3.82 | 0.43 | 1.50 |
+    0.44 | 0.15 | 0.25 | 1.41 |'
+- en: '| Single Agent |  | FS + SIMPLE |  | 0.72 | 0.43 | 0.66 | 2.08 | 0.59 | 5.10
+    |  |  |  |  |  |  |'
+  id: totrans-229
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单代理 |  | FS + SIMPLE |  | 0.72 | 0.43 | 0.66 | 2.08 | 0.59 | 5.10 |  |  |  |  |  |  |'
+- en: '| Single Agent |  | FS + CoT |  | 0.71 | 0.58 | 0.75 | 2.08 | 0.62 | 5.09 |  |  |  |  |  |  |'
+  id: totrans-230
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单代理 |  | FS + CoT |  | 0.71 | 0.58 | 0.75 | 2.08 | 0.62 | 5.09 |  |  |  |  |  |  |'
+- en: '| Single Agent |  | SIMPLE |  | 0.76 | 0.43 | 0.70 | 1.50 | 0.60 | 3.82 | 0.45
+    | 1.50 | 0.50 | 0.15 | 0.33 | 1.35 |'
+  id: totrans-231
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单代理 |  | SIMPLE |  | 0.76 | 0.43 | 0.70 | 1.50 | 0.60 | 3.82 | 0.45 | 1.50
+    | 0.50 | 0.15 | 0.33 | 1.35 |'
+- en: '| Single Agent |  | SIMPLE |  | 0.72 | 0.43 | 0.68 | 1.50 | 0.57 | 3.82 | 0.31
+    | 1.50 | 0.50 | 0.15 | 0.30 | 1.35 |'
+  id: totrans-232
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单代理 |  | SIMPLE |  | 0.72 | 0.43 | 0.68 | 1.50 | 0.57 | 3.82 | 0.31 | 1.50
+    | 0.50 | 0.15 | 0.30 | 1.35 |'
+- en: '| ChatEval | CE MAD | CoT | 3 rounds, simultaneous, summarized | 0.67 | 3.48
+    | 0.72 | 12.02 | 0.60 | 31.10 | 0.43 | 12.01 | 0.42 | 1.21 | 0.25 | 11.19 |'
+  id: totrans-233
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatEval | CE MAD | CoT | 3轮，同时发言，总结 | 0.67 | 3.48 | 0.72 | 12.02 | 0.60
+    | 31.10 | 0.43 | 12.01 | 0.42 | 1.21 | 0.25 | 11.19 |'
+- en: '| ChatEval | CE MAD | CoT | 3 rounds, simultaneous talk | 0.67 | 2.86 | 0.73
+    | 10.08 | 0.60 | 26.95 | 0.43 | 9.41 | 0.46 | 0.97 | 0.24 | 9.82 |'
+  id: totrans-234
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatEval | CE MAD | CoT | 3轮，同时发言 | 0.67 | 2.86 | 0.73 | 10.08 | 0.60 | 26.95
+    | 0.43 | 9.41 | 0.46 | 0.97 | 0.24 | 9.82 |'
+- en: '| ChatEval | CE MAD | CoT | 3 rounds, one by one | 0.67 | 2.94 | 0.74 | 10.39
+    | 0.58 | 27.94 | 0.44 | 9.63 | 0.42 | 1.00 | 0.25 | 10.14 |'
+  id: totrans-235
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatEval | CE MAD | CoT | 3轮，逐一发言 | 0.67 | 2.94 | 0.74 | 10.39 | 0.58 | 27.94
+    | 0.44 | 9.63 | 0.42 | 1.00 | 0.25 | 10.14 |'
+- en: '| ChatEval | CE MAD | CoT | 2 rounds, simultaneous, summarized | 0.70 | 2.16
+    | 0.73 | 7.50 | 0.60 | 19.24 | 0.45 | 7.50 | 0.44 | 0.75 | 0.25 | 6.90 |'
+  id: totrans-236
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatEval | CE MAD | CoT | 2轮，同时发言，总结 | 0.70 | 2.16 | 0.73 | 7.50 | 0.60 |
+    19.24 | 0.45 | 7.50 | 0.44 | 0.75 | 0.25 | 6.90 |'
+- en: '| ChatEval | CE MAD | CoT | 2 rounds, simultaneous talk | 0.71 | 1.75 | 0.75
+    | 6.18 | 0.60 | 16.48 | 0.41 | 6.01 | 0.48 | 0.60 | 0.26 | 5.95 |'
+  id: totrans-237
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatEval | CE MAD | CoT | 2轮，同时发言 | 0.71 | 1.75 | 0.75 | 6.18 | 0.60 | 16.48
+    | 0.41 | 6.01 | 0.48 | 0.60 | 0.26 | 5.95 |'
+- en: '| ChatEval | CE MAD | CoT | 2 rounds, one by one | 0.71 | 1.81 | 0.73 | 6.43
+    | 0.58 | 16.97 | 0.44 | 6.10 | 0.36 | 0.62 | 0.24 | 6.15 |'
+  id: totrans-238
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatEval | CE MAD | CoT | 2轮，逐一发言 | 0.71 | 1.81 | 0.73 | 6.43 | 0.58 | 16.97
+    | 0.44 | 6.10 | 0.36 | 0.62 | 0.24 | 6.15 |'
+- en: '| Ensemble Refinement | ER MAD | FS + SIMPLE | reasoning=3, aggregation=9 |
+    0.74 | 5.18 | 0.69 | 19.75 | 0.59 | 49.67 |  |  |  |  |  |  |'
+  id: totrans-239
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集成精炼 | ER MAD | FS + SIMPLE | 推理=3，聚合=9 | 0.74 | 5.18 | 0.69 | 19.75 | 0.59
+    | 49.67 |  |  |  |  |  |  |'
+- en: '| Ensemble Refinement | ER MAD | FS + SIMPLE | reasoning=3, aggregation=1 |
+    0.76 | 1.73 | 0.69 | 7.75 | 0.59 | 19.11 |  |  |  |  |  |  |'
+  id: totrans-240
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集成精炼 | ER MAD | FS + SIMPLE | 推理=3，聚合=1 | 0.76 | 1.73 | 0.69 | 7.75 | 0.59
+    | 19.11 |  |  |  |  |  |  |'
+- en: '| Self-Consistency | ER MAD | FS + SIMPLE |  | 0.73 | 2.16 | 0.68 | 10.42 |
+    0.60 | 25.48 |  |  |  |  |  |  |'
+  id: totrans-241
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自一致性 | ER MAD | FS + SIMPLE |  | 0.73 | 2.16 | 0.68 | 10.42 | 0.60 | 25.48
+    |  |  |  |  |  |  |'
+- en: '| Ensemble Refinement | ER MAD | SIMPLE | reasoning=3, aggregation=9 | 0.74
+    | 5.18 | 0.72 | 18.00 | 0.60 | 45.85 | 0.35 | 18.00 | 0.48 | 1.80 | 0.28 | 16.24
+    |'
+  id: totrans-242
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集成精炼 | ER MAD | SIMPLE | 推理=3，聚合=9 | 0.74 | 5.18 | 0.72 | 18.00 | 0.60 |
+    45.85 | 0.35 | 18.00 | 0.48 | 1.80 | 0.28 | 16.24 |'
+- en: '| Ensemble Refinement | ER MAD | SIMPLE | reasoning=3, aggregation=1 | 0.76
+    | 1.73 | 0.71 | 6.00 | 0.59 | 15.28 | 0.33 | 6.00 | 0.46 | 0.60 | 0.32 | 5.42
+    |'
+  id: totrans-243
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集合精炼 | ER MAD | 简单 | 推理=3，聚合=1 | 0.76 | 1.73 | 0.71 | 6.00 | 0.59 | 15.28
+    | 0.33 | 6.00 | 0.46 | 0.60 | 0.32 | 5.42 |'
+- en: '| Self-Consistency | ER MAD | SIMPLE |  | 0.76 | 2.16 | 0.69 | 7.50 | 0.60
+    | 19.10 | 0.46 | 7.50 | 0.56 | 0.75 | 0.32 | 6.73 |'
+  id: totrans-244
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自一致性 | ER MAD | 简单 |  | 0.76 | 2.16 | 0.69 | 7.50 | 0.60 | 19.10 | 0.46 |
+    7.50 | 0.56 | 0.75 | 0.32 | 6.73 |'
+- en: '| Ensemble Refinement | ER MAD CoT | CoT | reasoning=3, aggregation=1 | 0.67
+    | 1.80 | 0.71 | 6.35 | 0.61 | 16.38 | 0.44 | 6.07 | 0.46 | 0.63 | 0.23 | 6.18
+    |'
+  id: totrans-245
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集合精炼 | ER MAD CoT | CoT | 推理=3，聚合=1 | 0.67 | 1.80 | 0.71 | 6.35 | 0.61 |
+    16.38 | 0.44 | 6.07 | 0.46 | 0.63 | 0.23 | 6.18 |'
+- en: '| Ensemble Refinement | ER MAD CoT | CoT | reasoning=3, aggregation=9 | 0.72
+    | 5.90 | 0.73 | 21.05 | 0.60 | 55.79 | 0.45 | 18.64 | 0.42 | 2.05 | 0.23 | 21.61
+    |'
+  id: totrans-246
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集合精炼 | ER MAD CoT | CoT | 推理=3，聚合=9 | 0.72 | 5.90 | 0.73 | 21.05 | 0.60 |
+    55.79 | 0.45 | 18.64 | 0.42 | 2.05 | 0.23 | 21.61 |'
+- en: '| Self-Consistency | ER MAD CoT | CoT |  | 0.64 | 2.16 | 0.74 | 7.50 | 0.59
+    | 19.10 | 0.46 | 7.50 | 0.48 | 0.75 | 0.25 | 7.03 |'
+  id: totrans-247
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自一致性 | ER MAD CoT | CoT |  | 0.64 | 2.16 | 0.74 | 7.50 | 0.59 | 19.10 | 0.46
+    | 7.50 | 0.48 | 0.75 | 0.25 | 7.03 |'
+- en: '| Ensemble Refinement | ER MAD CoT | FS + CoT | reasoning=3, aggregation=1
+    | 0.71 | 2.19 | 0.73 | 8.01 | 0.64 | 19.17 |  |  |  |  |  |  |'
+  id: totrans-248
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集合精炼 | ER MAD CoT | FS + CoT | 推理=3，聚合=1 | 0.71 | 2.19 | 0.73 | 8.01 | 0.64
+    | 19.17 |  |  |  |  |  |  |'
+- en: '| Ensemble Refinement | ER MAD CoT | FS + CoT | reasoning=3, aggregation=9
+    | 0.74 | 5.87 | 0.74 | 22.20 | 0.64 | 50.30 |  |  |  |  |  |  |'
+  id: totrans-249
+  prefs: []
+  type: TYPE_TB
+  zh: '| 集合精炼 | ER MAD CoT | FS + CoT | 推理=3，聚合=9 | 0.74 | 5.87 | 0.74 | 22.20 | 0.64
+    | 50.30 |  |  |  |  |  |  |'
+- en: '| Self-Consistency | ER MAD CoT | FS + CoT |  | 0.78 | 2.88 | 0.74 | 10.40
+    | 0.63 | 25.47 |  |  |  |  |  |  |'
+  id: totrans-250
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自一致性 | ER MAD CoT | FS + CoT |  | 0.78 | 2.88 | 0.74 | 10.40 | 0.63 | 25.47
+    |  |  |  |  |  |  |'
+- en: '| Multi-Persona | MP MAD | ANGEL + DEVIL | 2 rounds max | 0.68 | 1.47 | 0.68
+    | 5.68 | 0.57 | 12.32 | 0.46 | 5.44 | 0.50 | 0.48 | 0.29 | 4.83 |'
+  id: totrans-251
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多重人格 | MP MAD | 天使 + 恶魔 | 最多 2 轮 | 0.68 | 1.47 | 0.68 | 5.68 | 0.57 | 12.32
+    | 0.46 | 5.44 | 0.50 | 0.48 | 0.29 | 4.83 |'
+- en: '| Multi-Persona | MP MAD | ANGEL + DEVIL | 3 rounds max | 0.71 | 1.47 | 0.70
+    | 6.88 | 0.56 | 12.83 | 0.39 | 6.15 | 0.46 | 0.47 | 0.28 | 5.23 |'
+  id: totrans-252
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多重人格 | MP MAD | 天使 + 恶魔 | 最多 3 轮 | 0.71 | 1.47 | 0.70 | 6.88 | 0.56 | 12.83
+    | 0.39 | 6.15 | 0.46 | 0.47 | 0.28 | 5.23 |'
+- en: '| Multi-Persona | MP MAD | ANGEL + DEVIL | 4 rounds max | 0.72 | 1.57 | 0.67
+    | 7.79 | 0.58 | 12.84 | 0.40 | 6.61 | 0.52 | 0.50 | 0.27 | 5.26 |'
+  id: totrans-253
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多重人格 | MP MAD | 天使 + 恶魔 | 最多 4 轮 | 0.72 | 1.57 | 0.67 | 7.79 | 0.58 | 12.84
+    | 0.40 | 6.61 | 0.52 | 0.50 | 0.27 | 5.26 |'
+- en: '| Medprompt | Medprompt | CoT | temp: 0.5, top p: 0.8 | 0.72 | 2.16 | 0.77
+    | 7.50 | 0.63 | 19.10 | 0.48 | 7.50 | 0.52 | 0.75 | 0.24 | 6.84 |'
+  id: totrans-254
+  prefs: []
+  type: TYPE_TB
+  zh: '| Medprompt | Medprompt | CoT | 温度：0.5，top p：0.8 | 0.72 | 2.16 | 0.77 | 7.50
+    | 0.63 | 19.10 | 0.48 | 7.50 | 0.52 | 0.75 | 0.24 | 6.84 |'
+- en: '| Medprompt | Medprompt | CoT | temp: 0.7, top p: 0.8 | 0.73 | 2.16 | 0.76
+    | 7.50 | 0.65 | 19.10 | 0.43 | 7.50 | 0.48 | 0.75 | 0.24 | 6.85 |'
+  id: totrans-255
+  prefs: []
+  type: TYPE_TB
+  zh: '| Medprompt | Medprompt | CoT | 温度：0.7，top p：0.8 | 0.73 | 2.16 | 0.76 | 7.50
+    | 0.65 | 19.10 | 0.43 | 7.50 | 0.48 | 0.75 | 0.24 | 6.85 |'
+- en: '| Medprompt | Medprompt | CoT | temp: 0.7, top p: 0.5 | 0.73 | 2.16 | 0.76
+    | 7.50 | 0.63 | 19.10 | 0.46 | 7.50 | 0.54 | 0.76 | 0.26 | 6.85 |'
+  id: totrans-256
+  prefs: []
+  type: TYPE_TB
+  zh: '| Medprompt | Medprompt | CoT | 温度：0.7，top p：0.5 | 0.73 | 2.16 | 0.76 | 7.50
+    | 0.63 | 19.10 | 0.46 | 7.50 | 0.54 | 0.76 | 0.26 | 6.85 |'
+- en: '| Medprompt | Medprompt | CoT | temp: 0.5, top p: 0.5 | 0.74 | 2.16 | 0.77
+    | 7.50 | 0.64 | 19.10 | 0.47 | 7.50 | 0.44 | 0.76 | 0.27 | 6.88 |'
+  id: totrans-257
+  prefs: []
+  type: TYPE_TB
+  zh: '| Medprompt | Medprompt | CoT | 温度：0.5，top p：0.5 | 0.74 | 2.16 | 0.77 | 7.50
+    | 0.64 | 19.10 | 0.47 | 7.50 | 0.44 | 0.76 | 0.27 | 6.88 |'
+- en: '| Society of Mind | SoM MAD | CoT | 2 agents, 3 rounds, summarized | 0.66 |
+    2.59 | 0.69 | 9.00 | 0.61 | 22.92 | 0.41 | 9.00 | 0.48 | 0.90 | 0.23 | 8.09 |'
+  id: totrans-258
+  prefs: []
+  type: TYPE_TB
+  zh: '| 思维社会 | SoM MAD | CoT | 2 个代理，3 轮，总结 | 0.66 | 2.59 | 0.69 | 9.00 | 0.61 |
+    22.92 | 0.41 | 9.00 | 0.48 | 0.90 | 0.23 | 8.09 |'
+- en: '| Society of Mind | SoM MAD | CoT | 4 agents, 3 rounds, summarized | 0.68 |
+    5.18 | 0.71 | 18.00 | 0.61 | 45.83 | 0.44 | 18.00 | 0.40 | 1.80 | 0.25 | 16.19
+    |'
+  id: totrans-259
+  prefs: []
+  type: TYPE_TB
+  zh: '| 思维社会 | SoM MAD | CoT | 4 个代理，3 轮，总结 | 0.68 | 5.18 | 0.71 | 18.00 | 0.61 |
+    45.83 | 0.44 | 18.00 | 0.40 | 1.80 | 0.25 | 16.19 |'
+- en: '| Society of Mind | SoM MAD | CoT | 4 agents, 2 rounds, summarized | 0.69 |
+    3.46 | 0.73 | 12.00 | 0.61 | 30.55 | 0.43 | 12.00 | 0.42 | 1.20 | 0.24 | 10.78
+    |'
+  id: totrans-260
+  prefs: []
+  type: TYPE_TB
+  zh: '| 思维社会 | SoM MAD | CoT | 4 个代理，2 轮，总结 | 0.69 | 3.46 | 0.73 | 12.00 | 0.61 |
+    30.55 | 0.43 | 12.00 | 0.42 | 1.20 | 0.24 | 10.78 |'
+- en: '| Society of Mind | SoM MAD | CoT | 3 agents, 3 rounds | 0.70 | 3.89 | 0.71
+    | 13.52 | 0.63 | 35.27 | 0.37 | 13.51 | 0.48 | 1.38 | 0.25 | 13.15 |'
+  id: totrans-261
+  prefs: []
+  type: TYPE_TB
+  zh: '| 思维社会 | SoM MAD | CoT | 3 个代理，3 轮 | 0.70 | 3.89 | 0.71 | 13.52 | 0.63 | 35.27
+    | 0.37 | 13.51 | 0.48 | 1.38 | 0.25 | 13.15 |'
+- en: '| Society of Mind | SoM MAD | CoT | 3 agents, 2 rounds | 0.70 | 2.59 | 0.73
+    | 9.00 | 0.63 | 23.48 | 0.35 | 9.00 | 0.42 | 0.93 | 0.26 | 8.75 |'
+  id: totrans-262
+  prefs: []
+  type: TYPE_TB
+  zh: '| 思维社会 | SoM MAD | CoT | 3 个代理，2 轮 | 0.70 | 2.59 | 0.73 | 9.00 | 0.63 | 23.48
+    | 0.35 | 9.00 | 0.42 | 0.93 | 0.26 | 8.75 |'
+- en: '| Society of Mind | SoM MAD | CoT | 2 agents, 2 rounds | 0.70 | 1.73 | 0.72
+    | 6.00 | 0.60 | 15.32 | 0.31 | 6.00 | 0.46 | 0.61 | 0.26 | 5.65 |'
+  id: totrans-263
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心智社会 | SoM MAD | CoT | 2个代理人，2轮 | 0.70 | 1.73 | 0.72 | 6.00 | 0.60 | 15.32
+    | 0.31 | 6.00 | 0.46 | 0.61 | 0.26 | 5.65 |'
+- en: '| Society of Mind | SoM MAD | CoT | 3 agents, 2 rounds, summarized | 0.70 |
+    2.59 | 0.74 | 9.00 | 0.60 | 22.91 | 0.42 | 9.00 | 0.52 | 0.90 | 0.25 | 8.09 |'
+  id: totrans-264
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心智社会 | SoM MAD | CoT | 3个代理人，2轮，总结 | 0.70 | 2.59 | 0.74 | 9.00 | 0.60 | 22.91
+    | 0.42 | 9.00 | 0.52 | 0.90 | 0.25 | 8.09 |'
+- en: '| Society of Mind | SoM MAD | CoT | 2 agents, 2 rounds, summarized | 0.70 |
+    1.73 | 0.69 | 6.00 | 0.60 | 15.28 | 0.39 | 6.00 | 0.56 | 0.60 | 0.27 | 5.39 |'
+  id: totrans-265
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心智社会 | SoM MAD | CoT | 2个代理人，2轮，总结 | 0.70 | 1.73 | 0.69 | 6.00 | 0.60 | 15.28
+    | 0.39 | 6.00 | 0.56 | 0.60 | 0.27 | 5.39 |'
+- en: '| Society of Mind | SoM MAD | CoT | 2 agents, 3 rounds | 0.71 | 2.59 | 0.72
+    | 9.00 | 0.61 | 23.01 | 0.31 | 9.00 | 0.46 | 0.91 | 0.23 | 8.52 |'
+  id: totrans-266
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心智社会 | SoM MAD | CoT | 2个代理人，3轮 | 0.71 | 2.59 | 0.72 | 9.00 | 0.61 | 23.01
+    | 0.31 | 9.00 | 0.46 | 0.91 | 0.23 | 8.52 |'
+- en: '| Society of Mind | SoM MAD | CoT | 3 agents, 3 rounds, summarized | 0.71 |
+    3.89 | 0.69 | 13.50 | 0.61 | 34.38 | 0.41 | 13.50 | 0.34 | 1.35 | 0.27 | 12.14
+    |'
+  id: totrans-267
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心智社会 | SoM MAD | CoT | 3个代理人，3轮，总结 | 0.71 | 3.89 | 0.69 | 13.50 | 0.61 |
+    34.38 | 0.41 | 13.50 | 0.34 | 1.35 | 0.27 | 12.14 |'
+- en: '| Society of Mind | SoM MAD | CoT | 4 agents, 3 rounds | 0.72 | 5.19 | 0.71
+    | 18.22 | 0.64 | 48.63 | 0.38 | 18.03 | 0.38 | 1.87 | 0.27 | 17.77 |'
+  id: totrans-268
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心智社会 | SoM MAD | CoT | 4个代理人，3轮 | 0.72 | 5.19 | 0.71 | 18.22 | 0.64 | 48.63
+    | 0.38 | 18.03 | 0.38 | 1.87 | 0.27 | 17.77 |'
+- en: '| Society of Mind | SoM MAD | CoT | 4 agents, 2 rounds | 0.73 | 3.46 | 0.71
+    | 12.02 | 0.62 | 32.27 | 0.38 | 12.01 | 0.46 | 1.25 | 0.23 | 11.87 |'
+  id: totrans-269
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心智社会 | SoM MAD | CoT | 4个代理人，2轮 | 0.73 | 3.46 | 0.71 | 12.02 | 0.62 | 32.27
+    | 0.38 | 12.01 | 0.46 | 1.25 | 0.23 | 11.87 |'
+- en: A.3 Additional Debate Metrics
+  id: totrans-270
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 额外的辩论指标
+- en: '| Metric | Description |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Final round consensus | Percentage of agents in agreement with each other
+    at the end of the final round. |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终回合共识 | 最终回合结束时，代理人之间达成一致的百分比。 |'
+- en: '| Final round correctly parsed consensus | Percentage of agents in agreement
+    with each other at the end of the final round, where we exclude all agents with
+    incorrectly parsed answers. |'
+  id: totrans-274
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终回合正确解析共识 | 排除所有解析错误的代理人后，最终回合结束时达成一致的代理人百分比。 |'
+- en: '| Any Correct Answer | Percentage of debates where any agent provided the correct
+    answer at least once. |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任意正确答案 | 任何代理人至少提供一次正确答案的辩论百分比。 |'
+- en: '| How Many Agents Changed | Number of agents that changed their answer during
+    the debate. |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 有多少代理人改变了答案 | 在辩论过程中改变答案的代理人数。 |'
+- en: '| How Many Agents Changed When Correctly Parsed | Number of agents that changed
+    their answer excluding any agents with incorrectly parsed answers. |'
+  id: totrans-277
+  prefs: []
+  type: TYPE_TB
+  zh: '| 正确解析时有多少代理人改变了答案 | 排除所有解析错误的代理人后，改变答案的代理人数。 |'
+- en: '| Number of Rounds | Average number of rounds in the debate. |'
+  id: totrans-278
+  prefs: []
+  type: TYPE_TB
+  zh: '| 回合数 | 辩论中的平均回合数。 |'
+- en: '| Unique First Answers | Average number of unique first answers given by the
+    agents. |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| 唯一的第一次答案 | 代理人给出的唯一第一次答案的平均数量。 |'
+- en: '| Unique First Correctly Parsed Answers | Average number of unique first answers
+    excluding incorrectly parsed answers. |'
+  id: totrans-280
+  prefs: []
+  type: TYPE_TB
+  zh: '| 唯一的第一次正确解析答案 | 排除错误解析答案后，唯一第一次答案的平均数量。 |'
+- en: A.4 Additional Agent Metrics
+  id: totrans-281
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.4 额外的代理人指标
+- en: '| Metric | Description |'
+  id: totrans-282
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Agent Engine | The LLM engine used by the agent. |'
+  id: totrans-284
+  prefs: []
+  type: TYPE_TB
+  zh: '| 代理人引擎 | 代理人使用的LLM引擎。 |'
+- en: '| Agent Name | Name of the agent. |'
+  id: totrans-285
+  prefs: []
+  type: TYPE_TB
+  zh: '| 代理人名称 | 代理人的名称。 |'
+- en: '| Answered Correctly | Percentage of questions answered correctly by the agent.
+    |'
+  id: totrans-286
+  prefs: []
+  type: TYPE_TB
+  zh: '| 正确回答的比例 | 代理人正确回答问题的百分比。 |'
+- en: '| Any Incorrectly Parsed Answer | Percentage of questions where at least one
+    of the answers were incorrectly parsed. |'
+  id: totrans-287
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任意解析错误的答案 | 至少有一个答案被错误解析的问题百分比。 |'
+- en: '| Avg Messages Removed | Average number of messages removed from the agent’s
+    prompt input due to hitting the prompt limit for the LLM model. |'
+  id: totrans-288
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均移除的消息数 | 由于达到LLM模型的提示限制，从代理人的提示输入中移除的消息的平均数量。 |'
+- en: '| Avg Prompt Tokens | Average number of tokens in the prompts given to the
+    agent. |'
+  id: totrans-289
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均提示令牌数 | 给代理人的提示中的令牌平均数量。 |'
+- en: '| Avg Response Length | Average length of the agent’s responses. |'
+  id: totrans-290
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均响应长度 | 代理人回应的平均长度。 |'
+- en: '| Avg Response Tokens | Average number of tokens in the agent’s responses.
+    |'
+  id: totrans-291
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均响应令牌数 | 代理人回应中令牌的平均数量。 |'
+- en: '| Avg Round Cost | Average cost for each round of debate for the agent. |'
+  id: totrans-292
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均回合成本 | 代理人每回合辩论的平均成本。 |'
+- en: '| Bullied by Other | Percentage of times the agent was bullied by others to
+    change its answer. |'
+  id: totrans-293
+  prefs: []
+  type: TYPE_TB
+  zh: '| 被其他人欺负修改答案的次数 | 代理人被其他人逼迫修改答案的次数百分比。 |'
+- en: '| Changed Answer | Percentage of times the agent changed its answer througout
+    the debate. |'
+  id: totrans-294
+  prefs: []
+  type: TYPE_TB
+  zh: '| 改变答案 | 代理在整个辩论过程中改变答案的次数百分比。 |'
+- en: '| Cost per Question | Average cost incurred by the agent per question. |'
+  id: totrans-295
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个问题的成本 | 代理每个问题的平均成本。 |'
+- en: '| First Correct Round When Correct | The first round in which the agent gave
+    a correct answer when it was correct. |'
+  id: totrans-296
+  prefs: []
+  type: TYPE_TB
+  zh: '| 正确时的第一次正确轮次 | 代理在正确时给出正确答案的第一次轮次。 |'
+- en: '| Incorrectly Parsed Final Answer | Percentage of time when the final answer
+    was parsed incorrectly. |'
+  id: totrans-297
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最终答案解析错误的百分比 | 最终答案解析错误的时间百分比。 |'
+- en: '| Num of Correct Rounds When Correct | Number of rounds in which the agent
+    was correct when it was correct. |'
+  id: totrans-298
+  prefs: []
+  type: TYPE_TB
+  zh: '| 正确轮次中的正确回答数 | 代理在正确时给出的正确答案的轮次数。 |'
+- en: '| Number of Answers | Average number of unique answers given by the agent throughout
+    a debate. |'
+  id: totrans-299
+  prefs: []
+  type: TYPE_TB
+  zh: '| 答案数量 | 代理在整个辩论过程中给出的独特答案的平均数量。 |'
+- en: '| Percentage of Correct Rounds When Correct | Percentage of rounds in which
+    the agent was correct when it was correct. |'
+  id: totrans-300
+  prefs: []
+  type: TYPE_TB
+  zh: '| 正确时的正确轮次百分比 | 代理在正确时给出正确答案的轮次百分比。 |'
+- en: '| Relied on Other | Whether the agent took an answers from another agent in
+    a previous round as its final answer. |'
+  id: totrans-301
+  prefs: []
+  type: TYPE_TB
+  zh: '| 是否依赖其他 | 代理是否将之前轮次中其他代理的答案作为其最终答案。 |'
+- en: '| Time per Question | Average time taken by the agent per question. |'
+  id: totrans-302
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个问题的时间 | 代理每个问题所花费的平均时间。 |'
+- en: '| Total Prompt Tokens | Total number of prompt tokens given to the agent. |'
+  id: totrans-303
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总提示令牌数 | 提供给代理的提示令牌总数。 |'
+- en: '| Total Response Tokens | Total number of tokens in the agent’s responses.
+    |'
+  id: totrans-304
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总响应令牌数 | 代理响应中的令牌总数。 |'
+- en: A.5 Debate Prompts
+  id: totrans-305
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.5 辩论提示
+- en: Here we list all the debate-level prompts used in each of the strategies. The
+    prompt names are linked to the entries in the
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此我们列出了每种策略中使用的所有辩论级别的提示。提示名称链接到
+- en: Debate Prompt columns in Table LABEL:app:tab:full-results-table.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 辩论提示列见表 LABEL:app:tab:full-results-table。
+- en: '{adjustwidth}'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{adjustwidth}'
+- en: 5em
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 5em
+- en: 'CE MAD:'
+  id: totrans-310
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'CE MAD:'
+- en: '[PRE0]'
+  id: totrans-311
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'ER MAD CoT:'
+  id: totrans-312
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'ER MAD CoT:'
+- en: '[PRE1]'
+  id: totrans-313
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'ER MAD:'
+  id: totrans-314
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'ER MAD:'
+- en: '[PRE2]'
+  id: totrans-315
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'SoM MAD:'
+  id: totrans-316
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'SoM MAD:'
+- en: '[PRE3]'
+  id: totrans-317
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'MP MAD:'
+  id: totrans-318
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'MP MAD:'
+- en: '[PRE4]'
+  id: totrans-319
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Medprompt:'
+  id: totrans-320
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'Medprompt:'
+- en: '[PRE5]'
+  id: totrans-321
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: A.6 Agent Prompts
+  id: totrans-322
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.6 代理提示
+- en: Here we list all the agent-level prompts used in each of the strategies. The
+    prompt names are linked to the entries in the Agent Prompt columns in Table LABEL:app:tab:full-results-table.
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此我们列出了每种策略中使用的所有代理级别的提示。提示名称链接到表 LABEL:app:tab:full-results-table 中的代理提示列。
+- en: '{adjustwidth}'
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{adjustwidth}'
+- en: 2em
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2em
+- en: 'MP:'
+  id: totrans-326
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'MP:'
+- en: '[PRE6]'
+  id: totrans-327
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'CoT:'
+  id: totrans-328
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'CoT:'
+- en: '[PRE7]'
+  id: totrans-329
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'ER CoT:'
+  id: totrans-330
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'ER CoT:'
+- en: '[PRE8]'
+  id: totrans-331
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'FEW SHOT:'
+  id: totrans-332
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'FEW SHOT:'
+- en: '[PRE9]'
+  id: totrans-333
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'SIMPLE:'
+  id: totrans-334
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'SIMPLE:'
+- en: '[PRE10]'
+  id: totrans-335
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'SPP:'
+  id: totrans-336
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'SPP:'
+- en: '[PRE11]'
+  id: totrans-337
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE11]'

@@ -1,0 +1,1910 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 13:03:24'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:03:24
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'LgTS: Dynamic Task Sampling using LLM-generated sub-goals for Reinforcement
+    Learning Agents'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: LgTS：使用LLM生成的子目标进行动态任务采样以增强学习代理的学习
+- en: 来源：[https://arxiv.org/html/2310.09454/](https://arxiv.org/html/2310.09454/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2310.09454/](https://arxiv.org/html/2310.09454/)
+- en: Yash Shukla¹           Wenchang Gao¹           Vasanth Sarathy¹                                     
+    Alvaro Velasquez²        Robert Wright³           Jivko Sinapov¹
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Yash Shukla¹           Wenchang Gao¹           Vasanth Sarathy¹                                     
+    Alvaro Velasquez²        Robert Wright³           Jivko Sinapov¹
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Recent advancements in reasoning abilities of Large Language Models (LLM) has
+    promoted their usage in problems that require high-level planning for robots and
+    artificial agents. However, current techniques that utilize LLMs for such planning
+    tasks make certain key assumptions such as, access to datasets that permit finetuning,
+    meticulously engineered prompts that only provide relevant and essential information
+    to the LLM, and most importantly, a deterministic approach to allow execution
+    of the LLM responses either in the form of existing policies or plan operators.
+    In this work, we propose LgTS (LLM-guided Teacher-Student learning), a novel approach
+    that explores the planning abilities of LLMs to provide a graphical representation
+    of the sub-goals to a reinforcement learning (RL) agent that does not have access
+    to the transition dynamics of the environment. The RL agent uses Teacher-Student
+    learning algorithm to learn a set of successful policies for reaching the goal
+    state from the start state while simultaneously minimizing the number of environmental
+    interactions. Unlike previous methods that utilize LLMs, our approach does not
+    assume access to a propreitary or a fine-tuned LLM, nor does it require pre-trained
+    policies that achieve the sub-goals proposed by the LLM. Through experiments on
+    a gridworld based DoorKey domain and a search-and-rescue inspired domain, we show
+    that generating a graphical structure of sub-goals helps in learning policies
+    for the LLM proposed sub-goals and the Teacher-Student learning algorithm minimizes
+    the number of environment interactions when the transition dynamics are unknown.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLM）推理能力的最新进展促进了它们在需要高水平规划的机器人和人工智能任务中的应用。然而，当前使用LLM进行此类规划任务的技术做出了一些关键假设，比如访问允许微调的数据集、精心设计的提示词只提供相关和必要的信息给LLM，以及最重要的，采用确定性的方法来执行LLM的响应，无论是以现有政策的形式，还是计划操作符的形式。在本工作中，我们提出了LgTS（LLM引导的师生学习），这是一种新颖的方法，通过探索LLM的规划能力，为一个没有访问环境转换动态的强化学习（RL）代理提供子目标的图形表示。RL代理使用师生学习算法来学习一组成功的策略，以便从起始状态到达目标状态，同时最小化环境交互次数。与之前利用LLM的方法不同，我们的方法并不假设可以访问专有或微调过的LLM，也不需要预训练的策略来实现LLM提出的子目标。通过在基于网格世界的DoorKey领域和一个受搜索与救援启发的领域上的实验，我们展示了生成子目标图形结构有助于学习LLM提出的子目标的策略，而师生学习算法在转移动态未知的情况下能够最小化环境交互次数。
+- en: 1 Introduction
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Large Language Models (LLMs) have been trained on a large corpus of natural
+    language data that enables them to reason, engage in dialogue and answer questions
+    based on a user specified prompt (Touvron et al. [2023](#bib.bib34); Zhao et al.
+    [2023](#bib.bib38)). Recently, several techniques have utilized such LLMs to command
+    artificial agents to perform a set of household tasks using natural language (Ahn
+    et al. [2022](#bib.bib2); Singh et al. [2023](#bib.bib29); Yang et al. [2023](#bib.bib37)).
+    To make such LLM-guided task solving techniques work, current approaches utilize
+    several engineered tools (e.g. prompt engineering (Wei et al. [2022](#bib.bib35)),
+    LLM finetuning (Peng et al. [2023](#bib.bib25))) that aid the LLM-guided agent
+    to perform anticipated actions (Singh et al. [2023](#bib.bib29); Driess et al.
+    [2023](#bib.bib14)). First, language guided agents require a large number of labeled
+    examples that associate a natural language prompt to a set of trajectories or
+    to a successful policy that satisfies the natural language prompt. This costly
+    procedure requires the human engineer to collect successful trajectories for each
+    natural language label. To prevent the LLM from proposing unreasonable responses/plans,
+    these techniques require fine-tuning the LLM on a labeled dataset of prompt-response
+    pairs (Song et al. [2022](#bib.bib30)). Moreover, current approaches query the
+    LLM to produce a single static plan (e.g., (Ding et al. [2023b](#bib.bib13); Ahn
+    et al. [2022](#bib.bib2))) from the language instruction and assume that the agent
+    is capable of executing the plan. This practice does not consider the environmental
+    configuration, and the same language instruction can produce plans that are sub-optimal
+    for different configurations. LLM-guided approaches used for task planning assume
+    access to the Planning Domain Definition Language (PDDL) (Liu et al. [2023](#bib.bib20))
+    that informs the LLM about which high-level actions (operators) are available,
+    what is the cost of following a particular path etc. In absence of high level
+    operators, iteratively querying the LLM once a RL policy fails to satisfy a sub-goal
+    is excessively expensive.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）已经在大量的自然语言数据语料库上进行训练，使它们能够进行推理、对话和根据用户指定的提示回答问题 (Touvron et al.
+    [2023](#bib.bib34); Zhao et al. [2023](#bib.bib38))。最近，一些技术已利用这些LLM指挥人工智能代理执行一系列家庭任务，使用自然语言 (Ahn
+    et al. [2022](#bib.bib2); Singh et al. [2023](#bib.bib29); Yang et al. [2023](#bib.bib37))。为了使这种LLM引导的任务解决技术有效，当前的方法利用了几个工程化的工具（例如提示工程 (Wei
+    et al. [2022](#bib.bib35))，LLM微调 (Peng et al. [2023](#bib.bib25)))，这些工具帮助LLM引导的代理执行预期的操作 (Singh
+    et al. [2023](#bib.bib29); Driess et al. [2023](#bib.bib14))。首先，语言引导的代理需要大量的标注样本，将自然语言提示与一组轨迹或与满足自然语言提示的成功策略关联。这一昂贵的过程要求人工工程师为每个自然语言标签收集成功的轨迹。为了防止LLM提出不合理的响应/计划，这些技术需要对LLM进行微调，基于一个标注的数据集，其中包含提示-响应对 (Song
+    et al. [2022](#bib.bib30))。此外，当前的方法会查询LLM以从语言指令生成一个单一的静态计划（例如， (Ding et al. [2023b](#bib.bib13);
+    Ahn et al. [2022](#bib.bib2)))，并假设代理能够执行该计划。这一做法没有考虑环境配置，相同的语言指令可能会为不同的配置生成次优的计划。用于任务规划的LLM引导方法假设可以访问规划领域定义语言（PDDL） (Liu
+    et al. [2023](#bib.bib20))，该语言向LLM告知哪些高级动作（操作符）可用、遵循特定路径的成本等。在缺乏高级操作符的情况下，一旦强化学习（RL）策略未能满足子目标，反复查询LLM将变得异常昂贵。
+- en: (a) Gridworld domain
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 网格世界领域
+- en: '![Refer to caption](img/cc43630375efaedf9e28f44cd9b979fa.png)![Refer to caption](img/6479e971a2b8b15e13853a8cad9eb5ba.png)'
+  id: totrans-12
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/cc43630375efaedf9e28f44cd9b979fa.png)![参见说明](img/6479e971a2b8b15e13853a8cad9eb5ba.png)'
+- en: (a) Gridworld domain
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 网格世界领域
+- en: (b) Prompt to the LLM (left) and the LLM output and corresponding DAG (right)
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 提示给LLM（左侧）和LLM输出及相应的DAG（右侧）
+- en: 'Figure 1: (a) Gridworld domain and descriptors. The agent (red triangle) needs
+    to collect one of the keys and open the door to reach the goal; (b) The prompt
+    to the LLM that contains information about the number of paths $n$ expected from
+    the LLM and the symbolic information such as the entities, predicates and the
+    high-level initial and goal states of the of the environment (no assumptions if
+    the truth values of certain predicates are unknown). The prompt from the LLM is
+    a set of paths in the form of ordered lists. The paths are converted in the form
+    of a DAG. The path chosen by *LgTS* is highlighted in red in the DAG in Fig. [1](#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents")'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：（a）网格世界域及描述符。代理（红色三角形）需要收集一个钥匙并打开门以到达目标；（b）包含期望从LLM获取的路径数量$n$和符号信息（如实体、谓词以及环境的高层次初始状态和目标状态）的LLM提示（如果某些谓词的真值未知，则不做假设）。LLM的提示是一个按顺序排列的路径集合。这些路径被转换为有向无环图（DAG）的形式。*LgTS*选择的路径在图
+    1中的DAG中以红色突出显示。
+- en: '![Refer to caption](img/dd4b5048f780e8d5ceda25c215eb5195.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/dd4b5048f780e8d5ceda25c215eb5195.png)'
+- en: 'Figure 2: Learning curves for individual sub-tasks (in different colors) generated
+    using *LgTS*'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：使用*LgTS*生成的各个子任务的学习曲线（以不同颜色表示）
+- en: In our work, we ease the above mentioned limitations by querying an off-the-shelf
+    LLM to produce multiple feasible paths that have the potential to lead to the
+    goal state. Introducing redundancy by querying multiple paths helps the agent
+    explore several sub-goals in the environment and use that knowledge to figure
+    out which sub-goal sequence will satisfy the goal objective. These multiple paths
+    can be represented using a directed acyclic graph where the nodes of the graph
+    are the sub-goal states proposed by the LLM and an edge of the graph is considered
+    as a sub-task. A trajectory induced by a successful policy for the sub-task transitions
+    the agent form one high-level state to another. The RL agent aims to learn a set
+    of policies for one of the paths proposed by the LLM. Since the RL agent does
+    not have information about the transition dynamics of the environment, the paths
+    proposed by the LLM do not convey information about which path is more feasible
+    and the RL agent needs to explore the environment to find out a feasible path.
+    The paths proposed by the LLM can be sub-optimal and hence it is essential to
+    minimize the number of times the agent interacts with the environment. Minimizing
+    the overall number of environmental interactions while learning a set of successful
+    policies is non-trivial as this problem is equivalent to finding the shortest
+    path in a graph where the edge weights are unknown a priori (Szepesvári [2004](#bib.bib32)).
+    In our case, the edge weight denotes the total number of environmental interactions
+    required by the agent to learn a successful policy for an edge in the graph, in
+    which the agent must induce a visit to a state where certain properties hold true.
+    Additionally, we can only sample interactions for a sub-task if we have a policy
+    that can reach the edge’s source node from the start node of the graph.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的工作中，我们通过查询现成的LLM来产生多个可行的路径，这些路径有潜力引导代理到达目标状态，从而缓解了上述提到的限制。通过查询多个路径引入冗余，有助于代理探索环境中的多个子目标，并利用这些知识找出哪个子目标序列能满足目标要求。这些多个路径可以通过有向无环图（DAG）来表示，其中图的节点是LLM提出的子目标状态，图的边被视为一个子任务。由子任务的成功策略所诱导的轨迹将代理从一个高层次状态转移到另一个高层次状态。强化学习（RL）代理的目标是学习LLM提出的路径之一的策略。由于RL代理没有关于环境过渡动态的信息，LLM提出的路径并未提供哪个路径更可行的信息，因此RL代理需要探索环境以找出一个可行路径。LLM提出的路径可能是次优的，因此至关重要的是最小化代理与环境交互的次数。在学习一组成功策略的同时，最小化与环境的总体交互次数并非易事，因为该问题等同于在一个图中寻找最短路径，而图的边权是事先未知的（Szepesvári
+    [2004](#bib.bib32)）。在我们的案例中，边权表示代理学习成功策略所需的环境交互总次数，其中代理必须引导访问某个状态，在该状态下某些属性为真。此外，我们只有在具有能够从图的起始节点到达边源节点的策略时，才能对某个子任务进行交互采样。
+- en: 'The high-level overview of our approach is given in Fig. [1](#S1.F1 "Figure
+    1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents"). As an example, let us look at the environment
+    in Fig. [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using
+    LLM-generated sub-goals for Reinforcement Learning Agents"). The goal for the
+    agent is to collect *any* of the two *Keys*, followed by opening the *Door* and
+    then reaching the *Goal* while avoiding the *Lava* at all times. Our prompt to
+    the LLM (Fig. [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling
+    using LLM-generated sub-goals for Reinforcement Learning Agents")) contains information
+    about the entities that are present in the environment along with the predicates
+    the agent can identify. We assume that the agent has access to sensors that can
+    detect entities in the environment and can also determine whether a certain predicate
+    is true or not. The LLM is not provided the type hierarchy i.e., it does not have
+    the information that associates predicates to its applicable entities. We assume
+    access to a labeling function that maps an environmental state to a high-level
+    symbolic state that informs the agent which predicates are true. The LLM outputs
+    a number of ordered sub-goal sequences (lists) that can potentially be the paths
+    of satisfying the high level goal. Each element in the list (a high-level state)
+    is a conjunction of predicates and entities and satisfying this high-level state
+    is a sub-goal for the RL agent (Fig. [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ LgTS:
+    Dynamic Task Sampling using LLM-generated sub-goals for Reinforcement Learning
+    Agents")). These set of sequences can effectively be converted to a directed acyclic
+    graph where the start node of the graph is the initial high-level state of the
+    agent and the goal node is the final high-level state (Fig. [1](#S1.F1 "Figure
+    1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents")). Each path in the graph is a sequence of
+    states proposed by the LLM.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们方法的高级概述见图[1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling
+    using LLM-generated sub-goals for Reinforcement Learning Agents")。作为一个例子，来看一下图[1](#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents")中的环境。代理的目标是收集*任意*一个*钥匙*，然后打开*门*，再到达*目标*，同时始终避免接触*熔岩*。我们给LLM的提示（图[1](#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents")）包含了环境中存在的实体信息以及代理可以识别的谓词。我们假设代理能够使用传感器探测环境中的实体，并且能够确定某个谓词是否为真。LLM没有提供类型层次结构，即它没有将谓词与其适用实体关联的信息。我们假设有一个标注函数，可以将环境状态映射到一个高级符号状态，从而告知代理哪些谓词为真。LLM输出一系列有序的子目标序列（列表），这些序列可能是实现高级目标的路径。列表中的每个元素（一个高级状态）是谓词和实体的合取，满足该高级状态就是RL代理的一个子目标（图[1](#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents")）。这些序列集合可以有效地转换为一个有向无环图，其中图的起始节点是代理的初始高级状态，目标节点是最终的高级状态（图[1](#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents")）。图中的每条路径是LLM提出的一系列状态。'
+- en: 'The RL agent interacts with the environment to find a set of successful policies
+    that guide the agent from the high-level start state to the high-level goal state.
+    The LLM is not provided with information about the environment configuration,
+    such as: the optimal number of interactions required to reach $Door$ from $Key_{1}$
+    are much higher compared to the interactions required to reach $Door$ from $Key_{2}$,
+    making the $Key_{1}$ to $Door$ trajectory sub-optimal. Hence, while interacting
+    with the environment, it is crucial to prevent any additional interactions the
+    agent spends in learning policies for sub-tasks (individual edges in the DAG)
+    that ultimately do not contribute to the final path the agent takes. That is,
+    the agent should realize that the individual transitions $q_{1}\rightarrow q_{3}$,
+    $q_{0}\rightarrow q_{3}$ and $q_{2}\rightarrow q_{4}$ will take longer to train,
+    and hence the amount of time spent in learning them should be minimized.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 强化学习智能体与环境交互，寻找一组成功的策略，帮助智能体从高级起始状态到达高级目标状态。大型语言模型（LLM）没有关于环境配置的信息，例如：从$Key_{1}$到$Door$所需的最优交互次数远高于从$Key_{2}$到$Door$所需的交互次数，这使得$Key_{1}$到$Door$的轨迹次优。因此，在与环境交互时，至关重要的是要避免智能体在学习子任务（有向无环图中的各个边）策略时花费额外的交互次数，这些子任务最终不会对智能体的最终路径产生贡献。也就是说，智能体应该意识到，个别的转移$q_{1}\rightarrow
+    q_{3}$、$q_{0}\rightarrow q_{3}$和$q_{2}\rightarrow q_{4}$会需要更长的训练时间，因此应该尽量减少花费在它们上的学习时间。
+- en: To tackle this problem, we employ an adaptive Teacher-Student learning strategy,
+    where, (1) the Teacher agent uses its high-level policy along with exploration
+    techniques to actively sample a sub-task for the Student agent to learn. The high-level
+    policy considers the graphical representation and the Student agent’s expected
+    performance on all the sub-tasks, and aims to satisfy the high-level objective
+    in the fewest number of interactions, and (2) the Student agent interacts with
+    the environment for a few steps (much fewer than the interactions required to
+    learn a successful policy for the sub-task) while updating its low-level RL policy
+    for the sampled sub-task. The Teacher observes the Student’s performance on these
+    interactions and updates its high-level policy. Steps (1) and (2) continue alternately
+    until the Student agent learns a set of successful policies that guide the agent
+    to reach an environmental goal state. The trajectory given by a successful RL
+    policy for a sub-task (an edge) switches the agent’s high-level state from the
+    edge’s source node to the edge’s destination node.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这个问题，我们采用了自适应的教师-学生学习策略，其中，(1) 教师智能体利用其高级策略以及探索技巧，积极地为学生智能体采样一个子任务进行学习。高级策略考虑了图形表示以及学生智能体在所有子任务上的预期表现，并旨在以最少的交互次数满足高级目标；(2)
+    学生智能体与环境进行若干步交互（远少于学习成功子任务策略所需的交互次数），同时更新其低级强化学习策略以适应采样的子任务。教师观察学生在这些交互中的表现，并更新其高级策略。步骤（1）和（2）交替进行，直到学生智能体学会一组成功的策略，帮助智能体到达环境目标状态。成功的强化学习策略为子任务（一个边）提供的轨迹将智能体的高级状态从该边的源节点切换到目的节点。
+- en: 'Our proposed approach, *LgTS* begins with the aim of learning three distinct
+    policies $\pi_{01}$ for the task of visiting $q_{1}$ from $q_{0}$, $\pi_{02}$
+    for the task of visiting $q_{2}$ from $q_{0}$, $\pi_{03}$ for the task of visiting
+    $q_{3}$ from $q_{0}$, avoiding $Lava$ at all times. The Teacher initially samples
+    evenly from these three sub-tasks but later biases its sampling toward the sub-task
+    on which the Student agent shows higher learning potential. Once the agent learns
+    a successful policy for one of the sub-tasks (let’s say the learned policy $\pi_{01}^{*}$
+    satisfies the transition $q_{0}\rightarrow q_{1}$), the Teacher does not sample
+    that task anymore, identifies the next task(s) in the graphical representation,
+    and appends them to the set of tasks it is currently sampling (in this case, the
+    only next task is: $q_{1}\rightarrow q_{3}$). Since the agent only has access
+    to the state distribution over $q_{0}$, it follows the trajectory given by $\pi_{01}^{*}$
+    to reach a state that lies in the set of states where $q_{1}$ holds true before
+    commencing its learning for the policy ($\pi_{13}$) for $q_{1}\rightarrow q_{3}$.
+    If the agent learns the policies $\pi_{02}^{*}$ for satisfying the sub-task defined
+    by $q_{0}\rightarrow q_{2}$ and $\pi_{23}^{*}$ for $q_{2}\rightarrow q_{3}$ before
+    learning $\pi_{13}$ and $\pi_{03}$, it effectively has a set of policies to reach
+    the node $q_{3}$. Thus, the Teacher will now only sample the next task in the
+    graphical representation $q_{3}\rightarrow q_{4}$, as learning policies for paths
+    that reach $q_{3}$ are effectively redundant. This process continues iteratively
+    until the agent learns a set of policies that reach the goal node ($q_{4}$) from
+    the start node ($q_{0}$). The learning curves in Fig. [2](#S1.F2 "Figure 2 ‣ 1
+    Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals for Reinforcement
+    Learning Agents") empirically validate the running example. The agent learns policies
+    for the path $q_{0}\rightarrow q_{2}\rightarrow q_{3}\rightarrow q_{4}$ that produce
+    trajectories to reach the goal node $q_{4}$ from the initial node $q_{0}$, without
+    excessively wasting interactions on the unpromising sub-tasks $q_{1}\rightarrow
+    q_{3}$, $q_{0}\rightarrow q_{3}$ and $q_{2}\rightarrow q_{4}$. The dashed lines
+    in Fig. [2](#S1.F2 "Figure 2 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using
+    LLM-generated sub-goals for Reinforcement Learning Agents") signify the interactions
+    at which a task policy converged.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出的方法*LgTS*的目标是学习三个不同的策略$\pi_{01}$，用于从$q_{0}$到$q_{1}$的任务，$\pi_{02}$，用于从$q_{0}$到$q_{2}$的任务，$\pi_{03}$，用于从$q_{0}$到$q_{3}$的任务，并始终避免遇到$Lava$。教师最初从这三个子任务中均匀采样，但随后会根据学生代理在某个子任务上的学习潜力调整采样。
+    一旦代理学会了某个子任务的成功策略（假设学到的策略$\pi_{01}^{*}$满足转移$q_{0}\rightarrow q_{1}$），教师就不再采样该任务，识别图形表示中的下一个任务，并将其添加到当前采样任务集合中（在这种情况下，唯一的下一个任务是：$q_{1}\rightarrow
+    q_{3}$）。由于代理只能访问$q_{0}$上的状态分布，它会遵循由$\pi_{01}^{*}$给出的轨迹，达到一个包含$q_{1}$为真的状态集，然后开始学习从$q_{1}$到$q_{3}$的策略（$\pi_{13}$）。如果代理在学习$\pi_{13}$和$\pi_{03}$之前，已经学习了满足由$q_{0}\rightarrow
+    q_{2}$定义的子任务的策略$\pi_{02}^{*}$，以及从$q_{2}$到$q_{3}$的策略$\pi_{23}^{*}$，那么它实际上已经拥有了一组到达节点$q_{3}$的策略。因此，教师现在只会采样图形表示中的下一个任务$q_{3}\rightarrow
+    q_{4}$，因为学习到达$q_{3}$的路径的策略实际上是多余的。这个过程会反复进行，直到代理学会了一组从起始节点($q_{0}$)到目标节点($q_{4}$)的策略。图[2](#S1.F2
+    "图2 ‣ 1 引言 ‣ LgTS：使用LLM生成的子目标进行强化学习代理的动态任务采样")中的学习曲线实证验证了这一运行示例。代理学习了路径$q_{0}\rightarrow
+    q_{2}\rightarrow q_{3}\rightarrow q_{4}$的策略，这些策略生成的轨迹可以从初始节点$q_{0}$到达目标节点$q_{4}$，而不会在无前景的子任务$q_{1}\rightarrow
+    q_{3}$、$q_{0}\rightarrow q_{3}$和$q_{2}\rightarrow q_{4}$上浪费过多交互。图[2](#S1.F2 "图2
+    ‣ 1 引言 ‣ LgTS：使用LLM生成的子目标进行强化学习代理的动态任务采样")中的虚线表示策略收敛的任务交互点。
+- en: In this work, we propose LgTS, a framework for generating a graphical representation
+    of sub-tasks through an LLM response and then using this graph to learn policies
+    to satisfy the goal objective. Through experiments, we demonstrate that LgTS is
+    able to construct sub-tasks using the LLM output, realize which of these sub-tasks
+    are unpromising, and only learn policies that will satisfy the goal while minimizing
+    the number of environmental interactions.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本研究中，我们提出了LgTS，一个通过LLM响应生成子任务图形表示的框架，然后利用该图形来学习满足目标任务的策略。通过实验，我们展示了LgTS能够使用LLM输出构建子任务，识别哪些子任务是无前景的，并且只学习那些能够满足目标的策略，同时最小化环境交互的次数。
+- en: 2 Related Work
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Large Language Models (LLMs) (Min et al. [2021](#bib.bib22)) are trained on
+    a huge corpora of natural language prompts that enables them to answer questions,
+    reason and engage in dialogue. Being trained on vasts amounts of data enables
+    LLMs to be applicable in tasks that require a general understanding of the task
+    and the surrounding. Recently, several approaches have used LLMs for robot planning
+    tasks where the role of LLM is to decompose the natural language instruction into
+    language that can directly be fed to an artificial agent or a robot for execution (Brohan
+    et al. [2023](#bib.bib6); Ahn et al. [2022](#bib.bib2); Ding et al. [2023a](#bib.bib12)).
+    Applications of LLMs in embodied agents include error correction during long horizon
+    planning (Raman et al. [2022](#bib.bib26)), intrinsically shaping the reward to
+    promote exploration (Kwon et al. [2023](#bib.bib18)), object rearrangement in
+    robotics (Stone et al. [2023](#bib.bib31)) and for augmenting a symbolic planner
+    by providing a workable symbolic plan (Liu et al. [2023](#bib.bib20)). These techniques
+    rely on several strongly engineered tools such as chain-of-thought prompting,
+    fine-tuning of datasets and assumption of a verifier (such as a symbolic planner)
+    that can determine if an LLM-generated plan can succeed (Song et al. [2022](#bib.bib30)).
+    Absence of these techniques significantly reduces the accuracy of the LLM-generated
+    plans. If we do not have access to the high-level operators/actions that can solve
+    the plan, it is very difficult to verify the correctness of the plan. Instead
+    of completely relying on a single plan generated by the LLM, our approach queries
+    multiple plans from an off-the-shelf LLM (no finetuning) that have the potential
+    to satisfy the high-level goal objective. We then construct a graphical representation
+    from the LLM output and use an adaptive Teacher-Student learning algorithm to
+    learn a set of policies that can satisfy the goal objective.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）(Min et al. [2021](#bib.bib22))是在大量自然语言提示语料库上训练的，使它们能够回答问题、推理并进行对话。通过在海量数据上进行训练，LLMs能够应用于那些需要对任务和环境有一般理解的任务中。最近，几种方法已将LLMs应用于机器人规划任务，其中LLM的作用是将自然语言指令分解为可以直接输入给人工智能代理或机器人执行的语言（Brohan
+    et al. [2023](#bib.bib6); Ahn et al. [2022](#bib.bib2); Ding et al. [2023a](#bib.bib12)）。LLMs在具身代理中的应用包括在长期规划中进行错误修正（Raman
+    et al. [2022](#bib.bib26)）、内在塑造奖励以促进探索（Kwon et al. [2023](#bib.bib18)）、机器人中的物体重排（Stone
+    et al. [2023](#bib.bib31)）以及通过提供可行的符号化规划来增强符号规划器（Liu et al. [2023](#bib.bib20)）。这些技术依赖于多个精心设计的工具，如链式思维提示、数据集的微调以及假设一个验证器（如符号规划器）能够确定LLM生成的计划是否能成功（Song
+    et al. [2022](#bib.bib30)）。缺少这些技术会显著降低LLM生成计划的准确性。如果我们无法访问能够解决该计划的高级操作员/动作，那么验证计划的正确性将变得非常困难。我们的方法并非完全依赖LLM生成的单一计划，而是从一个现成的LLM（无需微调）查询多个可能满足高级目标的计划。然后，我们从LLM的输出构建一个图形表示，并使用自适应的教师-学生学习算法来学习一组能够满足目标的策略。
+- en: Another line of research has investigated representing the goal using high-level
+    specification languages, such as finite-trace Linear Temporal Logic (LTL${}_{f}$) (De Giacomo
+    and Vardi [2013](#bib.bib10)) or Reward Machines (RM) (Icarte et al. [2022](#bib.bib16);
+    Toro Icarte et al. [2018](#bib.bib33); Bozkurt et al. [2020](#bib.bib5); Xu and
+    Topcu [2019](#bib.bib36); Alur et al. [2022](#bib.bib3); De Giacomo et al. [2019](#bib.bib9))
+    that allow defining the goal using a graphical representation informing the agent
+    which sub-goals must be achieved prior to attempting the final goal. Automaton-based
+    RL approaches assume that the high-level goal is known before commencing the task,
+    and that the goal objective can be represented using a set of formal language
+    rules that build on sub-goals. Automaton-guided RL has been used for robotic domains (Cai
+    et al. [2023](#bib.bib7); Li, Vasile, and Belta [2017](#bib.bib19)) and for multi-agent
+    settings (Hammond et al. [2021](#bib.bib15)). RM approaches still require human
+    guidance in defining the reward structure of the machine, which is dependent on
+    knowing how much reward should be assigned for each sub-goal. Unlike the approaches
+    mentioned above, our approach does not require a predetermined reward structure,
+    nor does it assume that the graphical structure for the sub-goals is available
+    in advance. Our method queries the LLM to provide us with multiple paths of reaching
+    the final goal which we use to construct a graphical structure of sub-goals.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一类研究探讨了使用高级规范语言表示目标，如有限轨迹线性时序逻辑（LTL${}_{f}$）（De Giacomo 和 Vardi [2013](#bib.bib10)）或奖励机器（RM）（Icarte
+    等人 [2022](#bib.bib16); Toro Icarte 等人 [2018](#bib.bib33); Bozkurt 等人 [2020](#bib.bib5);
+    Xu 和 Topcu [2019](#bib.bib36); Alur 等人 [2022](#bib.bib3); De Giacomo 等人 [2019](#bib.bib9)），这些语言允许通过图形表示定义目标，告知代理在尝试最终目标之前必须完成哪些子目标。基于自动机的强化学习方法假设高层次的目标在开始任务之前已知，且目标可以通过一组基于子目标的形式语言规则来表示。自动机引导的强化学习已被应用于机器人领域（Cai
+    等人 [2023](#bib.bib7); Li、Vasile 和 Belta [2017](#bib.bib19)）以及多智能体环境（Hammond 等人
+    [2021](#bib.bib15)）。奖励机器方法仍然需要人工指导来定义机器的奖励结构，这依赖于知道每个子目标应分配多少奖励。与上述方法不同，我们的方法不需要预定的奖励结构，也不假设子目标的图形结构可以提前获得。我们的方法通过查询LLM，提供多个达成最终目标的路径，利用这些路径构建子目标的图形结构。
+- en: Teacher-Student algorithms (Matiisen et al. [2020](#bib.bib21)) have been studied
+    in Curriculum Learning literature (Narvekar et al. [2020](#bib.bib23); Shukla
+    et al. [2022](#bib.bib28)) and in the Intrinsic Motivation literature (Oudeyer
+    and Kaplan [2009](#bib.bib24)). The idea is to have the Teacher propose those
+    tasks to Student on which the Student shows most promise. This strategy helps
+    Student learn simpler tasks first, transferring its knowledge to complex tasks.
+    The technique reduces the overall number of interactions necessary to learn a
+    successful policy. These approaches tend to optimize a curriculum to learn a single
+    policy, which does not scale well to temporally-extended tasks. Instead, we propose
+    an LLM-guided Teacher-Student learning strategy that learns a set of policies
+    for promising transitions in the sub-goal graph, promoting sample-efficient training
+    compared to the baselines.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 教师-学生算法（Matiisen 等人 [2020](#bib.bib21)）已经在课程学习文献中（Narvekar 等人 [2020](#bib.bib23);
+    Shukla 等人 [2022](#bib.bib28)）以及内在动机文献中（Oudeyer 和 Kaplan [2009](#bib.bib24)）进行了研究。其思想是让教师向学生提出学生最有潜力完成的任务。这种策略帮助学生先学习简单的任务，并将其知识转移到更复杂的任务中。这种技术减少了学习成功策略所需的总交互次数。这些方法通常优化一个课程以学习单一策略，但对于时间扩展任务的扩展性较差。相反，我们提出了一种LLM引导的教师-学生学习策略，可以学习一组政策，用于在子目标图中识别有前景的过渡，相较于基线方法，能够促进样本高效训练。
+- en: 3 Preliminaries
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 初步工作
+- en: 'Symbolic Planning: We assume access to symbolic information defined as  $\Sigma=\langle\mathcal{E},\mathcal{F},\mathcal{Q},q_{0},q_{g}\rangle$,
+    where $\mathcal{E}=\left\{\varepsilon_{1},\ldots\varepsilon_{|\mathcal{E}|}\right\}$
+    is a finite set of known entities within the environment, and $\mathcal{F}=\left\{f_{1}(\odot),\ldots
+    f_{|\mathcal{F}|}(\odot)\right\}$, where $\odot\subset\mathcal{E}$, is a finite
+    set of known predicates with their negations. Each predicate $f_{i}\left(\odot\right)$,
+    along with its negation $\neg f_{i}(\odot)$, is contained in $\mathcal{F}$. $\mathcal{Q}=\left\{q_{1}\ldots
+    q_{|\mathcal{Q}|}\right\}$ is the set of symbolic states in the environment. A
+    symbolic state $q\in\mathcal{Q}$ is defined as a complete assignment over all
+    predicate-entity pairs, i.e. $q=\bigcup^{|\mathcal{E}|}_{i=1}\bigcup^{|\mathcal{F}|}_{j=1}f_{j}(e_{i})$.
+    The starting state is given by $q_{0}\subset\mathcal{Q}$, and, $q_{g}\subset\mathcal{Q}$
+    is the goal state. We assume access to a single word natural language description
+    of the predicates and entities.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 符号规划：我们假设可以访问到定义为$\Sigma=\langle\mathcal{E},\mathcal{F},\mathcal{Q},q_{0},q_{g}\rangle$的符号信息，其中$\mathcal{E}=\left\{\varepsilon_{1},\ldots\varepsilon_{|\mathcal{E}|}\right\}$是环境中已知实体的有限集合，$\mathcal{F}=\left\{f_{1}(\odot),\ldots
+    f_{|\mathcal{F}|}(\odot)\right\}$，其中$\odot\subset\mathcal{E}$，是已知谓词及其否定的有限集合。每个谓词$f_{i}\left(\odot\right)$，以及其否定$\neg
+    f_{i}(\odot)$，都包含在$\mathcal{F}$中。$\mathcal{Q}=\left\{q_{1}\ldots q_{|\mathcal{Q}|}\right\}$是环境中符号状态的集合。一个符号状态$q\in\mathcal{Q}$被定义为对所有谓词-实体对的完整赋值，即$q=\bigcup^{|\mathcal{E}|}_{i=1}\bigcup^{|\mathcal{F}|}_{j=1}f_{j}(e_{i})$。起始状态由$q_{0}\subset\mathcal{Q}$给出，目标状态由$q_{g}\subset\mathcal{Q}$给出。我们假设可以访问到一个关于谓词和实体的单词自然语言描述。
+- en: 'LLM prompt: Autoregressive LLMs are trained with a maximum likelihood loss
+    to model the probability of a sequence of tokens $y$ conditioned on an input sequence
+    $x$, s.t. $\phi=\operatorname*{arg\,max}_{\phi}P(y|x,\phi)$, where $\phi$ are
+    the LLM parameters. We assume access to a prompt function $f_{p}:(\Sigma,n)\rightarrow
+    x$ that takes in the symbolic information $\Sigma$ along with the number of paths
+    that the LLM should generate $n$ and produces a natural language prompt $x$ that
+    serves as an input to the LLM. The prompt to the LLM $x$ is designed in such a
+    way that the output from the LLM $y=\mathsf{LLM}_{\phi}(x)$ can be construed into
+    a graph. The LLM output $y$ is converted to a set of ordered lists, where each
+    element of the list is a high-level state $q\in\mathcal{Q}$. The first element
+    of the list is the start state $q_{0}$ and the final element of the list is the
+    goal state $q_{g}$. If any of the lists in the output $y$ do not satisfy the start
+    state and the goal state conditions, i.e. if the first element of the LLM-generated
+    list is not $q_{0}$ and the final element is not $q_{g}$, the LLM is reprompted
+    to produce another ordered list as a response where the first element is $q_{0}$
+    and the final element is $q_{g}$.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM提示：自回归LLM通过最大似然损失函数进行训练，以对给定输入序列$x$条件下的令牌序列$y$的概率进行建模，使得$\phi=\operatorname*{arg\,max}_{\phi}P(y|x,\phi)$，其中$\phi$是LLM的参数。我们假设可以访问到一个提示函数$f_{p}:(\Sigma,n)\rightarrow
+    x$，该函数接收符号信息$\Sigma$以及LLM应该生成的路径数$n$，并生成一个自然语言提示$x$，作为LLM的输入。LLM的提示$x$被设计为，使得LLM的输出$y=\mathsf{LLM}_{\phi}(x)$可以构建成图形。LLM的输出$y$被转换为一组有序列表，其中每个列表的元素都是一个高层次的状态$q\in\mathcal{Q}$。列表中的第一个元素是起始状态$q_{0}$，最后一个元素是目标状态$q_{g}$。如果输出$y$中的任何列表不满足起始状态和目标状态条件，即如果LLM生成的列表的第一个元素不是$q_{0}$，并且最后一个元素不是$q_{g}$，则LLM会被重新提示生成另一个有序列表作为响应，其中第一个元素是$q_{0}$，最后一个元素是$q_{g}$。
+- en: 'Additionally, we assume access to a function $\mathsf{Graph}:\mathsf{List}(y)\rightarrow\mathcal{U}$
+    that takes in the ordered lists generated from the LLM output $y$ as its input
+    and produces a directed acyclic graph $\mathcal{U}=(V,E)$ where each vertex $v\in
+    V$ is a high-level state, i.e., $V\subseteq\mathcal{Q}$, and the set of edges
+    $E\subseteq V\times V$ connects two high-level states, i.e. $e_{ij}$ is a directed
+    edge from $v_{i}$ to $v_{j}$ (see Fig. [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣
+    LgTS: Dynamic Task Sampling using LLM-generated sub-goals for Reinforcement Learning
+    Agents")).'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '此外，我们假设可以访问到一个函数$\mathsf{Graph}:\mathsf{List}(y)\rightarrow\mathcal{U}$，该函数接收从LLM输出$y$生成的有序列表作为输入，并生成一个有向无环图$\mathcal{U}=(V,E)$，其中每个顶点$v\in
+    V$是一个高层次状态，即$V\subseteq\mathcal{Q}$，边集$E\subseteq V\times V$连接两个高层次状态，即$e_{ij}$是从$v_{i}$到$v_{j}$的有向边（见图[1](#S1.F1
+    "图 1 ‣ 1 引言 ‣ LgTS: 使用LLM生成的子目标进行强化学习代理的动态任务采样")）。'
+- en: 'Labeled MDP: An episodic labeled Markov Decision Process (MDP) $M$ is a tuple
+    $(\mathcal{S},\mathcal{A},\tau,R,\mathcal{S}_{0},\mathcal{S}_{f},\gamma,T,% \mathcal{Q},L)$,
+    where $\mathcal{S}$ is the set of MDP (low-level) states, $\mathcal{A}$ is the
+    set of actions, $p(s^{\prime}|s,a)$ is the transition probability of reaching
+    state $s^{\prime}\in\mathcal{S}$ from $s\in\mathcal{S}$ using action $a\in\mathcal{A}$,
+    $R:\mathcal{S}\times A\times\mathcal{S}\rightarrow\mathbb{R}$ is the reward function,
+    $\mathcal{S}_{0}$ are the initial states, $\mathcal{S}_{f}$ are the terminal states,
+    $\gamma\in[0,1]$ is the discount factor, $T$ is the maximum number of interactions
+    in any episode, $\mathcal{Q}$ is the set of high-level states, and $L:\mathcal{S}\rightarrow\mathcal{Q}$
+    is a labeling function that maps an MDP state $s\in\mathcal{S}$ to a high-level
+    state $q\in\mathcal{Q}$.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标记的MDP：一个回合制的标记马尔可夫决策过程（MDP）$M$是一个元组$(\mathcal{S},\mathcal{A},\tau,R,\mathcal{S}_{0},\mathcal{S}_{f},\gamma,T,%
+    \mathcal{Q},L)$，其中$\mathcal{S}$是MDP（低层）状态的集合，$\mathcal{A}$是动作集合，$p(s^{\prime}|s,a)$是从状态$s\in\mathcal{S}$使用动作$a\in\mathcal{A}$到达状态$s^{\prime}\in\mathcal{S}$的转移概率，$R:\mathcal{S}\times
+    A\times\mathcal{S}\rightarrow\mathbb{R}$是奖励函数，$\mathcal{S}_{0}$是初始状态集，$\mathcal{S}_{f}$是终止状态集，$\gamma\in[0,1]$是折扣因子，$T$是每个回合中的最大交互次数，$\mathcal{Q}$是高层状态集，$L:\mathcal{S}\rightarrow\mathcal{Q}$是标记函数，将MDP状态$s\in\mathcal{S}$映射到高层状态$q\in\mathcal{Q}$。
+- en: In every interaction, the agent observes the current state $s$ and selects an
+    action $a$ according to its policy function $\pi(a|s,\theta)$ with parameters
+    $\theta$. The MDP transitions to a new state $s^{\prime}\in\mathcal{S}$ with probability
+    $\tau(s^{\prime}\mid s,a)$. The agent’s goal is to learn an *optimal policy $\pi^{*}$*
+    that maximizes the discounted return $G_{0}=\sum^{T}_{t=0}\!\gamma^{t}\!R(s^{\prime}_{t},a_{t},s_{t})$
+    until the end of the episode, which occurs after at-most $T$ interactions.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每次交互中，代理观察当前状态$s$，并根据其策略函数$\pi(a|s,\theta)$选择一个动作$a$，其中$\theta$是参数。MDP以概率$\tau(s^{\prime}\mid
+    s,a)$转换到一个新的状态$s^{\prime}\in\mathcal{S}$。代理的目标是学习一个*最优策略$\pi^{*}$*，使得折扣回报$G_{0}=\sum^{T}_{t=0}\!\gamma^{t}\!R(s^{\prime}_{t},a_{t},s_{t})$最大化，直到回合结束，回合最多进行$T$次交互。
+- en: 3.1 Problem Statement
+  id: totrans-34
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 问题陈述
+- en: 'Given the symbolic information $\Sigma$ and access to large-language model
+    $\mathsf{LLM}_{\phi}$, the aim of this work is to:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定符号信息$\Sigma$和访问大语言模型$\mathsf{LLM}_{\phi}$，本工作的目标是：
+- en: •
+  id: totrans-36
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Convert the LLM output $y=\mathsf{LLM}_{\phi}(f_{p}(\Sigma,n))$ into a directed
+    acyclic graph $\mathcal{U}=(V,E)$ such that each vertex $v\in V$ is a high-level
+    state $q\in\mathcal{Q}$ and $E\subseteq V\times V$.
+  id: totrans-37
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 将LLM输出$y=\mathsf{LLM}_{\phi}(f_{p}(\Sigma,n))$转换为有向无环图$\mathcal{U}=(V,E)$，使得每个顶点$v\in
+    V$是一个高层状态$q\in\mathcal{Q}$，且$E\subseteq V\times V$。
+- en: •
+  id: totrans-38
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Construct a sub-task MDP $\mathsf{Task}(v_{i},v_{j})$ corresponding to each
+    transition of the graph. A sub-task defined by an edge $e_{ij}$ from node $v_{i}$
+    to $v_{j}\in V$ defines a reach-avoid objective for the agent represented by the
+    formula:'
+  id: totrans-39
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 构建一个子任务MDP $\mathsf{Task}(v_{i},v_{j})$，对应图中的每一个转移。由从节点$v_{i}$到$v_{j}\in V$的边$e_{ij}$定义的子任务，表示一个代理的到达-避开目标，公式如下所示：
+- en: '|  | $\mathsf{Task}(v_{i},v_{j})=\mathsf{\textbf{F}}(v_{j})\land\mathsf{\textbf{G}}%
+    \left(\bigwedge\limits_{r\in\mathsf{Succ}(v_{i}),r\neq v_{j}}\neg v_{r}\right)$
+    |  | (1) |'
+  id: totrans-40
+  prefs:
+  - PREF_IND
+  type: TYPE_TB
+  zh: '|  | $\mathsf{Task}(v_{i},v_{j})=\mathsf{\textbf{F}}(v_{j})\land\mathsf{\textbf{G}}%
+    \left(\bigwedge\limits_{r\in\mathsf{Succ}(v_{i}),r\neq v_{j}}\neg v_{r}\right)$
+    |  | (1) |'
+- en: where $v_{j}$ is the symbolic state corresponding to the destination node of
+    edge $e_{ij}$ and $\mathsf{Succ}(v_{i})$ is the set of states of successors of
+    node $v_{i}$ in the DAG $\mathcal{U}$, F and G correspond to Eventually and Always
+    respectively. The $\mathsf{Task}(v_{i},v_{j})$ represents an MDP $M^{\prime}$
+    where all initial states $s^{\prime}\in\mathcal{S}^{M^{\prime}}_{0}$ are mapped
+    to the high-level state $L(s^{\prime})\rightarrow v_{i}$ and terminal states $s^{\prime}\in\mathcal{S}^{M^{\prime}}_{f}$
+    of $\mathsf{Task}(v_{i},v_{j})$ are mapped to the high-level state $L(s^{\prime})\rightarrow
+    v_{j}$. $\mathsf{Task}(e_{ij})$ and $\mathsf{Task}(v_{i},v_{j})$ are used interchangeably.
+  id: totrans-41
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 其中$v_{j}$是对应于边$e_{ij}$目标节点的符号状态，$\mathsf{Succ}(v_{i})$是DAG$\mathcal{U}$中节点$v_{i}$的后继状态集合，F和G分别对应最终（Eventually）和始终（Always）。$\mathsf{Task}(v_{i},v_{j})$表示一个MDP
+    $M^{\prime}$，其中所有初始状态$s^{\prime}\in\mathcal{S}^{M^{\prime}}_{0}$都映射到高层状态$L(s^{\prime})\rightarrow
+    v_{i}$，终止状态$s^{\prime}\in\mathcal{S}^{M^{\prime}}_{f}$映射到高层状态$L(s^{\prime})\rightarrow
+    v_{j}$。$\mathsf{Task}(e_{ij})$和$\mathsf{Task}(v_{i},v_{j})$可以互换使用。
+- en: •
+  id: totrans-42
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Learn a set of policies $\pi_{ij}^{*}$, $i,j=0,\ldots,n-1$, with the following
+    three properties:'
+  id: totrans-43
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 学习一组策略$\pi_{ij}^{*}$，其中$i,j=0,\ldots,n-1$，满足以下三个属性：
+- en: (i) Following $\pi_{01}^{*}$ results in a trajectory in the task MDP $\mathsf{Task}(e_{01})$
+    that induces a transition from $q_{0}$ to some state $q_{1}\in Q$ in the DAG,
+    following $\pi_{12}^{*}$ results in a path in MDP $\mathsf{Task}(e_{12})$ that
+    induces a transition from $q_{1}$ to some state $q_{2}\in Q$ in the DAG, and so
+    on. (ii) The resulting path $q_{0}q_{1}\ldots q_{g}$ in the DAG terminates at
+    the goal state $q_{g}$, with probability greater than a given threshold, $\eta\in(0,1)$.
+    (iii) The total number of environmental interactions spent in exploring the environment
+    and learning sub-task policies are minimized.
+  id: totrans-44
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: (i) 跟随$\pi_{01}^{*}$将导致任务MDP$\mathsf{Task}(e_{01})$中的轨迹，该轨迹引发从$q_{0}$到DAG中某个状态$q_{1}\in
+    Q$的过渡，跟随$\pi_{12}^{*}$将导致MDP$\mathsf{Task}(e_{12})$中的路径，该路径引发从$q_{1}$到DAG中某个状态$q_{2}\in
+    Q$的过渡，以此类推。 (ii) 在DAG中，结果路径$q_{0}q_{1}\ldots q_{g}$以目标状态$q_{g}$终止，且其概率大于给定阈值$\eta\in(0,1)$。
+    (iii) 在探索环境和学习子任务策略过程中，所花费的环境交互总数最小化。
+- en: 4 Methodology
+  id: totrans-45
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 方法论
+- en: 'First, given the symbolic information $\Sigma=\langle\mathcal{E},\mathcal{F},\mathcal{Q},q_{0},q_{g}\rangle$
+    and $n$, the number of ordered lists of sub-goal paths we expect from the LLM,
+    we generate a natural language prompt $x=f_{p}(\Sigma,n)$. An example of a prompt
+    is shown in Fig. [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling
+    using LLM-generated sub-goals for Reinforcement Learning Agents"). The prompt
+    directs the LLM to produce outputs that is converted to a set of $n$ ordered lists,
+    where each element in the list is a high-level state, the first element of the
+    list is initial high-level state $q_{0}$, and the final element of the list is
+    the goal high-level state $q_{g}$. This prompt is fed to a large language model
+    (LLM) to produce a sequence of tokens where each token is given by $y=\mathsf{LLM}_{\phi}(f_{p}(\Sigma,n))$.
+    For our work, we used LLAMA2 (Touvron et al. [2023](#bib.bib34)), an open-source
+    LLM that allows version control and is easily accessible. While the output generated
+    by the LLM depends on its training protocol and on the dataset used for its training,
+    this work does not involve investigating and comparing the output from different
+    LLMs as that is tangential to our study.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '首先，给定符号信息$\Sigma=\langle\mathcal{E},\mathcal{F},\mathcal{Q},q_{0},q_{g}\rangle$和$n$（即我们期望从LLM得到的子目标路径的有序列表的数量），我们生成一个自然语言提示$x=f_{p}(\Sigma,n)$。提示的一个例子如图[1](#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals
+    for Reinforcement Learning Agents")所示。该提示引导LLM生成输出，这些输出被转换为$n$个有序列表，其中每个列表的元素是一个高层次状态，列表的第一个元素是初始高层次状态$q_{0}$，最后一个元素是目标高层次状态$q_{g}$。这个提示被输入到大型语言模型(LLM)中，以生成一系列标记，其中每个标记由$y=\mathsf{LLM}_{\phi}(f_{p}(\Sigma,n))$给出。在我们的工作中，我们使用了LLAMA2（Touvron等人[2023](#bib.bib34)），这是一种开源LLM，支持版本控制且易于访问。虽然LLM生成的输出依赖于其训练协议和用于训练的数据集，但本研究并不涉及调查和比较不同LLM的输出，因为这与我们的研究方向无关。'
+- en: 'The next step is to convert the natural language output from the LLM $y$ into
+    a directed acyclic graph $\mathcal{U}=(V,E)$ such that each element $v\in V$ is
+    a high-level state $q\in\mathcal{Q}$ and $E\subseteq V\times V$. If the output
+    $y$ from the LLM does not satisfy the high-level initial and goal state conditions
+    (see Sec. [3](#S3 "3 Preliminaries ‣ LgTS: Dynamic Task Sampling using LLM-generated
+    sub-goals for Reinforcement Learning Agents")), the LLM is reprompted until the
+    output $y$ matches the correct syntax. We parse the output to get $n$ distinct
+    paths of reaching the high-level goal state $q_{g}$ from the initial high-level
+    state $q_{0}$. These $n$ distinct paths are in the form of an adjacency list for
+    a graph. While constructing the graph, we omit self-loops and cycles, generating
+    a directed acyclic graph (DAG) $\mathcal{U}$.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '下一步是将来自LLM的自然语言输出$y$转换为有向无环图$\mathcal{U}=(V,E)$，使得每个元素$v\in V$是一个高层次状态$q\in\mathcal{Q}$，并且$E\subseteq
+    V\times V$。如果LLM的输出$y$不满足高层次初始状态和目标状态条件（见第[3](#S3 "3 Preliminaries ‣ LgTS: Dynamic
+    Task Sampling using LLM-generated sub-goals for Reinforcement Learning Agents")节），则重新提示LLM，直到输出$y$符合正确的语法。我们解析输出，得到从初始高层次状态$q_{0}$到目标高层次状态$q_{g}$的$n$条不同路径。这些$n$条不同路径呈图的邻接表形式。在构建图时，我们省略自环和循环，生成一个有向无环图(DAG)
+    $\mathcal{U}$。'
+- en: 'Given the DAG $\mathcal{U}$, we define a set of sub-tasks based on the edges
+    of the DAG. Intuitively, given the current MDP state for the agent $s\in\mathcal{S}$
+    and its corresponding DAG node $L(s)\rightarrow q$, a sub-task defined by an edge
+    from node $q$ to $p\in Q$ defines a reach-avoid objective for the agent represented
+    by the formula [1](#S3.E1 "1 ‣ 2nd item ‣ 3.1 Problem Statement ‣ 3 Preliminaries
+    ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals for Reinforcement
+    Learning Agents").'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '给定DAG$\mathcal{U}$，我们基于DAG的边定义了一组子任务。直观地说，给定当前智能体的MDP状态$s\in\mathcal{S}$及其对应的DAG节点$L(s)\rightarrow
+    q$，由从节点$q$到$p\in Q$的边定义的子任务表示一个智能体的到达-避免目标，公式见[1](#S3.E1 "1 ‣ 2nd item ‣ 3.1 Problem
+    Statement ‣ 3 Preliminaries ‣ LgTS: Dynamic Task Sampling using LLM-generated
+    sub-goals for Reinforcement Learning Agents")。'
+- en: Each sub-task $\mathsf{Task}(q,p)$ defines a problem to learn a policy $\pi_{(q,p)}^{*}$
+    such that, given any MDP state $s_{0}$ that maps to the high-level state $q$ (i.e.,
+    $L(s_{0})\!\!\rightarrow\!q$), following $\pi_{(q,p)}^{*}$ results in a path $s_{0}s_{1}\ldots
+    s_{n}$ in MDP that induces the symbolic path $qq\ldots qp$. That is, the high-level
+    state of the agent remains at $q$ until it transitions to $p$.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个子任务$\mathsf{Task}(q,p)$定义了一个问题，用于学习一个策略$\pi_{(q,p)}^{*}$，使得给定任何映射到高层状态$q$的MDP状态$s_{0}$（即$L(s_{0})\!\!\rightarrow\!q$），按照$\pi_{(q,p)}^{*}$执行会在MDP中生成一条路径$s_{0}s_{1}\ldots
+    s_{n}$，并导致符号路径$qq\ldots qp$。也就是说，智能体的高层状态将保持在$q$，直到它过渡到$p$。
+- en: 'The algorithm for *AGTS* is described in Algo. [1](#alg1 "Algorithm 1 ‣ 4 Methodology
+    ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals for Reinforcement
+    Learning Agents"). We begin by initializing the following quantities (lines 2-4):
+    (1) Set of: Active Tasks $\mathcal{AT}$, Learned Tasks $\mathcal{LT}$, Discarded
+    Tasks $\mathcal{DT}$; (2) A Dictionary $P$ that maps a sub-task $\mathsf{Task}(e)$
+    of the DAG $\mathcal{U}$ to a policy $\pi_{e}$; (3) A Dictionary $Q$ that represents
+    the Teacher Q-Values by mapping the learning progress (in terms of success rate)
+    of the sub-task $\mathsf{Task}(e)$ to a numerical Q-value associated with that
+    sub-task.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*AGTS*的算法在算法[1](#alg1 "Algorithm 1 ‣ 4 Methodology ‣ LgTS: Dynamic Task Sampling
+    using LLM-generated sub-goals for Reinforcement Learning Agents")中有描述。我们首先初始化以下量（第2-4行）：(1)
+    活动任务集$\mathcal{AT}$、已学习任务集$\mathcal{LT}$、丢弃任务集$\mathcal{DT}$；(2) 一个字典$P$，它将DAG
+    $\mathcal{U}$中的子任务$\mathsf{Task}(e)$映射到策略$\pi_{e}$；(3) 一个字典$Q$，它通过将子任务$\mathsf{Task}(e)$的学习进度（以成功率为单位）映射到与该子任务关联的数值Q值，表示教师Q值。'
+- en: 'Firstly, we convert $\mathcal{U}$ into an Adjacency Matrix $\mathcal{X}$ (line
+    6), and find the set of all the outgoing edges $E_{q_{0}}\subseteq E$ from the
+    initial node $q_{0}$ (line 7). Satisfying the edge’s formula $e_{q_{0},q_{1}}\in
+    E_{q_{0}}$ represents a reachability sub-task $M^{\prime}$ where each goal state
+    $s\in\mathcal{S}^{M^{\prime}}_{f}$ of $M^{\prime}$ satisfies the condition $L(s)\rightarrow
+    q_{1}$. The agent receives a positive reward for satisfying $\mathsf{Task}(e_{q_{0},q_{1}})$
+    and a small negative reward at all other time steps. The state space, the action
+    space and the transition dynamics of MDP $M^{\prime}$ are equivalent to MDP $M$.
+    To complete the sub-task, the agent must learn a policy $\pi_{(q_{0},q_{1})}^{*}$
+    that ensures a visit from $q_{0}$ to $q_{1}$ with probability greater than a predetermined
+    threshold ($\eta$). Moreover, the policy must also avoid triggering unintended
+    transitions in the DAG. For instance, while picking up $Key_{1}$, the policy must
+    not inadvertently pick up $Key_{2}$ as evident from the task objective formula [1](#S3.E1
+    "1 ‣ 2nd item ‣ 3.1 Problem Statement ‣ 3 Preliminaries ‣ LgTS: Dynamic Task Sampling
+    using LLM-generated sub-goals for Reinforcement Learning Agents").'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '首先，我们将$\mathcal{U}$转换为邻接矩阵$\mathcal{X}$（第6行），并找到从初始节点$q_{0}$出发的所有外向边$E_{q_{0}}\subseteq
+    E$（第7行）。满足边的公式$e_{q_{0},q_{1}}\in E_{q_{0}}$表示一个可达子任务$M^{\prime}$，其中$M^{\prime}$的每个目标状态$s\in\mathcal{S}^{M^{\prime}}_{f}$都满足条件$L(s)\rightarrow
+    q_{1}$。智能体在满足$\mathsf{Task}(e_{q_{0},q_{1}})$时会获得正奖励，而在其他所有时间步获得小的负奖励。MDP $M^{\prime}$的状态空间、动作空间和转移动态与MDP
+    $M$等价。为了完成子任务，智能体必须学习一个策略$\pi_{(q_{0},q_{1})}^{*}$，确保从$q_{0}$到$q_{1}$的访问概率大于预定阈值（$\eta$）。此外，该策略还必须避免触发DAG中的不期望转移。例如，在捡起$Key_{1}$时，策略不能无意间捡起$Key_{2}$，这一点可以从任务目标公式[1](#S3.E1
+    "1 ‣ 2nd item ‣ 3.1 Problem Statement ‣ 3 Preliminaries ‣ LgTS: Dynamic Task Sampling
+    using LLM-generated sub-goals for Reinforcement Learning Agents")中看出。'
+- en: We set the Teacher Q-Values for all the sub-tasks corresponding to edges in
+    $\mathcal{AT}$ (i.e., $\forall e\in E_{q_{0}}$) to zero (line 8). We formalize
+    the Teacher’s goal of choosing the most promising task as a Partially Observable
+    MDP (Kaelbling, Littman, and Cassandra [1998](#bib.bib17)), where the Teacher
+    does not have access to the entire Student agent state but only to the Student
+    agent’s performance on a task (e.g., success rate or average returns), and as
+    an action, chooses a task $\mathsf{Task}(e)\in$ $\mathcal{AT}$ the Student agent
+    should train on next. In this POMDP setting, each Teacher action (a sub-task)
+    has a Q-Value associated with it. Intuitively, higher Q-Values correspond to tasks
+    on which the Student agent is more successful, and the Teacher should sample such
+    tasks at a higher frequency to reach the goal node $q_{g}$ in fewest overall interactions.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将所有对应于$\mathcal{AT}$中边的子任务的教师Q值（即，$\forall e\in E_{q_{0}}$）设置为零（第8行）。我们将教师选择最有前景任务的目标形式化为部分可观察马尔可夫决策过程（POMDP）（Kaelbling,
+    Littman, 和 Cassandra [1998](#bib.bib17)），在这个过程中，教师无法访问整个学生代理的状态，而只能访问学生代理在某一任务上的表现（例如，成功率或平均回报），作为一个动作，教师选择任务$\mathsf{Task}(e)\in
+    \mathcal{AT}$，学生代理应该在接下来的训练中执行该任务。在这个POMDP设置中，每个教师动作（一个子任务）都有一个与之关联的Q值。从直观上看，更高的Q值对应于学生代理表现更成功的任务，教师应该更频繁地选择这些任务，以便在最少的总体交互中达到目标节点$q_{g}$。
+- en: (Step i) Given the Teacher Q-Values, we sample a sub-task $\mathsf{Task}(e)$
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （步骤i）给定教师Q值，我们从中选择一个子任务$\mathsf{Task}(e)$
+- en: '$\in$ $\mathcal{AT}$ using the $\epsilon-$greedy exploration strategy (line
+    10), and (Step ii) The Student agent trains on task $\mathsf{Task}(e)$ using the
+    policy $P[e]$ for ‘$x$’ interactions (line 11). In one Teacher timestep, the Student
+    trains for $x$ environmental interactions. Here, $x<<$ total number of environmental
+    interactions required by the agent to learn a successful policy for $\mathsf{Task}(e)$,
+    since the aim is to keep switching to a task that shows highest promise. (Step
+    iii) The Teacher observes the Student agent’s average return $g_{t^{\prime}}$
+    on these $x$ interactions, and updates its Q-Value for $\mathsf{Task}(e)$ (line
+    12):'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用$\epsilon$-贪婪探索策略从$\mathcal{AT}$中选择任务（第10行），并且（步骤ii）学生代理在任务$\mathsf{Task}(e)$上使用策略$P[e]$进行‘$x$’次交互训练（第11行）。在一个教师时间步内，学生进行$x$次环境交互。这里，$x<<$
+    学生代理学习成功策略所需的总环境交互次数，因为目标是不断切换到显示出最高潜力的任务。（步骤iii）教师观察学生代理在这些$x$次交互中的平均回报$g_{t^{\prime}}$，并更新其在任务$\mathsf{Task}(e)$上的Q值（第12行）：
+- en: '|  | $Q[e]\leftarrow\alpha(g_{t^{\prime}})+(1-\alpha)Q[e]$ |  | (2) |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $Q[e]\leftarrow\alpha(g_{t^{\prime}})+(1-\alpha)Q[e]$ |  | (2) |'
+- en: where $\alpha$ is the Teacher learning rate, $g_{t^{\prime}}$ is the average
+    Student agent return on $\mathsf{Task}(e)$ at the Teacher timestep $t^{\prime}$.
+    As the learning advances, $g_{t^{\prime}}$ increases, and hence we use a constant
+    parameter $\alpha$ to tackle the non-stationary problem of a moving return distribution.
+    Several other algorithms could be used for the Teacher strategy (e.g., UCB (Agrawal
+    and Goyal [2012](#bib.bib1)), Thomspson Sampling (Auer, Cesa-Bianchi, and Fischer
+    [2002](#bib.bib4))). Steps i, ii and iii continue successively until the policy
+    for any $\mathsf{Task}(e)\in$$\mathcal{AT}$ task converges.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$\alpha$是教师学习率，$g_{t^{\prime}}$是教师时间步$t^{\prime}$时，学生代理在$\mathsf{Task}(e)$上的平均回报。随着学习的推进，$g_{t^{\prime}}$增大，因此我们使用一个常数参数$\alpha$来解决返回分布变化的非平稳问题。还可以使用其他一些算法来指导教师策略（例如，UCB（Agrawal
+    和 Goyal [2012](#bib.bib1)），Thompson采样（Auer, Cesa-Bianchi, 和 Fischer [2002](#bib.bib4)））。步骤i、ii和iii会持续进行，直到$\mathsf{Task}(e)\in
+    \mathcal{AT}$中的任何任务的策略收敛。
+- en: 'We define a policy for $\mathsf{Task}(q,p)$ to be converged (line 13) if a
+    trajectory $\omega$ produced by the policy triggers the transition with probability
+    Pr${}_{\omega\in\Omega}[\omega\mbox{ satisfies}\>\mathsf{Task}(q,p)]\>\geq\>\eta$
+    and $\Delta(g_{t^{\prime}}g_{t^{\prime}-1})\><\>\mu$ where $\eta$ is the expected
+    performance and $\mu$ is a small numerical value. Intuitively, a converged policy
+    attains an average success rate $\geq\eta$ and has not improved further by maintaining
+    constant average returns. Like other Reward Machine (RM) and automaton-based approaches,
+    we assume access to the labeling function $L$ to examine if the trajectory $\omega$
+    satisfies the transition corresponding to the edge $e_{(q,p)}$ by checking if
+    the final environmental state $s$ of the trajectory satisfies the condition $L(s)\!\rightarrow\!p$.
+    The sub-goal regions need not be disjoint, i.e., the same state $s$ can satisfy
+    predicates for multiple DAG nodes. Once a policy for the $\mathsf{Task}(q,p)$
+    converges, we append $\mathsf{Task}(q,p)$ to the set of Learned Tasks $\mathcal{LT}$
+    and remove it from the set of Active Tasks $\mathcal{AT}$ (line 14). To ensure
+    that the learned task does not get sampled any further, we set the Teacher Q-value
+    for this sub-task to $-\infty$ (line 15). Once we have a successful policy for
+    the $\mathsf{Task}(q,p)$ (the transition $q\rightarrow p$), we determine the sub-tasks
+    that can be discarded (line 16). We find the sub-tasks corresponding to edges
+    that: (1) lie before $p$ in a path from $q_{0}$ to the goal state $q_{g}$, and,
+    (2) do not lie in a path to $q\in\mathcal{Q}$ that does not contain $p$. Intuitively,
+    if we already have a set of policies that can generate a successful trajectory
+    to reach the node $p$, we do not need to learn policies for sub-tasks that ultimately
+    lead only to $p$. We add all such sub-tasks to the set of Discarded Tasks $\mathcal{DT}$
+    (line 17), and set the Teacher Q-values for all the discarded tasks to $-\infty$
+    to prevent them from being sampled for the Student learning agent (line 18).'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们定义对于 $\mathsf{Task}(q,p)$，若一个由该策略生成的轨迹 $\omega$ 触发了该转移的概率 Pr${}_{\omega\in\Omega}[\omega\mbox{
+    满足 } \mathsf{Task}(q,p)]\geq\eta$ 且 $\Delta(g_{t^{\prime}}g_{t^{\prime}-1}) <
+    \mu$，则该策略被认为是已收敛的（第13行），其中 $\eta$ 是期望的表现，$\mu$ 是一个小的数值。直观地讲，已收敛的策略达到了一个平均成功率 $\geq\eta$，并且通过保持恒定的平均回报未进一步改善。像其他基于奖励机器（RM）和自动机的方法一样，我们假设可以访问标签函数
+    $L$，通过检查轨迹 $\omega$ 的最终环境状态 $s$ 是否满足条件 $L(s)\!\rightarrow\!p$ 来判断轨迹是否满足与边 $e_{(q,p)}$
+    对应的转移。子目标区域不需要是互斥的，即同一个状态 $s$ 可以满足多个有向无环图（DAG）节点的谓词。一旦一个 $\mathsf{Task}(q,p)$
+    的策略收敛，我们就将 $\mathsf{Task}(q,p)$ 添加到学习任务集合 $\mathcal{LT}$ 中，并从活动任务集合 $\mathcal{AT}$
+    中移除该任务（第14行）。为了确保该学习任务不再被采样，我们将该子任务的教师 Q 值设为 $-\infty$（第15行）。一旦我们为 $\mathsf{Task}(q,p)$（即转移
+    $q\rightarrow p$）获得了一个成功的策略，我们就确定哪些子任务可以被舍弃（第16行）。我们找出那些对应于以下边的子任务：（1）在从 $q_{0}$
+    到目标状态 $q_{g}$ 的路径中位于 $p$ 之前的边，且（2）不在到达 $q\in\mathcal{Q}$ 的路径中，并且该路径不包含 $p$。直观地说，如果我们已经有一组策略能够生成到达节点
+    $p$ 的成功轨迹，那么我们就不需要为最终只到达 $p$ 的子任务学习策略。我们将所有这样的子任务添加到舍弃任务集合 $\mathcal{DT}$ 中（第17行），并将所有舍弃任务的教师
+    Q 值设置为 $-\infty$，以防止它们被学生学习代理采样（第18行）。
+- en: 'By discarding such sub-tasks, we might fail to explore certain sub-tasks which
+    could have led to an optimal or near-optimal path from the start to the goal node.
+    In this work, our aim is not to find optimal policies but to learn policies that
+    reach the goal node with two important criterion: (1) The probability of generating
+    a trajectory that reaches $q_{g}$ from $q_{0}$ is $\geq\eta$ and (2) The overall
+    number of environmental interactions are minimized.'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过舍弃这些子任务，我们可能会错过某些子任务，这些子任务本可以从起始节点到目标节点的路径中带来最优或近似最优的结果。在本研究中，我们的目标不是寻找最优策略，而是学习能够达到目标节点的策略，并且满足两个重要标准：（1）从
+    $q_{0}$ 到 $q_{g}$ 的轨迹生成概率 $\geq\eta$，以及（2）整体环境交互次数最小化。
+- en: Algorithm 1 *LgTS* ( $\mathcal{U},M,\eta,x$ )
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 *LgTS* ( $\mathcal{U},M,\eta,x$ )
+- en: 'Output: Set of learned policies : $\Pi^{*}$, Edge-Policy Dictionary $P$'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出：学习到的策略集合：$\Pi^{*}$，边策略字典 $P$
+- en: '1:  Placeholder Initialization:2:  Sets of: Active Tasks ($\mathcal{AT}$) $\leftarrow\emptyset$;
+    Learned Tasks ($\mathcal{LT}$) $\leftarrow\emptyset$; Discarded Tasks ($\mathcal{DT}$)
+    $\leftarrow\emptyset$3:  Edge-Policy Dictionary $P:\mathsf{Task}(e)\rightarrow\pi$4:  Teacher
+    Q-Value Dictionary: $Q:\mathsf{Task}(e)\rightarrow-\infty$5:  Algorithm:6:  $\mathcal{X}\leftarrow$
+    Adjacency_Matrix $(\mathcal{U})$7:  $\mathcal{AT}$ $\leftarrow$ $\mathcal{AT}$
+    $\cup$ $\{\mathcal{X}[q_{0}]\}$8:  $\forall\>\mathsf{Task}(e)\in$ $\mathcal{AT}$
+    $:Q[e]=0$9:  while True do10:     $e\leftarrow$ Sample$(Q)$11:     $P[e],g\leftarrow$
+    Learn$(M,\mathcal{U},e,x,P)$12:     Update_Teacher$(Q,e,g)$13:     if Convergence($Q,e,g,\eta$) then14:        $\Pi^{*}\leftarrow\Pi^{*}\cup
+    P[e]$ ; $\mathcal{LT}$ $\leftarrow$ $\mathcal{LT}$ $\cup\{\mathsf{Task}(e)\}$
+    ; $\mathcal{AT}$ $\leftarrow$ $\mathcal{AT}$ $\setminus\{\mathsf{Task}(e)\}$15:        $Q[e]=-\infty$16:        $E_{\mathcal{DT}}\leftarrow$
+    Discarded_Tasks$(\mathcal{X},e)$17:        $\mathcal{DT}$ $\leftarrow$ $\mathcal{DT}$
+    $\cup\>E_{\mathcal{DT}}$18:        $\forall\>\mathsf{Task}(\overline{e})\>\in\>E_{\mathcal{DT}}:\>Q[\overline{e}]=%
+    -\infty\>$19:        $E_{\mathcal{AT}}\leftarrow$ Next_Tasks $(\mathcal{X},e,$
+    $\mathcal{DT}$)20:        if $|E_{\mathcal{AT}}|=0$ then21:           break22:        end if23:        $\forall\>\mathsf{Task}(\overline{e})\>\in\>E_{\mathcal{AT}}:Q[\overline{e}]=0$24:        $\mathcal{AT}$$\leftarrow$
+    $\mathcal{AT}$ $\cup\>E_{\mathcal{AT}}$25:     end if26:  end while27:  return
+    $\Pi^{*},P$'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1:  占位符初始化:2:  集合: 活跃任务($\mathcal{AT}$) $\leftarrow\emptyset$; 学习任务($\mathcal{LT}$)
+    $\leftarrow\emptyset$; 被丢弃任务($\mathcal{DT}$) $\leftarrow\emptyset$3:  边-策略字典 $P:\mathsf{Task}(e)\rightarrow\pi$4:  教师Q值字典:
+    $Q:\mathsf{Task}(e)\rightarrow-\infty$5:  算法:6:  $\mathcal{X}\leftarrow$ 邻接矩阵
+    $(\mathcal{U})$7:  $\mathcal{AT}$ $\leftarrow$ $\mathcal{AT}$ $\cup$ $\{\mathcal{X}[q_{0}]\}$8:  $\forall\>\mathsf{Task}(e)\in$
+    $\mathcal{AT}$ $:Q[e]=0$9:  当 True 时10:     $e\leftarrow$ 采样$(Q)$11:     $P[e],g\leftarrow$
+    学习$(M,\mathcal{U},e,x,P)$12:     更新教师$(Q,e,g)$13:     如果 收敛($Q,e,g,\eta$) 则14:        $\Pi^{*}\leftarrow\Pi^{*}\cup
+    P[e]$ ; $\mathcal{LT}$ $\leftarrow$ $\mathcal{LT}$ $\cup\{\mathsf{Task}(e)\}$
+    ; $\mathcal{AT}$ $\leftarrow$ $\mathcal{AT}$ $\setminus\{\mathsf{Task}(e)\}$15:        $Q[e]=-\infty$16:        $E_{\mathcal{DT}}\leftarrow$
+    被丢弃任务$(\mathcal{X},e)$17:        $\mathcal{DT}$ $\leftarrow$ $\mathcal{DT}$ $\cup\>E_{\mathcal{DT}}$18:        $\forall\>\mathsf{Task}(\overline{e})\>\in\>E_{\mathcal{DT}}:\>Q[\overline{e}]=%
+    -\infty\>$19:        $E_{\mathcal{AT}}\leftarrow$ 下一任务 $(\mathcal{X},e,$ $\mathcal{DT}$)20:        如果 $|E_{\mathcal{AT}}|=0$ 则21:           结束22:        结束 如果23:        $\forall\>\mathsf{Task}(\overline{e})\>\in\>E_{\mathcal{AT}}:Q[\overline{e}]=0$24:        $\mathcal{AT}$$\leftarrow$
+    $\mathcal{AT}$ $\cup\>E_{\mathcal{AT}}$25:     结束 如果26:  结束 当27:  返回 $\Pi^{*},P$'
+- en: Subsequently, we determine the next set of tasks $E_{\mathcal{AT}}$ in the DAG
+    to add to the $\mathcal{AT}$ set (line 19). This is calculated by identifying
+    sub-tasks corresponding to all the outgoing edges from $p$. Since the edge $e_{q,p}$
+    corresponds to the transition $q\rightarrow p$, we have a successful policy that
+    can produce a trajectory that ends in the high-level state $p$, and $E_{\mathcal{AT}}$
+    corresponds to $\mathcal{X}[p]\setminus$$\mathcal{DT}$ i.e., sub-tasks corresponding
+    to all the outgoing edges from $p$ that do not lie in the $\mathcal{DT}$ set.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随后，我们确定DAG中下一组任务$E_{\mathcal{AT}}$，并将其添加到$\mathcal{AT}$集合中（第19行）。这通过识别所有从$p$出发的边对应的子任务来计算。由于边$e_{q,p}$对应于转移$q\rightarrow
+    p$，我们有一个成功的策略，能够生成一个以高层状态$p$结束的轨迹，且$E_{\mathcal{AT}}$对应于$\mathcal{X}[p]\setminus$$\mathcal{DT}$，即所有从$p$出发且不属于$\mathcal{DT}$集合的边所对应的子任务。
+- en: Once we identify $E_{\mathcal{AT}}$, we set the Teacher Q-values for all $\mathsf{Task}(\overline{e})\in
+    E_{\mathcal{AT}}$ to $0$ so that the Teacher will sample these tasks (line 23).
+    We consider an episodic setting where the episode starts from a state $s\in\mathcal{S}_{0}$
+    where the high-level state $q_{0}$ holds true, and if the current sampled sub-task
+    is $\mathsf{Task}(p,r)$, the agent follows a trajectory using corresponding learned
+    policies from $\Pi^{*}$ to reach a MDP state where the high-level state $p$ holds
+    true, and then attempts learning a separate policy for $\mathsf{Task}(p,r)$.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦识别出$E_{\mathcal{AT}}$，我们将所有$\mathsf{Task}(\overline{e})\in E_{\mathcal{AT}}$的教师Q值设为$0$，以便教师能够采样这些任务（第23行）。我们考虑一种情景设定，其中回合从一个状态$s\in\mathcal{S}_{0}$开始，在该状态下，高层状态$q_{0}$成立。如果当前采样的子任务是$\mathsf{Task}(p,r)$，那么智能体将根据从$\Pi^{*}$中学习到的对应策略，沿着一条轨迹到达一个高层状态$p$成立的MDP状态，然后尝试为$\mathsf{Task}(p,r)$学习一个独立的策略。
+- en: The above steps (lines 9-26) go on iteratively until $E_{\mathcal{AT}}$ is an
+    empty set, which indicates we have no further tasks to add to our sampling strategy,
+    and we have reached the goal node $q_{g}$. Thus, we break from the while loop
+    (line 21) and return the set of learned policies $\Pi^{*}$, and edge-policy dictionary
+    $P$ (line 27). From $P$ and $\Pi^{*}$, we get an ordered list of policies $\Pi^{*}_{list}=[\pi_{(q_{1},q_{2})},\pi_{(q_{2},q_{3})},\ldots,$
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 上述步骤（第9至第26行）会反复执行，直到$E_{\mathcal{AT}}$为空集，这表示我们没有更多任务可添加到采样策略中，并且已达到目标节点$q_{g}$。因此，我们从while循环中退出（第21行），并返回学习到的策略集合$\Pi^{*}$和边策略字典$P$（第27行）。通过$P$和$\Pi^{*}$，我们得到一个有序的策略列表$\Pi^{*}_{list}=[\pi_{(q_{1},q_{2})},\pi_{(q_{2},q_{3})},\ldots,$
+- en: $\pi_{(q_{k-1},q_{k})}]$ such that sequentially following $\pi\in\Pi^{*}_{list}$
+    generates trajectories that reach the high-level goal state $q_{g}$.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: $\pi_{(q_{k-1},q_{k})}]$，从而依次跟随$\pi\in\Pi^{*}_{list}$生成的轨迹能够到达高层目标状态$q_{g}$。
+- en: 5 Experiments
+  id: totrans-66
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 实验
+- en: 'We aim to answer the following questions: (Q1) Does *LgTS* yield sample efficient
+    learning compared to other baseline approaches? (Q2) How does *LgTS* perform when
+    distractor objects are present in the environment that are not essential for satisfying
+    the high-level goal? (Q3) Does *LgTS* yield sample efficient learning even when
+    the prompt to the LLM is modified by using synonyms for objects and predicates?
+    (Q4) How does *LgTS* scale when the environment is complex and the optimal plan
+    is longer than the DoorKey task? (Q5) What are certain failure cases of *LgTS*?'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们旨在回答以下问题：（Q1）与其他基线方法相比，*LgTS*是否能够高效利用样本进行学习？（Q2）当环境中存在不属于高层目标的干扰物体时，*LgTS*的表现如何？（Q3）即使通过使用物体和谓词的同义词修改了对LLM的提示，*LgTS*仍然能够高效利用样本进行学习吗？（Q4）当环境复杂且最优计划的长度超过DoorKey任务时，*LgTS*的扩展性如何？（Q5）*LgTS*的某些失败案例是什么？
+- en: 5.1 LgTS - DoorKey Domain
+  id: totrans-68
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 LgTS - DoorKey领域
+- en: 'To answer Q1, we evaluated *LgTS* on a Minigrid (Chevalier-Boisvert, Willems,
+    and Pal [2018](#bib.bib8)) inspired domain. The environment configuration is shown
+    in Fig. [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ LgTS: Dynamic Task Sampling using
+    LLM-generated sub-goals for Reinforcement Learning Agents"). Essentially, the
+    agent needs to collect any of the two available *Keys* before heading to the *Door*.
+    After *toggling* the *Door* open, the agent needs to visit the *Green_Goal*. At
+    all times, the agent needs to avoid the *Lava* object. We assume an episodic setting
+    where an episode ends if the agent touches the *Lava* object, reaches the *Green_Goal*
+    or exhausts the number of allocated interactions.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了回答Q1，我们在一个受Minigrid（Chevalier-Boisvert, Willems, 和 Pal [2018](#bib.bib8)）启发的领域中评估了*LgTS*。环境配置如图[1](#S1.F1
+    "图1 ‣ 1 引言 ‣ LgTS: 使用LLM生成子目标的动态任务采样强化学习代理")所示。基本上，代理需要在前往*Door*之前收集两个可用的*Key*中的任何一个。打开*Door*后，代理需要访问*Green_Goal*。在任何时候，代理都需要避免接触*Lava*物体。我们假设这是一个情节性设置，当代理触碰到*Lava*物体、到达*Green_Goal*或用尽分配的交互次数时，情节结束。'
+- en: 'This is a complex sequential decision making problem for a reinforcement learning
+    agent as the agent needs to perform a series of correct actions to satisfy the
+    high-level objective, which is to navigate to any of the two keys, pick a key
+    and then unlock the door. Then, navigate to reach the green-goal state. In this
+    environment, the agent has access to three navigation actions: *move forward*,
+    *rotate left* and *rotate right*. The agent can also perfom: *pick-up* action,
+    which adds a *Key* to the agent’s inventory if it is facing the *Key*, *drop*
+    places the *Key* in the next grid if *Key* is present in the inventory, and, *toggle*
+    that toggles the *Door* (closed $\leftrightarrow$ open) only if the agent is holding
+    the *Key*. The agent can hold only one *Key* in its inventory. Hence, it needs
+    to perform the *drop* action to drop a key present in its inventory before picking
+    up another key. For this environment, we assume a fully-observable setting where
+    the environmental state is a low-level encoding of the image. For each cell in
+    the grid, the low-level encoding returns an integer that describes the item occupying
+    the grid, along with additional information, if any (e.g., the *Door* state can
+    be open or closed).'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个复杂的顺序决策问题，针对一个强化学习代理，因为该代理需要执行一系列正确的动作来满足高层目标，即导航到任意一个钥匙处，捡起钥匙然后解锁门。接着，导航到达绿色目标状态。在这个环境中，代理可以执行三种导航动作：*前进*，*向左旋转*和*向右旋转*。代理还可以执行：*拾取*动作，如果它面向*钥匙*，则将*钥匙*添加到代理的库存中，*放下*将*钥匙*放置在下一个网格中，前提是*钥匙*在库存中，并且*切换*动作仅在代理持有*钥匙*时才能切换*门*（关闭$\leftrightarrow$打开）。代理在其库存中只能持有一把*钥匙*。因此，它需要先执行*放下*动作，将库存中的钥匙放下，然后才能拾取另一把钥匙。对于这个环境，我们假设是一个完全可观察的设置，其中环境状态是图像的低级编码。对于网格中的每个单元格，低级编码返回一个整数，描述占据该网格的物品，并附加任何其他信息（例如，*门*的状态可以是打开或关闭）。
+- en: The prompt to the LLM contains information about the high-level start state
+    $At(OutsideRoom)$, the high-level goal state
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传递给LLM的提示包含有关高层起始状态$At(OutsideRoom)$的信息，高层目标状态
+- en: $At(Green\_Goal)$, the entities present in the environment - $Key_{1},$
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: $At(Green\_Goal)$，环境中存在的实体 - $Key_{1},$
+- en: $Key_{2},Door,OutsideRoom,Green\_Goal,Lava$, the predicates that the agent can
+    detect through its sensors - $Holding(?),At(?),$
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: $Key_{2},Door,OutsideRoom,Green\_Goal,Lava$，代理通过其传感器可以检测到的谓词 - $Holding(?),At(?),$
+- en: $Unlocked(?)$, and a hyperpameter that defines the number of feasible high-level
+    sequences given by the LLM $n$. We performed grid-search to find the value of
+    $n$. For our experiments, $n=4$.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: $Unlocked(?)$，以及一个超参数，用于定义LLM给出的可行高层次序列的数量，记作$n$。我们进行了网格搜索以找到$n$的值。在我们的实验中，$n=4$。
+- en: For the RL pipeline, we use PPO (Schulman et al. [2017](#bib.bib27)), which
+    works for discrete and continuous action spaces. We consider a standard actor-critic
+    architecture with 2 convolutional layers followed by 2 fully connected layers.
+    For *LgTS*, the reward function is sparse. The agent gets a reward of $(1-0.9\frac{(interactions\>taken)}{(interactions\>allocated)})$
+    if it achieves the goal in the sub-task, and a reward of $0$ otherwise. For individual
+    tasks, $interactions\>allocated=100$. The agent does not receive any negative
+    rewards for hitting the $Lava$.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于RL管道，我们使用PPO（Schulman et al. [2017](#bib.bib27)），它适用于离散和连续动作空间。我们考虑一个标准的演员-评论家架构，包含2个卷积层，后跟2个全连接层。对于*LgTS*，奖励函数是稀疏的。如果代理在子任务中达成目标，它会获得奖励$(1-0.9\frac{(interactions\>taken)}{(interactions\>allocated)})$，否则奖励为$0$。对于单个任务，$interactions\>allocated=100$。代理在碰到$Lava$时不会获得任何负奖励。
+- en: 'Baselines:'
+  id: totrans-76
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 基准：
+- en: 'We compare our *LgTS* method against four baseline approaches and an oracle
+    approach.¹¹1More details on baselines are given in Appendix :'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将我们的*LgTS*方法与四种基准方法和一种预言机方法进行比较。¹¹1基准的更多细节请参见附录：
+- en: '1.'
+  id: totrans-78
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: Learning from scratch (LFS) where the goal for the agent is to learn a single
+    policy that learns to satisfy the final high-level goal state using RL without
+    any shaped reward.
+  id: totrans-79
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 从零开始学习（LFS），其中代理的目标是学习一个单一策略，利用强化学习在没有任何奖励形状的情况下学习满足最终高层目标状态。
+- en: '2.'
+  id: totrans-80
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: Teacher-student curriculum learning (TSCL) appraoch where the Teacher agent
+    samples most promising task (based on average success rate) without the use of
+    any graphical structure to guide the learning progress of the agent. The set of
+    tasks is chosen by a human expert. In our experiments, the set of tasks included
+    every feasible transition in the automaton description of the task.
+  id: totrans-81
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 教师-学生课程学习（TSCL）方法，其中教师智能体根据平均成功率选择最有前景的任务（无需使用任何图形结构来引导智能体的学习进度）。任务集由人类专家选择。在我们的实验中，任务集包括了任务自动机描述中所有可行的过渡。
+- en: '3.'
+  id: totrans-82
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: '(Oracle approach) Automaton-guided Teacher-Student learning (AgTS) where the
+    graphical structure of the sub-goal is generated using the finite-trace Linear
+    Temporal Logic (LTL${}_{f}$) formula given by an oracle. For this task, the LTL${}_{f}$
+    formula is: $\varphi_{f}:=\textbf{G}\neg Lava\wedge\textbf{F}((Key_{1}|Key_{2})\wedge\>%
+    \mbox{{F}}(Door\>\&\>\mbox{{F}}(Goal)))$ where $G$ and $F$ represent Always and
+    Eventually respectively. We use the equivalent DFA representation of the above
+    LTL${}_{f}$ formula as the graphical representation, and perform the Teacher-Student
+    learning approach outlined in section 4.'
+  id: totrans-83
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: （Oracle方法）自动机引导教师-学生学习（AgTS），其中子目标的图形结构是使用由oracle提供的有限追踪线性时序逻辑（LTL${}_{f}$）公式生成的。对于此任务，LTL${}_{f}$公式为：$\varphi_{f}:=\textbf{G}\neg
+    Lava\wedge\textbf{F}((Key_{1}|Key_{2})\wedge\>% \mbox{{F}}(Door\>\&\>\mbox{{F}}(Goal)))$，其中$G$和$F$分别表示“始终”和“最终”。我们使用上述LTL${}_{f}$公式的等效DFA表示作为图形表示，并执行第4节中概述的教师-学生学习方法。
+- en: '4.'
+  id: totrans-84
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: Automaton-guided Reward Shaping (AGRS) where the DFA representation of the LTL${}_{f}$
+    formula is used as a reward shaping mechanism to guide the agent toward the final
+    high-level goal state. The reward given to the agent is proportional to the distance
+    from the goal node.
+  id: totrans-85
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 自动机引导奖励塑形（AGRS），其中使用LTL${}_{f}$公式的DFA表示作为奖励塑形机制，引导智能体朝向最终的高层目标状态。给予智能体的奖励与目标节点的距离成正比。
+- en: '5.'
+  id: totrans-86
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '5.'
+- en: LLM-guided Reward Shaping (LgRS) where the graph generated from the $n$ high-level
+    sub-goal sequences is used as a reward shaping mechanism to guide the agent toward
+    the final high-level goal state. The reward given to the agent is proportional
+    to the distance from the goal node.
+  id: totrans-87
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM引导奖励塑形（LgRS），其中从$n$个高层子目标序列生成的图形被用作奖励塑形机制，引导智能体朝向最终的高层目标状态。给予智能体的奖励与目标节点的距离成正比。
+- en: '| Approach | $\#$ Interactions |  |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | $\#$ 交互次数 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) | Success Rate |  |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| （均值 $\pm$ 标准差） | 成功率 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) |  |  |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| （均值 $\pm$ 标准差） |  |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| *LgTS* | $(3.98\pm 0.42)\times 10^{6}$ | $0.92\pm 0.03$ |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| *LgTS* | $(3.98\pm 0.42)\times 10^{6}$ | $0.92\pm 0.03$ |'
+- en: '| *AgTS* | $(2.67\pm 0.36)\times 10^{6}$ | $0.94\pm 0.02$ |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| *AgTS* | $(2.67\pm 0.36)\times 10^{6}$ | $0.94\pm 0.02$ |'
+- en: '| *LFS* | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| *LFS* | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| AgRS | $5\times 10^{7}$ | $0.05\pm 0.04$ |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgRS | $5\times 10^{7}$ | $0.05\pm 0.04$ |'
+- en: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: 'Table 1: Table comparing $\#$interactions $\&$ success rate for the DoorKey
+    domain.'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：比较DoorKey领域中$\#$交互次数和成功率的表格。
+- en: 'The results in Table [4](#S5.T4 "Table 4 ‣ 5.4 LgTS - Search and Rescue task
+    ‣ 5 Experiments ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals for
+    Reinforcement Learning Agents") (averaged over 10 trials) show that *LgTS* reaches
+    a successful policy quicker compared to the learning from scratch, teacher-student
+    curriculum learning, and LLM-guided reward shaping baseline approaches. We observe
+    that the number of environmental interactions taken by our proposed approach are
+    comparable to the automaton-guided teacher student (AgTS) algorithm where the
+    ground truth graph is in the form of an automaton, and the graph is provided by
+    an oracle. Several of the other baseline approaches such as LFS, TSCL, LgRS, AgRS
+    fail to learn a successful policy for reaching the high-level goal state demonstrating
+    that approaches that tend to learn a single policy for the entire objective are
+    unable to satisfy the goal condition. Reward shaping fails as agent greedily favours
+    reaching the high level state $q_{1}$ over $q_{2}$ and is unable to reach node
+    $q_{3}$ from $q_{1}$.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格[4](#S5.T4 "表4 ‣ 5.4 LgTS - 搜索与救援任务 ‣ 5 实验 ‣ LgTS：使用LLM生成的子目标进行强化学习代理的动态任务采样")中的结果（平均10次试验）表明，与从头学习、师生课程学习和LLM引导的奖励塑形基线方法相比，*LgTS*能更快达到成功策略。我们观察到我们提出的方法所需的环境交互次数与自动机引导的师生（AgTS）算法相当，其中地面真值图是自动机形式，且图由oracle提供。其他一些基线方法，如LFS、TSCL、LgRS、AgRS未能学习出成功的策略来达到高级目标状态，表明那些倾向于为整个目标学习单一策略的方法无法满足目标条件。奖励塑形失败，因为代理会贪婪地偏向到达高级状态$q_{1}$而非$q_{2}$，并且无法从$q_{1}$到达节点$q_{3}$。
+- en: We evaluated the average graph edit distance (GED) between the graphs generated
+    using the $LgTS$ and the AgTS approach. The GED is the number of edge/node changes
+    needed to make two graphs isomorphic. We observed an average graph edit distance
+    of $2.1\pm 0.2$. This indicates that the graph generated by the oracle through
+    AgTS, which has five nodes and five edges, can be converted to the graph generated
+    by LgTS by performing $\sim 2.1$ changes.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们评估了使用$LgTS$和AgTS方法生成的图之间的平均图编辑距离（GED）。GED是将两个图转化为同构图所需的边/节点变化数量。我们观察到平均图编辑距离为$2.1\pm
+    0.2$。这表明通过AgTS方法生成的由oracle提供的图（包含五个节点和五条边）可以通过执行大约$2.1$次变化转换为由LgTS生成的图。
+- en: Refer Appendix Section B for additional experiments and discussions on how LgTS
+    performs when the number of sub-goal path $n$ varies w.r.t to the number of objects
+    and predicates. To summarize, we observed high interaction cost and low success
+    rate when $n$ was too low (1 or 2), denoting that the LLM fails to consider different
+    paths for satisfying the goal and generates a path that does not succeed given
+    an unknown environment configuration.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请参阅附录B部分，了解更多实验和讨论，探讨当子目标路径数$n$相对于物体和谓词的数量变化时，LgTS的表现。总结来说，我们观察到当$n$过低（为1或2）时，交互成本高且成功率低，表明LLM未能考虑满足目标的不同路径，并且在给定一个未知的环境配置时生成了一条无法成功的路径。
+- en: 5.2 LgTS with distractor entities
+  id: totrans-104
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 带有干扰实体的LgTS
+- en: To answer Q2, we evaluated LgTS on a task environment that contains entities
+    that do not affect the optimal path for reaching the high-level goal state. During
+    each run, the environment contains $1-3$ instances of distractor objects that
+    are modeled in the LLM prompt and in the environment dynamics. For our experiment,
+    the distractor items are household kitchen items such as apple, plate, fruit etc.
+    Since the optimal path or the task solution has not changed, the paths suggested
+    by the LLM should ignore the distractor objects.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了回答Q2，我们在一个包含不影响到达高级目标状态的最优路径的实体的任务环境中评估了LgTS。在每次运行中，环境包含$1-3$个干扰物体的实例，这些实例在LLM提示和环境动态中都有建模。对于我们的实验，干扰物体是家庭厨房物品，如苹果、盘子、水果等。由于最优路径或任务解决方案没有变化，LLM建议的路径应该忽略这些干扰物体。
+- en: '| Approach | $\#$ Interactions |  |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 交互次数 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) | Success Rate |  |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| (均值 $\pm$ 标准差) | 成功率 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) |  |  |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| (均值 $\pm$ 标准差) |  |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| *LgTS* | $(4.64\pm 1.72)\times 10^{6}$ | $0.84\pm 0.08$ |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| *LgTS* | $(4.64\pm 1.72)\times 10^{6}$ | $0.84\pm 0.08$ |'
+- en: '| *AgTS* | $(3.21\pm 0.57)\times 10^{6}$ | $0.90\pm 0.90$ |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| *AgTS* | $(3.21\pm 0.57)\times 10^{6}$ | $0.90\pm 0.90$ |'
+- en: '| LFS | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| LFS | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| AgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: 'Table 2: Table comparing $\#$interactions $\&$ success rate for the DoorKey
+    domain with distractor objects.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 2：比较包含干扰物体的DoorKey领域中的交互次数和成功率。
+- en: 'The results in Table [4](#S5.T4 "Table 4 ‣ 5.4 LgTS - Search and Rescue task
+    ‣ 5 Experiments ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals for
+    Reinforcement Learning Agents") (averaged over 10 trials) show that *LgTS* reaches
+    a successful policy quicker compared to the LFS, TSCL, and LgRS. The overall number
+    of interactions to learn a set of successful policies for satisfying the high-level
+    goal objective are higher in presence of distractor objects because of low level
+    agent interactions with these objects and the increased dimensionality of the
+    state space of the RL agent. For the experiment with distractor objects, we observed
+    a graph edit distance of $3.4\pm 0.4$ between the LgTS approach and the graph
+    generated using the AgTS approach, which is higher than the graph edit distance
+    that was computed without the presence of distractor objects. This difference
+    indicates that the graphs generated using the LgTS approach did contain paths
+    that involved distractor objects, however, the graph also contained paths that
+    did not involve the distractor object and the RL agent was able to learn successful
+    policies for such paths.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格[4](#S5.T4 "表格 4 ‣ 5.4 LgTS - 搜索与救援任务 ‣ 5 实验 ‣ LgTS：使用LLM生成子目标进行强化学习代理的动态任务采样")中的结果（10次实验的平均值）显示，*LgTS*相较于LFS、TSCL和LgRS，更快地达到了成功的策略。由于低层次代理与这些干扰物体的交互以及强化学习代理的状态空间维度增加，学习一组成功策略所需的总体交互次数在存在干扰物体的情况下较高。对于包含干扰物体的实验，我们观察到LgTS方法与使用AgTS方法生成的图之间的图编辑距离为$3.4\pm
+    0.4$，这一数值高于没有干扰物体存在时计算出的图编辑距离。这一差异表明，使用LgTS方法生成的图确实包含了涉及干扰物体的路径，但该图也包含了不涉及干扰物体的路径，并且强化学习代理能够为这些路径学习到成功的策略。
+- en: 5.3 LgTS - modified prompt
+  id: totrans-120
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3 LgTS - 修改后的提示词
+- en: Recent approaches that use LLM for task guidance have a curated prompt and a
+    fine-tuned LLM that prevents generalization to newer prompts that have similar
+    meaning but different descriptors. This finetuning prevents generalization to
+    unseen out-of-distribution prompts and descriptors. To demonstrate how the prompt
+    influences the LLM output which in turn affects learning progress, we evaluated
+    LgTS by changing the prompt to the LLM. In this test, a fraction (at random) of
+    entity and predicate descriptors were changed to a synonym chosen from Thesaurus (Dictionary
+    [2002](#bib.bib11)) (for e.g., Key was replaced with Code; Door was replaced with
+    Gate).
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，使用LLM进行任务指导的方法都采用了精心设计的提示词和微调过的LLM，这种方法防止了对于语义相近但描述不同的新提示词的泛化。该微调防止了对未见过的分布外提示词和描述符的泛化。为了展示提示词如何影响LLM输出，并进而影响学习进度，我们通过改变LLM的提示词来评估LgTS。在这项测试中，部分（随机选取的）实体和谓词描述符被替换为从同义词词典中选出的同义词（例如，将Key替换为Code，将Door替换为Gate）。
+- en: '| Approach | $\#$ Interactions |  |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 交互次数 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) | Success Rate |  |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| (均值 $\pm$ 标准差) | 成功率 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) |  |  |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| (均值 $\pm$ 标准差) |  |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| *LgTS* | $(4.87\pm 0.74)\times 10^{6}$ | $0.81\pm 0.09$ |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| *LgTS* | $(4.87\pm 0.74)\times 10^{6}$ | $0.81\pm 0.09$ |'
+- en: '| *AgTS* | $(2.67\pm 0.36)\times 10^{6}$ | $0.94\pm 0.02$ |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| *AgTS* | $(2.67\pm 0.36)\times 10^{6}$ | $0.94\pm 0.02$ |'
+- en: '| *LFS* | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| *LFS* | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| AgRS | $5\times 10^{7}$ | $0.05\pm 0.04$ |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgRS | $5\times 10^{7}$ | $0.05\pm 0.04$ |'
+- en: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: 'Table 3: Table comparing $\#$interactions $\&$ success rate for the DoorKey
+    domain with modified prompt.'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 3：比较修改提示词后的DoorKey领域中的交互次数和成功率。
+- en: 'The results in Table [4](#S5.T4 "Table 4 ‣ 5.4 LgTS - Search and Rescue task
+    ‣ 5 Experiments ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals for
+    Reinforcement Learning Agents") (averaged over 10 trials) show that *LgTS* reaches
+    a successful policy quicker compared to the LFS, TSCL, and LgRS. The overall number
+    of interactions to learn a set of policies that satisfy the high-level goal objective
+    are higher when the prompt was changed as compared to LgTS with a constant and
+    curated prompt. We observed that the LLM was able to accommodate the new prompt
+    and suggest paths that satisfied the high-level objective.'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[4](#S5.T4 "表4 ‣ 5.4 LgTS - 搜索与救援任务 ‣ 5 实验 ‣ LgTS：使用LLM生成子目标的动态任务采样，应用于强化学习代理")中的结果（基于10次试验的平均值）显示，*LgTS*相较于LFS、TSCL和LgRS更快地达到了成功的策略。与使用固定且精心设计的提示的LgTS相比，当提示发生变化时，为了学习一组成功的策略以满足高层目标要求，所需的交互总次数较高。我们观察到，LLM能够适应新的提示，并建议满足高层目标要求的路径。
+- en: 5.4 LgTS - Search and Rescue task
+  id: totrans-136
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.4 LgTS - 搜索与救援任务
+- en: To demonstrate how LgTS performs when the plan length becomes deeper, we evaluated
+    LgTS on a more complex urban Search and Rescue domain. In this domain, the agent
+    acts in a grid setting where it needs to perform a series of sequential sub-tasks
+    to accomplish the final goal of the task. The agent needs to open a door using
+    a key, then collect a fire extinguisher to extinguish the fire, and then find
+    and rescue stranded survivors. A fully-connected graph generated using the above
+    mentioned high-level states consists of 24 distinct transitions. This is a multi-goal
+    task as the agent needs to extinguish fire as well as rescue survivors to reach
+    the goal state. We use the LLM to produce seven distinct high-level paths that
+    help prune transitions that the LLM does not recommend while providing little
+    information about the environment as possible.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了展示当计划长度加深时LgTS的表现，我们在一个更复杂的城市搜索与救援领域中评估了LgTS。在该领域中，代理在一个网格设置中执行任务，它需要完成一系列顺序的子任务，以实现任务的最终目标。代理需要使用钥匙打开一扇门，然后收集灭火器来扑灭火灾，接着寻找并营救被困的幸存者。一个由上述高层状态生成的完全连接图包含24个不同的转移。这是一个多目标任务，因为代理不仅需要扑灭火灾，还需要营救幸存者以达到目标状态。我们使用LLM生成七条不同的高层路径，帮助剪枝LLM不推荐的转移，同时尽量提供尽可能少的环境信息。
+- en: '| Approach | $\#$ Interactions |  |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | $\#$ 交互次数 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) | Success Rate |  |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| （均值 $\pm$ 标准差） | 成功率 |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| (Mean $\pm$ SD) |  |  |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| （均值 $\pm$ 标准差） |  |  |'
+- en: '| --- | --- | --- |'
+  id: totrans-143
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| *LgTS* | $(1.13\pm 0.26)\times 10^{7}$ | $0.76\pm 0.11$ |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| *LgTS* | $(1.13\pm 0.26)\times 10^{7}$ | $0.76\pm 0.11$ |'
+- en: '| *AgTS* | $(8.61\pm 0.12)\times 10^{6}$ | $0.87\pm 0.04$ |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| *AgTS* | $(8.61\pm 0.12)\times 10^{6}$ | $0.87\pm 0.04$ |'
+- en: '| *LFS* | $5\times 10^{6}$ | $0\pm 0$ |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| *LFS* | $5\times 10^{6}$ | $0\pm 0$ |'
+- en: '| AgRS | $5\times 10^{7}$ | $0.05\pm 0.04$ |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgRS | $5\times 10^{7}$ | $0.05\pm 0.04$ |'
+- en: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| LgRS | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| TSCL | $5\times 10^{7}$ | $0\pm 0$ |'
+- en: 'Table 4: Table comparing $\#$interactions $\&$ success rate for the Search
+    and Rescue domain.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4：比较搜索与救援领域的交互次数和成功率的表格。
+- en: 'The results in Table [4](#S5.T4 "Table 4 ‣ 5.4 LgTS - Search and Rescue task
+    ‣ 5 Experiments ‣ LgTS: Dynamic Task Sampling using LLM-generated sub-goals for
+    Reinforcement Learning Agents") (averaged over 10 trials) show that *LgTS* reaches
+    a successful policy quicker compared to the LFS, TSCL, and LgRS. The overall number
+    of interactions to learn a set of successful policies for satisfying the high-level
+    goal objective are higher when the prompt was changed as compared to LgTS with
+    a constant and curated prompt. We observed that the LLM was able to accommodate
+    the new prompt and suggest paths that satisfied the high-level goal objective.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[4](#S5.T4 "表4 ‣ 5.4 LgTS - 搜索与救援任务 ‣ 5 实验 ‣ LgTS：使用LLM生成子目标的动态任务采样，应用于强化学习代理")中的结果（基于10次试验的平均值）显示，*LgTS*相较于LFS、TSCL和LgRS更快地达到了成功的策略。与使用固定且精心设计的提示的LgTS相比，当提示发生变化时，为了学习一组成功的策略以满足高层目标要求，所需的交互总次数较高。我们观察到，LLM能够适应新的提示，并建议满足高层目标要求的路径。
+- en: 5.5 Discussion
+  id: totrans-152
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.5 讨论
+- en: We designed a method that queries an LLM to produce sub-goal sequences based
+    on entities and predicates known about the task. Each entity and predicate is
+    assumed to have a single word natural language description. An off-the-shelf LLM
+    is prone to associate certain entities with certain predicates based on its training
+    data and procedure. For e.g., when we attempted to make the search and rescue
+    task even more complex by adding a debris element that needs to be moved using
+    the moving predicate, we observed that the LLM is associating the predicate with
+    other entities already present in the environment, such as fire extinguisher,
+    door etc. Since the LLM does not have access to the type hierarchy that associates
+    predicates with entities, the LLM is conflicted when two similar entities are
+    applicable to the same predicate. As an experiment, we also provided the type
+    hierarchies to the LLM and we observed that the graph generated using LgTS had
+    a graph edit distance of $4.6$ compared to the graph given by an oracle, which
+    was lower than the graph edit distance observed without the presence of type hierarchies,
+    which was found to be $7.3$. Thus, incorporating information that informs the
+    LLM about predicate-entity associations helps produce sub-goal sequences that
+    are semantically closer to the sub-goals given by the LTL${}_{f}$ formula suggested
+    by an oracle.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们设计了一种方法，通过查询LLM来生成基于任务中已知实体和谓词的子目标序列。假设每个实体和谓词都有一个单一词汇的自然语言描述。现成的LLM容易根据其训练数据和程序将某些实体与某些谓词关联起来。例如，当我们试图通过添加一个需要使用“移动”谓词来移动的碎片元素，使搜索和救援任务变得更加复杂时，我们观察到LLM将该谓词与环境中已经存在的其他实体关联起来，比如灭火器、门等。由于LLM无法访问将谓词与实体关联的类型层级，当两个相似的实体适用于相同的谓词时，LLM会产生冲突。作为实验，我们还向LLM提供了类型层级，并且我们观察到，使用LgTS生成的图的图编辑距离为$4.6$，相比之下，给定的“神谕”图的图编辑距离较低，而在没有类型层级的情况下观察到的图编辑距离为$7.3$。因此，结合能够向LLM提供谓词-实体关联信息的内容，有助于生成语义上更接近由“神谕”建议的LTL${}_{f}$公式给出的子目标序列。
+- en: The prompts generated by the LLM also depend on the type of language model used.
+    When we changed our LLM from LLAMA2 to GPT-4 on the complex search and rescue
+    task mentioned above, we observed a graph edit distance of $5.1$ compared to the
+    graph given by an oracle, which was lower than the GED for LLAMA2, which was $7.3$.
+    This shows that GPT-4 was successful in producing responses and in turn graphs
+    which were closer to the graph generated from an oracle. With further advancements
+    in the LLM capabilities, we might observe even further improvements in the reasoning
+    ability of such models, which in turn will produce better and meaningful entity-predicate
+    associations. Existing tools such as chain-of-thought prompting and access to
+    a dataset that can finetune the LLM to produce valid and useful outputs will further
+    improve the prediction accuracy of the LLM. However, even with such advancements,
+    the environmental configuration will be unknown to an agent that does not have
+    access to the transition dynamics model. This work is a step in that direction.
+    LgTS attempts to bridge the gap between the LLM-generated sub-goal outputs and
+    the policies that an agent can learn to satisfy these sub-goals while minimizing
+    the number of times it interacts with the environment.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM生成的提示词也取决于使用的语言模型类型。当我们将LLM从LLAMA2更改为GPT-4时，针对上述复杂的搜索和救援任务，我们观察到与“神谕”给出的图相比，图编辑距离为$5.1$，这低于LLAMA2的$7.3$，这表明GPT-4在生成响应时成功地产生了与“神谕”生成的图更为接近的图。随着LLM能力的进一步发展，我们可能会观察到这些模型的推理能力得到进一步提升，从而产生更好且有意义的实体-谓词关联。现有工具，如链式思维提示和访问可微调LLM以生成有效且有用输出的数据集，将进一步提高LLM的预测准确性。然而，即使有这些进展，对于没有访问过过渡动态模型的代理来说，环境配置依然是未知的。本项工作是朝这个方向迈出的第一步。LgTS尝试弥合LLM生成的子目标输出与代理可以学习的满足这些子目标的策略之间的差距，同时最小化与环境交互的次数。
+- en: 6 Conclusion and Future Work
+  id: totrans-155
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论与未来工作
+- en: We proposed LgTS, a framework for dynamic task sampling for RL agents using
+    a graphical representation of sub-goal sequences suggested by a large language
+    model. Through experiments, we demonstrated that LgTS accelerates learning, converging
+    to a desired success rate quicker as compared to other curriculum learning baselines
+    and achieves comparable success compared to sub-goal sequences provided by an
+    oracle. We also evaluated our approach on a complex long-horizon search and rescue
+    task where the number of predicates and entities were higher and the agent needed
+    to satisfy several sub-goals to satisfy the final goal objective. LgTS reduced
+    training time without relying on human-guided dense reward function. LgTS accelerates
+    learning when information about the entities present in the environment and the
+    sensors that can identify the truth assignment of predicates is available.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出了LgTS，这是一种用于RL代理的动态任务采样框架，利用大语言模型建议的子目标序列的图形表示。通过实验，我们证明了LgTS加速了学习，相较于其他课程学习基线，它更快地收敛到期望的成功率，并且与由神谕提供的子目标序列相比，达到了相当的成功。我们还在一个复杂的长时域搜索与救援任务中评估了我们的方法，其中谓词和实体的数量较多，代理需要满足多个子目标才能满足最终的目标。LgTS减少了训练时间，且不依赖于人为引导的密集奖励函数。当环境中实体的信息和能够识别谓词真值分配的传感器可用时，LgTS加速了学习。
+- en: 'Limitations & Future Work: In certain cases, the natural language description
+    of the entities and the predicates might be incorrect or unavailable. In that
+    case, the sub-goal sequences suggested by the LLM will be based on these incorrect
+    descriptions, and the sequences might harm the learning progress of the agent.
+    Our future plans involve automating the entity identification process that will
+    eliminate the need to rely on predefined entities. In case of robotic environments,
+    this can be done using an object detector along with a pose estimator that can
+    identify the natural language description of objects in the environment along
+    with relative position. Our approach recognizes and discards sub-tasks for which
+    policies exist that can satisfy the sub-tasks’ goal objective. This minimizes
+    the number of interactions with the environment by avoiding policy learning for
+    a number of sub-tasks. As an extension, we would like to explore biasing away
+    from sub-tasks rather than completely discarding them once the target node is
+    reached, so in the limit, optimal or near-optimal policies can be obtained. We
+    would also like to explore complex robotic and multi-agent scenarios with elaborate
+    goal directed objectives. On the LLM front, we would like to incorporate closed-loop
+    feedback from the RL agent to the LLM that promotes improved response generation
+    by the LLM.'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 局限性与未来工作：在某些情况下，实体和谓词的自然语言描述可能是不正确的或不可用的。在这种情况下，LLM（大语言模型）建议的子目标序列将基于这些不正确的描述，而这些序列可能会对代理的学习进程产生不利影响。我们的未来计划包括自动化实体识别过程，从而消除对预定义实体的依赖。在机器人环境中，可以使用物体检测器和姿态估计器来识别环境中物体的自然语言描述及其相对位置。我们的方法识别并丢弃那些已经有策略可以满足其目标的子任务。通过避免对子任务的策略学习，最大限度地减少了与环境的交互次数。作为扩展，我们希望探索在到达目标节点后，如何从完全丢弃子任务转变为偏向于避免子任务，这样在极限情况下，可以获得最优或接近最优的策略。我们还希望探索具有复杂目标导向任务的复杂机器人和多智能体场景。在LLM方面，我们希望结合RL（强化学习）代理到LLM的闭环反馈，从而促进LLM生成更好的响应。
+- en: References
+  id: totrans-158
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Agrawal and Goyal (2012) Agrawal, S.; and Goyal, N. 2012. Analysis of thompson
+    sampling for the multi-armed bandit problem. In *Conference on learning theory*,
+    39–1\. JMLR Workshop and Conference Proceedings.
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Agrawal 和 Goyal (2012) Agrawal, S.; 和 Goyal, N. 2012. 多臂赌博机问题中汤普森抽样的分析。在*学习理论会议*，39–1\.
+    JMLR 研讨会与会议论文集。
+- en: 'Ahn et al. (2022) Ahn, M.; Brohan, A.; Brown, N.; Chebotar, Y.; Cortes, O.;
+    David, B.; Finn, C.; Fu, C.; Gopalakrishnan, K.; Hausman, K.; et al. 2022. Do
+    as i can, not as i say: Grounding language in robotic affordances. *arXiv preprint
+    arXiv:2204.01691*.'
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ahn 等 (2022) Ahn, M.; Brohan, A.; Brown, N.; Chebotar, Y.; Cortes, O.; David,
+    B.; Finn, C.; Fu, C.; Gopalakrishnan, K.; Hausman, K.; 等. 2022. 做我能做的，而不是说我做的：将语言与机器人可操作性联系起来。*arXiv
+    预印本 arXiv:2204.01691*。
+- en: 'Alur et al. (2022) Alur, R.; Bansal, S.; Bastani, O.; and Jothimurugan, K.
+    2022. A framework for transforming specifications in reinforcement learning. In
+    *Principles of Systems Design: Essays Dedicated to Thomas A. Henzinger on the
+    Occasion of His 60th Birthday*, 604–624\. Springer.'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Alur等人（2022）Alur, R.; Bansal, S.; Bastani, O.; 和Jothimurugan, K. 2022. 一个用于转化强化学习规范的框架.
+    在*系统设计原理：献给Thomas A. Henzinger教授60岁生日的论文集*，604–624。Springer.
+- en: 'Auer, Cesa-Bianchi, and Fischer (2002) Auer, P.; Cesa-Bianchi, N.; and Fischer,
+    P. 2002. Finite-time analysis of the multiarmed bandit problem. *Machine learning*,
+    47: 235–256.'
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Auer, Cesa-Bianchi和Fischer（2002）Auer, P.; Cesa-Bianchi, N.; 和Fischer, P. 2002.
+    多臂强盗问题的有限时间分析. *机器学习*, 47: 235–256.'
+- en: Bozkurt et al. (2020) Bozkurt, A. K.; Wang, Y.; Zavlanos, M. M.; and Pajic,
+    M. 2020. Control synthesis from linear temporal logic specifications using model-free
+    reinforcement learning. In *2020 IEEE International Conference on Robotics and
+    Automation (ICRA)*, 10349–10355\. IEEE.
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bozkurt等人（2020）Bozkurt, A. K.; Wang, Y.; Zavlanos, M. M.; 和Pajic, M. 2020. 使用无模型强化学习从线性时序逻辑规范合成控制.
+    在*2020 IEEE国际机器人与自动化会议（ICRA）*，10349–10355。IEEE.
+- en: 'Brohan et al. (2023) Brohan, A.; Brown, N.; Carbajal, J.; Chebotar, Y.; Chen,
+    X.; Choromanski, K.; Ding, T.; Driess, D.; Dubey, A.; Finn, C.; et al. 2023. Rt-2:
+    Vision-language-action models transfer web knowledge to robotic control. *arXiv
+    preprint arXiv:2307.15818*.'
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brohan等人（2023）Brohan, A.; Brown, N.; Carbajal, J.; Chebotar, Y.; Chen, X.; Choromanski,
+    K.; Ding, T.; Driess, D.; Dubey, A.; Finn, C.; 等人 2023. Rt-2：视听行动模型将网络知识转移到机器人控制中.
+    *arXiv预印本 arXiv:2307.15818*.
+- en: 'Cai et al. (2023) Cai, M.; Aasi, E.; Belta, C.; and Vasile, C.-I. 2023. Overcoming
+    Exploration: Deep Reinforcement Learning for Continuous Control in Cluttered Environments
+    From Temporal Logic Specifications. *IEEE Robotics and Automation Letters*, 8(4):
+    2158–2165.'
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Cai等人（2023）Cai, M.; Aasi, E.; Belta, C.; 和Vasile, C.-I. 2023. 克服探索：基于时序逻辑规范的深度强化学习在拥挤环境中的连续控制.
+    *IEEE机器人与自动化学报*, 8(4): 2158–2165.'
+- en: Chevalier-Boisvert, Willems, and Pal (2018) Chevalier-Boisvert, M.; Willems,
+    L.; and Pal, S. 2018. Minimalistic Gridworld Environment for Gymnasium.
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chevalier-Boisvert, Willems和Pal（2018）Chevalier-Boisvert, M.; Willems, L.; 和Pal,
+    S. 2018. Gymnasium的简约网格世界环境.
+- en: 'De Giacomo et al. (2019) De Giacomo, G.; Iocchi, L.; Favorito, M.; and Patrizi,
+    F. 2019. Foundations for restraining bolts: Reinforcement learning with LTLf/LDLf
+    restraining specifications. In *Intl. Conf. on Automated Planning and Scheduling*,
+    volume 29.'
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: De Giacomo等人（2019）De Giacomo, G.; Iocchi, L.; Favorito, M.; 和Patrizi, F. 2019.
+    约束螺栓的基础：带有LTLf/LDLf约束规范的强化学习. 在*国际自动化规划与调度会议*，第29卷.
+- en: De Giacomo and Vardi (2013) De Giacomo, G.; and Vardi, M. Y. 2013. Linear temporal
+    logic and linear dynamic logic on finite traces. In *IJCAI’13 Proc. of the Twenty-Third
+    Intl. joint Conf. on Artificial Intelligence*, 854–860\. Association for Computing
+    Machinery.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: De Giacomo和Vardi（2013）De Giacomo, G.; 和Vardi, M. Y. 2013. 线性时序逻辑和线性动态逻辑在有限轨迹上的应用.
+    在*IJCAI’13 第23届国际人工智能联合会议论文集*，854–860。计算机协会.
+- en: Dictionary (2002) Dictionary, M.-W. 2002. Merriam-webster. *On-line at http://www.
+    mw. com/home. htm*, 8(2).
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 词典（2002）M.-W.词典 2002. Merriam-webster. *在线访问 http://www.mw.com/home.htm*，8(2).
+- en: Ding et al. (2023a) Ding, Y.; Zhang, X.; Paxton, C.; and Zhang, S. 2023a. Leveraging
+    Commonsense Knowledge from Large Language Models for Task and Motion Planning.
+    In *RSS 2023 Workshop on Learning for Task and Motion Planning*.
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ding等人（2023a）Ding, Y.; Zhang, X.; Paxton, C.; 和Zhang, S. 2023a. 利用大语言模型的常识知识进行任务与动作规划.
+    在*RSS 2023任务与动作规划学习研讨会*.
+- en: Ding et al. (2023b) Ding, Y.; Zhang, X.; Paxton, C.; and Zhang, S. 2023b. Task
+    and motion planning with large language models for object rearrangement. *arXiv
+    preprint arXiv:2303.06247*.
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ding等人（2023b）Ding, Y.; Zhang, X.; Paxton, C.; 和Zhang, S. 2023b. 利用大语言模型进行对象重新排列的任务与动作规划.
+    *arXiv预印本 arXiv:2303.06247*.
+- en: 'Driess et al. (2023) Driess, D.; Xia, F.; Sajjadi, M. S.; Lynch, C.; Chowdhery,
+    A.; Ichter, B.; Wahid, A.; Tompson, J.; Vuong, Q.; Yu, T.; et al. 2023. Palm-e:
+    An embodied multimodal language model. *arXiv preprint arXiv:2303.03378*.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Driess等人（2023）Driess, D.; Xia, F.; Sajjadi, M. S.; Lynch, C.; Chowdhery, A.;
+    Ichter, B.; Wahid, A.; Tompson, J.; Vuong, Q.; Yu, T.; 等人 2023. Palm-e：一种具身的多模态语言模型.
+    *arXiv预印本 arXiv:2303.03378*.
+- en: Hammond et al. (2021) Hammond, L.; Abate, A.; Gutierrez, J.; and Wooldridge,
+    M. 2021. Multi-agent reinforcement learning with temporal logic specifications.
+    *arXiv preprint arXiv:2102.00582*.
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hammond等人（2021）Hammond, L.; Abate, A.; Gutierrez, J.; 和Wooldridge, M. 2021.
+    带有时序逻辑规范的多智能体强化学习. *arXiv预印本 arXiv:2102.00582*.
+- en: 'Icarte et al. (2022) Icarte, R. T.; Klassen, T. Q.; Valenzano, R.; and McIlraith,
+    S. A. 2022. Reward machines: Exploiting reward function structure in reinforcement
+    learning. *Journal of Artificial Intelligence Research*, 73: 173–208.'
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Icarte 等人 (2022) Icarte, R. T.; Klassen, T. Q.; Valenzano, R.; 和 McIlraith,
+    S. A. 2022. 奖励机器：在强化学习中利用奖励函数结构. *人工智能研究期刊*, 73: 173–208.'
+- en: 'Kaelbling, Littman, and Cassandra (1998) Kaelbling, L. P.; Littman, M. L.;
+    and Cassandra, A. R. 1998. Planning and acting in partially observable stochastic
+    domains. *Artificial Intelligence*, 101(1): 99–134.'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Kaelbling, Littman 和 Cassandra (1998) Kaelbling, L. P.; Littman, M. L.; 和 Cassandra,
+    A. R. 1998. 在部分可观察的随机领域中进行规划与行动. *人工智能*, 101(1): 99–134.'
+- en: Kwon et al. (2023) Kwon, M.; Xie, S. M.; Bullard, K.; and Sadigh, D. 2023. Reward
+    design with language models. *arXiv preprint arXiv:2303.00001*.
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kwon 等人 (2023) Kwon, M.; Xie, S. M.; Bullard, K.; 和 Sadigh, D. 2023. 使用语言模型的奖励设计.
+    *arXiv 预印本 arXiv:2303.00001*.
+- en: Li, Vasile, and Belta (2017) Li, X.; Vasile, C.-I.; and Belta, C. 2017. Reinforcement
+    learning with temporal logic rewards. In *2017 IEEE/RSJ International Conference
+    on Intelligent Robots and Systems (IROS)*, 3834–3839\. IEEE.
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li, Vasile 和 Belta (2017) Li, X.; Vasile, C.-I.; 和 Belta, C. 2017. 带有时序逻辑奖励的强化学习.
+    见 *2017 IEEE/RSJ 国际智能机器人与系统会议（IROS）*, 3834–3839\. IEEE.
+- en: 'Liu et al. (2023) Liu, B.; Jiang, Y.; Zhang, X.; Liu, Q.; Zhang, S.; Biswas,
+    J.; and Stone, P. 2023. Llm+ p: Empowering large language models with optimal
+    planning proficiency. *arXiv preprint arXiv:2304.11477*.'
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Liu 等人 (2023) Liu, B.; Jiang, Y.; Zhang, X.; Liu, Q.; Zhang, S.; Biswas, J.;
+    和 Stone, P. 2023. Llm+ p: 通过最优规划能力增强大语言模型. *arXiv 预印本 arXiv:2304.11477*.'
+- en: 'Matiisen et al. (2020) Matiisen, T.; Oliver, A.; Cohen, T.; and Schulman, J.
+    2020. Teacher-Student Curriculum Learning. *IEEE Trans. Neural Networks Learn.
+    Syst.*, 31(9): 3732–3740.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Matiisen 等人 (2020) Matiisen, T.; Oliver, A.; Cohen, T.; 和 Schulman, J. 2020.
+    教师-学生课程学习. *IEEE 神经网络与学习系统汇刊*, 31(9): 3732–3740.'
+- en: 'Min et al. (2021) Min, B.; Ross, H.; Sulem, E.; Veyseh, A. P. B.; Nguyen, T. H.;
+    Sainz, O.; Agirre, E.; Heintz, I.; and Roth, D. 2021. Recent advances in natural
+    language processing via large pre-trained language models: A survey. *ACM Computing
+    Surveys*.'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Min 等人 (2021) Min, B.; Ross, H.; Sulem, E.; Veyseh, A. P. B.; Nguyen, T. H.;
+    Sainz, O.; Agirre, E.; Heintz, I.; 和 Roth, D. 2021. 通过大型预训练语言模型的自然语言处理最新进展：一项调查.
+    *ACM 计算机调查*.
+- en: 'Narvekar et al. (2020) Narvekar, S.; Peng, B.; Leonetti, M.; Sinapov, J.; Taylor,
+    M. E.; and Stone, P. 2020. Curriculum Learning for Reinforcement Learning Domains:
+    A Framework and Survey. *JMLR*, 21: 1–50.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Narvekar 等人 (2020) Narvekar, S.; Peng, B.; Leonetti, M.; Sinapov, J.; Taylor,
+    M. E.; 和 Stone, P. 2020. 强化学习领域中的课程学习：一个框架和调查. *JMLR*, 21: 1–50.'
+- en: Oudeyer and Kaplan (2009) Oudeyer, P.-Y.; and Kaplan, F. 2009. What is intrinsic
+    motivation? A typology of computational approaches. *Frontiers in neurorobotics*,
+    6.
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Oudeyer 和 Kaplan (2009) Oudeyer, P.-Y.; 和 Kaplan, F. 2009. 什么是内在动机？计算方法的类型学.
+    *神经机器人学前沿*, 6.
+- en: Peng et al. (2023) Peng, B.; Li, C.; He, P.; Galley, M.; and Gao, J. 2023. Instruction
+    tuning with gpt-4. *arXiv preprint arXiv:2304.03277*.
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Peng 等人 (2023) Peng, B.; Li, C.; He, P.; Galley, M.; 和 Gao, J. 2023. 使用 GPT-4
+    的指令调优. *arXiv 预印本 arXiv:2304.03277*.
+- en: Raman et al. (2022) Raman, S. S.; Cohen, V.; Rosen, E.; Idrees, I.; Paulius,
+    D.; and Tellex, S. 2022. Planning with large language models via corrective re-prompting.
+    *arXiv preprint arXiv:2211.09935*.
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Raman 等人 (2022) Raman, S. S.; Cohen, V.; Rosen, E.; Idrees, I.; Paulius, D.;
+    和 Tellex, S. 2022. 通过纠正重提示使用大语言模型进行规划. *arXiv 预印本 arXiv:2211.09935*.
+- en: Schulman et al. (2017) Schulman, J.; Wolski, F.; Dhariwal, P.; Radford, A.;
+    and Klimov, O. 2017. Proximal Policy Optimization Algorithms. *CoRR*.
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schulman 等人 (2017) Schulman, J.; Wolski, F.; Dhariwal, P.; Radford, A.; 和 Klimov,
+    O. 2017. 近端策略优化算法. *CoRR*.
+- en: 'Shukla et al. (2022) Shukla, Y.; Thierauf, C.; Hosseini, R.; Tatiya, G.; and
+    Sinapov, J. 2022. ACuTE: Automatic Curriculum Transfer from Simple to Complex
+    Environments. In *21st Intl. Conf. on Autonomous Agents and Multiagent Systems*,
+    1192–1200.'
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shukla 等人 (2022) Shukla, Y.; Thierauf, C.; Hosseini, R.; Tatiya, G.; 和 Sinapov,
+    J. 2022. ACuTE：从简单到复杂环境的自动课程迁移. 见 *第21届国际自主代理与多智能体系统会议*, 1192–1200.
+- en: 'Singh et al. (2023) Singh, I.; Blukis, V.; Mousavian, A.; Goyal, A.; Xu, D.;
+    Tremblay, J.; Fox, D.; Thomason, J.; and Garg, A. 2023. Progprompt: Generating
+    situated robot task plans using large language models. In *2023 IEEE International
+    Conference on Robotics and Automation (ICRA)*, 11523–11530\. IEEE.'
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Singh 等人 (2023) Singh, I.; Blukis, V.; Mousavian, A.; Goyal, A.; Xu, D.; Tremblay,
+    J.; Fox, D.; Thomason, J.; 和 Garg, A. 2023. Progprompt：使用大语言模型生成情境机器人任务计划. 见 *2023
+    IEEE 国际机器人与自动化会议（ICRA）*, 11523–11530\. IEEE.
+- en: 'Song et al. (2022) Song, C. H.; Wu, J.; Washington, C.; Sadler, B. M.; Chao,
+    W.-L.; and Su, Y. 2022. Llm-planner: Few-shot grounded planning for embodied agents
+    with large language models. *arXiv preprint arXiv:2212.04088*.'
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '宋等人（2022）宋, C. H.; 吴, J.; 华盛顿, C.; 塞德勒, B. M.; 赵, W.-L.; 苏, Y. 2022. Llm-planner:
+    基于大型语言模型的少样本基础规划应用于具身智能体. *arXiv预印本 arXiv:2212.04088*。'
+- en: Stone et al. (2023) Stone, A.; Xiao, T.; Lu, Y.; Gopalakrishnan, K.; Lee, K.-H.;
+    Vuong, Q.; Wohlhart, P.; Zitkovich, B.; Xia, F.; Finn, C.; et al. 2023. Open-world
+    object manipulation using pre-trained vision-language models. *arXiv preprint
+    arXiv:2303.00905*.
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 斯通等人（2023）斯通, A.; 肖, T.; 陆, Y.; 戈帕拉克里希南, K.; 李, K.-H.; 武昂, Q.; 沃尔哈特, P.; 吉特科维奇,
+    B.; 夏, F.; 芬恩, C.; 等人. 2023. 使用预训练视觉-语言模型进行开放世界物体操作. *arXiv预印本 arXiv:2303.00905*。
+- en: 'Szepesvári (2004) Szepesvári, C. 2004. Shortest path discovery problems: A
+    framework, algorithms and experimental results. In *AAAI*, 550–555.'
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 斯泽佩斯瓦里（2004）斯泽佩斯瓦里, C. 2004. 最短路径发现问题：框架、算法和实验结果. 见 *AAAI*, 550–555。
+- en: Toro Icarte et al. (2018) Toro Icarte, R.; Klassen, T. Q.; Valenzano, R.; and
+    McIlraith, S. A. 2018. Teaching multiple tasks to an RL agent using LTL. In *Autonomous
+    Agents and MultiAgent Systems*.
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 托罗·伊卡尔特等人（2018）托罗·伊卡尔特, R.; 克拉森, T. Q.; 瓦伦扎诺, R.; 和 麦克伊尔赖思, S. A. 2018. 使用LTL教授RL智能体多个任务.
+    见 *自主智能体与多智能体系统*。
+- en: 'Touvron et al. (2023) Touvron, H.; Martin, L.; Stone, K.; Albert, P.; Almahairi,
+    A.; Babaei, Y.; Bashlykov, N.; Batra, S.; Bhargava, P.; Bhosale, S.; et al. 2023.
+    Llama 2: Open foundation and fine-tuned chat models. *arXiv preprint arXiv:2307.09288*.'
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '图弗朗等人（2023）图弗朗, H.; 马丁, L.; 斯通, K.; 阿尔伯特, P.; 阿尔马赫里, A.; 巴巴伊, Y.; 巴什利科夫, N.;
+    巴特拉, S.; 巴尔加瓦, P.; 博萨尔, S.; 等人. 2023. Llama 2: 开放基础模型和微调聊天模型. *arXiv预印本 arXiv:2307.09288*。'
+- en: 'Wei et al. (2022) Wei, J.; Wang, X.; Schuurmans, D.; Bosma, M.; Xia, F.; Chi,
+    E.; Le, Q. V.; Zhou, D.; et al. 2022. Chain-of-thought prompting elicits reasoning
+    in large language models. *Advances in Neural Information Processing Systems*,
+    35: 24824–24837.'
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '魏等人（2022）魏, J.; 王, X.; 施尔曼斯, D.; 博斯马, M.; 夏, F.; 奇, E.; 李, Q. V.; 周, D.; 等人.
+    2022. 连锁思维提示促使大型语言模型进行推理. *神经信息处理系统进展*, 35: 24824–24837。'
+- en: 'Xu and Topcu (2019) Xu, Z.; and Topcu, U. 2019. Transfer of temporal logic
+    formulas in reinforcement learning. In *IJCAI: proceedings of the conference*,
+    volume 28, 4010\. NIH Public Access.'
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '许和托普库（2019）许, Z.; 和 托普库, U. 2019. 强化学习中的时序逻辑公式转移. 见 *IJCAI: 会议录*, 第28卷, 4010.
+    NIH公共访问。'
+- en: 'Yang et al. (2023) Yang, J.; Chen, X.; Qian, S.; Madaan, N.; Iyengar, M.; Fouhey,
+    D. F.; and Chai, J. 2023. LLM-Grounder: Open-Vocabulary 3D Visual Grounding with
+    Large Language Model as an Agent. *arXiv preprint arXiv:2309.12311*.'
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '杨等人（2023）杨, J.; 陈, X.; 钱, S.; 马丹, N.; 艾延格, M.; 富赫, D. F.; 查, J. 2023. LLM-Grounder:
+    基于大型语言模型的开放词汇3D视觉定位作为智能体. *arXiv预印本 arXiv:2309.12311*。'
+- en: Zhao et al. (2023) Zhao, W. X.; Zhou, K.; Li, J.; Tang, T.; Wang, X.; Hou, Y.;
+    Min, Y.; Zhang, B.; Zhang, J.; Dong, Z.; et al. 2023. A survey of large language
+    models. *arXiv preprint arXiv:2303.18223*.
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 赵等人（2023）赵, W. X.; 周, K.; 李, J.; 唐, T.; 王, X.; 侯, Y.; 闵, Y.; 张, B.; 张, J.; 董,
+    Z.; 等人. 2023. 大型语言模型的综述. *arXiv预印本 arXiv:2303.18223*。

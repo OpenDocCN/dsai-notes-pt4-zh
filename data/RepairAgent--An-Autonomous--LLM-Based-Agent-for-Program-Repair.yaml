@@ -1,0 +1,2896 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:44:27'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:44:27
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'RepairAgent: An Autonomous, LLM-Based Agent for Program Repair'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: RepairAgent：一个基于LLM的自主程序修复代理
+- en: 来源：[https://arxiv.org/html/2403.17134/](https://arxiv.org/html/2403.17134/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2403.17134/](https://arxiv.org/html/2403.17134/)
+- en: \useunder
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \useunder
+- en: \ul
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \ul
+- en: Islem Bouzenia
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Islem Bouzenia
+- en: University of Stuttgart
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 斯图加特大学
+- en: Germany
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 德国
+- en: fi_bouzenia@esi.dz    Premkumar Devanbu
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: fi_bouzenia@esi.dz    Premkumar Devanbu
+- en: UC Davis
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 加利福尼亚大学戴维斯分校
+- en: USA
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 美国
+- en: ptdevanbu@ucdavis.edu    Michael Pradel
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ptdevanbu@ucdavis.edu    Michael Pradel
+- en: University of Stuttgart
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 斯图加特大学
+- en: Germany
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 德国
+- en: michael@binaervarianz.de
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: michael@binaervarianz.de
+- en: Abstract
+  id: totrans-18
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Automated program repair has emerged as a powerful technique to mitigate the
+    impact of software bugs on system reliability and user experience. This paper
+    introduces RepairAgent, the first work to address the program repair challenge
+    through an autonomous agent based on a large language model (LLM). Unlike existing
+    deep learning-based approaches, which prompt a model with a fixed prompt or in
+    a fixed feedback loop, our work treats the LLM as an agent capable of autonomously
+    planning and executing actions to fix bugs by invoking suitable tools. RepairAgent
+    freely interleaves gathering information about the bug, gathering repair ingredients,
+    and validating fixes, while deciding which tools to invoke based on the gathered
+    information and feedback from previous fix attempts. Key contributions that enable
+    RepairAgent include a set of tools that are useful for program repair, a dynamically
+    updated prompt format that allows the LLM to interact with these tools, and a
+    finite state machine that guides the agent in invoking the tools. Our evaluation
+    on the popular Defects4J dataset demonstrates RepairAgent’s effectiveness in autonomously
+    repairing 164 bugs, including 39 bugs not fixed by prior techniques. Interacting
+    with the LLM imposes an average cost of 270,000 tokens per bug, which, under the
+    current pricing of OpenAI’s GPT-3.5 model, translates to 14 cents per bug. To
+    the best of our knowledge, this work is the first to present an autonomous, LLM-based
+    agent for program repair, paving the way for future agent-based techniques in
+    software engineering.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动化程序修复已经成为一种强大的技术，用于减轻软件缺陷对系统可靠性和用户体验的影响。本文介绍了RepairAgent，这是第一个通过基于大型语言模型（LLM）的自主代理来解决程序修复挑战的工作。与现有的深度学习方法不同，后者通过固定的提示或固定的反馈循环来提示模型，我们的工作将LLM视为一个代理，能够通过调用适当的工具，自动规划和执行修复动作。RepairAgent自由交替地收集有关缺陷的信息、收集修复材料以及验证修复，同时根据收集到的信息和先前修复尝试的反馈来决定调用哪些工具。使RepairAgent成为可能的关键贡献包括一组对程序修复有用的工具、一个动态更新的提示格式，使LLM能够与这些工具进行交互，以及一个有限状态机，用于指导代理调用这些工具。我们在流行的Defects4J数据集上的评估表明，RepairAgent能够有效地自动修复164个缺陷，其中包括39个先前技术无法修复的缺陷。与LLM的交互对每个缺陷的平均成本为270,000个令牌，在当前OpenAI
+    GPT-3.5模型的定价下，这相当于每个缺陷14美分。据我们所知，这是第一个提出用于程序修复的自主LLM代理的工作，为未来基于代理的技术在软件工程中的应用铺平了道路。
+- en: I Introduction
+  id: totrans-20
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 引言
+- en: Software bugs lead to system failures, security vulnerabilities, and compromised
+    user experience. Fixing bugs is a critical task in software development, but if
+    done manually, demands considerable time and effort. Automated program repair
+    (APR) promises to dramatically reduce this effort by addressing the critical need
+    for effective and efficient bug resolution in an automated manner. Researchers
+    and practitioners have explored various approaches to address the challenge of
+    automatically fixing bugs [[1](https://arxiv.org/html/2403.17134v2#bib.bib1)],
+    including techniques based on manually designed [[2](https://arxiv.org/html/2403.17134v2#bib.bib2),
+    [3](https://arxiv.org/html/2403.17134v2#bib.bib3)] and (semi-)automatically extracted [[4](https://arxiv.org/html/2403.17134v2#bib.bib4),
+    [5](https://arxiv.org/html/2403.17134v2#bib.bib5), [6](https://arxiv.org/html/2403.17134v2#bib.bib6)]
+    fix patterns, based on symbolic constraints [[7](https://arxiv.org/html/2403.17134v2#bib.bib7),
+    [8](https://arxiv.org/html/2403.17134v2#bib.bib8), [9](https://arxiv.org/html/2403.17134v2#bib.bib9)],
+    and various machine learning-based approaches [[10](https://arxiv.org/html/2403.17134v2#bib.bib10),
+    [11](https://arxiv.org/html/2403.17134v2#bib.bib11), [12](https://arxiv.org/html/2403.17134v2#bib.bib12),
+    [13](https://arxiv.org/html/2403.17134v2#bib.bib13), [14](https://arxiv.org/html/2403.17134v2#bib.bib14),
+    [15](https://arxiv.org/html/2403.17134v2#bib.bib15), [16](https://arxiv.org/html/2403.17134v2#bib.bib16)].
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件缺陷会导致系统故障、安全漏洞以及用户体验受损。修复缺陷是软件开发中的一项关键任务，但如果手动完成，则需要大量的时间和精力。自动化程序修复（APR）承诺通过以自动化的方式解决有效且高效的缺陷解决需求，显著减少这一工作量。研究人员和实践者已经探索了多种方法来解决自动修复缺陷的挑战[[1](https://arxiv.org/html/2403.17134v2#bib.bib1)]，其中包括基于手动设计的[[2](https://arxiv.org/html/2403.17134v2#bib.bib2)、[3](https://arxiv.org/html/2403.17134v2#bib.bib3)]以及（半）自动提取的[[4](https://arxiv.org/html/2403.17134v2#bib.bib4)、[5](https://arxiv.org/html/2403.17134v2#bib.bib5)、[6](https://arxiv.org/html/2403.17134v2#bib.bib6)]修复模式，基于符号约束[[7](https://arxiv.org/html/2403.17134v2#bib.bib7)、[8](https://arxiv.org/html/2403.17134v2#bib.bib8)、[9](https://arxiv.org/html/2403.17134v2#bib.bib9)]，以及各种基于机器学习的方法[[10](https://arxiv.org/html/2403.17134v2#bib.bib10)、[11](https://arxiv.org/html/2403.17134v2#bib.bib11)、[12](https://arxiv.org/html/2403.17134v2#bib.bib12)、[13](https://arxiv.org/html/2403.17134v2#bib.bib13)、[14](https://arxiv.org/html/2403.17134v2#bib.bib14)、[15](https://arxiv.org/html/2403.17134v2#bib.bib15)、[16](https://arxiv.org/html/2403.17134v2#bib.bib16)]。
+- en: The current state-of-the-art in APR predominantly revolves around large language
+    models (LLMs). The first generation of LLM-based repair uses a one-time interaction
+    with the model, where the model receives a prompt containing the buggy code and
+    produces a fixed version [[17](https://arxiv.org/html/2403.17134v2#bib.bib17),
+    [18](https://arxiv.org/html/2403.17134v2#bib.bib18)]. The second and current generation
+    of LLM-based repair introduces iterative approaches, which query the LLM repeatedly
+    based on feedback obtained from previous fix attempts [[19](https://arxiv.org/html/2403.17134v2#bib.bib19),
+    [20](https://arxiv.org/html/2403.17134v2#bib.bib20), [21](https://arxiv.org/html/2403.17134v2#bib.bib21)].
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，APR的最先进技术主要围绕大型语言模型（LLMs）展开。基于LLM的第一代修复方法通过与模型进行一次性交互，模型接收包含有缺陷代码的提示，并生成修复后的版本[[17](https://arxiv.org/html/2403.17134v2#bib.bib17)、[18](https://arxiv.org/html/2403.17134v2#bib.bib18)]。第二代及当前的LLM修复方法引入了迭代方式，根据从之前修复尝试中获得的反馈，反复查询LLM[[19](https://arxiv.org/html/2403.17134v2#bib.bib19)、[20](https://arxiv.org/html/2403.17134v2#bib.bib20)、[21](https://arxiv.org/html/2403.17134v2#bib.bib21)]。
+- en: A key limitation of current iterative, LLM-based repair techniques is that their
+    hard-coded feedback loops do not allow the model to gather information about the
+    bug or existing code that may provide ingredients to fix the bug. Instead, these
+    approaches fix the code context that is provided in the prompt, typically to the
+    buggy code [[19](https://arxiv.org/html/2403.17134v2#bib.bib19), [21](https://arxiv.org/html/2403.17134v2#bib.bib21)],
+    and sometimes also details about the test cases that fail [[20](https://arxiv.org/html/2403.17134v2#bib.bib20)].
+    The feedback loop then executes the tests on different variants of the buggy code
+    and adds any compilation errors, test failures, or other output, to the prompt
+    of the next iteration. However, this approach fundamentally differs from the way
+    human developers fix bugs, which typically involves a temporal interleaving of
+    gathering information to understand the bug, searching code that may be helpful
+    for fixing the bug, and experimenting with candidate fixes [[22](https://arxiv.org/html/2403.17134v2#bib.bib22),
+    [23](https://arxiv.org/html/2403.17134v2#bib.bib23)].
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当前基于LLM的迭代修复技术的一个关键限制是，它们的硬编码反馈循环无法让模型收集有关bug或现有代码的信息，而这些信息可能包含修复bug的线索。相反，这些方法修复的是提示中提供的代码上下文，通常是有bug的代码[[19](https://arxiv.org/html/2403.17134v2#bib.bib19)，[21](https://arxiv.org/html/2403.17134v2#bib.bib21)]，有时还包括有关失败测试用例的详细信息[[20](https://arxiv.org/html/2403.17134v2#bib.bib20)]。然后，反馈循环会在不同的bug代码变体上执行测试，并将任何编译错误、测试失败或其他输出添加到下一轮迭代的提示中。然而，这种方法与人类开发人员修复bug的方式有根本不同，后者通常涉及在时间上交替进行：收集信息以理解bug，搜索可能有助于修复bug的代码，并尝试修复候选方案[[22](https://arxiv.org/html/2403.17134v2#bib.bib22)，[23](https://arxiv.org/html/2403.17134v2#bib.bib23)]。
+- en: This paper presents RepairAgent, the first autonomous, LLM-based agent for automated
+    program repair. Our approach treats the LLM as an autonomous agent capable of
+    planning and executing actions to achieve the goal of fixing a bug. We equip the
+    LLM with a set of bug repair-specific tools that the models can invoke to interact
+    with the code base in a way similar to a human developer. For example, RepairAgent
+    has tools to extract information about the bug by reading specific lines of code,
+    to gather repair ingredients by searching the code base, and to propose and validate
+    fixes by applying a patch and executing test cases. Importantly, we do not hard-code
+    how and when to use these tools, but instead let the LLM autonomously decide which
+    tool to invoke next, based on previously gathered information and feedback from
+    previous fix attempts.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文介绍了RepairAgent，这是第一个基于LLM的自动化程序修复的自主代理。我们的方法将LLM视为一个能够规划和执行动作的自主代理，以实现修复bug的目标。我们为LLM配备了一套针对bug修复的工具，模型可以调用这些工具与代码库交互，方式类似于人类开发人员。例如，RepairAgent有工具通过读取特定的代码行来提取bug信息，借助搜索代码库来收集修复所需的材料，并通过应用补丁和执行测试用例来提出和验证修复方案。重要的是，我们没有硬编码这些工具的使用方式和时机，而是让LLM根据之前收集的信息和先前修复尝试的反馈自主决定下一个要调用的工具。
+- en: Our approach is enabled by three key components. First, a general-purpose LLM,
+    such as GPT-3.5, which we query repeatedly with a dynamically updated prompt.
+    We contribute a novel prompt format that guides the LLM through the bug repair
+    process, and that gets updated based on the commands invoked by the LLM and the
+    results of the previous command executions. Second, a set of tools that the LLM
+    can invoke to interact with the code base. We present a set of 14 tools designed
+    to cover different steps a human developer would take when fixing a bug, such
+    as reading specific lines of code, searching the code base, and applying a patch.
+    Third, a middleware that orchestrates the communication between the LLM and the
+    tools. We present novel techniques for guiding tool invocations through a finite
+    state machine and for heuristically interpreting possibly incorrect LLM outputs.
+    The iterative loop of RepairAgent continues until the agent declares to have found
+    a suitable fix, or until exhausting a budget of iterations.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的方法由三个关键组件支持。首先，一个通用的LLM，例如GPT-3.5，我们通过动态更新的提示反复查询该模型。我们贡献了一种新型的提示格式，它引导LLM通过修复bug的过程，并根据LLM执行的命令及上一个命令执行的结果进行更新。第二，一组LLM可以调用的工具，用于与代码库交互。我们提出了一套14个工具，旨在涵盖人类开发人员修复bug时会采取的不同步骤，例如读取特定的代码行、搜索代码库和应用补丁。第三，一个中间件，协调LLM与工具之间的通信。我们提出了通过有限状态机引导工具调用以及启发式地解释可能不正确的LLM输出的创新技术。RepairAgent的迭代循环将持续进行，直到代理声明已找到合适的修复，或直到耗尽迭代次数的预算。
+- en: To evaluate the effectiveness of our approach, we apply it to all 835 bugs in
+    the Defects4J [[24](https://arxiv.org/html/2403.17134v2#bib.bib24)] dataset, a
+    widely used benchmark for evaluating program repair techniques. RepairAgent successfully
+    fixes 164 bugs, including 74 and 90 bugs of Defects4J v1.2 and v2.0, respectively.
+    The correctly fixed bugs include 49 bugs that require fixing more than one line,
+    showing that RepairAgent is capable of fixing complex bugs. Compared to state-of-the-art
+    techniques [[19](https://arxiv.org/html/2403.17134v2#bib.bib19), [21](https://arxiv.org/html/2403.17134v2#bib.bib21)],
+    RepairAgent successfully fixes 39 bugs not fixed by prior work. Measuring the
+    costs imposed by interacting with the LLM, we find that RepairAgent imposes an
+    average cost of 270,000 tokens per bug, which, under the current pricing of OpenAI’s
+    GPT-3.5 model, translates to 14 cents per bug. An additional evaluation on a set
+    of recent bugs [[25](https://arxiv.org/html/2403.17134v2#bib.bib25)] shows that
+    RepairAgent is able to achieve similar performance on single-line bugs while being
+    a bit worse on multi-line and multi-file bugs, mainly, due to a higher complexity
+    of bugs in GitBug-Java dataset. We believe from these results that RepairAgent
+    is not much affected by potential data leakage of Defects4J. Overall, our results
+    show that our agent-based approach establishes a new state of the art in program
+    repair.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们方法的有效性，我们将其应用于Defects4J [[24](https://arxiv.org/html/2403.17134v2#bib.bib24)]数据集中所有的835个漏洞，这是一个广泛使用的程序修复技术评估基准。RepairAgent成功修复了164个漏洞，其中包括Defects4J
+    v1.2和v2.0版本中的74个和90个漏洞。成功修复的漏洞包括49个需要修复多行代码的漏洞，这表明RepairAgent能够修复复杂的漏洞。与现有的技术相比[[19](https://arxiv.org/html/2403.17134v2#bib.bib19),
+    [21](https://arxiv.org/html/2403.17134v2#bib.bib21)]，RepairAgent成功修复了39个先前工作未能修复的漏洞。通过衡量与LLM交互所带来的成本，我们发现RepairAgent每修复一个漏洞的平均成本为270,000个tokens，根据OpenAI
+    GPT-3.5模型的当前定价，相当于每个漏洞14美分。对一组最近的漏洞[[25](https://arxiv.org/html/2403.17134v2#bib.bib25)]的额外评估表明，RepairAgent在单行漏洞上能取得类似的表现，而在多行和多文件漏洞上略逊一筹，主要是由于GitBug-Java数据集中漏洞的复杂性更高。我们从这些结果中认为，RepairAgent不太受Defects4J潜在数据泄露的影响。总体来看，我们的结果表明，基于代理的方法确立了程序修复领域的新技术前沿。
+- en: 'In summary, this paper contributes the following:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，本文做出了以下贡献：
+- en: •
+  id: totrans-28
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: An autonomous, LLM-based agent for program repair.
+  id: totrans-29
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 基于LLM的自主程序修复代理。
+- en: •
+  id: totrans-30
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A dynamically updated prompt format that guides the LLM through the bug repair
+    process.
+  id: totrans-31
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一种动态更新的提示格式，引导LLM完成漏洞修复过程。
+- en: •
+  id: totrans-32
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A set of tools that enable a LLM to to perform steps a human developer would
+    take when fixing a bug.
+  id: totrans-33
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一套工具，使LLM能够执行人类开发人员在修复漏洞时所采取的步骤。
+- en: •
+  id: totrans-34
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A middleware that orchestrates the communication between the LLM and the tools.
+  id: totrans-35
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一个中间件，用于协调LLM与工具之间的通信。
+- en: •
+  id: totrans-36
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Empirical evidence that RepairAgent establishes a new state of the art by successfully
+    fixing 164 bugs, including 39 bugs not fixed by prior work.
+  id: totrans-37
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 实验数据表明，RepairAgent通过成功修复164个漏洞，包括39个先前工作未能修复的漏洞，确立了新的技术前沿。
+- en: •
+  id: totrans-38
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We will release the implementation of RepairAgent as open-source to foster future
+    work.
+  id: totrans-39
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们将发布RepairAgent的实现作为开源，以促进未来的相关工作。
+- en: To the best of our knowledge, there currently is no published work on an autonomous,
+    LLM-based agent for any code-generation task. We envision RepairAgent to pave
+    the way for future agent-based techniques in software engineering.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 据我们所知，目前尚未有关于基于LLM的自主代理在任何代码生成任务中的公开研究。我们设想RepairAgent将为未来基于代理的软件工程技术开辟道路。
+- en: II Background on LLM-Based, Autonomous Agents
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: II 基于LLM的自主代理背景
+- en: 'By virtue of being trained on vast amounts of web knowledge, including natural
+    language and source code, LLMs have demonstrated remarkable abilities in achieving
+    human-level performance for various tasks [[26](https://arxiv.org/html/2403.17134v2#bib.bib26)].
+    A promising way of using these abilities are *LLM-based agents*, by which we mean
+    LLM-based techniques with two properties: (1) The LLM autonomously plans and executes
+    a sequence of actions to achieve a goal, as opposed to responding to a hard-coded
+    query or being queried in a hard-coded algorithm. (2) The actions performed by
+    the LLM include invocations of external tools that enable the LLM to interact
+    with its environment [[27](https://arxiv.org/html/2403.17134v2#bib.bib27), [28](https://arxiv.org/html/2403.17134v2#bib.bib28)].
+    In the context of software engineering, and automated repair in particular, the
+    tools could be tools usually used by developers, e.g., as part of an integrated
+    development environment (IDE). The basic idea is to query the LLM with a prompt
+    that contains the current state of the world, the goal to be achieved, and a set
+    of actions that could be performed next. The model than decides which action to
+    perform, and the feedback from performing the action is integrated into the next
+    prompt. Recent surveys provide a comprehensive overview of LLM-based, autonomous
+    agents [[29](https://arxiv.org/html/2403.17134v2#bib.bib29)] and of LLM agents
+    equipped with tools invoked via APIs [[30](https://arxiv.org/html/2403.17134v2#bib.bib30)].
+    The potential of such agents for software engineering currently is not well explored,
+    which this paper aims to address for the challenging task of automated program
+    repair.'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于经过大量网络知识（包括自然语言和源代码）的训练，LLM在完成各种任务时表现出显著的能力，能够达到人类水平的表现[[26](https://arxiv.org/html/2403.17134v2#bib.bib26)]。利用这些能力的一种有前景的方式是*基于LLM的代理*，我们指的就是具有以下两个特性的基于LLM的技术：（1）LLM自主地规划并执行一系列动作以实现目标，而不是响应硬编码的查询或在硬编码的算法中被查询；（2）LLM执行的动作包括调用外部工具，使LLM能够与其环境进行交互[[27](https://arxiv.org/html/2403.17134v2#bib.bib27),
+    [28](https://arxiv.org/html/2403.17134v2#bib.bib28)]。在软件工程的背景下，尤其是在自动修复方面，这些工具可以是开发人员通常使用的工具，例如作为集成开发环境（IDE）的一部分。基本思想是通过包含当前世界状态、目标以及接下来可以执行的一系列动作的提示来查询LLM。然后模型决定执行哪个动作，并将执行动作的反馈集成到下一个提示中。近期的调查提供了关于基于LLM的自主代理[[29](https://arxiv.org/html/2403.17134v2#bib.bib29)]以及通过API调用的LLM代理的全面概述[[30](https://arxiv.org/html/2403.17134v2#bib.bib30)]。此类代理在软件工程中的潜力目前尚未得到充分探索，而本文旨在针对自动化程序修复这一具有挑战性的任务进行探讨。
+- en: III Approach
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: III 方法
+- en: III-A Overview
+  id: totrans-44
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-A 概览
+- en: '![Refer to caption](img/dbc3263c66ed0d3e36f2dd63e837c580.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/dbc3263c66ed0d3e36f2dd63e837c580.png)'
+- en: 'Figure 1: Overview of RepairAgent.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：RepairAgent概览。
+- en: 'Figure [1](https://arxiv.org/html/2403.17134v2#S3.F1 "Figure 1 ‣ III-A Overview
+    ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")
+    gives an overview of the RepairAgent approach, which consists of three components:
+    an LLM agent (left), a set of tools (right), and a middleware that orchestrates
+    the communication between the two (middle). Given a bug to fix, the middleware
+    initializes the LLM agent with a prompt that contains task information and instructions
+    on how to perform it by using the provided tools (arrow 1). The LLM responds by
+    suggesting a call to one of the available tools (arrow 2), which the middleware
+    parses and then executes (arrow 3). The output of the tool (arrow 4) is then integrated
+    into the prompt for the next invocation of the LLM, and the process continues
+    iteratively until the bug is fixed or a predefined budget is exhausted.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图[1](https://arxiv.org/html/2403.17134v2#S3.F1 "Figure 1 ‣ III-A Overview ‣
+    III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")展示了RepairAgent方法的概览，该方法由三个组件组成：一个LLM代理（左侧），一组工具（右侧），以及一个中间件，负责协调两者之间的通信（中间）。给定一个需要修复的漏洞，中间件通过包含任务信息和如何利用提供的工具执行任务的指令的提示初始化LLM代理（箭头1）。LLM通过建议调用可用工具中的一个（箭头2）进行响应，中间件解析该调用并执行（箭头3）。工具的输出（箭头4）随后被集成到下一个LLM调用的提示中，直到漏洞修复完成或预定义的预算耗尽，过程会不断迭代进行。'
+- en: III-B Terminology
+  id: totrans-48
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-B 术语
+- en: 'RepairAgent proceeds in multiple iterations, or cycles:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RepairAgent通过多个迭代或周期进行：
+- en: Definition 1  (Cycle).
+  id: totrans-50
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 定义 1  （周期）。
+- en: 'A *cycle* represents one round of interaction with the LLM agent, which consists
+    of the following steps:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个*周期*代表与LLM代理的一个交互回合，包括以下步骤：
+- en: '1.'
+  id: totrans-52
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: Query the agent
+  id: totrans-53
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 查询代理
+- en: '2.'
+  id: totrans-54
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: Post-process the response
+  id: totrans-55
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 后处理响应
+- en: '3.'
+  id: totrans-56
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: Execute the command suggested by the agent
+  id: totrans-57
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 执行代理建议的命令
+- en: '4.'
+  id: totrans-58
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: Update the dynamic prompt based on the command’s output
+  id: totrans-59
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 根据命令的输出更新动态提示
+- en: 'In each cycle, the approach queries the LLM once. The input to the model is
+    updated based on commands (calls to tools) invoked by the LLM, and their results,
+    in previous cycles. We call the model input a dynamic prompt:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每个周期中，方法仅查询一次 LLM。模型的输入会基于 LLM 在前一个周期调用工具（命令）的结果进行更新。我们将模型输入称为动态提示：
+- en: Definition 2  (Dynamic prompt).
+  id: totrans-61
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 定义 2 （动态提示）。
+- en: 'The *dynamic prompt* is a sequence of text sections $P=[s_{0},s_{1},...,s_{n}]$,
+    where each section $s_{i}$ is one of the following (where $s_{i}(c)$ refers to
+    a section during a cycle $c$):'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*动态提示* 是一系列文本部分 $P=[s_{0},s_{1},...,s_{n}]$，其中每个部分 $s_{i}$ 是以下之一（其中 $s_{i}(c)$
+    表示周期 $c$ 中的部分）：'
+- en: •
+  id: totrans-63
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A *static section*, which remains the same across all cycles, i.e., $s_{i}(c)=s_{i}(c^{\prime})$
+    for all $c,c^{\prime}$.
+  id: totrans-64
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一个*静态部分*，在所有周期中保持不变，即对于所有 $c,c^{\prime}$，有 $s_{i}(c)=s_{i}(c^{\prime})$。
+- en: •
+  id: totrans-65
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A *dynamic section*, which may differ across cycles, i.e., there may exist $c,c^{\prime}$
+    with $s_{i}(c)\neq s_{i}(c^{\prime})$.
+  id: totrans-66
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一个*动态部分*，在不同周期中可能有所不同，即可能存在 $c,c^{\prime}$，使得 $s_{i}(c)\neq s_{i}(c^{\prime})$。
+- en: III-C Dynamic Prompting of the Repair Agent
+  id: totrans-67
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-C 动态提示修复代理
+- en: 'TABLE I: Sections of the dynamically updated prompt.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 I：动态更新提示的各个部分。
+- en: '|         Prompt section |         Nature |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '|         提示部分 |         性质 |'
+- en: '| --- | --- |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '|         Role |         Static |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '|         角色 |         静态 |'
+- en: '|         Goals |         Static |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '|         目标 |         静态 |'
+- en: '|         Guidelines |         Static |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '|         指南 |         静态 |'
+- en: '|         State description |         Dynamic |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '|         状态描述 |         动态 |'
+- en: '|         Available tools |         Dynamic |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '|         可用工具 |         动态 |'
+- en: '|         Gathered information |         Dynamic |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '|         收集到的信息 |         动态 |'
+- en: '|         Specification of output format |         Static |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '|         输出格式的规范 |         静态 |'
+- en: '|         Last executed command and result |         Dynamic |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '|         上次执行的命令及其结果 |         动态 |'
+- en: 'The repair agent is an LLM trained on natural language and source code, such
+    as GPT-3.5. RepairAgent queries the LLM with a dynamic prompt that consists of
+    a sequence of static and dynamic sections, as listed in Table [I](https://arxiv.org/html/2403.17134v2#S3.T1
+    "TABLE I ‣ III-C Dynamic Prompting of the Repair Agent ‣ III Approach ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair"). We describe each section
+    in detail in the following.'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '修复代理是一个经过自然语言和源代码训练的 LLM，如 GPT-3.5。RepairAgent 使用一个动态提示查询 LLM，该提示由静态部分和动态部分组成，如表
+    [I](https://arxiv.org/html/2403.17134v2#S3.T1 "TABLE I ‣ III-C Dynamic Prompting
+    of the Repair Agent ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent
+    for Program Repair") 中所列。我们在下面详细描述每个部分。'
+- en: III-C1 Role
+  id: totrans-80
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C1 角色
+- en: 'This section of the prompt defines the agent’s area of expertise, which is
+    to resolve bugs in Java code, and outlines the agent’s primary objective: understanding
+    and fixing bugs. The prompt emphasizes that the agent’s decision-making process
+    is autonomous and should not rely on user assistance.'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一部分提示定义了代理的专业领域，即解决 Java 代码中的 bug，并概述了代理的主要目标：理解并修复 bug。提示强调代理的决策过程是自主的，不应依赖用户的帮助。
+- en: III-C2 Goals
+  id: totrans-82
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C2 目标
+- en: 'We define five goals for the agent to pursue, which remain the same across
+    all cycles:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们定义了五个目标供代理执行，这些目标在所有周期中保持不变：
+- en: •
+  id: totrans-84
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Locate the bug:* Execute tests and use fault localization techniques to pinpoint
+    the bug’s location. Skip this goal when fault localization information is already
+    provided in the prompt.'
+  id: totrans-85
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*定位 bug：* 执行测试并使用故障定位技术来确定 bug 的位置。如果在提示中已经提供了故障定位信息，则跳过此目标。'
+- en: •
+  id: totrans-86
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Gather information about the bug:* Analyze the lines of code associated with
+    the bug to understand the bug.'
+  id: totrans-87
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*收集有关 bug 的信息：* 分析与 bug 相关的代码行以理解 bug。'
+- en: •
+  id: totrans-88
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Suggest simple fixes to the bug:* Start by suggesting simple fixes.'
+  id: totrans-89
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*建议简单的修复方法：* 首先建议简单的修复方法。'
+- en: •
+  id: totrans-90
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Suggest complex fixes:* If simple fixes prove ineffective, explore and propose
+    more complex ones.'
+  id: totrans-91
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*建议复杂的修复方法：* 如果简单的修复无效，探索并提出更复杂的修复方法。'
+- en: •
+  id: totrans-92
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Iterate over the previous goals:* Continue to gather information and to suggest
+    fixes until finding a fix.'
+  id: totrans-93
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*遍历之前的目标：* 继续收集信息并建议修复，直到找到有效的修复方法。'
+- en: III-C3 Guidelines
+  id: totrans-94
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C3 指南
+- en: We provide a set of guidelines. First, we inform the model that there are diverse
+    kinds of bugs, ranging from single-line issues to multi-line bugs that may entail
+    changing, removing, or adding lines. Based on the observation that many bugs can
+    be fixed by relatively simple, recurring fix patterns [[31](https://arxiv.org/html/2403.17134v2#bib.bib31)],
+    we provide a list of recurring fix patterns. The list is based on the patterns
+    described in prior work on single-statement bugs in Java [[31](https://arxiv.org/html/2403.17134v2#bib.bib31)].
+    For each pattern, we provide a short natural language description and an example
+    of buggy and fixed code. Second, we instruct the model to insert comments above
+    the modified code, which serves two purposes. On the one hand, the comments allow
+    the model to explain its reasoning, which has been shown to enhance the reasoning
+    abilities of LLMs [[32](https://arxiv.org/html/2403.17134v2#bib.bib32)]. On the
+    other hand, commenting will ultimately help human developers in understanding
+    the nature of the edits. Third, we instruct the model to conclude its reasoning
+    with a clearly defined next step that can be translated into a call to a tool.
+    Finally, we describe that there is a limited budget of tool invocations, highlighting
+    the importance of efficiency in selecting the next steps. Specifically, we specify
+    a maximum number of cycles (40 by default).
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提供了一套指导原则。首先，我们告知模型存在多种类型的错误，从单行问题到可能涉及更改、删除或添加行的多行错误。基于观察到许多错误可以通过相对简单、反复出现的修复模式解决[[31](https://arxiv.org/html/2403.17134v2#bib.bib31)]，我们提供了一份常见修复模式的清单。该清单基于之前关于Java中单语句错误的工作[[31](https://arxiv.org/html/2403.17134v2#bib.bib31)]。对于每个模式，我们提供了简短的自然语言描述以及错误和修复后的代码示例。其次，我们指示模型在修改后的代码上方插入注释，这有两个目的。一方面，注释使得模型能够解释其推理过程，研究表明这能增强LLM的推理能力[[32](https://arxiv.org/html/2403.17134v2#bib.bib32)]。另一方面，注释最终将帮助人类开发者理解编辑的性质。第三，我们指示模型以明确的下一步结论结束推理，这一步可以转换为对工具的调用。最后，我们描述了工具调用的预算有限，强调了在选择下一步时效率的重要性。具体来说，我们指定了最大循环次数（默认值为40）。
+- en: III-C4 State Description
+  id: totrans-96
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C4 状态描述
+- en: '![Refer to caption](img/e70e64248a412a4a7af73f1af0e50232.png)'
+  id: totrans-97
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明文字](img/e70e64248a412a4a7af73f1af0e50232.png)'
+- en: 'Figure 2: State machine to guide selection of tools.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：引导工具选择的状态机。
+- en: 'To guide the LLM agent toward using the available tools in an effective and
+    meaningful way, we define a finite state machine that constrains which tools are
+    available at a given point in time. The motivation is that we observed the LLM
+    agent to frequently get lost in aimless exploration in earlier experiments without
+    such guidance. Figure [2](https://arxiv.org/html/2403.17134v2#S3.F2 "Figure 2
+    ‣ III-C4 State Description ‣ III-C Dynamic Prompting of the Repair Agent ‣ III
+    Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair") shows
+    the finite state machine, which we design to mimic the states a human developer
+    would go through when fixing a bug. Each state is associated with a set of tools
+    available to the agent, which are described in Section [III-D](https://arxiv.org/html/2403.17134v2#S3.SS4
+    "III-D Tools for the Agent to Use ‣ III Approach ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair"). Importantly, the agent is free to transition
+    between states at any point in time by using tools. That is, despite providing
+    guidance, the state machine does not enforce a strict order of tool invocations.'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了引导LLM代理有效且有意义地使用可用工具，我们定义了一个有限状态机，来限制在给定时间点哪些工具是可用的。我们的动机是，因为在早期实验中我们观察到，缺乏此类引导时，LLM代理经常在无目的的探索中迷失。图[2](https://arxiv.org/html/2403.17134v2#S3.F2
+    "Figure 2 ‣ III-C4 State Description ‣ III-C Dynamic Prompting of the Repair Agent
+    ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")展示了有限状态机，它的设计旨在模拟人类开发者在修复错误时经历的各个状态。每个状态与一组可用的工具相关联，这些工具在[III-D](https://arxiv.org/html/2403.17134v2#S3.SS4
+    "III-D Tools for the Agent to Use ‣ III Approach ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair")节中进行了描述。值得注意的是，代理可以通过使用工具在任何时间点自由地在状态之间转换。也就是说，尽管提供了引导，状态机并不强制执行工具调用的严格顺序。'
+- en: 'The state description section of the prompt informs the agent about its current
+    state:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提示中的状态描述部分会告知代理其当前状态：
+- en: •
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Understand the bug*: The agent starts in this state, where it can collect
+    information related to the failing test cases and the bug’s location. Once the
+    agent has an understanding of the bug, it formulates a hypothesis to describe
+    the nature of the bug and the reason behind it. Throughout the repair process,
+    the agent may refute earlier hypotheses and express new ones. After expressing
+    a hypothesis, the agent will automatically switch to the next state.'
+  id: totrans-102
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*理解bug*：智能体从这个状态开始，在此状态下它可以收集与失败的测试用例和bug位置相关的信息。一旦智能体理解了bug，它会形成一个假设来描述bug的性质及其背后的原因。在整个修复过程中，智能体可能会驳斥早期的假设，并提出新的假设。在表达假设后，智能体会自动切换到下一个状态。'
+- en: •
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Collect information to fix the bug*: In this state the agent collects information
+    that help suggest a fix for the bug expressed by the hypothesis, e.g., by searching
+    for specific repair ingredients or by reading possibly relevant code. Once the
+    agent has gathered enough information to attempt a fix, it can transition to the
+    next state.'
+  id: totrans-104
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*收集修复bug的信息*：在这个状态下，智能体收集有助于为假设所描述的bug建议修复的方法的信息，例如，通过搜索特定的修复成分或读取可能相关的代码。一旦智能体收集到足够的信息来尝试修复，它就可以过渡到下一个状态。'
+- en: •
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: '*Try to fix the bug*: In this state, the agent tries to fix the bug based on
+    its current hypothesis and the collected information. Each fix attempt modifies
+    the code base and is validated by executing the test cases. If necessarily, the
+    agent can go back to one of the previous states to establish a new hypothesis
+    or to gather additional information.'
+  id: totrans-106
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '*尝试修复bug*：在这个状态下，智能体会基于当前的假设和收集到的信息尝试修复bug。每次修复尝试都会修改代码库，并通过执行测试用例进行验证。如有必要，智能体可以回到之前的某个状态，重新建立新的假设或收集额外的信息。'
+- en: In addition to the three above states, RepairAgent has a final state, *“Done”*,
+    which the agent can reach by calling a specific command that indicates the success
+    of repair.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了上述三个状态，RepairAgent 还有一个最终状态，*“完成”*，智能体可以通过调用一个特定命令来表示修复成功，从而达到该状态。
+- en: III-C5 Available Tools
+  id: totrans-108
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C5 可用工具
+- en: 'This section of the prompt describes a set of tools that the agent can call
+    at the current state. Each tool has a name, a description, and a set of typed
+    arguments (Section [III-D](https://arxiv.org/html/2403.17134v2#S3.SS4 "III-D Tools
+    for the Agent to Use ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent
+    for Program Repair")).'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这一部分的提示描述了一组智能体在当前状态下可以调用的工具。每个工具都有一个名称、描述和一组类型化的参数（参见[III-D](https://arxiv.org/html/2403.17134v2#S3.SS4
+    "III-D 工具供智能体使用 ‣ III 方法 ‣ RepairAgent: 一种基于大语言模型的自动化程序修复智能体")）。'
+- en: III-C6 Gathered Information
+  id: totrans-110
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C6 收集到的信息
+- en: A key ability of the repair agent is to gather information about the bug and
+    the code base, which serves as the basis for deciding which commands to invoke
+    next. To make this information available to the agent, we maintain a prompt section
+    that lists the information gathered by the different tool invocations. Intuitively,
+    this section of the prompt serves as a memory for the agent, allowing it to recall
+    information from previous cycles. The gathered information is structured into
+    different subsections, where each subsection contains the outputs produced by
+    a specific tool.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复智能体的一个关键能力是收集关于bug和代码库的信息，这些信息是决定下一步调用哪些命令的基础。为了使这些信息对智能体可用，我们维护了一个提示部分，列出了不同工具调用所收集的信息。直观上，这部分提示作为智能体的记忆，使其能够回忆起之前周期的信息。收集到的信息被结构化为不同的子部分，每个子部分包含特定工具产生的输出。
+- en: III-C7 Specification of Output Format
+  id: totrans-112
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C7 输出格式的规范
+- en: '[⬇](data:text/plain;base64,aW50ZXJmYWNlIFJlc3BvbnNlIHsKICB0aG91Z2h0czogc3RyaW5nOwogIGNvbW1hbmQ6IHsKICAgIG5hbWU6IHN0cmluZzsJCiAgICBhcmdzOiBSZWNvcmQ8c3RyaW5nLCBhbnk+OwogIH07Cn0=)interface  Response  {thoughts:  string;command:  {name:  string;args:  Record<string,  any>;};}'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,aW50ZXJmYWNlIFJlc3BvbnNlIHsKICB0aG91Z2h0czogc3RyaW5nOwogIGNvbW1hbmQ6IHsKICAgIG5hbWU6IHN0cmluZzsJCiAgICBhcmdzOiBSZWNvcmQ8c3RyaW5nLCBhbnk+OwogIH07Cn0=)接口  响应  {思想:  字符串;命令:  {名称:  字符串;参数:  记录<字符串,  任意>;};}'
+- en: 'Figure 3: JSON format of the response of the model.'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：模型响应的JSON格式。
+- en: 'Given the dynamic prompt, the LLM agent provides one response per cycle. To
+    enable the middleware to parse the response, we specify the expected output format
+    (Figure [3](https://arxiv.org/html/2403.17134v2#S3.F3 "Figure 3 ‣ III-C7 Specification
+    of Output Format ‣ III-C Dynamic Prompting of the Repair Agent ‣ III Approach
+    ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")). The “thoughts”
+    field provides a textual description of the agent’s reasoning when deciding about
+    the next command. Asking the agent to express its thoughts increases the transparency
+    and interpretability of the approach, provides a way to debug potential issues
+    in the agent’s decision-making process, and helps improve the reasoning abilities
+    of LLMs [[32](https://arxiv.org/html/2403.17134v2#bib.bib32)]. The “command” field
+    specifies the next command to be executed, consisting of the name of the tool
+    to invoke and the set of arguments.'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在动态提示下，LLM代理每个周期提供一次响应。为了使中间件能够解析响应，我们指定了预期的输出格式（图[3](https://arxiv.org/html/2403.17134v2#S3.F3
+    "图3 ‣ III-C7 输出格式规范 ‣ III-C 动态提示修复代理 ‣ III 方法 ‣ RepairAgent：一种基于LLM的自动化程序修复代理")）。“thoughts”字段提供了代理在决定下一个命令时的推理过程描述。要求代理表达其想法，增加了方法的透明度和可解释性，提供了一种调试代理决策过程中的潜在问题的方式，并有助于提升LLM的推理能力[[32](https://arxiv.org/html/2403.17134v2#bib.bib32)]。“command”字段指定了下一个将执行的命令，包括要调用的工具名称和参数集。
+- en: '[⬇](data:text/plain;base64,ewogICJ0aG91Z2h0cyI6ICJXaXRoIHRoZSBoeXBvdGhlc2lzIGluIG1pbmQsCiAgaXQncyB0aW1lIHRvIGdhdGhlciBtb3JlIGluZm9ybWF0aW9uIHRvCiAgZm9ybXVsYXRlIHBvdGVudGlhbCBmaXhlcyBmb3IgdGhlIGJ1Zy4gSQogIHNob3VsZCBmb2N1cyBvbiB1bmRlcnN0YW5kaW5nIHRoZSBjb250ZXh0CiAgYXJvdW5kIHRoZSBjb25kaXRpb24KICAnaWYgKHggPCAwICYmIHByZXYgPT0gJy0nKScKICB0byBjb21lIHVwIHdpdGggZWZmZWN0aXZlIHNvbHV0aW9ucy4iLAogICJjb21tYW5kIjogewogICAgIm5hbWUiOiAic2VhcmNoX2NvZGVfYmFzZSIsCiAgICAiYXJncyI6IHsKICAJICAia2V5X3dvcmRzIjoKCQlbICJhZGROdW1iZXIiLAoJIAkgICJDb2RlQ29uc3VtZXIiLAogCQkgICJpZiAoeCA8IDAgJiYgcHJldiA9PSAnLScpIiBdCn19fQ==){"thoughts":  "With  the  hypothesis  in  mind,it’s  time  to  gather  more  information  toformulate  potential  fixes  for  the  bug.  Ishould  focus  on  understanding  the  contextaround  the  condition’if  (x  <  0  &&  prev  ==  ’-’)’to  come  up  with  effective  solutions.","command":  {"name":  "search_code_base","args":  {"key_words":[  "addNumber","CodeConsumer","if  (x  <  0  &&  prev  ==  ’-’)"  ]}}}'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,ewogICJ0aG91Z2h0cyI6ICJXaXRoIHRoZSBoeXBvdGhlc2lzIGluIG1pbmQsCiAgaXQncyB0aW1lIHRvIGdhdGhlciBtb3JlIGluZm9ybWF0aW9uIHRvCiAgZm9ybXVsYXRlIHBvdGVudGlhbCBmaXhlcyBmb3IgdGhlIGJ1Zy4gSQogIHNob3VsZCBmb2N1cyBvbiB1bmRlcnN0YW5kaW5nIHRoZSBjb250ZXh0CiAgYXJvdW5kIHRoZSBjb25kaXRpb24KICAnaWYgKHggPCAwICYmIHByZXYgPT0gJy0nKScKICB0byBjb21lIHVwIHdpdGggZWZmZWN0aXZlIHNvbHV0aW9ucy4iLAogICJjb21tYW5kIjogewogICAgIm5hbWUiOiAic2VhcmNoX2NvZGVfYmFzZSIsCiAgICAiYXJncyI6IHsKICAJICAia2V5X3dvcmRzIjoKCQlbICJhZGROdW1iZXIiLAoJIAkgICJDb2RlQ29uc3VtZXIiLAogCQkgICJpZiAoeCA8IDAgJiYgcHJldiA9PSAnLScpIiBdCn19fQ==){"thoughts":  "有了这个假设，现在是时候收集更多的信息，以便为这个
+    bug 制定潜在的修复方法。我应该专注于理解条件‘if (x < 0 && prev == ’-’)’的上下文，从而提出有效的解决方案。","command":  {"name":  "search_code_base","args":  {"key_words":[  "addNumber","CodeConsumer","if  (x  <  0  &&  prev  ==  ’-’)"  ]}}}'
+- en: 'Figure 4: Example of a response of the repair agent.'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：修复代理响应示例。
+- en: 'For example, Figure [4](https://arxiv.org/html/2403.17134v2#S3.F4 "Figure 4
+    ‣ III-C7 Specification of Output Format ‣ III-C Dynamic Prompting of the Repair
+    Agent ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program
+    Repair") shows a response of the LLM agent. The model expresses the need to collect
+    more information to understand the bug and suggests a command that searches the
+    code base with a list of keywords.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，图[4](https://arxiv.org/html/2403.17134v2#S3.F4 "图4 ‣ III-C7 输出格式规范 ‣ III-C
+    动态提示修复代理 ‣ III 方法 ‣ RepairAgent：一种基于LLM的自动化程序修复代理")展示了LLM代理的响应。模型表达了需要收集更多信息来理解该bug，并建议使用一组关键词搜索代码库的命令。
+- en: III-C8 Last Executed Command and Result
+  id: totrans-119
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C8 最后执行的命令和结果
+- en: This section of the prompt contains the last command (tool name and arguments)
+    that was executed (if any) and the output it produced. The rationale is to remind
+    the agent of the last step it took, and to make it aware of any problems that
+    occurred during the execution of the command. Furthermore, we remind the agent
+    how many cycles have already been executed, and how many cycles are left.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该提示的这一部分包含了最后执行的命令（工具名称和参数）（如果有的话）及其产生的输出。其目的是提醒代理上一步所执行的操作，并使其意识到在执行命令过程中可能出现的问题。此外，我们还提醒代理已执行了多少个周期，剩余多少个周期。
+- en: III-D Tools for the Agent to Use
+  id: totrans-121
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-D 代理使用的工具
+- en: 'A key novelty in our approach is to let an LLM agent autonomously decide which
+    tools to invoke to fix a bug. The tools we provide to the agent (Table [II](https://arxiv.org/html/2403.17134v2#S3.T2
+    "TABLE II ‣ III-D Tools for the Agent to Use ‣ III Approach ‣ RepairAgent: An
+    Autonomous, LLM-Based Agent for Program Repair")) are inspired by the tools that
+    developers use in their IDEs.'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们方法的一个关键创新在于让 LLM 代理自主决定调用哪些工具来修复 bug。我们为代理提供的工具（表[II](https://arxiv.org/html/2403.17134v2#S3.T2
+    "TABLE II ‣ III-D Tools for the Agent to Use ‣ III Approach ‣ RepairAgent: An
+    Autonomous, LLM-Based Agent for Program Repair")）灵感来自开发者在其 IDE 中使用的工具。'
+- en: 'TABLE II: Repair-related tools invoked by RepairAgent.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 II：RepairAgent 调用的与修复相关的工具。
+- en: '| Tool | Description |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| 工具 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Read and extract code: |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| 读取并提取代码： |'
+- en: '| *read_range* | Read a range of lines in a file. |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| *read_range* | 读取文件中的一段行。 |'
+- en: '| *get_classes_and_methods* | Get the names of all classes and methods in a
+    file. |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| *get_classes_and_methods* | 获取文件中所有类和方法的名称。 |'
+- en: '| *extract_method* | Given a method name, extract method implementations from
+    a file. |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| *extract_method* | 给定一个方法名，从文件中提取方法实现。 |'
+- en: '| *extract_tests* | Given the failure report from JUnit or ANT, extract the
+    code of failing test cases. |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| *extract_tests* | 给定来自 JUnit 或 ANT 的失败报告，提取失败的测试用例代码。 |'
+- en: '| Search and generate code: |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| 搜索并生成代码： |'
+- en: '| *search_code_base* | Scans all Java files within a project for a list of
+    keywords. |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| *search_code_base* | 扫描项目中的所有 Java 文件以查找关键词列表。 |'
+- en: '| *find_similar_api _calls* | Given a code snippet that calls an API, search
+    for similar API calls in the project. |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| *find_similar_api_calls* | 给定一个调用 API 的代码片段，搜索项目中相似的 API 调用。 |'
+- en: '| *generate_method_body* | Ask an LLM (GPT3.5 by default) to generate the body
+    of a method based on code proceeding the method. |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| *generate_method_body* | 请求 LLM（默认使用 GPT3.5）基于方法前面的代码生成方法体。 |'
+- en: '| Testing and patching: |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| 测试和修补： |'
+- en: '| *run_tests* | Run the test suite of a project. |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| *run_tests* | 运行项目的测试套件。 |'
+- en: '| *run_fault_localization* | Retrieve pre-existing localization information
+    or run a fault localization tool. |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| *run_fault_localization* | 获取现有的定位信息或运行故障定位工具。 |'
+- en: '| *write_fix* | Apply a patch to the code base and execute the test suite of
+    the project. Changes are reverted automatically if tests fail. Moves the agent
+    into the ’Try to fix the bug’ state. |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| *write_fix* | 对代码库应用修复补丁，并执行项目的测试套件。如果测试失败，改动会被自动撤销。将代理移到“尝试修复 bug”状态。 |'
+- en: '| Control: |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| 控制： |'
+- en: '| *express_hypothesis* | Express a hypothesis about the bug. Moves the agent
+    into the ’Collect information to fix the bug’ state. |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| *express_hypothesis* | 表达一个关于 bug 的假设。将代理移动到“收集信息以修复 bug”状态。 |'
+- en: '| *collect_more_information* | Move the agent back to the ’Collect information
+    to fix the bug’ state. |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| *collect_more_information* | 将代理移回到“收集信息以修复 bug”状态。 |'
+- en: '| *discard_hypothesis* | Discard the current hypothesis about the bug and move
+    back to the ’Understand the bug’ state. |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| *discard_hypothesis* | 丢弃当前关于 bug 的假设并返回到“理解 bug”状态。 |'
+- en: '| *goal_accomplished* | Declare that the goal has been accomplished and exiting
+    the repair process. |'
+  id: totrans-143
+  prefs: []
+  type: TYPE_TB
+  zh: '| *goal_accomplished* | 声明目标已完成，并退出修复过程。 |'
+- en: III-D1 Reading and Extracting Code
+  id: totrans-144
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-D1 代码读取与提取
+- en: A prerequisite for fixing a bug is to read and understand relevant parts of
+    the code base. Instead of hard-coding the context provided to the LLM [[19](https://arxiv.org/html/2403.17134v2#bib.bib19),
+    [20](https://arxiv.org/html/2403.17134v2#bib.bib20), [21](https://arxiv.org/html/2403.17134v2#bib.bib21)],
+    we let the agent decide which parts of the code to read, based on four tools.
+    The *read_range* tool allows the agent to extract a range of lines from a specific
+    file, which is useful to obtain a focused view of a particular section of code.
+    To obtain an overview of the code structure, the *get_classes_and_methods* tool
+    retrieves all class and method names within a given file. By invoking the *extract_method*
+    tool, the agent can retrieve the implementation(s) of methods that match a given
+    method name within a given file. Finally, we offer the *extract_tests* tool, which
+    extracts the code of test cases that resulted in failure. The tool is crucial
+    to understand details of failing tests, such as input values and the expected
+    output.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复 bug 的前提是阅读并理解代码库中的相关部分。我们并不是将提供给 LLM 的上下文硬编码[[19](https://arxiv.org/html/2403.17134v2#bib.bib19)、[20](https://arxiv.org/html/2403.17134v2#bib.bib20)、[21](https://arxiv.org/html/2403.17134v2#bib.bib21)]，而是让智能体根据四个工具来决定读取代码的哪些部分。*read_range*
+    工具允许智能体从特定文件中提取一段代码行，这对于获取特定代码片段的集中视图非常有用。为了获得代码结构的概览，*get_classes_and_methods*
+    工具可以检索给定文件中的所有类名和方法名。通过调用 *extract_method* 工具，智能体可以提取与给定方法名匹配的实现（如果在给定文件中有多个实现）。最后，我们提供了
+    *extract_tests* 工具，能够提取导致测试失败的测试用例代码。该工具对于理解失败测试的细节至关重要，例如输入值和预期输出。
+- en: III-D2 Search and generate code
+  id: totrans-146
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-D2 搜索并生成代码
+- en: Motivated by the fact that human developers commonly search for code [[33](https://arxiv.org/html/2403.17134v2#bib.bib33)],
+    we present tools that allow the agent to search for specific code snippets. These
+    tools are useful for the agent to better understand the context of a bug and to
+    gather repair ingredients, i.e., code fragments that could become part of a fix.
+    The *search_code_base* tool enables the agent to locate instances of particular
+    keywords within the entire code base. For example, the agent can use this tool
+    to find occurrences of variables, methods, and classes. Given a set of keywords,
+    the tool performs an approximate matching against all source code files in the
+    project. Specifically, the tool splits each keyword into subtokens based on camel
+    case, underscores, and periods, and then searches for each subtoken in the code.
+    For example, searching for quickSortArray yields matches for sortArray, quickSort,
+    arrayQuickSort, and other related variations. The output of the tool is a nested
+    dictionary, organized by file names, classes, and method names, that provides
+    the keywords that match a method’s content. Another search tool, *find_similar_api_calls*,
+    allows the agent to identify and extract usages of a method, which is useful to
+    fix incorrect method calls. Without such a tool, LLMs tend to hallucinate method
+    calls that do not exist in the code base [[34](https://arxiv.org/html/2403.17134v2#bib.bib34)].
+    Given a code snippet that contains a method call, the tool extracts the name of
+    the called method, and then searches for calls to methods with the same name.
+    The agent can restrict the search to a specific file or search the entire code
+    base.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 受到人类开发者通常会搜索代码的事实[[33](https://arxiv.org/html/2403.17134v2#bib.bib33)]的启发，我们提出了允许智能体搜索特定代码片段的工具。这些工具对于智能体更好地理解
+    bug 的上下文并收集修复所需的元素（即可能成为修复一部分的代码片段）非常有用。*search_code_base* 工具使智能体能够在整个代码库中定位特定关键词的实例。例如，智能体可以使用该工具查找变量、方法和类的出现位置。给定一组关键词，工具会对项目中的所有源代码文件进行近似匹配。具体来说，工具会根据驼峰命名法、下划线和句点将每个关键词拆分成子符号，然后在代码中搜索每个子符号。例如，搜索
+    quickSortArray 会匹配到 sortArray、quickSort、arrayQuickSort 以及其他相关的变体。该工具的输出是一个嵌套字典，按文件名、类名和方法名组织，提供与方法内容匹配的关键词。另一个搜索工具
+    *find_similar_api_calls* 允许智能体识别并提取方法的使用情况，这对于修复不正确的方法调用非常有用。如果没有这样的工具，LLMs 往往会虚构不存在于代码库中的方法调用[[34](https://arxiv.org/html/2403.17134v2#bib.bib34)]。给定一个包含方法调用的代码片段，工具会提取被调用方法的名称，然后搜索调用相同方法的所有实例。智能体可以限制搜索范围到特定文件，也可以搜索整个代码库。
+- en: In addition to searching for existing code, RepairAgent offers a tool that generates
+    new code by invoking another LLM. The tool is inspired by the success of LLM-based
+    code completion tools, such as Copilot [[35](https://arxiv.org/html/2403.17134v2#bib.bib35)],
+    which human developers increasingly use when fixing bugs. Given the code preceding
+    a method and the signature of the method, the *generate_method_body* tool asks
+    an LLM to generate the body of the method. The query to the code-generating LLM
+    is independent of the dynamic prompt used by the overall RepairAgent approach,
+    and may use a different model. In our evaluation, we use the same LLM for both
+    the repair agent and as the code-generating LLM of this tool. The tool limits
+    the given code context to 12k tokens and sets a limit of 4k tokens for the generated
+    code.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了搜索现有的代码，RepairAgent 还提供了一个工具，通过调用另一个 LLM 来生成新代码。该工具的灵感来源于基于 LLM 的代码补全工具的成功，例如
+    Copilot [[35](https://arxiv.org/html/2403.17134v2#bib.bib35)]，人类开发人员在修复 bug 时越来越多地使用这些工具。给定一个方法之前的代码和该方法的签名，*generate_method_body*
+    工具会请求 LLM 生成该方法的代码体。向代码生成 LLM 提出的查询独立于整个 RepairAgent 方法所使用的动态提示，并且可能使用不同的模型。在我们的评估中，我们对修复代理和该工具的代码生成
+    LLM 使用相同的 LLM。该工具将给定的代码上下文限制为 12k tokens，并将生成的代码限制为 4k tokens。
+- en: III-D3 Testing and Patching
+  id: totrans-149
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-D3 测试与补丁
+- en: 'The next category of tools is related to running tests and applying patches.
+    The *run_tests* tool allows the agent to execute the test suite of the project.
+    It produces a report that indicates whether the tests passed or failed. In case
+    of test failures, the tool cleans the output of the test runner, e.g., by removing
+    entries of the stack trace that are outside of the current project. The rationale
+    is that LLMs have a limited prompt size and that irrelevant information may confuse
+    the model. The *run_fault_localization* tool retrieves fault localization information,
+    which is useful to understand which parts of the code are likely to contain the
+    bug. RepairAgent offers two variants of this tool: Either, it provides perfect
+    fault localization information or it invokes an existing fault localization tool,
+    such as GZoltar [[36](https://arxiv.org/html/2403.17134v2#bib.bib36)], to calculate
+    fault localization scores. In case of perfect fault localization, the tool provides
+    all the file(s) and line(s) that need to be edited to fix the bug. As common in
+    the field of program repair, we assume perfect fault localization as the default.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一个类别的工具与运行测试和应用补丁相关。*run_tests* 工具允许代理执行项目的测试套件。它会生成一个报告，指示测试是通过还是失败。如果测试失败，工具会清理测试运行器的输出，例如通过移除当前项目之外的堆栈跟踪条目。其理由是
+    LLM 有有限的提示大小，且不相关的信息可能会混淆模型。*run_fault_localization* 工具检索故障定位信息，这对于理解哪些代码部分可能包含
+    bug 非常有用。RepairAgent 提供了该工具的两种变体：一种提供完美的故障定位信息，另一种则调用现有的故障定位工具，例如 GZoltar [[36](https://arxiv.org/html/2403.17134v2#bib.bib36)]，来计算故障定位得分。在完美故障定位的情况下，工具提供所有需要编辑的文件和行，以修复
+    bug。与程序修复领域常见的做法一样，我们假设完美故障定位为默认设置。
+- en: '[⬇](data:text/plain;base64,WwogIHsKICAgICJmaWxlX3BhdGgiOiAiamZyZWUvZGF0YS90aW1lL1dlZWsuamF2YSIsCiAgICAiaW5zZXJ0aW9ucyI6IFsKICAgICAgewogICAgICAibGluZV9udW1iZXIiOiAxNzUsCiAgICAgICJuZXdfbGluZXMiOiBbCiAgICAgICIvLyAuLi5uZXcgbGluZXMgdG8gaW5zZXJ0Li4uXG4iLAogICAgICAiLy8gLi4ubW9yZSBuZXcgbGluZXMuLi5cbiJdCiAgICAgIH0KICAgIF0sCiAgICAiZGVsZXRpb25zIjogWzE3OSwgMTgzXSwKICAgICJtb2RpZmljYXRpb25zIjogWwogICAgICB7CiAgICAgICJsaW5lX251bWJlciI6IDE3OSwKICAgICAgIm1vZGlmaWVkX2xpbmUiOiAiICAgIGlmIChkYXRhc2V0ID09IG51bGwpIHtcbiIKICAgICAgfQogICAgXQogIH0sCiAgewogICAgImZpbGVfcGF0aCI6ICJvcmcvamZyZWUvZGF0YS90aW1lL0RheS5qYXZhIiwKICAgICJpbnNlcnRpb25zIjogW10sCiAgICAiZGVsZXRpb25zIjogWzMwN10sCiAgICAibW9kaWZpY2F0aW9ucyI6IFtdCiAgfQpd)[{"file_path":  "jfree/data/time/Week.java","insertions":  [{"line_number":  175,"new_lines":  ["//  ...new  lines  to  insert...\n","//  ...more  new  lines...\n"]}],"deletions":  [179,  183],"modifications":  [{"line_number":  179,"modified_line":  "  if  (dataset  ==  null)  {\n"}]},{"file_path":  "org/jfree/data/time/Day.java","insertions":  [],"deletions":  [307],"modifications":  []}'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,WwogIHsKICAgICJmaWxlX3BhdGgiOiAiamZyZWUvZGF0YS90aW1lL1dlZWsuamF2YSIsCiAgICAiaW5zZXJ0aW9ucyI6IFsKICAgICAgewogICAgICAibGluZV9udW1iZXIiOiAxNzUsCiAgICAgICJuZXdfbGluZXMiOiBbCiAgICAgICIvLyAuLi5uZXcgbGluZXMgdG8gaW5zZXJ0Li4uXG4iLAogICAgICAiLy8gLi4ubW9yZSBuZXcgbGluZXMuLi5cbiJdCiAgICAgIH0KICAgIF0sCiAgICAiZGVsZXRpb25zIjogWzE3OSwgMTgzXSwKICAgICJtb2RpZmljYXRpb25zIjogWwogICAgICB7CiAgICAgICJsaW5lX251bWJlciI6IDE3OSwKICAgICAgIm1vZGlmaWVkX2xpbmUiOiAiICAgIGlmIChkYXRhc2V0ID09IG51bGwpIHtcbiIKICAgICAgfQogICAgXQogIH0sCiAgewogICAgImZpbGVfcGF0aCI6ICJvcmcvamZyZWUvZGF0YS90aW1lL0RheS5qYXZhIiwKICAgICJpbnNlcnRpb25zIjogW10sCiAgICAiZGVsZXRpb25zIjogWzMwN10sCiAgICAibW9kaWZpY2F0aW9ucyI6IFtdCiAgfQpd)[{"file_path":  "jfree/data/time/Week.java","insertions":  [{"line_number":  175,"new_lines":  ["//  ...new  lines  to  insert...\n","//  ...more  new  lines...\n"]}],"deletions":  [179,  183],"modifications":  [{"line_number":  179,"modified_line":  "  if  (dataset  ==  null)  {\n"}]},{"file_path":  "org/jfree/data/time/Day.java","insertions":  [],"deletions":  [307],"modifications":  []}'
+- en: 'Figure 5: Example of patch given to the *write_fix* tool.'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：*write_fix* 工具给出的补丁示例。
+- en: 'Once the agent has gathered sufficient information to fix the bug, it can apply
+    a patch to the code base using the *write_fix* tool. RepairAgent aims at repairing
+    arbitrarily complex bugs, including multi-line and even multi-file bugs. The *write_fix*
+    tool expects a patch in a specific JSON format, which indicates the insertions,
+    deletions, and modifications to be made in each file. Figure [5](https://arxiv.org/html/2403.17134v2#S3.F5
+    "Figure 5 ‣ III-D3 Testing and Patching ‣ III-D Tools for the Agent to Use ‣ III
+    Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair") shows
+    an example of a patch in this format. Given a patch, the tool applies the changes
+    to the code base and runs the test suite. If the tests fail, the *write_fix* reverts
+    the changes, giving the agent a clean code base to try another fix. Motivated
+    by the observation that some fix attempts are almost correct, the *write_fix*
+    tool requests the LLM to sample multiple variants of the suggested fix. By default,
+    RepairAgent samples 30 variants at max. Given the generated variants, the approach
+    removes duplicates and launches tests for every variant.'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦代理收集到足够的信息以修复 bug，它可以使用 *write_fix* 工具对代码库应用补丁。RepairAgent 旨在修复各种复杂的 bug，包括多行甚至多文件的
+    bug。*write_fix* 工具期望补丁采用特定的 JSON 格式，该格式指示每个文件中要进行的插入、删除和修改。图 [5](https://arxiv.org/html/2403.17134v2#S3.F5
+    "图 5 ‣ III-D3 测试和补丁 ‣ III-D 工具供代理使用 ‣ III 方法 ‣ RepairAgent：一个基于 LLM 的自主程序修复代理")
+    显示了该格式的一个补丁示例。给定一个补丁，工具将这些更改应用到代码库并运行测试套件。如果测试失败，*write_fix* 会还原更改，给代理提供一个干净的代码库来尝试其他修复。受观察到某些修复尝试几乎正确的启发，*write_fix*
+    工具会请求 LLM 生成多种变体的修复建议。默认情况下，RepairAgent 最多会采样 30 个变体。根据生成的变体，该方法会去除重复项并为每个变体启动测试。
+- en: III-D4 Control
+  id: totrans-154
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-D4 控制
+- en: 'The final set of tools do not directly correspond to a tool a human developer
+    may use, but rather allow the agent to move between states (Figure [2](https://arxiv.org/html/2403.17134v2#S3.F2
+    "Figure 2 ‣ III-C4 State Description ‣ III-C Dynamic Prompting of the Repair Agent
+    ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")).
+    The *express_hypothesis* tool empowers the agent to articulate a hypothesis regarding
+    the nature of the bug and to transition to the ’Collect information to fix the
+    bug’ state. Inversely, the *discard_hypothesis* tool allows the agent to discard
+    a hypothesis that is no longer viable, which leads back to the ’Understand the
+    bug’ state. Together, the two commands enforce a structured approach to hypothesis
+    formulation, aligning with work on scientific debugging [[37](https://arxiv.org/html/2403.17134v2#bib.bib37),
+    [20](https://arxiv.org/html/2403.17134v2#bib.bib20)]. In case the agent has tried
+    multiple fixes without success, the *collect_more_information* tool allows the
+    agent to revert to the ’Collect information to fix the bug’ state. Finally, once
+    the agent has found at least one fix that passes all tests, it can invoke the
+    *goal_accomplished* tool, which terminates RepairAgent.'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终的工具集并不直接对应人类开发者可能使用的工具，而是允许代理在不同状态之间切换（图[2](https://arxiv.org/html/2403.17134v2#S3.F2
+    "图 2 ‣ III-C4 状态描述 ‣ III-C RepairAgent的动态提示 ‣ III 方法 ‣ RepairAgent：一个基于LLM的自动程序修复代理")）。*express_hypothesis*工具使代理能够表达关于bug性质的假设，并过渡到“收集信息以修复bug”状态。反之，*discard_hypothesis*工具使代理能够放弃不再可行的假设，从而回到“理解bug”状态。两者结合起来，强制执行了一种结构化的假设制定方法，与科学调试工作[[37](https://arxiv.org/html/2403.17134v2#bib.bib37),
+    [20](https://arxiv.org/html/2403.17134v2#bib.bib20)]相一致。如果代理已经尝试了多种修复方案但未成功，*collect_more_information*工具允许代理回到“收集信息以修复bug”状态。最后，一旦代理找到至少一种通过所有测试的修复，它可以调用*goal_accomplished*工具，终止RepairAgent。
+- en: III-E Middleware
+  id: totrans-156
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-E 中间件
+- en: 'The middleware component plays a crucial role in RepairAgent, orchestrating
+    the communication between the LLM agent and the tools. It performs the steps in
+    Definition [1](https://arxiv.org/html/2403.17134v2#Thmdefinition1 "Definition
+    1 (Cycle). ‣ III-B Terminology ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based
+    Agent for Program Repair") as described in the following.'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 中间件组件在RepairAgent中发挥着至关重要的作用，负责协调LLM代理与工具之间的通信。它执行定义[1](https://arxiv.org/html/2403.17134v2#Thmdefinition1
+    "定义 1（周期）。 ‣ III-B 术语 ‣ III 方法 ‣ RepairAgent：一个基于LLM的自动程序修复代理")中所描述的步骤，如下所示。
+- en: III-E1 Parsing and Refining LLM Output
+  id: totrans-158
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-E1 解析和优化LLM输出
+- en: 'At the beginning of each cycle, the middleware queries the LLM with the current
+    prompt. Ideally, the response adheres perfectly to the expected format (Figure [3](https://arxiv.org/html/2403.17134v2#S3.F3
+    "Figure 3 ‣ III-C7 Specification of Output Format ‣ III-C Dynamic Prompting of
+    the Repair Agent ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent
+    for Program Repair")). In practice, the LLM may produce responses that deviate
+    from the expected format, e.g., due to hallucinations or syntactic errors. For
+    example, the LLM may provide a “path” argument while the tool expects a “file_path”
+    argument.'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每个周期的开始，中间件会向LLM查询当前的提示。理想情况下，LLM的响应应完全符合预期的格式（图[3](https://arxiv.org/html/2403.17134v2#S3.F3
+    "图 3 ‣ III-C7 输出格式规范 ‣ III-C RepairAgent的动态提示 ‣ III 方法 ‣ RepairAgent：一个基于LLM的自动程序修复代理")）。实际上，LLM可能会产生偏离预期格式的响应，例如由于幻觉或语法错误。例如，LLM可能提供一个“path”参数，而工具却期望一个“file_path”参数。
+- en: RepairAgent tries to heuristically rectify such issues by mapping the output
+    to the expected format in three steps. First, it tries to map the tool mentioned
+    in the response to one of the available tools. Specifically, the approach checks
+    if the predicted tool name $n_{\mathit{predicted}}$ is a substring of the name
+    of any available tool $n_{\mathit{actual}}$, or vice versa, and if yes, considers
+    $n_{\mathit{actual}}$ to be the desired tool. In case the above matching fails,
+    the approach checks if the Levenshtein distance between $n_{\mathit{predicted}}$
+    and any $n_{\mathit{actual}}$ is below a threshold (0.1 by default). Second, the
+    approach tries to map the argument names provided in the response to the tool’s
+    arguments, following the same logic as above. Third, the approach handles invalid
+    argument values by heuristically mapping or replacing them, e.g., by replacing
+    a predicted file path with a valid one. If the heuristics fail or produce multiple
+    possible tool invocations, the middleware informs the LLM about the issue via
+    the “Last executed command and result” prompt section and enters a new cycle.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RepairAgent通过三步启发式地修正这些问题，将输出映射到预期格式。首先，它尝试将响应中提到的工具映射到可用工具之一。具体而言，该方法检查预测的工具名称$n_{\mathit{predicted}}$是否是任何可用工具名称$n_{\mathit{actual}}$的子字符串，反之亦然，如果是，它将$n_{\mathit{actual}}$视为所需工具。如果上述匹配失败，该方法会检查$n_{\mathit{predicted}}$与任何$n_{\mathit{actual}}$之间的Levenshtein距离是否低于阈值（默认值为0.1）。第二，该方法尝试将响应中提供的参数名称映射到工具的参数，遵循与上述相同的逻辑。第三，该方法通过启发式地映射或替换无效的参数值来处理，例如，通过用有效的文件路径替换预测的文件路径。如果启发式方法失败或产生多个可能的工具调用，中间件会通过“最后执行的命令和结果”提示部分通知LLM有关问题，并进入新一轮循环。
+- en: In addition to rectifying minor mistakes in the response, the middleware also
+    checks for repeated invocations of the same tool with the same arguments. If the
+    agent suggests the exact same command as in a previous cycle, the middleware informs
+    the agent about the repetition and enters a new cycle.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了修正响应中的小错误外，中间件还会检查是否有相同参数的相同工具被重复调用。如果代理建议与之前循环中完全相同的命令，中间件会通知代理有关重复的问题并进入新一轮循环。
+- en: III-E2 Calling the Tool
+  id: totrans-162
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-E2 调用工具
+- en: Given a valid command from the LLM, the middleware calls the corresponding tool.
+    To prevent tool executions to interfere with the host environment or RepairAgent
+    itself, the middleware executes the command in an isolated environment.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定来自LLM的有效命令，中间件会调用相应的工具。为了防止工具执行干扰主机环境或RepairAgent本身，中间件会在隔离环境中执行命令。
+- en: III-E3 Updating the Prompt
+  id: totrans-164
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-E3 更新提示
+- en: Given the output of the tool, the middleware updates all dynamic sections of
+    the prompt for the next cycle. In particular, it updates the state description
+    and the available tools, appends the tool’s output to the gathered information,
+    and replaces the section that shows the last executed command.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定工具的输出，中间件会更新提示中的所有动态部分以进行下一轮循环。具体来说，它会更新状态描述和可用工具，附加工具的输出到收集的信息中，并替换显示最后执行命令的部分。
+- en: IV Implementation
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: IV 实现
+- en: We use Python 3.10 as our primary programming language. Docker is used to containerize
+    and isolate command executions for enhanced reliability and reproducibility. RepairAgent
+    is built on top of the AutoGPT framework and GPT-3.5-0125 from OpenAI. To parse
+    and interact with Java code, we use ANTLR.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用Python 3.10作为主要编程语言。Docker用于容器化和隔离命令执行，以提高可靠性和可重复性。RepairAgent建立在AutoGPT框架和OpenAI的GPT-3.5-0125之上。为了解析和与Java代码交互，我们使用ANTLR。
+- en: V Evaluation
+  id: totrans-168
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: V 评估
+- en: 'To evaluate our approach we aim to answer the following research questions:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们的方法，我们旨在回答以下研究问题：
+- en: RQ1
+  id: totrans-170
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: RQ1
+- en: How effective is RepairAgent at fixing real-world bugs?
+  id: totrans-171
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RepairAgent在修复真实世界中的错误时有多有效？
+- en: RQ2
+  id: totrans-172
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: RQ2
+- en: What are the costs of the approach?
+  id: totrans-173
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 这种方法的成本是多少？
+- en: RQ3
+  id: totrans-174
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: RQ3
+- en: What is the influence and importance of the different components of RepairAgent?
+  id: totrans-175
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RepairAgent中各个组件的影响和重要性是什么？
+- en: RQ4
+  id: totrans-176
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: RQ4
+- en: How does the LLM agent use the available tools?
+  id: totrans-177
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM代理如何使用可用工具？
+- en: V-A Experimental Setup
+  id: totrans-178
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: V-A 实验设置
+- en: Datasets
+  id: totrans-179
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 数据集
+- en: We apply RepairAgent to bugs in the Defects4J dataset [[24](https://arxiv.org/html/2403.17134v2#bib.bib24)].
+    We use the entire Defects4J dataset, which consists of 835 real-world bugs from
+    17 Java projects, including 395 bugs from 6 projects in Defects4Jv1.2, as well
+    as another 440 bugs and 11 projects added in Defects4Jv2. Evaluating on the entire
+    dataset allows us to assess the generalization capabilities of RepairAgent to
+    different projects and bugs, without restricting the evaluation, e.g., based on
+    the number of lines, hunks, or files that need to be fixed.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将RepairAgent应用于Defects4J数据集中的bug [[24](https://arxiv.org/html/2403.17134v2#bib.bib24)]。我们使用整个Defects4J数据集，该数据集包含来自17个Java项目的835个真实世界的bug，其中包括Defects4Jv1.2中的6个项目的395个bug，以及Defects4Jv2中新增的440个bug和11个项目。对整个数据集进行评估使我们能够评估RepairAgent在不同项目和bug上的泛化能力，而不受评估限制，例如，不仅仅是根据需要修复的代码行数、代码块或文件数。
+- en: To assess the generalizability of our results and the potential influence of
+    data leakage, we also evaluate RepairAgent on bugs from a newer dataset, GitBug-Java [[25](https://arxiv.org/html/2403.17134v2#bib.bib25)].
+    All bugs in this dataset were discovered and fixed in 2023, i.e., after the cut-off
+    date of the GPT 3.5 version that we use in our evaluation (January 2022). GitBug-Java
+    contains 199 bugs from 55 projects. Due to budget constraints, we randomly sample
+    100 of these bugs, sampling at least one and at most two bugs per project. The
+    random sample consists of 19 single-line bugs, 64 multi-line and 17 multi-file.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们结果的泛化性以及数据泄漏的潜在影响，我们还在一个更新的数据集GitBug-Java上评估了RepairAgent [[25](https://arxiv.org/html/2403.17134v2#bib.bib25)]。该数据集中的所有bug都是在2023年发现并修复的，也就是在我们评估中使用的GPT
+    3.5版本的截止日期（2022年1月）之后。GitBug-Java包含来自55个项目的199个bug。由于预算限制，我们随机抽取了其中100个bug，每个项目至少抽取一个、最多抽取两个bug。随机样本包括19个单行bug、64个多行bug和17个多文件bug。
+- en: Baselines
+  id: totrans-182
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 基准
+- en: 'We compare with three existing repair techniques: ChatRepair [[19](https://arxiv.org/html/2403.17134v2#bib.bib19)],
+    ITER [[21](https://arxiv.org/html/2403.17134v2#bib.bib21)], and SelfAPR [[38](https://arxiv.org/html/2403.17134v2#bib.bib38)].
+    ChatRepair and ITER are two very recent approaches and have been shown to be the
+    current state of the art. All three baseline approaches follow an iterative approach
+    that incorporates feedback from previous patch attempts. Unlike RepairAgent, the
+    baselines do not use an autonomous, LLM-based agent. We compare against the baselines
+    based on patches provided by the authors of the respective approaches.'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们与三种现有的修复技术进行了比较：ChatRepair [[19](https://arxiv.org/html/2403.17134v2#bib.bib19)]、ITER [[21](https://arxiv.org/html/2403.17134v2#bib.bib21)]和SelfAPR [[38](https://arxiv.org/html/2403.17134v2#bib.bib38)]。ChatRepair和ITER是两种非常新的方法，已被证明是当前的最先进技术。所有三种基准方法都遵循迭代方法，结合了之前修补尝试的反馈。与RepairAgent不同，这些基准方法不使用自主的基于LLM的代理。我们基于各自方法的作者提供的修补程序，与基准方法进行比较。
+- en: Metrics of success
+  id: totrans-184
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 成功指标
+- en: Similar to past work, we report both the number of plausible and correct patches.
+    A fix is *plausible* if it passes all test cases, but is not necessarily correct.
+    To determine whether a fix is correct, we automatically check whether it syntactically
+    matches the developer-created fix. If this is not the case, we manually determine
+    whether the RepairAgent-generated fix is semantically consistent with the developer-created
+    fix. If and only if either of the two checks succeeds, we consider the fix to
+    be *correct*.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与过去的工作类似，我们报告合理修复和正确修复的数量。如果一个修复通过所有测试用例，但不一定正确，则认为它是*合理的*。为了判断修复是否正确，我们会自动检查它是否在语法上与开发者创建的修复匹配。如果不匹配，我们会手动判断RepairAgent生成的修复是否在语义上与开发者创建的修复一致。如果两项检查中的任何一项成功，我们就认为该修复是*正确的*。
+- en: 'V-B RQ1: Effectiveness'
+  id: totrans-186
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'V-B RQ1: 效果'
+- en: V-B1 Overall Results
+  id: totrans-187
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: V-B1 综合结果
+- en: 'TABLE III: Results on Defects4J.'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表III：Defects4J上的结果。
+- en: '| Project | Bugs | Plausible | Correct | ChatRepair | ITER | SelfAPR |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| 项目 | Bug数量 | 合理修复 | 正确修复 | ChatRepair | ITER | SelfAPR |'
+- en: '| Chart | 26 | 14 | 11 | 15 | 10 | 7 |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| Chart | 26 | 14 | 11 | 15 | 10 | 7 |'
+- en: '| Cli | 39 | 9 | 8 | 5 | 6 | 8 |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| Cli | 39 | 9 | 8 | 5 | 6 | 8 |'
+- en: '| Closure | 174 | 27 | 27 | 37 | 18 | 20 |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| Closure | 174 | 27 | 27 | 37 | 18 | 20 |'
+- en: '| Codec | 18 | 10 | 9 | 8 | 3 | 8 |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| Codec | 18 | 10 | 9 | 8 | 3 | 8 |'
+- en: '| Collections | 4 | 1 | 1 | 0 | 0 | 1 |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| Collections | 4 | 1 | 1 | 0 | 0 | 1 |'
+- en: '| Compress | 47 | 10 | 10 | 2 | 4 | 7 |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| Compress | 47 | 10 | 10 | 2 | 4 | 7 |'
+- en: '| Csv | 16 | 6 | 6 | 3 | 2 | 1 |'
+  id: totrans-196
+  prefs: []
+  type: TYPE_TB
+  zh: '| Csv | 16 | 6 | 6 | 3 | 2 | 1 |'
+- en: '| Gson | 18 | 3 | 3 | 3 | 0 | 1 |'
+  id: totrans-197
+  prefs: []
+  type: TYPE_TB
+  zh: '| Gson | 18 | 3 | 3 | 3 | 0 | 1 |'
+- en: '| JacksonCore | 26 | 5 | 5 | 3 | 3 | 3 |'
+  id: totrans-198
+  prefs: []
+  type: TYPE_TB
+  zh: '| JacksonCore | 26 | 5 | 5 | 3 | 3 | 3 |'
+- en: '| Jacksondatabind | 112 | 18 | 11 | 9 | 0 | 8 |'
+  id: totrans-199
+  prefs: []
+  type: TYPE_TB
+  zh: '| Jacksondatabind | 112 | 18 | 11 | 9 | 0 | 8 |'
+- en: '| JacksonXml | 6 | 1 | 1 | 1 | 0 | 1 |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| JacksonXml | 6 | 1 | 1 | 1 | 0 | 1 |'
+- en: '| Jsoup | 93 | 18 | 18 | 14 | 0 | 6 |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| Jsoup | 93 | 18 | 18 | 14 | 0 | 6 |'
+- en: '| JxPath | 22 | 0 | 0 | 0 | 0 | 1 |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '| JxPath | 22 | 0 | 0 | 0 | 0 | 1 |'
+- en: '| Lang | 63 | 17 | 17 | 21 | 0 | 10 |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '| 语言 | 63 | 17 | 17 | 21 | 0 | 10 |'
+- en: '| Math | 106 | 29 | 29 | 32 | 0 | 22 |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数学 | 106 | 29 | 29 | 32 | 0 | 22 |'
+- en: '| Mockito | 38 | 6 | 6 | 6 | 0 | 3 |'
+  id: totrans-205
+  prefs: []
+  type: TYPE_TB
+  zh: '| Mockito | 38 | 6 | 6 | 6 | 0 | 3 |'
+- en: '| Time | 26 | 3 | 2 | 3 | 2 | 3 |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间 | 26 | 3 | 2 | 3 | 2 | 3 |'
+- en: '| Defects4Jv1.2 | 395 | 96 | 74 | 114 | 57 | 64 |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| Defects4Jv1.2 | 395 | 96 | 74 | 114 | 57 | 64 |'
+- en: '| Defects4Jv2 | 440 | 90 | 90 | 48 | — | 46 |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| Defects4Jv2 | 440 | 90 | 90 | 48 | — | 46 |'
+- en: '| Total | 835 | 186 | 164 | 162 | 57 | 110 |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总计 | 835 | 186 | 164 | 162 | 57 | 110 |'
+- en: 'TABLE IV: Distribution of fixes by location type'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 IV：按位置类型分布的修复
+- en: '| Bug type | RepairAgent | ChatRepair | ITER | SelfAPR |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| 漏洞类型 | RepairAgent | ChatRepair | ITER | SelfAPR |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-212
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| Single-line | 115 | 133 | 36 | 83 |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单行 | 115 | 133 | 36 | 83 |'
+- en: '| Multi-line* | 46 | 29 | 14 | 24 |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多行* | 46 | 29 | 14 | 24 |'
+- en: '| Multi-file | 3 | 0 | 4 | 3 |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多文件 | 3 | 0 | 4 | 3 |'
+- en: 'Table [III](https://arxiv.org/html/2403.17134v2#S5.T3 "TABLE III ‣ V-B1 Overall
+    Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair") summarizes the effectiveness of RepairAgent
+    in fixing the 835 bugs in Defects4J. The approach generates plausible fixes for
+    186 bugs. While not necessarily correct, plausible fixes pass all test cases and
+    may still provide developers a hint about what should be changed. RepairAgent
+    generates correct fixes for 164 bugs, where 116 are exactly as fixed by the developers
+    and 48 are semantically consistent with the developer-provided patches. Being
+    able to fix bugs from different projects shows that the approach can generalize
+    to code bases of multiple domains. Furthermore, RepairAgent creates fixes for
+    bugs of different levels of complexity. Specifically, as shown in Table [IV](https://arxiv.org/html/2403.17134v2#S5.T4
+    "TABLE IV ‣ V-B1 Overall Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair"), the approach fixes 115 single-line
+    bugs, 46 multi-line (single-file) bugs, and 3 multi-file bugs.'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 [III](https://arxiv.org/html/2403.17134v2#S5.T3 "TABLE III ‣ V-B1 Overall
+    Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair") 总结了 RepairAgent 在修复 Defects4J 中 835 个漏洞方面的有效性。该方法为
+    186 个漏洞生成了可信的修复。尽管这些修复不一定是正确的，但可信的修复通过了所有测试用例，仍可能为开发人员提供应进行更改的提示。RepairAgent 为
+    164 个漏洞生成了正确的修复，其中 116 个与开发人员修复的完全一致，48 个在语义上与开发人员提供的补丁一致。能够修复来自不同项目的漏洞表明该方法可以推广到多个领域的代码库。此外，RepairAgent
+    为不同复杂度级别的漏洞创建了修复。具体来说，正如表 [IV](https://arxiv.org/html/2403.17134v2#S5.T4 "TABLE
+    IV ‣ V-B1 Overall Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair") 所示，该方法修复了 115 个单行漏洞、46 个多行（单文件）漏洞和
+    3 个多文件漏洞。'
+- en: V-B2 Comparison with Prior Work
+  id: totrans-217
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: V-B2 与先前工作的比较
+- en: '![Refer to caption](img/69aaa43c24ad346f7a63dabd38c35e62.png)'
+  id: totrans-218
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见标题](img/69aaa43c24ad346f7a63dabd38c35e62.png)'
+- en: 'Figure 6: Intersection of the set fixes with related work.'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：修复集的交集与相关工作的比较。
+- en: 'The right-hand side of Table [III](https://arxiv.org/html/2403.17134v2#S5.T3
+    "TABLE III ‣ V-B1 Overall Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair") compares RepairAgent with
+    the baseline approaches ChatRepair, ITER, and SelfAPR. Previous to this work,
+    ChatRepair had established a new state of the art in APR by fixing 162 bugs in
+    Defects4J. RepairAgent achieves a comparable record by fixing a total of 164 bugs.
+    Our work particularly excels in Defects4Jv2, where RepairAgent fixes 90 bugs,
+    while ChatRepair only fixes 48 bugs. To further compare the sets of fixed bugs,
+    Figure [6](https://arxiv.org/html/2403.17134v2#S5.F6 "Figure 6 ‣ V-B2 Comparison
+    with Prior Work ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair") shows the overlaps between different approaches.
+    As often observed in the field of APR, different approaches complement each other
+    to some extent. In particular, RepairAgent fixes 39 bugs that were not fixed by
+    any of the three baselines. Out of these 39 bugs, 18 are single-line, 20 are multi-line,
+    and one is a multi-file bug. Comparing the complexity of the bug fixes, as shown
+    on the right-hand side of Table [IV](https://arxiv.org/html/2403.17134v2#S5.T4
+    "TABLE IV ‣ V-B1 Overall Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair"), RepairAgent is particularly
+    more effective, compared to other tools, for bugs that require more than a single-line
+    fix. We attribute this result to the RepairAgent’s ability to autonomously retrieve
+    suitable repair ingredients and the ability to edit an arbitrary number of lines
+    and files.'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表[III](https://arxiv.org/html/2403.17134v2#S5.T3 "TABLE III ‣ V-B1 Overall
+    Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair")的右侧比较了 RepairAgent 与基准方法 ChatRepair、ITER 和
+    SelfAPR。此前，ChatRepair 已通过修复 Defects4J 中的 162 个 bug 设立了自动程序修复领域的新标杆。RepairAgent
+    通过修复总计 164 个 bug 达到了相似的记录。我们的工作特别在 Defects4Jv2 中表现突出，其中 RepairAgent 修复了 90 个 bug，而
+    ChatRepair 仅修复了 48 个 bug。为了进一步比较修复的 bug 集，图[6](https://arxiv.org/html/2403.17134v2#S5.F6
+    "Figure 6 ‣ V-B2 Comparison with Prior Work ‣ V-B RQ1: Effectiveness ‣ V Evaluation
+    ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")展示了不同方法之间的重叠部分。正如在自动程序修复领域常见的那样，不同的方法在某种程度上是互补的。特别是，RepairAgent
+    修复了 39 个其他三种基准方法未能修复的 bug。在这 39 个 bug 中，18 个是单行 bug，20 个是多行 bug，1 个是多文件 bug。比较修复
+    bug 的复杂性，如表[IV](https://arxiv.org/html/2403.17134v2#S5.T4 "TABLE IV ‣ V-B1 Overall
+    Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair")右侧所示，RepairAgent 在处理需要修复多于一行的 bug 时，特别比其他工具更有效。我们将这一结果归因于
+    RepairAgent 能够自主检索合适的修复材料，并且能够编辑任意数量的行和文件。'
+- en: V-B3 Examples
+  id: totrans-221
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: V-B3 示例
+- en: '[⬇](data:text/plain;base64,aWYgKGNmYSAhPSBudWxsKSB7CmZvciAoTm9kZSBmaW5hbGx5Tm9kZSA6IGNmYS5maW5hbGx5TWFwLmdldChwYXJlbnQpKSB7Ci0gY2ZhLmNyZWF0ZUVkZ2UoZnJvbU5vZGUsIEJyYW5jaC5VTkNPTkQsIGZpbmFsbHlOb2RlKTsKKyBjZmEuY3JlYXRlRWRnZShmcm9tTm9kZSwgQnJhbmNoLk9OX0VYLCBmaW5hbGx5Tm9kZSk7fX0=)if  (cfa  !=  null)  {for  (Node  finallyNode  :  cfa.finallyMap.get(parent))  {-  cfa.createEdge(fromNode,  Branch.UNCOND,  finallyNode);+  cfa.createEdge(fromNode,  Branch.ON_EX,  finallyNode);}}'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,aWYgKGNmYSAhPSBudWxsKSB7CmZvciAoTm9kZSBmaW5hbGx5Tm9kZSA6IGNmYS5maW5hbGx5TWFwLmdldChwYXJlbnQpKSB7Ci0gY2ZhLmNyZWF0ZUVkZ2UoZnJvbU5vZGUsIEJyYW5jaC5VTkNPTkQsIGZpbmFsbHlOb2RlKTsKKyBjZmEuY3JlYXRlRWRnZShmcm9tTm9kZSwgQnJhbmNoLk9OX0VYLCBmaW5hbGx5Tm9kZSk7fX0=)if  (cfa  !=  null)  {for  (Node  finallyNode  :  cfa.finallyMap.get(parent))  {-  cfa.createEdge(fromNode,  Branch.UNCOND,  finallyNode);+  cfa.createEdge(fromNode,  Branch.ON_EX,  finallyNode);}}'
+- en: 'Figure 7: Closure-14, bug fixed by RepairAgent.'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：Closure-14，修复由 RepairAgent 完成的 bug。
+- en: '[⬇](data:text/plain;base64,U2VwYXJhdG9yIHNlcCA9IChTZXBhcmF0b3IpIGVsZW1lbnRQYWlycy5nZXQoMCk7CisgaWYgKHNlcC5pQWZ0ZXJQYXJzZXIgPT0gbnVsbCAmJiBzZXAuaUFmdGVyUHJpbnRlciA9PSBudWxsKSB7ClBlcmlvZEZvcm1hdHRlciBmID0gdG9Gb3JtYXR0ZXIoZWxlbWVudFBhaXJzLnN1Ykxpc3QoMiwgc2l6ZSksIG5vdFByaW50ZXIsIG5vdFBhcnNlcik7CnNlcCA9IHNlcC5maW5pc2goZi5nZXRQcmludGVyKCksIGYuZ2V0UGFyc2VyKCkpOwpyZXR1cm4gbmV3IFBlcmlvZEZvcm1hdHRlcihzZXAsIHNlcCk7CisgfQ==)Separator  sep  =  (Separator)  elementPairs.get(0);+  if  (sep.iAfterParser  ==  null  &&  sep.iAfterPrinter  ==  null)  {PeriodFormatter  f  =  toFormatter(elementPairs.subList(2,  size),  notPrinter,  notParser);sep  =  sep.finish(f.getPrinter(),  f.getParser());return  new  PeriodFormatter(sep,  sep);+  }'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,U2VwYXJhdG9yIHNlcCA9IChTZXBhcmF0b3IpIGVsZW1lbnRQYWlycy5nZXQoMCk7CisgaWYgKHNlcC5pQWZ0ZXJQYXJzZXIgPT0gbnVsbCAmJiBzZXAuaUFmdGVyUHJpbnRlciA9PSBudWxsKSB7ClBlcmlvZEZvcm1hdHRlciBmID0gdG9Gb3JtYXR0ZXIoZWxlbWVudFBhaXJzLnN1Ykxpc3QoMiwgc2l6ZSksIG5vdFByaW50ZXIsIG5vdFBhcnNlcik7CnNlcCA9IHNlcC5maW5pc2goZi5nZXRQcmludGVyKCksIGYuZ2V0UGFyc2VyKCkpOwpyZXR1cm4gbmV3IFBlcmlvZEZvcm1hdHRlcihzZXAsIHNlcCk7CisgfQ==)Separator  sep  =  (Separator)  elementPairs.get(0);+  if  (sep.iAfterParser  ==  null  &&  sep.iAfterPrinter  ==  null)  {PeriodFormatter  f  =  toFormatter(elementPairs.subList(2,  size),  notPrinter,  notParser);sep  =  sep.finish(f.getPrinter(),  f.getParser());return  new  PeriodFormatter(sep,  sep);+  }'
+- en: 'Figure 8: Time-27, bug fixed by RepairAgent.'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图 8: Time-27，由RepairAgent修复的错误。'
+- en: 'Figure [7](https://arxiv.org/html/2403.17134v2#S5.F7 "Figure 7 ‣ V-B3 Examples
+    ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent: An Autonomous, LLM-Based
+    Agent for Program Repair") is a bug fixed exclusively by RepairAgent, where the
+    agent uses the $find\_similar\_api\_calls$ tool to search for calls similar to
+    cfa.createEdge(fromNode, Branch.UNCOND, finallyNode);. It returns a call from
+    another file, which passes Branch.ON_EX to the method call instead of Branch.UNCOND.
+    This field name is then used as a repair ingredient by the agent. In another example
+    fixed only by RepairAgent, Figure [8](https://arxiv.org/html/2403.17134v2#S5.F8
+    "Figure 8 ‣ V-B3 Examples ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair"), RepairAgent benefitted from
+    the $generate\_method\_body$ tool to generate a missing if-statement, which led
+    to suggesting a correct fix afterwards. These examples illustrate the clever and
+    proper usage of available tools by the agent. They also show these tools to be
+    useful for finding repair ingredients that previous work fails to consider.'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图[7](https://arxiv.org/html/2403.17134v2#S5.F7 "Figure 7 ‣ V-B3 Examples ‣
+    V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent: An Autonomous, LLM-Based
+    Agent for Program Repair")是由RepairAgent独立修复的一个错误，在这个例子中，代理使用$find\_similar\_api\_calls$工具来搜索类似于cfa.createEdge(fromNode,
+    Branch.UNCOND, finallyNode);的调用。它返回了来自另一个文件的一个调用，该调用传递了Branch.ON_EX而不是Branch.UNCOND给方法调用。然后，代理使用此字段名称作为修复成分。在另一个仅由RepairAgent修复的例子中，图[8](https://arxiv.org/html/2403.17134v2#S5.F8
+    "Figure 8 ‣ V-B3 Examples ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair")，RepairAgent借助$generate\_method\_body$工具生成了缺失的if语句，随后建议了一个正确的修复。这些例子展示了代理聪明而恰当地使用现有工具，也表明这些工具对寻找先前工作未考虑的修复成分非常有用。'
+- en: V-B4 Generalization and External Validity
+  id: totrans-227
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: V-B4 泛化能力与外部效度
+- en: 'TABLE V: Results on GitBug-Java'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 V: GitBug-Java上的结果'
+- en: '| Bug type | Bugs | Plausible fixes | Correct fixes |'
+  id: totrans-229
+  prefs: []
+  type: TYPE_TB
+  zh: '| 错误类型 | 错误 | 可能的修复 | 正确的修复 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-230
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Single-line | 19 | 11 | 9 |'
+  id: totrans-231
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单行 | 19 | 11 | 9 |'
+- en: '| Multi-line | 64 | 8 | 4 |'
+  id: totrans-232
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多行 | 64 | 8 | 4 |'
+- en: '| Multi-file | 17 | 0 | 0 |'
+  id: totrans-233
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多文件 | 17 | 0 | 0 |'
+- en: '| Total | 100 | 19 | 13 |'
+  id: totrans-234
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总计 | 100 | 19 | 13 |'
+- en: 'To assess the generalization capabilities of RepairAgent, we evaluate the approach
+    on GitBug-Java, with results shown in Table [V](https://arxiv.org/html/2403.17134v2#S5.T5
+    "TABLE V ‣ V-B4 Generalization and External Validity ‣ V-B RQ1: Effectiveness
+    ‣ V Evaluation ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair").
+    Overall, RepairAgent finds 19 plausible fixes and 13 correct fixes. The table
+    shows that the approach is particularly effective for single-line bugs, where
+    it correctly fixes 9 out of 19 bugs. In contrast, the approach struggles with
+    the 81 multi-line and multi-file bugs, where it finds only 4 correct fixes. This
+    result can at least partially be attributed to the fact that the GitBug-Java dataset
+    contains more complex bugs than Defects4J. The mean number of added and removed
+    lines per ground truth bug fix are 2.9 and 9.3, respectively, for Defects4J, but
+    6.2 and 14.4 for GitBug-Java. Likewise, the mean number of modified tokens is
+    381 for Defects4J, but 577 for GitBug-Java. We conclude that RepairAgent generalizes
+    well to new projects and bugs, and is not strongly affected by potential data
+    leakage (e.g, Defects4J).'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了评估RepairAgent的泛化能力，我们在GitBug-Java上评估了该方法，结果如表[V](https://arxiv.org/html/2403.17134v2#S5.T5
+    "TABLE V ‣ V-B4 Generalization and External Validity ‣ V-B RQ1: Effectiveness
+    ‣ V Evaluation ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")所示。总体而言，RepairAgent找到了19个可能的修复和13个正确的修复。该表格显示，该方法对单行错误特别有效，能够正确修复19个错误中的9个。相比之下，该方法在81个多行和多文件的错误中表现较差，仅找到4个正确修复。这个结果至少可以部分归因于GitBug-Java数据集包含比Defects4J更复杂的错误。对于Defects4J，平均每个真实错误修复的新增和删除行数分别为2.9和9.3，而对于GitBug-Java，分别为6.2和14.4。同样，修改的令牌的平均数量，对于Defects4J为381，对于GitBug-Java为577。我们得出结论，RepairAgent能够很好地泛化到新的项目和错误，并且不容易受到潜在数据泄漏（例如，Defects4J）的强烈影响。'
+- en: 'V-C RQ2: Costs of the Approach'
+  id: totrans-236
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'V-C RQ2: 方法的成本'
+- en: '![Refer to caption](img/bde636dcaf22f10ac134356c617f195d.png)'
+  id: totrans-237
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/bde636dcaf22f10ac134356c617f195d.png)'
+- en: (a) Time.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 时间。
+- en: '![Refer to caption](img/626689bbc716db7a258e3b4a8271dfe0.png)'
+  id: totrans-239
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/626689bbc716db7a258e3b4a8271dfe0.png)'
+- en: (b) Tokens/money consumption.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 令牌/金钱消耗。
+- en: 'Figure 9: Distribution of cost metrics per bug (time, number of token, and
+    monetary costs).'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图 9: 每个错误的成本指标分布（时间、令牌数量和金钱成本）。'
+- en: 'We measure three kinds of costs imposed by RepairAgent: (i) Time taken to fix
+    a bug. (ii) The number of tokens consumed by queries to the LLM, which is relevant
+    both for commercial models, such as the GPT-3.5 used here, and for self-hosted
+    models, where the number of tokens determines the computational costs. (iii) The
+    monetary costs associated with the token consumption, based on OpenAI’s pricing
+    as of March 2024.'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们衡量了RepairAgent所带来的三种成本：（i）修复一个错误所需的时间。（ii）LLM查询所消耗的令牌数量，这对于商业模型（如此处使用的GPT-3.5）和自托管模型均相关，因为令牌数量决定了计算成本。（iii）与令牌消耗相关的金钱成本，基于2024年3月OpenAI的定价。
+- en: 'Our findings are summarized in Figure [9](https://arxiv.org/html/2403.17134v2#S5.F9
+    "Figure 9 ‣ V-C RQ2: Costs of the Approach ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair"). The median time taken to address a bug is
+    920 seconds, with minimal variation between fixed and unfixed bugs. Surprisingly,
+    fixed bugs do not consistently exhibit lower repair times. This is due to RepairAgent’s
+    autonomous nature, where the repair process continues until the *goal_accomplished*
+    command is invoked or the cycles budget is exhausted. The figure shows several
+    outliers where bug fixing attempt takes multiple hours. RepairAgent spends 99%
+    of the total time in tool executions, mostly running tests.'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们的研究结果总结在图[9](https://arxiv.org/html/2403.17134v2#S5.F9 "图 9 ‣ V-C RQ2: 方法的成本
+    ‣ V 评估 ‣ RepairAgent: 一个基于LLM的自动程序修复代理")中。修复一个错误的中位时间为920秒，修复与未修复错误之间的变化最小。令人惊讶的是，修复过的错误并不总是表现出更低的修复时间。这是因为RepairAgent的自主特性，其中修复过程会持续进行，直到调用*goal_accomplished*命令或耗尽循环预算。图中显示了一些异常值，修复尝试需要数小时。RepairAgent将99%的总时间花费在工具执行上，主要是在运行测试。'
+- en: Analyzing the costs imposed by the LLM, we find a median consumption of approximately
+    270,000 tokens, equating to around 14 cents (US dollars). The number of tokens
+    consumed by fixed bugs (21,000) is clearly lower than by unfixed bugs (315,000).
+    This difference is because the agent continues to extract additional information
+    for not yet fixed bugs, saturating the prompt with operations, such as reading
+    more lines of code.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分析LLM所带来的成本时，我们发现中位数消耗大约为270,000个令牌，相当于约14美分（美元）。修复过的错误所消耗的令牌数（21,000）明显低于未修复的错误（315,000）。这一差异是因为代理继续为未修复的错误提取额外信息，填充提示，进行诸如读取更多代码行的操作。
+- en: Comparison to prior work
+  id: totrans-245
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 与先前工作的比较
+- en: We compare the time and monetary costs of RepairAgent with other work based
+    on what is reported in the respective papers. The monetary costs of ChatRepair [[19](https://arxiv.org/html/2403.17134v2#bib.bib19)]
+    is reported as 42 cents per bug, based on the same model (GPT-3.5) as in our work.
+    Adjusting for the change in pricing between the two evaluations, the costs of
+    ChatRepair would be 14 cents per bug under today’s pricing, i.e., about the same
+    cost as RepairAgent. The monetary costs of ITER [[21](https://arxiv.org/html/2403.17134v2#bib.bib21)]
+    and SelfAPR [[38](https://arxiv.org/html/2403.17134v2#bib.bib38)] are not reported,
+    as these approaches use self-trained models. However, the authors of ITER report
+    a median bug fixing time of 4.57 hours per bug, which is much higher than the
+    median time of 920 seconds for RepairAgent. While the comparison may be biased
+    due to different hardware and software configurations, it suggests that RepairAgent
+    is more efficient in terms of time costs. We, mainly, attribute this difference
+    to the number of patches that need to be validated (e.g., average of 117 patches
+    generated by RepairAgent vs. 1000 patches generated by ITER).
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将RepairAgent与其他工作的时间和金钱成本进行比较，依据各自论文中报告的数据。ChatRepair [[19](https://arxiv.org/html/2403.17134v2#bib.bib19)]的金钱成本报告为每个错误42美分，基于与我们工作中相同的模型（GPT-3.5）。根据两次评估之间定价的变化，ChatRepair的成本在今天的定价下为每个错误14美分，即与RepairAgent的成本大致相同。ITER
+    [[21](https://arxiv.org/html/2403.17134v2#bib.bib21)]和SelfAPR [[38](https://arxiv.org/html/2403.17134v2#bib.bib38)]的金钱成本未公开，因为这些方法使用自训练模型。然而，ITER的作者报告了每个错误的中位修复时间为4.57小时，这远高于RepairAgent的920秒的中位时间。尽管由于硬件和软件配置的不同，比较可能存在偏差，但这表明RepairAgent在时间成本上更为高效。我们主要将这一差异归因于需要验证的补丁数量（例如，RepairAgent生成的117个补丁的平均数与ITER生成的1000个补丁）。
+- en: 'V-D RQ3: Ablation Study'
+  id: totrans-247
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'V-D RQ3: 消融研究'
+- en: 'TABLE VI: Different configurations of RepairAgent.'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 VI：RepairAgent的不同配置。
+- en: '| Project | Plausible | Correct | Cost($) | SL | ML | MF |'
+  id: totrans-249
+  prefs: []
+  type: TYPE_TB
+  zh: '| 项目 | 可能性 | 正确性 | 成本($) | SL | ML | MF |'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-250
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '| No search tools | 14 | 11 | 28 | 11 | 0 | 0 |'
+  id: totrans-251
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无搜索工具 | 14 | 11 | 28 | 11 | 0 | 0 |'
+- en: '| No state machine | 18 | 14 | 31 | 9 | 5 | 0 |'
+  id: totrans-252
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无状态机 | 18 | 14 | 31 | 9 | 5 | 0 |'
+- en: '| Single-cycle memory | 9 | 6 | 8 | 5 | 1 | 0 |'
+  id: totrans-253
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单周期内存 | 9 | 6 | 8 | 5 | 1 | 0 |'
+- en: '| Realistic localization | 16 | 16 | 29 | 14 | 2 | 0 |'
+  id: totrans-254
+  prefs: []
+  type: TYPE_TB
+  zh: '| 现实定位 | 16 | 16 | 29 | 14 | 2 | 0 |'
+- en: '| RepairAgent (default) | 23 | 21 | 16 | 16 | 5 | 0 |'
+  id: totrans-255
+  prefs: []
+  type: TYPE_TB
+  zh: '| RepairAgent（默认） | 23 | 21 | 16 | 16 | 5 | 0 |'
+- en: 'To better understand the impact of different components and configurations
+    of RepairAgent, we perform the ablation studies summarized in Table [VI](https://arxiv.org/html/2403.17134v2#S5.T6
+    "TABLE VI ‣ V-D RQ3: Ablation Study ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair"). Due to budget limitations, the ablations
+    are done on a randomly selected set of 100 bugs of the entire Defects4J (same
+    100 for all configurations), out of which the full RepairAgent approach fixes
+    21 bugs. We report the number of plausible and correct patches, costs in US dollars,
+    and a break-down of correct fixes into single-line (SL), multi-line (ML), and
+    multi-file (MF) bugs.'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了更好地理解RepairAgent不同组件和配置的影响，我们进行了一些消融研究，总结如表[VI](https://arxiv.org/html/2403.17134v2#S5.T6
+    "TABLE VI ‣ V-D RQ3: Ablation Study ‣ V Evaluation ‣ RepairAgent: An Autonomous,
+    LLM-Based Agent for Program Repair")所示。由于预算限制，消融实验在Defects4J中随机选择的100个bug上进行（所有配置使用相同的100个bug），其中完整的RepairAgent方法修复了21个bug。我们报告了合理且正确的补丁数量、成本（美元）以及正确修复的细分，包括单行（SL）、多行（ML）和多文件（MF）bug。'
+- en: Importance of search tools
+  id: totrans-257
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 搜索工具的重要性
+- en: Without the search tools, RepairAgent fixes half of the bugs fixed by default.
+    The absence of search tools also causes the agent to read long sequences of code
+    more frequently, which saturates the prompt quickly and doubles the costs.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有搜索工具的情况下，RepairAgent修复的bug数只有默认修复数量的一半。缺少搜索工具还会导致代理更频繁地阅读长代码段，这会迅速饱和提示并使成本翻倍。
+- en: Importance of state machine
+  id: totrans-259
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 状态机的重要性
+- en: 'Without guidance by the state machine (Figure [2](https://arxiv.org/html/2403.17134v2#S3.F2
+    "Figure 2 ‣ III-C4 State Description ‣ III-C Dynamic Prompting of the Repair Agent
+    ‣ III Approach ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")),
+    the agent also fixes fewer bugs and has higher costs. The main reason for the
+    reduced effectiveness is that the agent does not follow a structured approach
+    to fixing the bug. For example, in many cases, the agent directly starts with
+    suggesting a fix (often wrong) without collecting any information.'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在没有状态机指导的情况下（图[2](https://arxiv.org/html/2403.17134v2#S3.F2 "Figure 2 ‣ III-C4
+    State Description ‣ III-C Dynamic Prompting of the Repair Agent ‣ III Approach
+    ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")），代理修复的bug较少且成本较高。效果降低的主要原因是代理没有遵循结构化的bug修复方法。例如，在许多情况下，代理直接开始建议修复（通常是错误的），而没有收集任何信息。'
+- en: Importance of long-term memory
+  id: totrans-261
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 长期记忆的重要性
+- en: The third row of the table shows a variant of RepairAgent that keeps new information
+    for a single cycle only, instead of accumulating all gathered information. Again,
+    the bug fixing effectiveness suffers significantly. The reasons are that the agent
+    repeats the same commands after a few cycles (e.g., to ask for the same information
+    again), and it uses wrong file names and functions names. Having a long-term memory
+    helps the agent to keep useful information for future cycles, avoiding repeated
+    queries.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表中的第三行展示了RepairAgent的一种变体，该变体仅在单个周期内保存新信息，而不是积累所有收集的信息。修复效果再次显著下降。原因在于，代理在几个周期后重复相同的命令（例如，要求再次获取相同的信息），并且使用了错误的文件名和函数名。拥有长期记忆有助于代理保存有用的信息以供未来周期使用，从而避免重复查询。
+- en: Impact of fault localization
+  id: totrans-263
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 故障定位的影响
+- en: Finally, we evaluate RepairAgent with realistic fault localization, based on
+    the spectrum-based GZoltar technique [[36](https://arxiv.org/html/2403.17134v2#bib.bib36)].
+    In total, RepairAgent fixes 16 bugs for 29 dollars which is a 25% drop in fixing
+    capability and a 81% increase in costs. These results were achieved without giving
+    RepairAgent more cycles which would have helped otherwise since the agent spends
+    extra time on localizing the bug.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们基于基于频谱的GZoltar技术[[36](https://arxiv.org/html/2403.17134v2#bib.bib36)]，对RepairAgent进行现实故障定位的评估。总的来说，RepairAgent修复了16个bug，花费了29美元，修复能力下降了25%，而成本增加了81%。这些结果是在没有为RepairAgent增加更多周期的情况下获得的，否则如果增加周期，代理会花更多时间进行bug定位。
+- en: 'V-E RQ4: Usage of Tools by the Agent'
+  id: totrans-265
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'V-E RQ4: 代理使用工具'
+- en: '![Refer to caption](img/b789b3b67d0ff5dbc2de41e80a57140e.png)'
+  id: totrans-266
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/b789b3b67d0ff5dbc2de41e80a57140e.png)'
+- en: 'Figure 10: Frequency of tool invocations (average per bug).'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图10：工具调用频率（每个bug的平均值）。
+- en: 'This research question aims at better understanding the approach by analyzing
+    how the agent uses the available tools. On average, RepairAgent makes 35 tool
+    invocations per bug, which also corresponds to the number of cycles. Figure [10](https://arxiv.org/html/2403.17134v2#S5.F10
+    "Figure 10 ‣ V-E RQ4: Usage of Tools by the Agent ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair") shows the frequency of tool
+    invocations, where we distinguish between fixed (i.e., “correct”) and unfixed
+    (i.e., “plausible” only or completely unfixed) bugs. The agent uses the full range
+    of tools, with the most frequently called tool being *write_fix* (average of 6
+    calls for fixed bugs and 17 calls for unfixed bugs). Around 7% of *write_fix*
+    invocations in unfixed bugs produce plausible patches, compared to 44% in fixed
+    bugs. The least used tool is *run_tests*, which is used so infrequently because
+    the initially provided information about the bug already provides information
+    about any failing test cases and because the *write_fix* tool automatically invokes
+    the test suite.'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本研究问题旨在通过分析代理如何使用可用工具来更好地理解该方法。平均而言，RepairAgent每修复一个bug会调用35次工具，这也对应于修复的周期数。图[10](https://arxiv.org/html/2403.17134v2#S5.F10
+    "图 10 ‣ V-E RQ4: 代理使用工具 ‣ V 评估 ‣ RepairAgent：基于LLM的自动化程序修复代理")显示了工具调用的频率，在图中我们区分了已修复（即“正确”）和未修复（即“仅合理”或完全未修复）bug。该代理使用了全范围的工具，其中最常调用的工具是*write_fix*（已修复bug的平均调用次数为6次，未修复bug的平均调用次数为17次）。在未修复bug中，大约7%的*write_fix*调用生成了合理的补丁，而在已修复bug中，这一比例为44%。最少使用的工具是*run_tests*，它被调用的频率极低，因为最初提供的bug信息已经包含了有关失败测试用例的信息，并且*write_fix*工具会自动调用测试套件。'
+- en: VI Discussion
+  id: totrans-269
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VI 讨论
+- en: VI-A Qualitative Insights
+  id: totrans-270
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: VI-A 定性见解
+- en: The following describes qualitative insights gained from inspecting RepairAgent’s
+    logs.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下是通过检查RepairAgent日志获得的定性见解。
+- en: Understanding the bugs
+  id: totrans-272
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 理解bug
+- en: 'RepairAgent’s ability to actively retrieve information that helps understand
+    a bug allowed to fix a new set of bugs without higher costs. Particularly, we
+    observe four kinds of information to be useful: (i) the code of failing test cases
+    and the initial execution results, which we provide in the prompt of the first
+    cycle; (ii) code snippets retrieved by searching for similar code, e.g., using
+    the *find_similar_api_calls* tool; (iii) details about the code structure, such
+    as the classes and methods in a file; and (iv) feedback obtained by applying a
+    fix, which triggers the test execution and reveals any test cases that still fail.'
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RepairAgent能够主动检索有助于理解bug的信息，这使得它能够在没有更高成本的情况下修复一组新的bug。特别地，我们观察到以下四种信息非常有用：(i)
+    失败的测试用例的代码和初始执行结果，这些我们在第一周期的提示中提供；(ii) 通过搜索相似代码（例如，使用*find_similar_api_calls*工具）获取的代码片段；(iii)
+    代码结构的细节，例如文件中的类和方法；(iv) 通过应用修复获得的反馈，触发测试执行并揭示任何仍然失败的测试用例。
+- en: Unfixed bugs and fix complexity
+  id: totrans-274
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 未修复bug与修复复杂度
+- en: 'As shown in Table [IV](https://arxiv.org/html/2403.17134v2#S5.T4 "TABLE IV
+    ‣ V-B1 Overall Results ‣ V-B RQ1: Effectiveness ‣ V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair"), RepairAgent clearly outperforms
+    prior work on multi-line bugs, but fails to fix some of the simpler, single-line
+    bugs fixed by, e.g., ChatRepair [[19](https://arxiv.org/html/2403.17134v2#bib.bib19)].
+    We observe that the agent sometimes suggests complex fixes for bugs that only
+    require simple modifications. A possible remedy could be to initially limit the
+    complexity of candidate fixes, nudging the agent toward trying simple fixes first.
+    For multi-line, multi-file bugs, we observe that RepairAgent often edits only
+    a subset of the required locations. Future work could explore human-in-the-loop
+    approaches, where a partial fix found by an agent could give a developer a head
+    start.'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如表[IV](https://arxiv.org/html/2403.17134v2#S5.T4 "表 IV ‣ V-B1 总体结果 ‣ V-B RQ1:
+    效果 ‣ V 评估 ‣ RepairAgent：基于LLM的自动化程序修复代理")所示，RepairAgent在多行bug的修复上明显优于以往的工作，但在修复一些简单的单行bug时失败了，例如，ChatRepair [[19](https://arxiv.org/html/2403.17134v2#bib.bib19)]能够修复这些bug。我们观察到，代理有时会为仅需要简单修改的bug建议复杂的修复方案。一种可能的解决方法是，初期限制候选修复方案的复杂性，促使代理首先尝试简单的修复方案。对于多行、多文件的bug，我们观察到RepairAgent通常只编辑了所需位置的一个子集。未来的工作可以探索人机协作的方法，其中代理找到的部分修复可以为开发者提供一个起点。'
+- en: VI-B Threats to Validity and Limitations
+  id: totrans-276
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: VI-B 有效性威胁与局限性
+- en: 'While RepairAgent shows promising results, we acknowledge several potential
+    threats to validity and inherent limitations: *(i) Data leakage:* GPT-3.5 may
+    have seen parts of the Java projects we evaluate on during training. Our closest
+    competitor, ChatRepair, also uses GPT-3.5, and thus faces the same risk. Moreover,
+    the experiment on GitBug-Java suggests that RepairAgent is effective also on bugs
+    guaranteed to not be part of the training data. *(ii) Missing test cases:* Defects4J
+    has at least one failing test case for each bug, which may not be the case for
+    real-world usage scenarios. It will be interesting to evaluate RepairAgent on
+    bugs with no a-priori available error-revealing test cases in future work. *(iii)
+    Fault localization:* Inaccurate or imprecise fault localization could lead to
+    suboptimal repair suggestions or incorrect diagnoses. *(iv) Non-deterministic
+    output of LLMs:* The inherently non-deterministic nature of LLMs may result in
+    different outcomes between two consecutive runs of RepairAgent. The large number
+    of bugs we evaluate on mitigates this risk. Moreover, the logs of interactions
+    with the LLM are available for further analysis.'
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然RepairAgent展示了有前景的结果，但我们也承认存在一些潜在的有效性威胁和固有的局限性：*(i) 数据泄露：* GPT-3.5可能在训练过程中已经见过我们评估的部分Java项目。我们的主要竞争对手ChatRepair也使用GPT-3.5，因此面临相同的风险。此外，在GitBug-Java上的实验表明，RepairAgent在那些确保不属于训练数据的bug上也能有效工作。*(ii)
+    测试用例缺失：* Defects4J对每个bug至少有一个失败的测试用例，但这在真实世界的使用场景中可能并不成立。未来的工作中，评估RepairAgent在没有预先提供错误揭示测试用例的bug上的表现将会很有趣。*(iii)
+    故障定位：* 不准确或不精确的故障定位可能导致次优的修复建议或错误的诊断。*(iv) LLMs的非确定性输出：* LLMs固有的非确定性特性可能导致RepairAgent在两次连续运行中产生不同的结果。我们评估的大量bug降低了这一风险。此外，与LLM的交互日志可以用于进一步的分析。
+- en: VII Related Work
+  id: totrans-278
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VII 相关工作
+- en: Non-learning-based program repair
+  id: totrans-279
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 非基于学习的程序修复
+- en: Automated program repair [[1](https://arxiv.org/html/2403.17134v2#bib.bib1)]
+    has received significant attention. Some approaches address it as a search problem
+    based on manually designed code mutation rules and fix patterns [[2](https://arxiv.org/html/2403.17134v2#bib.bib2),
+    [39](https://arxiv.org/html/2403.17134v2#bib.bib39), [3](https://arxiv.org/html/2403.17134v2#bib.bib3)].
+    Alternatively, transformation rules can be derived (semi-)automatically from human-written
+    patches [[4](https://arxiv.org/html/2403.17134v2#bib.bib4), [5](https://arxiv.org/html/2403.17134v2#bib.bib5),
+    [6](https://arxiv.org/html/2403.17134v2#bib.bib6)]. Other approaches use symbolic
+    constraints to derive fixes [[7](https://arxiv.org/html/2403.17134v2#bib.bib7),
+    [40](https://arxiv.org/html/2403.17134v2#bib.bib40), [8](https://arxiv.org/html/2403.17134v2#bib.bib8),
+    [9](https://arxiv.org/html/2403.17134v2#bib.bib9)], integrate repair into a static
+    analysis that identifies bugs [[41](https://arxiv.org/html/2403.17134v2#bib.bib41),
+    [42](https://arxiv.org/html/2403.17134v2#bib.bib42), [43](https://arxiv.org/html/2403.17134v2#bib.bib43)],
+    or replace buggy code with similar code from the same project [[44](https://arxiv.org/html/2403.17134v2#bib.bib44)].
+    APR has been successfully deployed in industrial contexts [[5](https://arxiv.org/html/2403.17134v2#bib.bib5),
+    [45](https://arxiv.org/html/2403.17134v2#bib.bib45)]. Beyond functional bugs,
+    several techniques target other kinds of problems, such as syntax errors [[46](https://arxiv.org/html/2403.17134v2#bib.bib46),
+    [47](https://arxiv.org/html/2403.17134v2#bib.bib47), [48](https://arxiv.org/html/2403.17134v2#bib.bib48)],
+    performance bugs [[49](https://arxiv.org/html/2403.17134v2#bib.bib49)], vulnerabilities [[50](https://arxiv.org/html/2403.17134v2#bib.bib50)],
+    type errors [[51](https://arxiv.org/html/2403.17134v2#bib.bib51)], common issues
+    in deep learning code [[52](https://arxiv.org/html/2403.17134v2#bib.bib52)], and
+    build errors [[53](https://arxiv.org/html/2403.17134v2#bib.bib53)].
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动化程序修复[[1](https://arxiv.org/html/2403.17134v2#bib.bib1)]受到了广泛关注。一些方法将其作为基于手动设计的代码变异规则和修复模式的搜索问题来解决[[2](https://arxiv.org/html/2403.17134v2#bib.bib2),
+    [39](https://arxiv.org/html/2403.17134v2#bib.bib39), [3](https://arxiv.org/html/2403.17134v2#bib.bib3)]。另外，转换规则可以从人工编写的补丁中（半）自动推导出来[[4](https://arxiv.org/html/2403.17134v2#bib.bib4),
+    [5](https://arxiv.org/html/2403.17134v2#bib.bib5), [6](https://arxiv.org/html/2403.17134v2#bib.bib6)]。其他方法使用符号约束来推导修复[[7](https://arxiv.org/html/2403.17134v2#bib.bib7),
+    [40](https://arxiv.org/html/2403.17134v2#bib.bib40), [8](https://arxiv.org/html/2403.17134v2#bib.bib8),
+    [9](https://arxiv.org/html/2403.17134v2#bib.bib9)]，将修复集成到静态分析中以识别错误[[41](https://arxiv.org/html/2403.17134v2#bib.bib41),
+    [42](https://arxiv.org/html/2403.17134v2#bib.bib42), [43](https://arxiv.org/html/2403.17134v2#bib.bib43)]，或用相同项目中的类似代码替换有缺陷的代码[[44](https://arxiv.org/html/2403.17134v2#bib.bib44)]。自动化程序修复（APR）已经成功地在工业环境中得到了应用[[5](https://arxiv.org/html/2403.17134v2#bib.bib5),
+    [45](https://arxiv.org/html/2403.17134v2#bib.bib45)]。除了功能性错误外，一些技术还针对其他类型的问题，如语法错误[[46](https://arxiv.org/html/2403.17134v2#bib.bib46),
+    [47](https://arxiv.org/html/2403.17134v2#bib.bib47), [48](https://arxiv.org/html/2403.17134v2#bib.bib48)]，性能错误[[49](https://arxiv.org/html/2403.17134v2#bib.bib49)]，漏洞[[50](https://arxiv.org/html/2403.17134v2#bib.bib50)]，类型错误[[51](https://arxiv.org/html/2403.17134v2#bib.bib51)]，深度学习代码中的常见问题[[52](https://arxiv.org/html/2403.17134v2#bib.bib52)]，以及构建错误[[53](https://arxiv.org/html/2403.17134v2#bib.bib53)]。
+- en: Learning-based program repair
+  id: totrans-281
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 基于学习的程序修复
+- en: While early work uses machine learning to rank and select candidate fixes [[10](https://arxiv.org/html/2403.17134v2#bib.bib10)],
+    more recent work uses machine learning to generate fixes. Approaches include neural
+    machine translation models that map buggy code into fixed code [[11](https://arxiv.org/html/2403.17134v2#bib.bib11),
+    [12](https://arxiv.org/html/2403.17134v2#bib.bib12), [13](https://arxiv.org/html/2403.17134v2#bib.bib13),
+    [14](https://arxiv.org/html/2403.17134v2#bib.bib14)], models that predict tree
+    transformations [[15](https://arxiv.org/html/2403.17134v2#bib.bib15), [16](https://arxiv.org/html/2403.17134v2#bib.bib16)],
+    neural architectures for specific kinds of bugs [[54](https://arxiv.org/html/2403.17134v2#bib.bib54)],
+    and repair-specific training regimes [[55](https://arxiv.org/html/2403.17134v2#bib.bib55),
+    [38](https://arxiv.org/html/2403.17134v2#bib.bib38)]. We refer to a recent survey
+    for a more comprehensive discussion [[56](https://arxiv.org/html/2403.17134v2#bib.bib56)].
+    Unlike the above work, RepairAgent and the work discussed below use a general-purpose
+    LLM, instead of training a task-specific model.
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然早期的研究使用机器学习对候选修复进行排名和选择[[10](https://arxiv.org/html/2403.17134v2#bib.bib10)]，但近期的研究则使用机器学习来生成修复方法。方法包括将有bug的代码映射为修复后的代码的神经机器翻译模型[[11](https://arxiv.org/html/2403.17134v2#bib.bib11),
+    [12](https://arxiv.org/html/2403.17134v2#bib.bib12), [13](https://arxiv.org/html/2403.17134v2#bib.bib13),
+    [14](https://arxiv.org/html/2403.17134v2#bib.bib14)]，预测树形转换的模型[[15](https://arxiv.org/html/2403.17134v2#bib.bib15),
+    [16](https://arxiv.org/html/2403.17134v2#bib.bib16)]，专为特定类型错误设计的神经架构[[54](https://arxiv.org/html/2403.17134v2#bib.bib54)]，以及针对修复任务的训练模式[[55](https://arxiv.org/html/2403.17134v2#bib.bib55),
+    [38](https://arxiv.org/html/2403.17134v2#bib.bib38)]。我们参考了一篇最新的调查报告，以便进行更全面的讨论[[56](https://arxiv.org/html/2403.17134v2#bib.bib56)]。与上述工作不同，RepairAgent及以下讨论的工作使用的是通用LLM，而非训练任务特定的模型。
+- en: 'LLMs have motivated researchers to apply them to program repair, e.g., in studies
+    that explore prompts [[18](https://arxiv.org/html/2403.17134v2#bib.bib18), [17](https://arxiv.org/html/2403.17134v2#bib.bib17)]
+    and in a technique that prompts the model with error messages [[57](https://arxiv.org/html/2403.17134v2#bib.bib57)].
+    These approaches perform a one-time interaction with the model, where the model
+    receives a prompt with code and produces a fix. The most recent techniques introduce
+    iterative approaches, which query the LLM repeatedly based on feedback obtained
+    from previous fix attempts [[19](https://arxiv.org/html/2403.17134v2#bib.bib19),
+    [20](https://arxiv.org/html/2403.17134v2#bib.bib20), [21](https://arxiv.org/html/2403.17134v2#bib.bib21),
+    [58](https://arxiv.org/html/2403.17134v2#bib.bib58)]. RepairAgent also queries
+    the model multiple times, but fundamentally differs by pursuing an agent-based
+    approach. Section [V](https://arxiv.org/html/2403.17134v2#S5 "V Evaluation ‣ RepairAgent:
+    An Autonomous, LLM-Based Agent for Program Repair") empirically compares RepairAgent
+    to the most closely related iterative approaches [[19](https://arxiv.org/html/2403.17134v2#bib.bib19),
+    [21](https://arxiv.org/html/2403.17134v2#bib.bib21)].'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'LLM激发了研究人员将其应用于程序修复的研究，例如，在探索提示的研究中[[18](https://arxiv.org/html/2403.17134v2#bib.bib18),
+    [17](https://arxiv.org/html/2403.17134v2#bib.bib17)]，以及使用错误信息提示模型的技术[[57](https://arxiv.org/html/2403.17134v2#bib.bib57)]。这些方法与模型进行一次性互动，模型接收包含代码的提示并生成修复。最新的技术引入了迭代方法，根据从先前修复尝试中获得的反馈反复查询LLM[[19](https://arxiv.org/html/2403.17134v2#bib.bib19),
+    [20](https://arxiv.org/html/2403.17134v2#bib.bib20), [21](https://arxiv.org/html/2403.17134v2#bib.bib21),
+    [58](https://arxiv.org/html/2403.17134v2#bib.bib58)]。RepairAgent也会多次查询模型，但从根本上来说，它采用了一种基于代理的方法。第[V](https://arxiv.org/html/2403.17134v2#S5
+    "V Evaluation ‣ RepairAgent: An Autonomous, LLM-Based Agent for Program Repair")节从实证角度将RepairAgent与最相关的迭代方法进行了比较[[19](https://arxiv.org/html/2403.17134v2#bib.bib19),
+    [21](https://arxiv.org/html/2403.17134v2#bib.bib21)]。'
+- en: LLMs for code generation and code editing
+  id: totrans-284
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 用于代码生成和代码编辑的LLM
+- en: Beyond program repair, LLMs have been applied to a variety of other code generation
+    and code editing tasks, including code completion [[35](https://arxiv.org/html/2403.17134v2#bib.bib35),
+    [59](https://arxiv.org/html/2403.17134v2#bib.bib59)], fuzzing [[60](https://arxiv.org/html/2403.17134v2#bib.bib60)],
+    generating and improving unit tests [[61](https://arxiv.org/html/2403.17134v2#bib.bib61),
+    [62](https://arxiv.org/html/2403.17134v2#bib.bib62), [63](https://arxiv.org/html/2403.17134v2#bib.bib63),
+    [64](https://arxiv.org/html/2403.17134v2#bib.bib64), [65](https://arxiv.org/html/2403.17134v2#bib.bib65),
+    [66](https://arxiv.org/html/2403.17134v2#bib.bib66)], multi-step code editing [[67](https://arxiv.org/html/2403.17134v2#bib.bib67)].
+    Unlike our work, none of these approaches uses an agent-based approach.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了程序修复，LLM 已经被应用于各种其他代码生成和代码编辑任务，包括代码补全 [[35](https://arxiv.org/html/2403.17134v2#bib.bib35),
+    [59](https://arxiv.org/html/2403.17134v2#bib.bib59)]、模糊测试 [[60](https://arxiv.org/html/2403.17134v2#bib.bib60)]、生成和改进单元测试
+    [[61](https://arxiv.org/html/2403.17134v2#bib.bib61), [62](https://arxiv.org/html/2403.17134v2#bib.bib62),
+    [63](https://arxiv.org/html/2403.17134v2#bib.bib63), [64](https://arxiv.org/html/2403.17134v2#bib.bib64),
+    [65](https://arxiv.org/html/2403.17134v2#bib.bib65), [66](https://arxiv.org/html/2403.17134v2#bib.bib66)]、多步代码编辑
+    [[67](https://arxiv.org/html/2403.17134v2#bib.bib67)]。与我们的工作不同，这些方法都没有采用基于代理的方法。
+- en: LLM-based agents
+  id: totrans-286
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 基于 LLM 的代理
+- en: The idea to let LLM agents autonomously plan and perform complex tasks is relatively
+    new and has been applied to tasks outside of software engineering [[29](https://arxiv.org/html/2403.17134v2#bib.bib29)].
+    To the best of our knowledge, our work is the first to apply an LLM-based agent
+    to program repair or any other code generation problem in software engineering.
+    Copra is an agent-based approach for formal theorem proving [[68](https://arxiv.org/html/2403.17134v2#bib.bib68)].
+    After an initial version of this paper was made publicly available, other LLM-based
+    agents for software engineering tasks have been proposed [[69](https://arxiv.org/html/2403.17134v2#bib.bib69),
+    [70](https://arxiv.org/html/2403.17134v2#bib.bib70)], showing the potential of
+    this kind of approach. RepairAgent is inspired by prior work [[30](https://arxiv.org/html/2403.17134v2#bib.bib30)]
+    on augmenting LLMs with tools invoked via APIs [[27](https://arxiv.org/html/2403.17134v2#bib.bib27),
+    [28](https://arxiv.org/html/2403.17134v2#bib.bib28)] and with the ability to generate
+    and execute code [[71](https://arxiv.org/html/2403.17134v2#bib.bib71)]. Our key
+    contribution in applying these ideas to a software engineering task is to define
+    tools that are useful for program repair and a prompt format that allows the LLM
+    to interact with these tools.
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让 LLM 代理自主规划并执行复杂任务的想法相对较新，已经被应用于软件工程以外的任务 [[29](https://arxiv.org/html/2403.17134v2#bib.bib29)]。据我们所知，我们的工作是首个将基于
+    LLM 的代理应用于程序修复或软件工程中任何其他代码生成问题的研究。Copra 是一种用于形式化定理证明的基于代理的方法 [[68](https://arxiv.org/html/2403.17134v2#bib.bib68)]。在本文初版公开后，已经提出了其他基于
+    LLM 的软件工程任务代理 [[69](https://arxiv.org/html/2403.17134v2#bib.bib69), [70](https://arxiv.org/html/2403.17134v2#bib.bib70)]，显示了这种方法的潜力。RepairAgent
+    受到先前研究的启发 [[30](https://arxiv.org/html/2403.17134v2#bib.bib30)]，该研究通过 API 调用增强
+    LLM 工具 [[27](https://arxiv.org/html/2403.17134v2#bib.bib27), [28](https://arxiv.org/html/2403.17134v2#bib.bib28)]，并具备生成和执行代码的能力
+    [[71](https://arxiv.org/html/2403.17134v2#bib.bib71)]。我们在将这些想法应用于软件工程任务中的关键贡献是定义了对程序修复有用的工具，并设计了一个允许
+    LLM 与这些工具互动的提示格式。
+- en: VIII Conclusion
+  id: totrans-288
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VIII 结论
+- en: This paper presents a pioneering technique for bug repair based on an autonomous
+    agent powered by Large Language Models (LLMs). Through extensive experimentation,
+    we validate the effectiveness and potential of our approach. Further exploration
+    and refinement of autonomous agent-based techniques will help generalize to more
+    difficult and diverse types of bugs if equipped with the right tools.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了一种基于大型语言模型（LLMs）的自主代理进行错误修复的开创性技术。通过广泛的实验，我们验证了我们方法的有效性和潜力。如果配备合适的工具，进一步探索和完善基于自主代理的技术将有助于推广到更复杂和多样化的错误类型。
+- en: References
+  id: totrans-290
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] C. Le Goues, M. Pradel, and A. Roychoudhury, “Automated program repair,”
+    *Commun. ACM*, vol. 62, no. 12, pp. 56–65, 2019\. [Online]. Available: https://doi.org/10.1145/3318162'
+  id: totrans-291
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] C. Le Goues, M. Pradel, 和 A. Roychoudhury, “自动化程序修复,” *Commun. ACM*, 卷
+    62, 第 12 期, 第 56–65 页, 2019。 [在线]。可用链接: https://doi.org/10.1145/3318162'
+- en: '[2] C. Le Goues, T. Nguyen, S. Forrest, and W. Weimer, “Genprog: A generic
+    method for automatic software repair,” *IEEE Trans. Software Eng.*, vol. 38, no. 1,
+    pp. 54–72, 2012.'
+  id: totrans-292
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] C. Le Goues, T. Nguyen, S. Forrest, 和 W. Weimer, “Genprog: 一种通用的自动软件修复方法,”
+    *IEEE Trans. Software Eng.*, 卷 38, 第 1 期, 第 54–72 页, 2012。'
+- en: '[3] K. Liu, A. Koyuncu, D. Kim, and T. F. Bissyandé, “Tbar: revisiting template-based
+    automated program repair,” in *ISSTA*.   ACM, 2019, pp. 31–42\. [Online]. Available:
+    https://doi.org/10.1145/3293882.3330577'
+  id: totrans-293
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] K. Liu, A. Koyuncu, D. Kim, 和 T. F. Bissyandé, “Tbar：重新审视基于模板的自动化程序修复，”发表于*ISSTA*。ACM，2019年，页码：31–42。[在线]。可用链接：[https://doi.org/10.1145/3293882.3330577](https://doi.org/10.1145/3293882.3330577)'
+- en: '[4] D. Kim, J. Nam, J. Song, and S. Kim, “Automatic patch generation learned
+    from human-written patches.” in *International Conference on Software Engineering
+    (ICSE)*, 2013, pp. 802–811.'
+  id: totrans-294
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] D. Kim, J. Nam, J. Song, 和 S. Kim, “从人类编写的补丁中学习自动补丁生成，”发表于*国际软件工程大会（ICSE）*，2013年，页码：802–811。'
+- en: '[5] J. Bader, A. Scott, M. Pradel, and S. Chandra, “Getafix: Learning to fix
+    bugs automatically,” *Proc. ACM Program. Lang.*, vol. 3, no. OOPSLA, pp. 159:1–159:27,
+    2019\. [Online]. Available: https://doi.org/10.1145/3360585'
+  id: totrans-295
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] J. Bader, A. Scott, M. Pradel, 和 S. Chandra, “Getafix：学习自动修复bug，”*ACM程序语言学报*，第3卷，第OOPSLA期，页码：159:1–159:27，2019年。[在线]。可用链接：[https://doi.org/10.1145/3360585](https://doi.org/10.1145/3360585)'
+- en: '[6] R. Bavishi, H. Yoshida, and M. R. Prasad, “Phoenix: automated data-driven
+    synthesis of repairs for static analysis violations,” in *ESEC/FSE*, 2019, pp.
+    613–624\. [Online]. Available: https://doi.org/10.1145/3338906.3338952'
+  id: totrans-296
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] R. Bavishi, H. Yoshida, 和 M. R. Prasad, “Phoenix：针对静态分析违规的自动化数据驱动修复合成，”发表于*ESEC/FSE*，2019年，页码：613–624。[在线]。可用链接：[https://doi.org/10.1145/3338906.3338952](https://doi.org/10.1145/3338906.3338952)'
+- en: '[7] H. D. T. Nguyen, D. Qi, A. Roychoudhury, and S. Chandra, “Semfix: program
+    repair via semantic analysis,” in *35th International Conference on Software Engineering,
+    ICSE ’13, San Francisco, CA, USA, May 18-26, 2013*, 2013, pp. 772–781.'
+  id: totrans-297
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] H. D. T. Nguyen, D. Qi, A. Roychoudhury, 和 S. Chandra, “Semfix：通过语义分析进行程序修复，”发表于*第35届国际软件工程大会，ICSE
+    ’13，旧金山，加利福尼亚，美国，2013年5月18日至26日*，2013年，页码：772–781。'
+- en: '[8] J. Xuan, M. Martinez, F. Demarco, M. Clement, S. L. Marcote, T. Durieux,
+    D. Le Berre, and M. Monperrus, “Nopol: Automatic repair of conditional statement
+    bugs in java programs,” *IEEE Transactions on Software Engineering*, vol. 43,
+    no. 1, pp. 34–55, 2016.'
+  id: totrans-298
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] J. Xuan, M. Martinez, F. Demarco, M. Clement, S. L. Marcote, T. Durieux,
+    D. Le Berre, 和 M. Monperrus, “Nopol：自动修复Java程序中的条件语句错误，”*IEEE软件工程学报*，第43卷，第1期，页码：34–55，2016年。'
+- en: '[9] S. Mechtaev, J. Yi, and A. Roychoudhury, “Angelix: Scalable multiline program
+    patch synthesis via symbolic analysis,” in *Proceedings of the 38th international
+    conference on software engineering*, 2016, pp. 691–701.'
+  id: totrans-299
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] S. Mechtaev, J. Yi, 和 A. Roychoudhury, “Angelix：通过符号分析进行可扩展的多行程序补丁合成，”发表于*第38届国际软件工程大会论文集*，2016年，页码：691–701。'
+- en: '[10] F. Long and M. Rinard, “Automatic patch generation by learning correct
+    code,” in *POPL*, 2016, pp. 298–312.'
+  id: totrans-300
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] F. Long 和 M. Rinard, “通过学习正确的代码生成自动补丁，”发表于*POPL*，2016年，页码：298–312。'
+- en: '[11] R. Gupta, S. Pal, A. Kanade, and S. K. Shevade, “Deepfix: Fixing common
+    C language errors by deep learning,” in *AAAI*, 2017, pp. 1345–1351. [Online].
+    Available: http://aaai.org/ocs/index.php/AAAI/AAAI17/paper/view/14603'
+  id: totrans-301
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] R. Gupta, S. Pal, A. Kanade, 和 S. K. Shevade, “Deepfix：通过深度学习修复常见的C语言错误，”发表于*AAAI*，2017年，页码：1345–1351。[在线]。可用链接：[http://aaai.org/ocs/index.php/AAAI/AAAI17/paper/view/14603](http://aaai.org/ocs/index.php/AAAI/AAAI17/paper/view/14603)'
+- en: '[12] M. Tufano, J. Pantiuchina, C. Watson, G. Bavota, and D. Poshyvanyk, “On
+    learning meaningful code changes via neural machine translation,” in *ICSE*, 2019,
+    pp. 25–36\. [Online]. Available: https://dl.acm.org/citation.cfm?id=3339509'
+  id: totrans-302
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] M. Tufano, J. Pantiuchina, C. Watson, G. Bavota, 和 D. Poshyvanyk, “通过神经机器翻译学习有意义的代码变化，”发表于*ICSE*，2019年，页码：25–36。[在线]。可用链接：[https://dl.acm.org/citation.cfm?id=3339509](https://dl.acm.org/citation.cfm?id=3339509)'
+- en: '[13] T. Lutellier, H. V. Pham, L. Pang, Y. Li, M. Wei, and L. Tan, “Coconut:
+    combining context-aware neural translation models using ensemble for program repair,”
+    in *ISSTA*.   ACM, 2020, pp. 101–114\. [Online]. Available: https://doi.org/10.1145/3395363.3397369'
+  id: totrans-303
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] T. Lutellier, H. V. Pham, L. Pang, Y. Li, M. Wei, 和 L. Tan, “Coconut：结合上下文感知的神经翻译模型，通过集成方法进行程序修复，”发表于*ISSTA*。ACM，2020年，页码：101–114。[在线]。可用链接：[https://doi.org/10.1145/3395363.3397369](https://doi.org/10.1145/3395363.3397369)'
+- en: '[14] Z. Chen, S. Kommrusch, M. Tufano, L. Pouchet, D. Poshyvanyk, and M. Monperrus,
+    “SequenceR: Sequence-to-sequence learning for end-to-end program repair,” *IEEE
+    Trans. Software Eng.*, vol. 47, no. 9, pp. 1943–1959, 2021. [Online]. Available:
+    https://doi.org/10.1109/TSE.2019.2940179'
+  id: totrans-304
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] Z. Chen, S. Kommrusch, M. Tufano, L. Pouchet, D. Poshyvanyk, 和 M. Monperrus,
+    “SequenceR：用于端到端程序修复的序列到序列学习，”*IEEE软件工程学报*，第47卷，第9期，页码：1943–1959，2021年。[在线]。可用链接：[https://doi.org/10.1109/TSE.2019.2940179](https://doi.org/10.1109/TSE.2019.2940179)'
+- en: '[15] Y. Li, S. Wang, and T. N. Nguyen, “Dlfix: Context-based code transformation
+    learning for automated program repair,” in *ICSE*, 2020.'
+  id: totrans-305
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] Y. Li, S. Wang, 和 T. N. Nguyen, “Dlfix：基于上下文的代码转换学习用于自动化程序修复，”发表于*ICSE*，2020年。'
+- en: '[16] Q. Zhu, Z. Sun, Y. Xiao, W. Zhang, K. Yuan, Y. Xiong, and L. Zhang, “A
+    syntax-guided edit decoder for neural program repair,” in *ESEC/FSE*.   ACM, 2021,
+    pp. 341–353\. [Online]. Available: https://doi.org/10.1145/3468264.3468544'
+  id: totrans-306
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] Q. Zhu, Z. Sun, Y. Xiao, W. Zhang, K. Yuan, Y. Xiong, 和 L. Zhang, “一种语法引导的编辑解码器用于神经程序修复，”收录于
+    *ESEC/FSE*，ACM，2021年，第341-353页。[在线]。可用链接： https://doi.org/10.1145/3468264.3468544'
+- en: '[17] C. S. Xia, Y. Wei, and L. Zhang, “Automated program repair in the era
+    of large pre-trained language models,” in *2023 IEEE/ACM 45th International Conference
+    on Software Engineering (ICSE)*, 2023, pp. 1482–1494.'
+  id: totrans-307
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] C. S. Xia, Y. Wei, 和 L. Zhang, “大规模预训练语言模型时代的自动程序修复，”收录于 *2023 IEEE/ACM
+    第45届国际软件工程大会（ICSE）*，2023年，第1482-1494页。'
+- en: '[18] N. Jiang, K. Liu, T. Lutellier, and L. Tan, “Impact of code language models
+    on automated program repair,” in *ICSE*, 2023, pp. 1430–1442\. [Online]. Available:
+    https://doi.org/10.1109/ICSE48619.2023.00125'
+  id: totrans-308
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] N. Jiang, K. Liu, T. Lutellier, 和 L. Tan, “代码语言模型对自动程序修复的影响，”收录于 *ICSE*，2023年，第1430-1442页。[在线]。可用链接：
+    https://doi.org/10.1109/ICSE48619.2023.00125'
+- en: '[19] C. S. Xia and L. Zhang, “Keep the conversation going: Fixing 162 out of
+    337 bugs for $0.42 each using ChatGPT,” 2023.'
+  id: totrans-309
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[19] C. S. Xia 和 L. Zhang, “保持对话持续：使用ChatGPT修复337个漏洞中的162个，每个漏洞修复费用为$0.42，”2023年。'
+- en: '[20] S. Kang, B. Chen, S. Yoo, and J. Lou, “Explainable automated debugging
+    via large language model-driven scientific debugging,” *CoRR*, vol. abs/2304.02195,
+    2023\. [Online]. Available: https://doi.org/10.48550/arXiv.2304.02195'
+  id: totrans-310
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[20] S. Kang, B. Chen, S. Yoo, 和 J. Lou, “通过大语言模型驱动的科学调试进行可解释的自动调试，”*CoRR*，卷
+    abs/2304.02195，2023年。[在线]。可用链接： https://doi.org/10.48550/arXiv.2304.02195'
+- en: '[21] H. Ye and M. Monperrus, “Iter: Iterative neural repair for multi-location
+    patches,” in *ICSE*, 2024.'
+  id: totrans-311
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[21] H. Ye 和 M. Monperrus, “Iter：用于多位置修复的迭代神经修复方法，”收录于 *ICSE*，2024年。'
+- en: '[22] A. J. Ko, B. A. Myers, M. J. Coblenz, and H. H. Aung, “An exploratory
+    study of how developers seek, relate, and collect relevant information during
+    software maintenance tasks,” *IEEE Transactions on software engineering*, vol. 32,
+    no. 12, pp. 971–987, 2006.'
+  id: totrans-312
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[22] A. J. Ko, B. A. Myers, M. J. Coblenz, 和 H. H. Aung, “开发者在软件维护任务中如何查找、关联和收集相关信息的探索性研究，”*IEEE软件工程学报*，卷32，第12期，第971-987页，2006年。'
+- en: '[23] M. Böhme, E. O. Soremekun, S. Chattopadhyay, E. Ugherughe, and A. Zeller,
+    “Where is the bug and how is it fixed? an experiment with practitioners,” in *ESEC/FSE*,
+    2017, pp. 117–128.'
+  id: totrans-313
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[23] M. Böhme, E. O. Soremekun, S. Chattopadhyay, E. Ugherughe, 和 A. Zeller,
+    “哪里是bug，如何修复？与从业者的实验，”收录于 *ESEC/FSE*，2017年，第117-128页。'
+- en: '[24] R. Just, D. Jalali, and M. D. Ernst, “Defects4j: a database of existing
+    faults to enable controlled testing studies for java programs,” in *ISSTA*, 2014,
+    pp. 437–440.'
+  id: totrans-314
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[24] R. Just, D. Jalali, 和 M. D. Ernst, “Defects4j：一个现有故障数据库，用于启用Java程序的受控测试研究，”收录于
+    *ISSTA*，2014年，第437-440页。'
+- en: '[25] A. Silva, N. Saavedra, and M. Monperrus, “Gitbug-java: A reproducible
+    benchmark of recent java bugs,” in *Proceedings of the 21st International Conference
+    on Mining Software Repositories*.'
+  id: totrans-315
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[25] A. Silva, N. Saavedra, 和 M. Monperrus, “Gitbug-java: 最近Java漏洞的可复现基准测试，”收录于
+    *第21届国际软件仓库挖掘会议论文集*。'
+- en: '[26] S. Bubeck, V. Chandrasekaran, R. Eldan, J. Gehrke, E. Horvitz, E. Kamar,
+    P. Lee, Y. T. Lee, Y. Li, S. M. Lundberg, H. Nori, H. Palangi, M. T. Ribeiro,
+    and Y. Zhang, “Sparks of artificial general intelligence: Early experiments with
+    GPT-4,” *CoRR*, vol. abs/2303.12712, 2023\. [Online]. Available: https://doi.org/10.48550/arXiv.2303.12712'
+  id: totrans-316
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[26] S. Bubeck, V. Chandrasekaran, R. Eldan, J. Gehrke, E. Horvitz, E. Kamar,
+    P. Lee, Y. T. Lee, Y. Li, S. M. Lundberg, H. Nori, H. Palangi, M. T. Ribeiro,
+    和 Y. Zhang, “人工通用智能的火花：与GPT-4的早期实验，”*CoRR*，卷 abs/2303.12712，2023年。[在线]。可用链接： https://doi.org/10.48550/arXiv.2303.12712'
+- en: '[27] T. Schick, J. Dwivedi-Yu, R. Dessì, R. Raileanu, M. Lomeli, L. Zettlemoyer,
+    N. Cancedda, and T. Scialom, “Toolformer: Language models can teach themselves
+    to use tools,” *CoRR*, vol. abs/2302.04761, 2023. [Online]. Available: https://doi.org/10.48550/arXiv.2302.04761'
+  id: totrans-317
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[27] T. Schick, J. Dwivedi-Yu, R. Dessì, R. Raileanu, M. Lomeli, L. Zettlemoyer,
+    N. Cancedda, 和 T. Scialom, “Toolformer: 语言模型能够自我学习使用工具，”*CoRR*，卷 abs/2302.04761，2023年。[在线]。可用链接：
+    https://doi.org/10.48550/arXiv.2302.04761'
+- en: '[28] S. G. Patil, T. Zhang, X. Wang, and J. E. Gonzalez, “Gorilla: Large language
+    model connected with massive apis,” *CoRR*, vol. abs/2305.15334, 2023. [Online].
+    Available: https://doi.org/10.48550/arXiv.2305.15334'
+  id: totrans-318
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[28] S. G. Patil, T. Zhang, X. Wang, 和 J. E. Gonzalez, “Gorilla: 连接大量API的大型语言模型，”*CoRR*，卷
+    abs/2305.15334，2023年。[在线]。可用链接： https://doi.org/10.48550/arXiv.2305.15334'
+- en: '[29] L. Wang, C. Ma, X. Feng, Z. Zhang, H. Yang, J. Zhang, Z. Chen, J. Tang,
+    X. Chen, Y. Lin, W. X. Zhao, Z. Wei, and J.-R. Wen, “A survey on large language
+    model based autonomous agents,” 2023.'
+  id: totrans-319
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[29] L. Wang, C. Ma, X. Feng, Z. Zhang, H. Yang, J. Zhang, Z. Chen, J. Tang,
+    X. Chen, Y. Lin, W. X. Zhao, Z. Wei, 和 J.-R. Wen, “基于大语言模型的自主代理研究综述，”2023年。'
+- en: '[30] G. Mialon, R. Dessì, M. Lomeli, C. Nalmpantis, R. Pasunuru, R. Raileanu,
+    B. Rozière, T. Schick, J. Dwivedi-Yu, A. Celikyilmaz, E. Grave, Y. LeCun, and
+    T. Scialom, “Augmented language models: a survey,” *CoRR*, vol. abs/2302.07842,
+    2023\. [Online]. Available: https://doi.org/10.48550/arXiv.2302.07842'
+  id: totrans-320
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[30] G. Mialon, R. Dessì, M. Lomeli, C. Nalmpantis, R. Pasunuru, R. Raileanu,
+    B. Rozière, T. Schick, J. Dwivedi-Yu, A. Celikyilmaz, E. Grave, Y. LeCun, 和 T.
+    Scialom，“增强语言模型：一项综述，”*CoRR*，卷. abs/2302.07842，2023年。[在线]。可用链接：https://doi.org/10.48550/arXiv.2302.07842'
+- en: '[31] R.-M. Karampatsis and C. Sutton, “How often do single-statement bugs occur?”
+    Jun. 2020\. [Online]. Available: http://dx.doi.org/10.1145/3379597.3387491'
+  id: totrans-321
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[31] R.-M. Karampatsis 和 C. Sutton，“单语句错误发生的频率有多高？”2020年6月。[在线]。可用链接：http://dx.doi.org/10.1145/3379597.3387491'
+- en: '[32] J. Wei, X. Wang, D. Schuurmans, M. Bosma, F. Xia, E. Chi, Q. V. Le, D. Zhou
+    *et al.*, “Chain-of-thought prompting elicits reasoning in large language models,”
+    *Advances in neural information processing systems*, vol. 35, pp. 24 824–24 837,
+    2022.'
+  id: totrans-322
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[32] J. Wei, X. Wang, D. Schuurmans, M. Bosma, F. Xia, E. Chi, Q. V. Le, D.
+    Zhou *等*，“链式思维提示激发大型语言模型中的推理，”*神经信息处理系统进展*，卷. 35，第24,824–24,837页，2022年。'
+- en: '[33] L. D. Grazia and M. Pradel, “Code search: A survey of techniques for finding
+    code,” *ACM Comput. Surv.*, vol. 55, no. 11, pp. 220:1–220:31, 2023. [Online].
+    Available: https://doi.org/10.1145/3565971'
+  id: totrans-323
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[33] L. D. Grazia 和 M. Pradel，“代码搜索：查找代码的技术综述，”*ACM Comput. Surv.*，卷. 55，第11期，第220:1–220:31页，2023年。[在线]。可用链接：https://doi.org/10.1145/3565971'
+- en: '[34] A. Eghbali and M. Pradel, “De-hallucinator: Iterative grounding for llm-based
+    code completion,” *CoRR*, vol. abs/2401.01701, 2024\. [Online]. Available: https://doi.org/10.48550/arXiv.2401.01701'
+  id: totrans-324
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[34] A. Eghbali 和 M. Pradel，“De-hallucinator：基于LLM的代码补全的迭代基础，”*CoRR*，卷. abs/2401.01701，2024年。[在线]。可用链接：https://doi.org/10.48550/arXiv.2401.01701'
+- en: '[35] M. Chen *et al.*, “Evaluating large language models trained on code,”
+    *CoRR*, vol. abs/2107.03374, 2021\. [Online]. Available: https://arxiv.org/abs/2107.03374'
+  id: totrans-325
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[35] M. Chen *等*，“评估在代码上训练的大型语言模型，”*CoRR*，卷. abs/2107.03374，2021年。[在线]。可用链接：https://arxiv.org/abs/2107.03374'
+- en: '[36] J. Campos, A. Riboira, A. Perez, and R. Abreu, “Gzoltar: an eclipse plug-in
+    for testing and debugging,” in *ASE*, 2012, pp. 378–381.'
+  id: totrans-326
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[36] J. Campos, A. Riboira, A. Perez, 和 R. Abreu，“Gzoltar：一个用于测试和调试的Eclipse插件，”在*ASE*，2012年，第378–381页。'
+- en: '[37] A. Zeller, *Why programs fail: a guide to systematic debugging*.   Elsevier,
+    2009.'
+  id: totrans-327
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[37] A. Zeller，*为何程序失败：系统调试指南*。Elsevier，2009年。'
+- en: '[38] H. Ye, M. Martinez, X. Luo, T. Zhang, and M. Monperrus, “Selfapr: Self-supervised
+    program repair with test execution diagnostics,” in *ASE*, 2022, pp. 92:1–92:13\.
+    [Online]. Available: https://doi.org/10.1145/3551349.3556926'
+  id: totrans-328
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[38] H. Ye, M. Martinez, X. Luo, T. Zhang, 和 M. Monperrus，“Selfapr：基于测试执行诊断的自监督程序修复，”在*ASE*，2022年，第92:1–92:13页。[在线]。可用链接：https://doi.org/10.1145/3551349.3556926'
+- en: '[39] X. D. Le, D. Lo, and C. Le Goues, “History driven program repair,” in
+    *SANER*, 2016, pp. 213–224\. [Online]. Available: https://doi.org/10.1109/SANER.2016.76'
+  id: totrans-329
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[39] X. D. Le, D. Lo, 和 C. Le Goues，“历史驱动的程序修复，”在*SANER*，2016年，第213–224页。[在线]。可用链接：https://doi.org/10.1109/SANER.2016.76'
+- en: '[40] Y. Ke, K. T. Stolee, C. Le Goues, and Y. Brun, “Repairing programs with
+    semantic code search (t),” in *ASE*.   IEEE, 2015, pp. 295–306.'
+  id: totrans-330
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[40] Y. Ke, K. T. Stolee, C. Le Goues, 和 Y. Brun，“通过语义代码搜索修复程序（t），”在*ASE*。IEEE，2015年，第295–306页。'
+- en: '[41] R. van Tonder and C. L. Goues, “Static automated program repair for heap
+    properties,” in *ICSE*, 2018, pp. 151–162\. [Online]. Available: https://doi.org/10.1145/3180155.3180250'
+  id: totrans-331
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[41] R. van Tonder 和 C. L. Goues，“堆属性的静态自动化程序修复，”在*ICSE*，2018年，第151–162页。[在线]。可用链接：https://doi.org/10.1145/3180155.3180250'
+- en: '[42] Y. Liu, S. Mechtaev, P. Subotić, and A. Roychoudhury, “Program repair
+    guided by datalog-defined static analysis,” in *ESEC/FSE*, 2023, pp. 1216–1228.'
+  id: totrans-332
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[42] Y. Liu, S. Mechtaev, P. Subotić, 和 A. Roychoudhury，“由Datalog定义的静态分析引导的程序修复，”在*ESEC/FSE*，2023年，第1216–1228页。'
+- en: '[43] N. Jain, S. Gandhi, A. Sonwane, A. Kanade, N. Natarajan, S. Parthasarathy,
+    S. Rajamani, and R. Sharma, “Staticfixer: From static analysis to static repair,”
+    2023.'
+  id: totrans-333
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[43] N. Jain, S. Gandhi, A. Sonwane, A. Kanade, N. Natarajan, S. Parthasarathy,
+    S. Rajamani, 和 R. Sharma，“Staticfixer：从静态分析到静态修复，”2023年。'
+- en: '[44] D. Yang, X. Mao, L. Chen, X. Xu, Y. Lei, D. Lo, and J. He, “Transplantfix:
+    Graph differencing-based code transplantation for automated program repair,” in
+    *ASE*, 2022, pp. 107:1–107:13\. [Online]. Available: https://doi.org/10.1145/3551349.3556893'
+  id: totrans-334
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[44] D. Yang, X. Mao, L. Chen, X. Xu, Y. Lei, D. Lo, 和 J. He，“Transplantfix：基于图差异的自动化程序修复的代码移植，”在*ASE*，2022年，第107:1–107:13页。[在线]。可用链接：https://doi.org/10.1145/3551349.3556893'
+- en: '[45] A. Marginean, J. Bader, S. Chandra, M. Harman, Y. Jia, K. Mao, A. Mols,
+    and A. Scott, “Sapfix: Automated end-to-end repair at scale,” in *ICSE-SEIP*,
+    2019.'
+  id: totrans-335
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[45] A. Marginean, J. Bader, S. Chandra, M. Harman, Y. Jia, K. Mao, A. Mols,
+    和 A. Scott，“Sapfix：规模化的自动化端到端修复，”在*ICSE-SEIP*，2019年。'
+- en: '[46] K. Wang, R. Singh, and Z. Su, “Search, align, and repair: data-driven
+    feedback generation for introductory programming exercises,” in *PLDI*, 2018,
+    pp. 481–495.'
+  id: totrans-336
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[46] K. Wang, R. Singh, 和 Z. Su, “搜索、对齐和修复：基于数据的反馈生成用于入门级编程练习，”收录于*PLDI*，2018年，页码481–495。'
+- en: '[47] R. Gupta, A. Kanade, and S. K. Shevade, “Deep reinforcement learning for
+    syntactic error repair in student programs,” in *The Thirty-Third AAAI Conference
+    on Artificial Intelligence, AAAI 2019, The Thirty-First Innovative Applications
+    of Artificial Intelligence Conference, IAAI 2019, The Ninth AAAI Symposium on
+    Educational Advances in Artificial Intelligence, EAAI 2019, Honolulu, Hawaii,
+    USA, January 27 - February 1, 2019*.   AAAI Press, 2019, pp. 930–937\. [Online].
+    Available: https://doi.org/10.1609/aaai.v33i01.3301930'
+  id: totrans-337
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[47] R. Gupta, A. Kanade, 和 S. K. Shevade, “用于学生程序中的语法错误修复的深度强化学习，”收录于*第33届AAAI人工智能大会，AAAI
+    2019，第31届人工智能创新应用大会，IAAI 2019，第9届AAAI教育进展人工智能研讨会，EAAI 2019，2019年1月27日至2月1日，夏威夷檀香山*，AAAI出版社，2019年，页码930–937。[在线]。可用链接：https://doi.org/10.1609/aaai.v33i01.3301930'
+- en: '[48] G. Sakkas, M. Endres, P. J. Guo, W. Weimer, and R. Jhala, “Seq2parse:
+    neurosymbolic parse error repair,” *Proc. ACM Program. Lang.*, vol. 6, no. OOPSLA2,
+    pp. 1180–1206, 2022\. [Online]. Available: https://doi.org/10.1145/3563330'
+  id: totrans-338
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[48] G. Sakkas, M. Endres, P. J. Guo, W. Weimer, 和 R. Jhala, “Seq2parse：神经符号解析错误修复，”*ACM程序语言学报*，第6卷，第OOPSLA2期，页码1180–1206，2022年。[在线]。可用链接：https://doi.org/10.1145/3563330'
+- en: '[49] T. Yu and M. Pradel, “Pinpointing and repairing performance bottlenecks
+    in concurrent programs,” *Empirical Software Engineering (EMSE)*, pp. 1–38, 2017.'
+  id: totrans-339
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[49] T. Yu 和 M. Pradel, “定位并修复并发程序中的性能瓶颈，”*经验软件工程（EMSE）*，页码1–38，2017年。'
+- en: '[50] J. Harer, O. Ozdemir, T. Lazovich, C. P. Reale, R. L. Russell, L. Y. Kim,
+    and S. P. Chin, “Learning to repair software vulnerabilities with generative adversarial
+    networks,” in *Advances in Neural Information Processing Systems 31: Annual Conference
+    on Neural Information Processing Systems 2018, NeurIPS 2018, 3-8 December 2018,
+    Montréal, Canada.*, 2018, pp. 7944–7954\. [Online]. Available: http://papers.nips.cc/paper/8018-learning-to-repair-software-vulnerabilities-with-generative-adversarial-networks'
+  id: totrans-340
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[50] J. Harer, O. Ozdemir, T. Lazovich, C. P. Reale, R. L. Russell, L. Y. Kim,
+    和 S. P. Chin, “利用生成对抗网络修复软件漏洞的学习，”收录于*2018年神经信息处理系统进展：神经信息处理系统年会 NeurIPS 2018，2018年12月3-8日，加拿大蒙特利尔*，2018年，页码7944–7954。[在线]。可用链接：http://papers.nips.cc/paper/8018-learning-to-repair-software-vulnerabilities-with-generative-adversarial-networks'
+- en: '[51] Y. W. Chow, L. D. Grazia, and M. Pradel, “Pyty: Repairing static type
+    errors in python,” in *International Conference on Software Engineering (ICSE)*,
+    2024.'
+  id: totrans-341
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[51] Y. W. Chow, L. D. Grazia, 和 M. Pradel, “Pyty：修复Python中的静态类型错误，”收录于*国际软件工程会议（ICSE）*，2024年。'
+- en: '[52] X. Zhang, J. Zhai, S. Ma, and C. Shen, “AUTOTRAINER: an automatic DNN
+    training problem detection and repair system,” in *43rd IEEE/ACM International
+    Conference on Software Engineering, ICSE 2021, Madrid, Spain, 22-30 May 2021*.   IEEE,
+    2021, pp. 359–371\. [Online]. Available: https://doi.org/10.1109/ICSE43902.2021.00043'
+  id: totrans-342
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[52] X. Zhang, J. Zhai, S. Ma, 和 C. Shen, “AUTOTRAINER：一种自动化的深度神经网络训练问题检测与修复系统，”收录于*2021年IEEE/ACM第43届国际软件工程会议，ICSE
+    2021，西班牙马德里，2021年5月22日-30日*，IEEE，2021年，页码359–371。[在线]。可用链接：https://doi.org/10.1109/ICSE43902.2021.00043'
+- en: '[53] D. Tarlow, S. Moitra, A. Rice, Z. Chen, P. Manzagol, C. Sutton, and E. Aftandilian,
+    “Learning to fix build errors with graph2diff neural networks,” in *ICSE ’20:
+    42nd International Conference on Software Engineering, Workshops, Seoul, Republic
+    of Korea, 27 June - 19 July, 2020*.   ACM, 2020, pp. 19–20. [Online]. Available:
+    https://doi.org/10.1145/3387940.3392181'
+  id: totrans-343
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[53] D. Tarlow, S. Moitra, A. Rice, Z. Chen, P. Manzagol, C. Sutton, 和 E. Aftandilian,
+    “利用Graph2diff神经网络学习修复构建错误，”收录于*ICSE ’20: 第42届国际软件工程会议，工作坊，2020年6月27日 - 7月19日，韩国首尔*，ACM，2020年，页码19–20。[在线]。可用链接：https://doi.org/10.1145/3387940.3392181'
+- en: '[54] M. Vasic, A. Kanade, P. Maniatis, D. Bieber, and R. Singh, “Neural program
+    repair by jointly learning to localize and repair,” in *ICLR*, 2019.'
+  id: totrans-344
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[54] M. Vasic, A. Kanade, P. Maniatis, D. Bieber, 和 R. Singh, “通过联合学习定位和修复实现神经程序修复，”收录于*ICLR*，2019年。'
+- en: '[55] H. Ye, M. Martinez, and M. Monperrus, “Neural program repair with execution-based
+    backpropagation,” in *ICSE*, 2022.'
+  id: totrans-345
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[55] H. Ye, M. Martinez, 和 M. Monperrus, “基于执行反向传播的神经程序修复，”收录于*ICSE*，2022年。'
+- en: '[56] Q. Zhang, C. Fang, Y. Ma, W. Sun, and Z. Chen, “A survey of learning-based
+    automated program repair,” *ACM Transactions on Software Engineering and Methodology*,
+    vol. 33, no. 2, pp. 1–69, 2023.'
+  id: totrans-346
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[56] Q. Zhang, C. Fang, Y. Ma, W. Sun, 和 Z. Chen, “基于学习的自动化程序修复调查，”*ACM软件工程与方法学学报*，第33卷，第2期，页码1–69，2023年。'
+- en: '[57] H. Joshi, J. P. C. Sánchez, S. Gulwani, V. Le, G. Verbruggen, and I. Radicek,
+    “Repair is nearly generation: Multilingual program repair with llms,” in *Thirty-Seventh
+    AAAI Conference on Artificial Intelligence, AAAI 2023, Thirty-Fifth Conference
+    on Innovative Applications of Artificial Intelligence, IAAI 2023, Thirteenth Symposium
+    on Educational Advances in Artificial Intelligence, EAAI 2023, Washington, DC,
+    USA, February 7-14, 2023*, B. Williams, Y. Chen, and J. Neville, Eds.   AAAI Press,
+    2023, pp. 5131–5140\. [Online]. Available: https://doi.org/10.1609/aaai.v37i4.25642'
+  id: totrans-347
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[57] H. Joshi, J. P. C. Sánchez, S. Gulwani, V. Le, G. Verbruggen, 和 I. Radicek,
+    “修复几乎等同于生成：使用大型语言模型进行多语言程序修复，”在 *第37届AAAI人工智能大会（AAAI 2023）*、 *第35届人工智能创新应用会议（IAAI
+    2023）*、 *第13届人工智能教育进展研讨会（EAAI 2023）*，华盛顿DC，美国，2023年2月7-14日，B. Williams, Y. Chen,
+    和 J. Neville 编，AAAI出版社，2023年，第5131–5140页。[在线]. 可用链接： https://doi.org/10.1609/aaai.v37i4.25642'
+- en: '[58] D. Hidvégi, K. Etemadi, S. Bobadilla, and M. Monperrus, “Cigar: Cost-efficient
+    program repair with llms,” *arXiv preprint arXiv:2402.06598*, 2024.'
+  id: totrans-348
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[58] D. Hidvégi, K. Etemadi, S. Bobadilla, 和 M. Monperrus, “Cigar：使用大型语言模型进行高效的程序修复，”
+    *arXiv预印本 arXiv:2402.06598*，2024年。'
+- en: '[59] D. Shrivastava, H. Larochelle, and D. Tarlow, “Repository-level prompt
+    generation for large language models of code,” in *International Conference on
+    Machine Learning*.   PMLR, 2023, pp. 31 693–31 715.'
+  id: totrans-349
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[59] D. Shrivastava, H. Larochelle, 和 D. Tarlow, “大型语言模型代码的仓库级提示生成，”在 *国际机器学习大会*，PMLR，2023年，第31,693-31,715页。'
+- en: '[60] C. S. Xia, M. Paltenghi, J. L. Tian, M. Pradel, and L. Zhang, “Fuzz4all:
+    Universal fuzzing with large language models,” in *ICSE*, 2024.'
+  id: totrans-350
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[60] C. S. Xia, M. Paltenghi, J. L. Tian, M. Pradel, 和 L. Zhang, “Fuzz4all：使用大型语言模型的通用模糊测试，”在
+    *ICSE*，2024年。'
+- en: '[61] C. Lemieux, J. P. Inala, S. K. Lahiri, and S. Sen, “Codamosa: Escaping
+    coverage plateaus in test generation with pre-trained large language models,”
+    in *45th International Conference on Software Engineering, ser. ICSE*, 2023.'
+  id: totrans-351
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[61] C. Lemieux, J. P. Inala, S. K. Lahiri, 和 S. Sen, “Codamosa：使用预训练大型语言模型突破测试生成中的覆盖瓶颈，”在
+    *第45届国际软件工程大会（ICSE）*，2023年。'
+- en: '[62] M. Schäfer, S. Nadi, A. Eghbali, and F. Tip, “An empirical evaluation
+    of using large language models for automated unit test generation,” *IEEE Trans.
+    Software Eng.*, vol. 50, no. 1, pp. 85–105, 2024. [Online]. Available: https://doi.org/10.1109/TSE.2023.3334955'
+  id: totrans-352
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[62] M. Schäfer, S. Nadi, A. Eghbali, 和 F. Tip, “使用大型语言模型进行自动化单元测试生成的实证评估，”
+    *IEEE软件工程学报*，第50卷，第1期，第85-105页，2024年。[在线]. 可用链接： https://doi.org/10.1109/TSE.2023.3334955'
+- en: '[63] G. Ryan, S. Jain, M. Shang, S. Wang, X. Ma, M. K. Ramanathan, and B. Ray,
+    “Code-aware prompting: A study of coverage guided test generation in regression
+    setting using llm,” in *FSE*, 2024.'
+  id: totrans-353
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[63] G. Ryan, S. Jain, M. Shang, S. Wang, X. Ma, M. K. Ramanathan, 和 B. Ray,
+    “代码感知提示：使用大型语言模型在回归设置中进行覆盖引导测试生成的研究，”在 *FSE*，2024年。'
+- en: '[64] N. Alshahwan, J. Chheda, A. Finegenova, B. Gokkaya, M. Harman, I. Harper,
+    A. Marginean, S. Sengupta, and E. Wang, “Automated unit test improvement using
+    large language models at meta,” in *FSE*, vol. abs/2402.09171, 2024\. [Online].
+    Available: https://doi.org/10.48550/arXiv.2402.09171'
+  id: totrans-354
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[64] N. Alshahwan, J. Chheda, A. Finegenova, B. Gokkaya, M. Harman, I. Harper,
+    A. Marginean, S. Sengupta, 和 E. Wang, “在Meta使用大型语言模型改进自动化单元测试，”在 *FSE*，卷abs/2402.09171，2024年。[在线].
+    可用链接： https://doi.org/10.48550/arXiv.2402.09171'
+- en: '[65] S. Kang, J. Yoon, and S. Yoo, “Large language models are few-shot testers:
+    Exploring llm-based general bug reproduction,” in *45th IEEE/ACM International
+    Conference on Software Engineering, ICSE*, 2023, pp. 2312–2323\. [Online]. Available:
+    https://doi.org/10.1109/ICSE48619.2023.00194'
+  id: totrans-355
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[65] S. Kang, J. Yoon, 和 S. Yoo, “大型语言模型是少量示例测试者：探索基于LLM的通用漏洞复现，”在 *第45届IEEE/ACM国际软件工程大会（ICSE）*，2023年，第2312–2323页。[在线].
+    可用链接： https://doi.org/10.1109/ICSE48619.2023.00194'
+- en: '[66] S. Feng and C. Chen, “Prompting is all your need: Automated android bug
+    replay with large language models,” in *ICSE*, 2024.'
+  id: totrans-356
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[66] S. Feng 和 C. Chen, “提示是你所需的一切：使用大型语言模型的自动化安卓漏洞重放，”在 *ICSE*，2024年。'
+- en: '[67] R. Bairi, A. Sonwane, A. Kanade, V. D. C, A. Iyer, S. Parthasarathy, S. Rajamani,
+    B. Ashok, and S. Shet, “Codeplan: Repository-level coding using llms and planning,”
+    2023.'
+  id: totrans-357
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[67] R. Bairi, A. Sonwane, A. Kanade, V. D. C, A. Iyer, S. Parthasarathy, S.
+    Rajamani, B. Ashok, 和 S. Shet, “Codeplan：使用LLM和规划的仓库级编码，”2023年。'
+- en: '[68] A. Thakur, G. Tsoukalas, Y. Wen, J. Xin, and S. Chaudhuri, “An in-context
+    learning agent for formal theorem-proving,” 2024\. [Online]. Available: https://arxiv.org/abs/2310.04353'
+  id: totrans-358
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[68] A. Thakur, G. Tsoukalas, Y. Wen, J. Xin, 和 S. Chaudhuri, “用于形式化定理证明的上下文学习代理，”2024年。[在线].
+    可用链接： https://arxiv.org/abs/2310.04353'
+- en: '[69] Y. Zhang, H. Ruan, Z. Fan, and A. Roychoudhury, “Autocoderover: Autonomous
+    program improvement,” 2024.'
+  id: totrans-359
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[69] Y. Zhang, H. Ruan, Z. Fan, 和 A. Roychoudhury, “Autocoderover：自主程序改进，”2024年。'
+- en: '[70] J. Yang, C. E. Jimenez, K. Lieret, S. Yao, A. Wettig, K. Narasimhan, and
+    O. Press, “Swe-agent: Agent-computer interfaces enable automated software engineering,”
+    2024.'
+  id: totrans-360
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[70] J. Yang, C. E. Jimenez, K. Lieret, S. Yao, A. Wettig, K. Narasimhan, 和
+    O. Press，“Swe-agent：代理-计算机界面实现自动化软件工程，”2024年。'
+- en: '[71] L. Gao, A. Madaan, S. Zhou, U. Alon, P. Liu, Y. Yang, J. Callan, and G. Neubig,
+    “PAL: program-aided language models,” *CoRR*, vol. abs/2211.10435, 2022\. [Online].
+    Available: https://doi.org/10.48550/arXiv.2211.10435'
+  id: totrans-361
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[71] L. Gao, A. Madaan, S. Zhou, U. Alon, P. Liu, Y. Yang, J. Callan, 和 G.
+    Neubig，“PAL：程序辅助语言模型，”*CoRR*，第abs/2211.10435卷，2022年。[在线]。可用链接：[https://doi.org/10.48550/arXiv.2211.10435](https://doi.org/10.48550/arXiv.2211.10435)'

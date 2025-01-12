@@ -1,0 +1,2559 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 12:34:42'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'date: 2025-01-11 12:34:42'
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'DriVLMe: Enhancing LLM-based Autonomous Driving Agents with Embodied and Social
+    Experiences'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: DriVLMe：通过具身和社会经验提升基于大语言模型的自动驾驶代理
+- en: 来源：[https://arxiv.org/html/2406.03008/](https://arxiv.org/html/2406.03008/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2406.03008/](https://arxiv.org/html/2406.03008/)
+- en: Yidong Huang¹ Jacob Sansom¹ Ziqiao Ma¹  Felix Gervits² Joyce Chai¹
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 黄一东¹ 杰克布·桑森¹ 马子乔¹  费利克斯·格维茨² 乔伊斯·蔡¹
+- en: ¹University of Michigan  ²Army Research Lab
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹密歇根大学  ²美国陆军研究实验室
+- en: '[https://sled-group.github.io/driVLMe/](https://sled-group.github.io/driVLMe/)
+    Correspondence, contact: marstin@umich.edu'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[https://sled-group.github.io/driVLMe/](https://sled-group.github.io/driVLMe/)
+    联系方式：marstin@umich.edu'
+- en: Abstract
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Recent advancements in foundation models (FMs) have unlocked new prospects in
+    autonomous driving, yet the experimental settings of these studies are preliminary,
+    over-simplified, and fail to capture the complexity of real-world driving scenarios
+    in human environments. It remains under-explored whether FM agents can handle
+    long-horizon navigation tasks with free-from dialogue and deal with unexpected
+    situations caused by environmental dynamics or task changes. To explore the capabilities
+    and boundaries of FMs faced with the challenges above, we introduce DriVLMe, a
+    video-language-model-based agent to facilitate natural and effective communication
+    between humans and autonomous vehicles that perceive the environment and navigate.
+    We develop DriVLMe from both embodied experiences in a simulated environment and
+    social experiences from real human dialogue. While DriVLMe demonstrates competitive
+    performance in both open-loop benchmarks and closed-loop human studies, we reveal
+    several limitations and challenges, including unacceptable inference time, imbalanced
+    training data, limited visual understanding, challenges with multi-turn interactions,
+    simplified language generation from robotic experiences, and difficulties in handling
+    on-the-fly unexpected situations like environmental dynamics and task changes.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基础模型（FMs）在自动驾驶方面的最新进展为这一领域开辟了新的前景，然而这些研究的实验设置仍然处于初步阶段，过于简化，无法捕捉到真实世界人类环境中驾驶场景的复杂性。目前尚未充分探索FM代理是否能够处理带有自由对话的长期导航任务，并应对由环境动态或任务变化引起的突发情况。为了探讨FM在应对上述挑战时的能力与局限性，我们提出了DriVLMe，一个基于视频语言模型的代理，旨在促进人类与能够感知环境并进行导航的自动驾驶汽车之间的自然有效沟通。我们通过在模拟环境中的具身体验以及来自现实人类对话的社会经验，开发了DriVLMe。虽然DriVLMe在开放环路基准测试和闭环人类研究中表现出竞争力的性能，但我们揭示了几个局限性和挑战，包括不可接受的推理时间、不平衡的训练数据、有限的视觉理解、处理多轮交互的挑战、来自机器人经验的简化语言生成以及应对突发意外情况（如环境动态和任务变化）的困难。
+- en: 1 Introduction
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Autonomous driving (AD) has made remarkable progress in recent years, bringing
+    us closer to a future where vehicles can function as our social robot partners
+    that navigate roads safely and efficiently with minimal human intervention [[44](https://arxiv.org/html/2406.03008v2#bib.bib44),
+    [58](https://arxiv.org/html/2406.03008v2#bib.bib58)]. As these AD agents start
+    to enter our everyday lives, techniques to enable effective human-agent dialogue
+    and collaboration become important. The ability to communicate with humans through
+    natural language dialogue plays a crucial role in ensuring passenger safety, recovering
+    from unexpected situations, gaining trustworthiness, and enhancing the overall
+    driving experience [[62](https://arxiv.org/html/2406.03008v2#bib.bib62), [27](https://arxiv.org/html/2406.03008v2#bib.bib27)].
+    In traditional autonomous driving systems and in-vehicle dialogue systems, rule-based
+    approaches [[37](https://arxiv.org/html/2406.03008v2#bib.bib37), [2](https://arxiv.org/html/2406.03008v2#bib.bib2),
+    [43](https://arxiv.org/html/2406.03008v2#bib.bib43)] have been employed to interpret
+    human instructions and generate appropriate responses. However, these systems
+    often struggle to handle the complexity and variability of natural language, leading
+    to limited functionality and sub-optimal performance. Recently, the paradigm has
+    shifted to data-driven learning-based approaches [[20](https://arxiv.org/html/2406.03008v2#bib.bib20),
+    [15](https://arxiv.org/html/2406.03008v2#bib.bib15), [18](https://arxiv.org/html/2406.03008v2#bib.bib18),
+    [6](https://arxiv.org/html/2406.03008v2#bib.bib6)], which offer language-based
+    interpretability and promising results in short-horizon tasks.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动驾驶（AD）在近年来取得了显著进展，带我们更接近一个未来，在这个未来中，车辆可以作为我们的社交机器人伙伴，安全高效地在道路上行驶，且几乎无需人为干预[[44](https://arxiv.org/html/2406.03008v2#bib.bib44),
+    [58](https://arxiv.org/html/2406.03008v2#bib.bib58)]。随着这些AD代理开始进入我们的日常生活，促进有效的人机对话与合作的技术变得尤为重要。通过自然语言对话与人类沟通的能力在确保乘客安全、应对突发情况、获得信任以及提升整体驾驶体验方面发挥着至关重要的作用[[62](https://arxiv.org/html/2406.03008v2#bib.bib62),
+    [27](https://arxiv.org/html/2406.03008v2#bib.bib27)]。在传统的自动驾驶系统和车载对话系统中，基于规则的方法[[37](https://arxiv.org/html/2406.03008v2#bib.bib37),
+    [2](https://arxiv.org/html/2406.03008v2#bib.bib2), [43](https://arxiv.org/html/2406.03008v2#bib.bib43)]被用来解读人类指令并生成适当的回应。然而，这些系统往往难以应对自然语言的复杂性和多样性，导致功能受限和性能不尽如人意。近年来，范式已经转向基于数据驱动的学习方法[[20](https://arxiv.org/html/2406.03008v2#bib.bib20),
+    [15](https://arxiv.org/html/2406.03008v2#bib.bib15), [18](https://arxiv.org/html/2406.03008v2#bib.bib18),
+    [6](https://arxiv.org/html/2406.03008v2#bib.bib6)]，这些方法提供了基于语言的可解释性，并在短期任务中取得了有希望的成果。
+- en: Advances in foundation models (FMs) like Large Language Models (LLMs) have opened
+    up new opportunities, as they demonstrate the ability to perform step-by-step
+    reasoning [[60](https://arxiv.org/html/2406.03008v2#bib.bib60)], to understand
+    multimodal data [[71](https://arxiv.org/html/2406.03008v2#bib.bib71), [68](https://arxiv.org/html/2406.03008v2#bib.bib68)],
+    to learn from embodied experiences [[33](https://arxiv.org/html/2406.03008v2#bib.bib33),
+    [63](https://arxiv.org/html/2406.03008v2#bib.bib63)], and to use external tools [[42](https://arxiv.org/html/2406.03008v2#bib.bib42)].
+    An increasing number of efforts [[61](https://arxiv.org/html/2406.03008v2#bib.bib61),
+    [47](https://arxiv.org/html/2406.03008v2#bib.bib47), [52](https://arxiv.org/html/2406.03008v2#bib.bib52),
+    [64](https://arxiv.org/html/2406.03008v2#bib.bib64), [19](https://arxiv.org/html/2406.03008v2#bib.bib19),
+    [26](https://arxiv.org/html/2406.03008v2#bib.bib26), [45](https://arxiv.org/html/2406.03008v2#bib.bib45)]
+    have demonstrated the potential of FMs in the field of autonomous driving. However,
+    the experimental setups of these works are preliminary and simplified, compared
+    to the real driving scenarios in human environments. One common limitation is
+    the lack of an ability to handle long-horizon navigation tasks. Trained on simple
+    action-level natural language instructions, these models perform well on short-horizon
+    tasks like turn or overtake but fail to understand goal-level instructions that
+    require route planning and map knowledge. Also, these systems only focus on following
+    individual instructions in a single turn of interaction. Realistic interactions
+    with human passengers often involve free-form dialogue, especially for collaboratively
+    handling unexpected situations, e.g., those caused by sensor limitations, environmental
+    dynamics, or task changes. Without modeling the interaction context, these models
+    may fall short of understanding nuanced dialogue and providing appropriate responses
+    in human-vehicle interactions.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基础模型（FMs）的进展，如大型语言模型（LLMs），为我们开辟了新的机会，因为它们展现了执行逐步推理的能力[[60](https://arxiv.org/html/2406.03008v2#bib.bib60)]、理解多模态数据的能力[[71](https://arxiv.org/html/2406.03008v2#bib.bib71),
+    [68](https://arxiv.org/html/2406.03008v2#bib.bib68)]、从具身经验中学习的能力[[33](https://arxiv.org/html/2406.03008v2#bib.bib33),
+    [63](https://arxiv.org/html/2406.03008v2#bib.bib63)]，以及使用外部工具的能力[[42](https://arxiv.org/html/2406.03008v2#bib.bib42)]。越来越多的研究工作[[61](https://arxiv.org/html/2406.03008v2#bib.bib61),
+    [47](https://arxiv.org/html/2406.03008v2#bib.bib47), [52](https://arxiv.org/html/2406.03008v2#bib.bib52),
+    [64](https://arxiv.org/html/2406.03008v2#bib.bib64), [19](https://arxiv.org/html/2406.03008v2#bib.bib19),
+    [26](https://arxiv.org/html/2406.03008v2#bib.bib26), [45](https://arxiv.org/html/2406.03008v2#bib.bib45)]已展示出FMs在自动驾驶领域的潜力。然而，与人类环境中的真实驾驶场景相比，这些研究的实验设置仍然是初步的和简化的。一个常见的限制是缺乏处理长时间跨度导航任务的能力。由于这些模型是在简单的动作级自然语言指令上进行训练的，它们在短时间跨度的任务（如转弯或超车）上表现良好，但无法理解需要路线规划和地图知识的目标级指令。此外，这些系统仅专注于在单次交互中执行个别指令。与人类乘客的现实交互往往涉及自由形式的对话，特别是在协作处理意外情况时，例如由于传感器限制、环境动态或任务变化引起的情况。如果没有对交互上下文进行建模，这些模型可能无法理解细微的对话差异，也无法在人与车辆的互动中提供适当的回应。
+- en: To explore the capabilities and boundaries of FMs faced with the challenges
+    above, we introduce DriVLMe, a novel video-language-model-based AD agent to facilitate
+    natural and effective communication between humans and autonomous vehicles that
+    perceive the environment and navigate. Motivated by Hu and Shu [[16](https://arxiv.org/html/2406.03008v2#bib.bib16)],
+    our goal is to enhance a language model backend as world and agent models. We
+    develop DriVLMe by learning from both embodied experiences in a simulated environment
+    and social experiences from real human dialogue. Unlike previous works that only
+    focus on open-loop benchmark evaluation using non-interactive datasets such as
+    nuScenes [[4](https://arxiv.org/html/2406.03008v2#bib.bib4)] and BDD [[67](https://arxiv.org/html/2406.03008v2#bib.bib67)],
+    we present both open-loop and closed-loop experiments in a simulated environment
+    (i.e., CARLA [[10](https://arxiv.org/html/2406.03008v2#bib.bib10)]). For open-loop
+    evaluations, we leverage the Situated Dialogue Navigation (SDN) [[27](https://arxiv.org/html/2406.03008v2#bib.bib27)]
+    and the BDD-X [[21](https://arxiv.org/html/2406.03008v2#bib.bib21)] benchmarks
+    to assess DriVLMe’s performance in generating dialogue responses and physical
+    actions. Our experimental results have shown that DriVLMe significantly outperforms
+    previous baselines on SDN by a large margin and competes with baselines trained
+    with LLM-augmented data. We further conduct closed-loop pilot studies in the CARLA
+    simulation environment. DriVLMe is engaged in dialogue to follow language instructions
+    from human subjects in the CARLA environment. Our preliminary findings have demonstrated
+    some promising abilities of DriVLMe in navigation and re-planning, and on the
+    other hand also revealed several limitations including unacceptable inference
+    time, imbalanced training data, and low image input resolution. It remains a challenge
+    to support multi-turn interactions and language generation from robotic experiences.
+    We hope this paper offers a comprehensive perspective view of the strengths and
+    weaknesses of foundation models as AD agents, highlighting areas that need future
+    enhancement.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了探索面对上述挑战时基础模型（FMs）的能力和边界，我们介绍了DriVLMe，这是一种基于视频语言模型的新型自动驾驶（AD）代理，旨在促进人类与自动驾驶车辆之间的自然有效沟通，使其能够感知环境并进行导航。受Hu和Shu
+    [[16](https://arxiv.org/html/2406.03008v2#bib.bib16)]的启发，我们的目标是将语言模型后端增强为世界模型和代理模型。我们通过从模拟环境中的具身经验和真实人类对话中的社会经验中学习，开发了DriVLMe。与以往仅专注于使用非互动数据集（如nuScenes
+    [[4](https://arxiv.org/html/2406.03008v2#bib.bib4)]和BDD [[67](https://arxiv.org/html/2406.03008v2#bib.bib67)])进行开环基准评估的工作不同，我们在模拟环境中（即CARLA
+    [[10](https://arxiv.org/html/2406.03008v2#bib.bib10)]）提出了开环和闭环实验。在开环评估中，我们利用Situated
+    Dialogue Navigation (SDN) [[27](https://arxiv.org/html/2406.03008v2#bib.bib27)]和BDD-X
+    [[21](https://arxiv.org/html/2406.03008v2#bib.bib21)]基准来评估DriVLMe在生成对话回应和物理动作方面的表现。我们的实验结果表明，DriVLMe在SDN上显著超越了以前的基准，并与使用LLM增强数据训练的基准相竞争。我们还在CARLA仿真环境中进行闭环试点研究。DriVLMe通过与人类主体进行对话，在CARLA环境中遵循语言指令。我们的初步发现展示了DriVLMe在导航和重新规划方面的一些有希望的能力，另一方面也揭示了包括不可接受的推理时间、不平衡的训练数据和低图像输入分辨率等几个局限性。目前，支持多轮互动和机器人经验生成语言仍然是一个挑战。我们希望本文能够提供一个全面的视角，展示基础模型作为自动驾驶代理的优缺点，突出需要未来改进的领域。
+- en: 2 Related Work
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: '![Refer to caption](img/6f52a1c9030ba836b87d0a757e455e9a.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考图注](img/6f52a1c9030ba836b87d0a757e455e9a.png)'
+- en: 'Figure 1: Overview of the DriVLMe model architecture. DriVLMe is a multimodal
+    Large Language Model that consists of (1) A video tokenizer that tokenize the
+    input visual history from the CARLA [[10](https://arxiv.org/html/2406.03008v2#bib.bib10)]
+    simulator using a frozen CLIP encoder and a linear projection layer, (2) A route
+    planner, a tool designed to assist the LLM in finding the shortest path from the
+    agent’s current location to another landmark specified by the LLM. (3) The base
+    large language model, which receives input in the form of video representations,
+    situated dialogue instructions, history of physical actions, and the output planned
+    route from the route planner. It predicts dialogue responses to human inputs and
+    physical actions that interact with the simulator.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：DriVLMe 模型架构概览。DriVLMe 是一个多模态的大型语言模型，包含以下部分：(1) 视频标记器，它通过使用冻结的 CLIP 编码器和线性投影层，对来自
+    CARLA [[10](https://arxiv.org/html/2406.03008v2#bib.bib10)] 仿真器的输入视觉历史进行标记。(2)
+    路线规划器，一个旨在帮助 LLM 从代理当前的位置到由 LLM 指定的另一个地标的最短路径的工具。(3) 基础大型语言模型，它接收视频表示、情境对话指令、物理动作历史和路线规划器输出的规划路线等输入，预测对人类输入和与仿真器交互的物理动作的对话响应。
+- en: 2.1 Foundation Models for Autonomous Driving
+  id: totrans-18
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 自动驾驶的基础模型
+- en: Recent research has explored the potential of LLMs in autonomous driving, e.g.,
+    by prompt engineering on off-the-shelf LLMs to obtain the driving decisions from
+    textual descriptions of the surrounding environment [[46](https://arxiv.org/html/2406.03008v2#bib.bib46),
+    [45](https://arxiv.org/html/2406.03008v2#bib.bib45), [61](https://arxiv.org/html/2406.03008v2#bib.bib61)],
+    or by fine-tuning LLMs to predict the next action or plan future trajectories [[5](https://arxiv.org/html/2406.03008v2#bib.bib5),
+    [30](https://arxiv.org/html/2406.03008v2#bib.bib30)]. To develop multimodal systems,
+    both real and simulated driving videos have been utilized for instruction tuning [[49](https://arxiv.org/html/2406.03008v2#bib.bib49)].
+    For example, DriveGPT4 [[64](https://arxiv.org/html/2406.03008v2#bib.bib64)] and
+    RAG-Driver [[69](https://arxiv.org/html/2406.03008v2#bib.bib69)] fine-tuned multimodal
+    LLMs on real-world driving videos to predict future throttle and steering angles.
+    DriveMLM [[59](https://arxiv.org/html/2406.03008v2#bib.bib59)] and LMDrive [[47](https://arxiv.org/html/2406.03008v2#bib.bib47)]
+    adopted camera data and ego-vehicle states from the CARLA simulator. We refer
+    to recent surveys and position papers for detailed reviews [[24](https://arxiv.org/html/2406.03008v2#bib.bib24),
+    [7](https://arxiv.org/html/2406.03008v2#bib.bib7), [12](https://arxiv.org/html/2406.03008v2#bib.bib12),
+    [65](https://arxiv.org/html/2406.03008v2#bib.bib65)]. We note that the experimental
+    setups in these efforts are preliminary and simplified, compared to the real driving
+    scenarios in human environments. First, these prior approaches were restricted
+    to single human instructions (or even no language input), limiting performance
+    on longer-horizon tasks with back-and-forth dialogue and higher-fidelity navigation
+    goals. Furthermore, these prior models only focus on using LLMs to predict physical
+    actions and give explanations, ignoring their potential to initiate dialogue and
+    generate language responses from robotic experiences. Finally, none of these setups
+    consider unexpected situations caused by sensor limitations, environmental dynamics,
+    or plan changes.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的研究探索了 LLM 在自动驾驶中的潜力，例如，通过在现成的 LLM 上进行提示工程，从环境文本描述中获取驾驶决策 [[46](https://arxiv.org/html/2406.03008v2#bib.bib46),
+    [45](https://arxiv.org/html/2406.03008v2#bib.bib45), [61](https://arxiv.org/html/2406.03008v2#bib.bib61)]，或者通过微调
+    LLM 来预测下一步动作或规划未来轨迹 [[5](https://arxiv.org/html/2406.03008v2#bib.bib5), [30](https://arxiv.org/html/2406.03008v2#bib.bib30)]。为了开发多模态系统，真实和仿真驾驶视频都被用于指令调优
+    [[49](https://arxiv.org/html/2406.03008v2#bib.bib49)]。例如，DriveGPT4 [[64](https://arxiv.org/html/2406.03008v2#bib.bib64)]
+    和 RAG-Driver [[69](https://arxiv.org/html/2406.03008v2#bib.bib69)] 在真实世界的驾驶视频上微调了多模态
+    LLM，以预测未来的油门和转向角度。DriveMLM [[59](https://arxiv.org/html/2406.03008v2#bib.bib59)]
+    和 LMDrive [[47](https://arxiv.org/html/2406.03008v2#bib.bib47)] 从 CARLA 仿真器中采用了相机数据和自车状态。我们参考近期的调查和立场论文，提供详细的回顾
+    [[24](https://arxiv.org/html/2406.03008v2#bib.bib24), [7](https://arxiv.org/html/2406.03008v2#bib.bib7),
+    [12](https://arxiv.org/html/2406.03008v2#bib.bib12), [65](https://arxiv.org/html/2406.03008v2#bib.bib65)]。我们注意到，相较于人类环境中的真实驾驶场景，这些研究中的实验设置是初步且简化的。首先，这些先前的方法仅限于单一的人工指令（甚至没有语言输入），这限制了它们在需要来回对话和高保真导航目标的长时间任务中的表现。其次，这些先前的模型只关注使用
+    LLM 来预测物理动作并提供解释，忽视了它们在启动对话和从机器人经验中生成语言响应方面的潜力。最后，这些设置都没有考虑到由传感器限制、环境动态或计划变化引起的意外情况。
+- en: 2.2 Language-guided Autonomous Driving and Outdoor Vision-Language Navigation
+  id: totrans-20
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 语言引导的自动驾驶与户外视觉-语言导航
+- en: Situated human-vehicle communication has been extensively studied in the form
+    of spoken language, and this line of work dates back to early resources including
+    several multilingual [[54](https://arxiv.org/html/2406.03008v2#bib.bib54)] and
+    multimodal [[22](https://arxiv.org/html/2406.03008v2#bib.bib22), [9](https://arxiv.org/html/2406.03008v2#bib.bib9)]
+    speech corpora. Recently, vision-and-language navigation (VLN) tasks require an
+    agent to navigate in a 3D environment based on natural-language instructions and
+    egocentric camera observations, with some efforts in the outdoor scenarios [[55](https://arxiv.org/html/2406.03008v2#bib.bib55),
+    [23](https://arxiv.org/html/2406.03008v2#bib.bib23)]. They consider the world
+    as a discrete graph while agents navigate toward the goal by moving among nodes.
+    Thanks to open-world autonomous driving simulators [[10](https://arxiv.org/html/2406.03008v2#bib.bib10),
+    [72](https://arxiv.org/html/2406.03008v2#bib.bib72), [57](https://arxiv.org/html/2406.03008v2#bib.bib57)],
+    recent work bridges the gap between discrete model prediction and continuous closed-loop
+    control. Various language-guided autonomous driving experiments and datasets [[50](https://arxiv.org/html/2406.03008v2#bib.bib50),
+    [41](https://arxiv.org/html/2406.03008v2#bib.bib41), [27](https://arxiv.org/html/2406.03008v2#bib.bib27)]
+    have been developed based on these simulators.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 人类与车辆的互动已在口语语言形式中进行了广泛研究，这一研究方向可以追溯到早期的资源，包括一些多语言[[54](https://arxiv.org/html/2406.03008v2#bib.bib54)]和多模态[[22](https://arxiv.org/html/2406.03008v2#bib.bib22),
+    [9](https://arxiv.org/html/2406.03008v2#bib.bib9)]语音语料库。最近，视觉和语言导航（VLN）任务要求智能体根据自然语言指令和自我中心相机观察，在三维环境中进行导航，并且在户外场景中也进行了一些尝试[[55](https://arxiv.org/html/2406.03008v2#bib.bib55),
+    [23](https://arxiv.org/html/2406.03008v2#bib.bib23)]。它们将世界视为一个离散图，智能体通过在节点之间移动来朝着目标前进。得益于开放世界自动驾驶模拟器[[10](https://arxiv.org/html/2406.03008v2#bib.bib10),
+    [72](https://arxiv.org/html/2406.03008v2#bib.bib72), [57](https://arxiv.org/html/2406.03008v2#bib.bib57)]，最近的研究弥合了离散模型预测与连续闭环控制之间的差距。基于这些模拟器，开发了各种语言引导的自动驾驶实验和数据集[[50](https://arxiv.org/html/2406.03008v2#bib.bib50),
+    [41](https://arxiv.org/html/2406.03008v2#bib.bib41), [27](https://arxiv.org/html/2406.03008v2#bib.bib27)]。
+- en: 2.3 Dialogue-guided Robotic Agents
+  id: totrans-22
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.3 对话引导的机器人智能体
+- en: Dialogue-guided agents for improving human-robot interaction have gained significant
+    attention [[31](https://arxiv.org/html/2406.03008v2#bib.bib31), [32](https://arxiv.org/html/2406.03008v2#bib.bib32)].
+    Efforts in this field have ranged from enabling robots to adjust their plans in
+    real-time based on human dialogue [[48](https://arxiv.org/html/2406.03008v2#bib.bib48),
+    [8](https://arxiv.org/html/2406.03008v2#bib.bib8)], to seeking additional hints [[51](https://arxiv.org/html/2406.03008v2#bib.bib51),
+    [36](https://arxiv.org/html/2406.03008v2#bib.bib36)], or to ask for direct human
+    collaboration [[34](https://arxiv.org/html/2406.03008v2#bib.bib34)] for task completion.
+    The advances of LLMs have infused new potential into these studies [[13](https://arxiv.org/html/2406.03008v2#bib.bib13),
+    [66](https://arxiv.org/html/2406.03008v2#bib.bib66)]. For instance, InnerMonologue [[17](https://arxiv.org/html/2406.03008v2#bib.bib17)]
+    investigates the use of LLMs for generating internal dialogue to assist in completing
+    human-oriented tasks, while PromptCraft [[40](https://arxiv.org/html/2406.03008v2#bib.bib40)]
+    explores precise prompt engineering to enhance the communication skills of robots.
+    These developments underscore the pivotal role of foundation models as building
+    blocks of agents to foster more effective human-robot collaboration.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于改善人机互动的对话引导型智能体已引起广泛关注[[31](https://arxiv.org/html/2406.03008v2#bib.bib31),
+    [32](https://arxiv.org/html/2406.03008v2#bib.bib32)]。该领域的努力包括使机器人能够根据人类对话实时调整计划[[48](https://arxiv.org/html/2406.03008v2#bib.bib48),
+    [8](https://arxiv.org/html/2406.03008v2#bib.bib8)]，寻找额外的提示[[51](https://arxiv.org/html/2406.03008v2#bib.bib51),
+    [36](https://arxiv.org/html/2406.03008v2#bib.bib36)]，或者直接请求人类协作[[34](https://arxiv.org/html/2406.03008v2#bib.bib34)]以完成任务。大型语言模型（LLM）的进展为这些研究注入了新的潜力[[13](https://arxiv.org/html/2406.03008v2#bib.bib13),
+    [66](https://arxiv.org/html/2406.03008v2#bib.bib66)]。例如，InnerMonologue[[17](https://arxiv.org/html/2406.03008v2#bib.bib17)]研究了使用LLM生成内部对话来帮助完成以人为中心的任务，而PromptCraft[[40](https://arxiv.org/html/2406.03008v2#bib.bib40)]则探索了精确的提示工程以增强机器人沟通能力。这些发展突显了基础模型作为智能体构建模块，在促进更有效的人机协作中的关键作用。
+- en: 3 Dorothie & Situated Dialogue Navigation
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 Dorothie & 情境对话导航
+- en: We set up our experiment in CARLA [[10](https://arxiv.org/html/2406.03008v2#bib.bib10)],
+    a driving simulator for autonomous vehicles, and use the DOROTHIE framework [[27](https://arxiv.org/html/2406.03008v2#bib.bib27)]
+    built upon it, which supports human-agent dialogue and various forms of unexpected
+    situations. In this work, we adopt the problem definition and data from the Situated
+    Dialogue Navigation (SDN) benchmark in [[27](https://arxiv.org/html/2406.03008v2#bib.bib27)].
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在CARLA [[10](https://arxiv.org/html/2406.03008v2#bib.bib10)] 中设置了实验，CARLA是一个用于自动驾驶车辆的驾驶模拟器，并使用了建立在其上的DOROTHIE框架[[27](https://arxiv.org/html/2406.03008v2#bib.bib27)]，该框架支持人类-代理对话和各种形式的意外情况。在这项工作中，我们采用了来自[[27](https://arxiv.org/html/2406.03008v2#bib.bib27)]的Situated
+    Dialogue Navigation（SDN）基准测试中的问题定义和数据。
+- en: 3.1 Overview
+  id: totrans-26
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 概述
+- en: The SDN benchmark is designed to assess the agent’s capability in generating
+    dialogue responses and physical navigation actions according to the perceptual
+    and dialogue history. SDN is collected from human-human interactions in Wizard-of-Oz
+    (WoZ) studies, consisting of over 8,000 utterances and 18.7 hours of control streams.
+    In the WoZ study, a human participant engages with what they believe to be an
+    autonomous driving agent to accomplish various navigation tasks. Behind the scenes,
+    the actions of this agent are operated by a human wizard. This setup ensures that
+    the participant’s interactions with the agent are natural and synchronized. During
+    the interaction, there is also an adversarial wizard who creates unexpected situations
+    on the fly. This adversarial wizard changes environmental dynamics as well as
+    current goals and plans by using language instructions and manipulating road conditions.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SDN基准测试旨在评估代理根据感知历史和对话历史生成对话响应和物理导航动作的能力。SDN数据来自Wizard-of-Oz（WoZ）研究中的人类-人类交互，包含超过8,000条发言和18.7小时的控制流。在WoZ研究中，人类参与者与他们认为是自动驾驶代理的系统进行交互，以完成各种导航任务。幕后，这个代理的动作是由一个人类“巫师”操作的。这种设置确保了参与者与代理的交互自然且同步。在互动过程中，还有一个对立的巫师会实时创造出意外情况。这个对立的巫师通过语言指令和操控路况来改变环境动态以及当前的目标和计划。
+- en: 3.2 Problem Definitions
+  id: totrans-28
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 问题定义
+- en: 'At time $t$, the agent is provided with a perceptual observation and a human
+    language input, aggregated into the following model input:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在时间$t$，代理会获得一个感知观察和一个人类语言输入，这些信息被聚合成以下模型输入：
+- en: •
+  id: totrans-30
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Map knowledge. A graph-structured topology $M$ with a list of street names $\{\mathrm{str}_{i}\}$
+    and landmarks $\{\mathrm{lm}_{i}\}$.
+  id: totrans-31
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 地图知识。一个图结构的拓扑$M$，包括街道名称列表$\{\mathrm{str}_{i}\}$和地标$\{\mathrm{lm}_{i}\}$。
+- en: •
+  id: totrans-32
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Perceptual history. A sequence of RGB images $V=\{V_{0},V_{1},\cdots,V_{t-1}\}$
+    captured by the first-person camera. The video sampling rate is $10\mathrm{Hz}$
+  id: totrans-33
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 感知历史。一系列由第一人称摄像头拍摄的RGB图像$V=\{V_{0},V_{1},\cdots,V_{t-1}\}$。视频采样率为$10\mathrm{Hz}$。
+- en: •
+  id: totrans-34
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Dialogue history. The dialogue utterances from the human ($U_{t,\mathrm{HUM}}$)
+    and the agent ($U_{t,\mathrm{BOT}}$).
+  id: totrans-35
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 对话历史。来自人类（$U_{t,\mathrm{HUM}}$）和代理（$U_{t,\mathrm{BOT}}$）的对话发言。
+- en: •
+  id: totrans-36
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Action history. The action history includes a sequence of previous actions
+    $A_{t}=\{a_{0},a_{1},\cdots,a_{t-1}\}$, where each action $a_{t}$ is a tuple $\langle
+    p,\alpha\rangle$ representing a physical action and its argument executed at time
+    $t$. More details about physical action definitions are in Table [1](https://arxiv.org/html/2406.03008v2#S3.T1
+    "Table 1 ‣ 3.2 Problem Definitions ‣ 3 Dorothie & Situated Dialogue Navigation
+    ‣ DriVLMe: Enhancing LLM-based Autonomous Driving Agents with Embodied and Social
+    Experiences").'
+  id: totrans-37
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '动作历史。动作历史包括一系列先前的动作$A_{t}=\{a_{0},a_{1},\cdots,a_{t-1}\}$，其中每个动作$a_{t}$是一个元组$\langle
+    p,\alpha\rangle$，表示在时间$t$执行的物理动作及其参数。物理动作定义的更多细节见表[1](https://arxiv.org/html/2406.03008v2#S3.T1
+    "表 1 ‣ 3.2 问题定义 ‣ 3 Dorothie & Situated Dialogue Navigation ‣ DriVLMe: 提升基于LLM的自动驾驶代理的具身与社交经验")。'
+- en: '| Physical Actions | Args | Descriptions |'
+  id: totrans-38
+  prefs: []
+  type: TYPE_TB
+  zh: '| 物理动作 | 参数 | 描述 |'
+- en: '| --- | --- | --- |'
+  id: totrans-39
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| LaneFollow | - | Default behaviour, follow the current lane. |'
+  id: totrans-40
+  prefs: []
+  type: TYPE_TB
+  zh: '| LaneFollow | - | 默认行为，保持在当前车道行驶。 |'
+- en: '| LaneSwitch | Direction | Switch to a neighboring lane. |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '| LaneSwitch | 方向 | 切换到相邻车道。 |'
+- en: '| JTurn | Direction | Turn to a connecting road at a junction. |'
+  id: totrans-42
+  prefs: []
+  type: TYPE_TB
+  zh: '| JTurn | 方向 | 在交叉口转向连接道路。 |'
+- en: '| UTurn | - | Make a U-turn to the opposite direction. |'
+  id: totrans-43
+  prefs: []
+  type: TYPE_TB
+  zh: '| UTurn | - | 做一个掉头，转向相反方向。 |'
+- en: '| Stop | - | Brake the vehicle manually. |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '| Stop | - | 手动刹车车辆。 |'
+- en: '| Start | - | Start the vehicle manually. |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| Start | - | 手动启动车辆。 |'
+- en: '| SpeedChange | Speed ($\pm$5) | Change the desired cruise speed by 5 km/h.
+    |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| SpeedChange | 速度（$\pm$5） | 将期望巡航速度调整5公里/小时。 |'
+- en: '| LightChange | Light State (On/Off) | Change the front light state. |'
+  id: totrans-47
+  prefs: []
+  type: TYPE_TB
+  zh: '| LightChange | 灯光状态（开/关） | 改变前灯状态。 |'
+- en: 'Table 1: The high-levels action space in the SDN benchmark.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：SDN 基准测试中的高层动作空间。
+- en: The goal of the agent is to navigate to a sequence of landmarks on the map following
+    the dialogue instructions from the human partner. To guarantee coherence in future
+    dialogues and unforeseen events, the tasks are defined in a teacher-forcing manner.
+    This means that during data collection, the model is always presented with the
+    actual action history $A_{t}$, rather than model-predicted actions during inference.
+    The model is evaluated against the action and dialogue decisions of the human
+    wizard. We particularly consider two sub-problems.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 智能体的目标是按照人类伙伴的对话指令，导航到地图上的一系列地标。为了保证未来对话的连贯性和应对不可预见的事件，任务是以教师强制的方式定义的。这意味着在数据收集过程中，模型总是会得到实际的动作历史
+    $A_{t}$，而不是推理时模型预测的动作。模型是通过与人类向导的动作和对话决策进行对比来评估的。我们特别考虑了两个子问题。
+- en: The Dialogue Response for Navigation (RfN) task.
+  id: totrans-50
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 导航对话响应（RfN）任务。
+- en: The RfN task evaluates the agent’s performance in generating an adequate response
+    in driving-related communication. At time stamp $\tau$, when the wizard makes
+    an utterance, the agent is required to predict the dialogue response $d$. Instead
+    of predicting only the dialogue move, we task the agent to generate the natural
+    language.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RfN 任务评估智能体在驾驶相关交流中生成适当响应的能力。在时间戳 $\tau$ 时，当向导发出话语时，智能体需要预测对话响应 $d$。我们不仅仅要求预测对话动作，而是要求智能体生成自然语言。
+- en: The Navigation from Dialogue (NfD) task.
+  id: totrans-52
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 从对话导航（NfD）任务。
+- en: The NfD task evaluates the agent’s performance in following human instructions
+    from dialogue. At time stamp $\tau$, when the wizard makes a decision on a physical
+    action $\langle p,\alpha\rangle$, the agent is required to predict this physical
+    action.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: NfD 任务评估智能体在遵循对话中的人类指令时的表现。在时间戳 $\tau$ 时，当向导做出关于物理动作 $\langle p,\alpha\rangle$
+    的决策时，智能体需要预测这一物理动作。
+- en: 4 Method
+  id: totrans-54
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 方法
+- en: 4.1 Model Architecture
+  id: totrans-55
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 模型架构
+- en: 'Our DriVLMe agent is a large video-language model consisting of three parts:
+    a video tokenizer, a route planning module, and a large language model backbone.
+    The overview architecture of DriVLMe is visualized in Figure [1](https://arxiv.org/html/2406.03008v2#S2.F1
+    "Figure 1 ‣ 2 Related Work ‣ DriVLMe: Enhancing LLM-based Autonomous Driving Agents
+    with Embodied and Social Experiences").'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们的 DriVLMe 智能体是一个大型的视频-语言模型，由三部分组成：视频分词器、路径规划模块和大型语言模型骨干。DriVLMe 的概览架构在图 [1](https://arxiv.org/html/2406.03008v2#S2.F1
+    "Figure 1 ‣ 2 Related Work ‣ DriVLMe: Enhancing LLM-based Autonomous Driving Agents
+    with Embodied and Social Experiences") 中进行了可视化展示。'
+- en: Video Tokenizer.
+  id: totrans-57
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 视频分词器。
+- en: At time $t$, we can get a visual observation history $\{V_{0},V_{1},\cdots,V_{t-1}\}$.
+    Given the long-range nature of the SDN benchmark, we assign a window size of $T_{\max}=40$
+    with step $\Delta t=2$ to sample the vision history and form a video $V\in\mathbb{R}^{T\times
+    H\times W\times C}$, where $H$, $W$, and $C$ are the height, width, and channel,
+    respectively. For each video frame $V_{i}$, we adopt a pre-trained CLIP ViT-L/14
+    encoder [[38](https://arxiv.org/html/2406.03008v2#bib.bib38)] to extract the feature
+    map $f\in\mathbb{R}^{T\times h\times w\times D}$, where $h=H/p$, $w=W/p$, $p$
+    is the patch size of vision transformer, and $D$ is the feature dimension of the
+    CLIP encoder. We apply average-pooling to the feature map along the temporal dimension
+    to get a representation $v_{s}\in\mathbb{R}^{(h\times w)\times D}$ and along the
+    spatial dimensions to get a representation $v_{t}\in\mathbb{R}^{T\times D}$. By
+    concatenating these two embeddings, we get the following video representation
+    $v=\textrm{Concat}(v_{t},v_{s})\in\mathbb{R}^{(T+h\times w)\times D}$. We then
+    use a linear projection layer $g$ to project the embedding into the language decoder’s
+    embedding space with a dimension of $K$, resulting in the final embedding $g(v)=\mathbb{R}^{(T+h\times
+    w)\times K}$.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在时间 $t$ 时，我们可以获取一个视觉观测历史 $\{V_{0},V_{1},\cdots,V_{t-1}\}$。考虑到 SDN 基准测试的长时间跨度，我们将窗口大小设置为
+    $T_{\max}=40$，步长为 $\Delta t=2$，以采样视觉历史并形成一个视频 $V\in\mathbb{R}^{T\times H\times
+    W\times C}$，其中 $H$、$W$ 和 $C$ 分别是高度、宽度和通道数。对于每个视频帧 $V_{i}$，我们采用预训练的 CLIP ViT-L/14
+    编码器 [[38](https://arxiv.org/html/2406.03008v2#bib.bib38)] 提取特征图 $f\in\mathbb{R}^{T\times
+    h\times w\times D}$，其中 $h=H/p$，$w=W/p$，$p$ 是视觉变换器的补丁大小，$D$ 是 CLIP 编码器的特征维度。我们沿时间维度对特征图应用平均池化，得到表示
+    $v_{s}\in\mathbb{R}^{(h\times w)\times D}$，沿空间维度应用平均池化得到表示 $v_{t}\in\mathbb{R}^{T\times
+    D}$。通过拼接这两个嵌入，我们得到以下视频表示 $v=\textrm{Concat}(v_{t},v_{s})\in\mathbb{R}^{(T+h\times
+    w)\times D}$。然后我们使用一个线性投影层 $g$ 将嵌入投影到语言解码器的嵌入空间，维度为 $K$，得到最终的嵌入 $g(v)=\mathbb{R}^{(T+h\times
+    w)\times K}$。
+- en: LLM Backbone.
+  id: totrans-59
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: LLM 主干。
+- en: 'The LLM decoder is the core module that processes the input video and translates
+    the dialogue instructions into lower-level decisions. Motivated by Video-ChatGPT [[29](https://arxiv.org/html/2406.03008v2#bib.bib29)],
+    we adopt Vicuna-7B (v1.1) [[53](https://arxiv.org/html/2406.03008v2#bib.bib53)]
+    as the LLM decoder. Motivated by the tool-using capability of LLMs, we introduce
+    a planning framework for environmental understanding with the detailed prompts
+    shown in Figure [2](https://arxiv.org/html/2406.03008v2#S4.F2 "Figure 2 ‣ Route
+    Planning Module. ‣ 4.1 Model Architecture ‣ 4 Method ‣ DriVLMe: Enhancing LLM-based
+    Autonomous Driving Agents with Embodied and Social Experiences").'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM 解码器是处理输入视频并将对话指令翻译为更低层决策的核心模块。受到 Video-ChatGPT [[29](https://arxiv.org/html/2406.03008v2#bib.bib29)]
+    的启发，我们采用 Vicuna-7B (v1.1) [[53](https://arxiv.org/html/2406.03008v2#bib.bib53)]
+    作为 LLM 解码器。受到 LLM 使用工具能力的启发，我们引入了一个规划框架，用于环境理解，详细提示如图 [2](https://arxiv.org/html/2406.03008v2#S4.F2
+    "图 2 ‣ 路径规划模块 ‣ 4.1 模型架构 ‣ 4 方法 ‣ DriVLMe：通过具身和社交经验增强基于 LLM 的自动驾驶智能体") 所示。
+- en: Route Planning Module.
+  id: totrans-61
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 路径规划模块。
+- en: To enable symbolic planning for long-horizon goals, we introduce a route planner
+    to incorporate the graph knowledge in the map $M$ into DriVLMe. The planner takes
+    as input a given target landmark on the map $\mathrm{lm}\in\{\mathrm{lm}_{i}\}$
+    and the current location of the agent $l$. It then outputs a route from the agent
+    to the target landmark following the shortest path. To call the planner, the agent
+    can simply output $\textrm{Plan}(\mathrm{lm})$. The planner returns a list of
+    turning directions, one per intersection in the route, expressed in natural language.
+    The final output delivered to the DriVLMe agent is a list of directional action
+    $\{p\}=[\mathrm{dir}_{1},\mathrm{dir}_{2},\cdots]$, where $\mathrm{dir}_{i}\in\{\texttt{left},\texttt{right},\texttt{straight},\texttt{%
+    uturn}\}$.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了实现长时间目标的符号规划，我们引入了一个路线规划器，将地图 $M$ 中的图形知识融入 DriVLMe。该规划器以地图上的目标地标 $\mathrm{lm}\in\{\mathrm{lm}_{i}\}$
+    和智能体当前位置 $l$ 为输入，然后输出从智能体到目标地标的最短路径。调用规划器时，智能体可以简单地输出 $\textrm{Plan}(\mathrm{lm})$。规划器返回一个转弯方向的列表，每个交叉口一个，用自然语言表达。最终输出传递给
+    DriVLMe 智能体的是一个方向性动作列表 $\{p\}=[\mathrm{dir}_{1},\mathrm{dir}_{2},\cdots]$，其中 $\mathrm{dir}_{i}\in\{\texttt{left},\texttt{right},\texttt{straight},\texttt{%
+    uturn}\}$。
+- en: <svg class="ltx_picture ltx_centering" height="276.62" id="S4.F2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,276.62) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="249.07" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">(Video)
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture ltx_centering" height="276.62" id="S4.F2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,276.62) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="249.07" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">(视频)
+- en: '(System Message): You are DriVLMe. You are responsible for safely piloting
+    a car according to the instructions of a passenger. You must communicate with
+    the passenger and make high-level decisions regarding the current navigational
+    goals.'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (系统消息)：您是DriVLMe。您负责根据乘客的指示安全驾驶汽车。您必须与乘客沟通，并做出关于当前导航目标的高级决策。
+- en: '(Prompt): Describe what you see.'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (提示)：描述您看到的内容。
+- en: '(LLM, Description): I can see a car in front of me. I can only switch left
+    lane…'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (LLM，描述)：我能看到前方有一辆车。我只能换到左车道…
+- en: (Dialogue & Action History)
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (对话与动作历史)
+- en: '(Route Planning Instruction): You have a planning tool that you can plan your
+    path to the destination. You can call it by plan(destination), and it will return
+    you a plan to get to your destination. If you don’t have a destination in your
+    mind, you can return plan(None).'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (路线规划指令)：您有一个规划工具，您可以通过它规划到达目的地的路径。您可以通过调用plan(destination)来获取一条到达目的地的路线。如果您没有明确的目的地，可以返回plan(None)。
+- en: '(LLM, Planning): plan(ikea)'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (LLM，规划)：plan(ikea)
+- en: '(Route Planner): [left, straight, …]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (路线规划器)：[左转，直行，…]
+- en: '(Prompt): You can select a new navigational action and reply to the passenger.'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (提示)：您可以选择一个新的导航动作，并回复乘客。
+- en: '(LLM, Action): SwitchLane'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (LLM，动作)：SwitchLane
+- en: '(LLM, Dialogue): “Ok, I will go to IKEA.”</foreignobject></g></g></svg>'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (LLM，对话)：“好的，我要去宜家。”
+- en: 'Figure 2: Example of system message and interaction between user and DriVLMe
+    system. The system message is an overview of the task the agent is required to
+    accomplish. Given the video and the observation history, the agent is required
+    to first describe the surrounding environment, then call the planner API to plan
+    a route to the predicted goal, and make a decision at last. The output of the
+    LLM is highlighted.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：系统消息和用户与DriVLMe系统交互的示例。系统消息概述了代理需要完成的任务。根据视频和观察历史，代理首先需要描述周围环境，然后调用规划器API规划一条到达预测目标的路线，最后做出决策。LLM的输出部分被突出显示。
+- en: 4.2 Instruction Tuning
+  id: totrans-75
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 指令调整
+- en: 'Motivated by Hu and Shu [[16](https://arxiv.org/html/2406.03008v2#bib.bib16)],
+    our goal is to enhance a language model’s competence as a world model and agent
+    model by learning from embodied experiences and social interactions. The training
+    process of DriVLMe consists of two stages: (1) the general video instruction tuning
+    stage, focused on aligning the LLM and the video tokenizer using large-scale driving
+    videos, and (2) the social and embodied instruction tuning stage, focused on training
+    the LLM on the conversational data collected from real human-human dialogue and
+    episodes of embodied experiences in a simulator.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 受胡和舒的启发[[16](https://arxiv.org/html/2406.03008v2#bib.bib16)]，我们的目标是通过学习来自具身经验和社会互动的数据，增强语言模型作为世界模型和代理模型的能力。DriVLMe的训练过程分为两个阶段：（1）通用视频指令调整阶段，重点是利用大规模驾驶视频来对齐LLM和视频标记器，（2）社会和具身指令调整阶段，重点是利用从实际人类对话和模拟器中获得的具身经验数据来训练LLM。
+- en: 4.2.1 Domain Video Instruction Tuning
+  id: totrans-77
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.2.1 域视频指令调整
+- en: Following the practice of Video-ChatGPT [[29](https://arxiv.org/html/2406.03008v2#bib.bib29)],
+    we initialize the projection layer directly from LLaVA-7B (lightening v1.1) [[25](https://arxiv.org/html/2406.03008v2#bib.bib25)].
+    We adopt 50k video-text pairs from the BDD-X dataset [[21](https://arxiv.org/html/2406.03008v2#bib.bib21)]
+    for the driving domain tuning. The pre-training images are collected from real
+    driving videos and textual annotations of the environmental description and action
+    explanations. We freeze the CLIP encoder and the LLM decoder, and train the projection
+    layer only.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参考 Video-ChatGPT [[29](https://arxiv.org/html/2406.03008v2#bib.bib29)] 的做法，我们直接从
+    LLaVA-7B（lightening v1.1）[[25](https://arxiv.org/html/2406.03008v2#bib.bib25)]
+    初始化投影层。我们采用来自 BDD-X 数据集[[21](https://arxiv.org/html/2406.03008v2#bib.bib21)] 的
+    50k 视频-文本对进行驾驶领域的调优。预训练图像来自真实驾驶视频及其环境描述和动作解释的文本注释。我们冻结了 CLIP 编码器和 LLM 解码器，仅训练投影层。
+- en: 4.2.2 Social Instruction Tuning
+  id: totrans-79
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.2.2 社会化指令调优
+- en: At this stage, we used LoRA [[14](https://arxiv.org/html/2406.03008v2#bib.bib14)]
+    to fine-tune the LLM in addition to the projector. We train the model on the whole
+    training set of the SDN dataset, which has 13k video-dialogue pairs, including
+    human-vehicle dialogues and long-term goals for planners. At each datapoint $\tau$,
+    the original SDN benchmark provides the dialogue $d$ generated by human players,
+    or physical action $\langle p,\alpha\rangle$, where $p$ is an action (e.g., Stop)
+    and $\alpha$ is an argument (e.g., left). We aim for the agent to learn how to
+    plan in alignment with human intentions, which involves creating a sequence of
+    primitive actions based on the goal and dialogue history, particularly when there’s
+    a change in the goal or plan. We manually annotate plan changes based on the car’s
+    trajectory and the current dialogue. While there could be several valid paths
+    from the current location to the goal, we manually selected the routes that the
+    vehicle took during the recording. These annotated plans serve as a part of the
+    video-instruction data pairs for training, facilitating more effective learning
+    of the planner as a tool.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一阶段，我们除了对投影器进行调优外，还使用了 LoRA [[14](https://arxiv.org/html/2406.03008v2#bib.bib14)]
+    对 LLM 进行微调。我们在 SDN 数据集的整个训练集上训练模型，该数据集包含 13k 视频-对话对，包括人与车辆的对话和规划者的长期目标。在每个数据点
+    $\tau$ 上，原始 SDN 基准提供由人类玩家生成的对话 $d$ 或物理动作 $\langle p,\alpha\rangle$，其中 $p$ 是动作（例如，停止），$\alpha$
+    是参数（例如，左）。我们的目标是让代理学习如何与人类意图对齐进行规划，这涉及根据目标和对话历史创建一系列原始动作，特别是在目标或计划发生变化时。我们根据车辆的轨迹和当前对话手动注释计划变化。尽管从当前位置到目标可能有多条有效路径，但我们手动选择了车辆在录制过程中所走的路线。这些注释计划作为视频-指令数据对的一部分，用于训练，从而更有效地学习规划器作为工具。
+- en: 4.2.3 Embodied Instruction Tuning
+  id: totrans-81
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.2.3 具身指令调优
+- en: Besides the original dialogue data, we developed a data generation pipeline
+    to obtain paired data of embodied perception and descriptions from the simulator.
+    We replay the training sessions in the SDN benchmark to obtain the egocentric
+    perception, record the environmental factors such as weather and nearby objects,
+    and then fill these details into language descriptions using templates.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了原始对话数据，我们还开发了一个数据生成管道，以从模拟器中获取具身感知和描述的配对数据。我们回放 SDN 基准中的训练会话以获取自我中心感知，记录环境因素如天气和附近的物体，然后使用模板将这些细节填入语言描述中。
+- en: •
+  id: totrans-83
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Distance to Road End: We compute the distance to the road’s end by subtracting
+    the current waypoint’s $s$ value from the $s$ value at the road’s end. The $s$
+    value is defined according to the OpenDrive 1.4 standard [[11](https://arxiv.org/html/2406.03008v2#bib.bib11)].'
+  id: totrans-84
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 距离道路尽头：我们通过将当前路标的 $s$ 值减去道路尽头的 $s$ 值来计算距离道路尽头的距离。$s$ 值根据 OpenDrive 1.4 标准定义[[11](https://arxiv.org/html/2406.03008v2#bib.bib11)]。
+- en: •
+  id: totrans-85
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Lane Information: We note the lane number the car was in, counting from the
+    left, and record whether the car could switch to the adjacent left or right lanes.'
+  id: totrans-86
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 车道信息：我们记录车辆所在的车道编号，从左侧开始计数，并记录车辆是否可以切换到相邻的左侧或右侧车道。
+- en: •
+  id: totrans-87
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Object in Front: We identify the object directly in front of the vehicle from
+    the ground truth obtained from the simulation, and compute the distance to it.'
+  id: totrans-88
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 前方物体：我们从模拟获得的地面真实值中直接识别出车辆正前方的物体，并计算与其的距离。
+- en: •
+  id: totrans-89
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Traffic Sign Visibility: We record all visible traffic signs (e.g., traffic
+    lights, stop signs, speed limit signs), along with the information they displayed
+    (red/green for lights, posted speed limits), and their distances from the vehicle.'
+  id: totrans-90
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 交通标志可见性：我们记录所有可见的交通标志（例如，交通灯、停车标志、限速标志），以及它们所显示的信息（交通灯的红/绿、标示的限速），以及它们与车辆的距离。
+- en: •
+  id: totrans-91
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Weather Conditions: We record the current weather conditions that could impact
+    the vehicle’s control.'
+  id: totrans-92
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 天气条件：我们记录可能影响车辆控制的当前天气条件。
+- en: 'The text templates used to verbalize the embodied experiences are available
+    in Appendix [8.1](https://arxiv.org/html/2406.03008v2#Sx2.SS1 "8.1 Language Templates
+    for Verbalizing the Embodied Experiences. ‣ Appendix ‣ DriVLMe: Enhancing LLM-based
+    Autonomous Driving Agents with Embodied and Social Experiences").'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '用于表达具身经验的文本模板可在附录[8.1](https://arxiv.org/html/2406.03008v2#Sx2.SS1 "8.1 Language
+    Templates for Verbalizing the Embodied Experiences. ‣ Appendix ‣ DriVLMe: Enhancing
+    LLM-based Autonomous Driving Agents with Embodied and Social Experiences")中找到。'
+- en: 4.2.4 Hyper-parameters.
+  id: totrans-94
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.2.4 超参数。
+- en: The input resolution of the video is set as $224\times 224$. We use a single
+    linear layer for projection. For the pre-training stage of the model, we trained
+    the model for 3 epochs with a learning rate of $2e^{-5}$ and a batch size of 4.
+    We fine-tune the LLM with LoRA [[14](https://arxiv.org/html/2406.03008v2#bib.bib14)]
+    and ZeRO [[39](https://arxiv.org/html/2406.03008v2#bib.bib39)]. The training epoch
+    is 2 and the batch size is 1\. For the LoRA configuration, we set rank to 128
+    and alpha to 256.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视频的输入分辨率设置为$224\times 224$。我们使用单一的线性层进行投影。在模型的预训练阶段，我们以学习率$2e^{-5}$和批量大小4训练模型3个周期。我们使用LoRA[[14](https://arxiv.org/html/2406.03008v2#bib.bib14)]和ZeRO[[39](https://arxiv.org/html/2406.03008v2#bib.bib39)]对LLM进行了微调。训练周期为2，批量大小为1。对于LoRA配置，我们将秩（rank）设置为128，alpha设置为256。
+- en: 5 Open-loop Evaluation
+  id: totrans-96
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 开环评估
+- en: 5.1 SDN Benchmark
+  id: totrans-97
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 SDN 基准
+- en: For the open-loop evaluation, we tested the model on the test split of the SDN
+    benchmark. The test set has two subsets, seen and unseen, where seen data points
+    adopt either CARLA map Town01, Town03, or Town05 as the environment (which appeared
+    in the training set). The unseen data points are from Town02, which is a relatively
+    simple town map that was held out from training.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于开环评估，我们在SDN基准的测试集上测试了模型。测试集包含两个子集，已见和未见，其中已见数据点使用CARLA地图Town01、Town03或Town05作为环境（这些地图出现在训练集中）。未见数据点来自Town02，这是一张相对简单的城镇地图，未参与训练。
+- en: 5.2 Evaluation Metrics
+  id: totrans-99
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 评估指标
+- en: 'We evaluate our model on two tasks, RfN and NfD. The NfD task necessitates
+    the agent’s prediction of the physical action $\langle p,\alpha\rangle$, where
+    $p$ represents the chosen physical action and $\alpha$ is its argument. For evaluating
+    both the physical action and its argument, we employ accuracy metrics. In the
+    RfN task, the agent is required to predict the dialogue output $d$. The model
+    is tasked with predicting the dialogue move $m$ as defined in SDN. To evaluate
+    the natural language dialogue output, we consider additional language generation
+    metrics: CIDEr [[56](https://arxiv.org/html/2406.03008v2#bib.bib56)], BERTScore [[70](https://arxiv.org/html/2406.03008v2#bib.bib70)],
+    and METEOR [[3](https://arxiv.org/html/2406.03008v2#bib.bib3)].'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在两个任务上评估了模型，分别是RfN和NfD。NfD任务要求代理预测物理动作$\langle p,\alpha\rangle$，其中$p$表示选择的物理动作，$\alpha$是其参数。为了评估物理动作及其参数，我们采用了准确率指标。在RfN任务中，代理需要预测对话输出$d$。模型需要预测SDN中定义的对话动作$m$。为了评估自然语言对话输出，我们还考虑了其他语言生成指标：CIDEr[[56](https://arxiv.org/html/2406.03008v2#bib.bib56)]、BERTScore[[70](https://arxiv.org/html/2406.03008v2#bib.bib70)]和METEOR[[3](https://arxiv.org/html/2406.03008v2#bib.bib3)]。
+- en: '| Model | NfD | RfN |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | NfD | RfN |'
+- en: '| --- | --- | --- |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Act$\uparrow$ | Arg$\uparrow$ | Move$\uparrow$ | CIDEr$\uparrow$ | BERT$\uparrow$
+    | M$\uparrow$ |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| Act$\uparrow$ | Arg$\uparrow$ | Move$\uparrow$ | CIDEr$\uparrow$ | BERT$\uparrow$
+    | M$\uparrow$ |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| Seen Environments |  |  |  |  |  |  |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 已见环境 |  |  |  |  |  |  |'
+- en: '| TOTO | 41.2 | 36.0 | 40.9 | - | - | - |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| TOTO | 41.2 | 36.0 | 40.9 | - | - | - |'
+- en: '| GPT-4 | 53.0 | 44.2 | 11.0 | 0.06 | 0.48 | 0.09 |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4 | 53.0 | 44.2 | 11.0 | 0.06 | 0.48 | 0.09 |'
+- en: '| GPT-4V | 52.0 | 29.4 | 6.5 | 0.07 | 0.54 | 0.11 |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4V | 52.0 | 29.4 | 6.5 | 0.07 | 0.54 | 0.11 |'
+- en: '| \cdashline1-7 DriveVLM | 70.4 | 71.3 | 61.4 | 0.43 | 0.76 | 0.37 |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| \cdashline1-7 DriveVLM | 70.4 | 71.3 | 61.4 | 0.43 | 0.76 | 0.37 |'
+- en: '| DriVLMe (-social) | 68.7 | 69.0 | 19.1 | 0.17 | 0.60 | 0.13 |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-social) | 68.7 | 69.0 | 19.1 | 0.17 | 0.60 | 0.13 |'
+- en: '| DriVLMe (-embodied) | 68.4 | 67.7 | 62.7 | 0.45 | 0.76 | 0.37 |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-embodied) | 68.4 | 67.7 | 62.7 | 0.45 | 0.76 | 0.37 |'
+- en: '| DriVLMe (-domain) | 62.4 | 70.7 | 60.9 | 0.35 | 0.75 | 0.18 |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-domain) | 62.4 | 70.7 | 60.9 | 0.35 | 0.75 | 0.18 |'
+- en: '| DriVLMe (-video) | 60.3 | 72.5 | 42.7 | 0.33 | 0.69 | 0.26 |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-video) | 60.3 | 72.5 | 42.7 | 0.33 | 0.69 | 0.26 |'
+- en: '| DriVLMe (-planner) | 57.6 | 52.0 | 21.3 | 0.19 | 0.61 | 0.12 |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-planner) | 57.6 | 52.0 | 21.3 | 0.19 | 0.61 | 0.12 |'
+- en: '| Unseen Environment |  |  |  |  |  |  |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 未见环境 |  |  |  |  |  |  |'
+- en: '| TOTO | 45.8 | 41.1 | 31.0 | - | - | - |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| TOTO | 45.8 | 41.1 | 31.0 | - | - | - |'
+- en: '| GPT-4 | 67.5 | 61.3 | 14.5 | 0.05 | 0.47 | 0.08 |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4 | 67.5 | 61.3 | 14.5 | 0.05 | 0.47 | 0.08 |'
+- en: '| GPT-4V | 63.5 | 51.6 | 7.5 | 0.07 | 0.53 | 0.13 |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4V | 63.5 | 51.6 | 7.5 | 0.07 | 0.53 | 0.13 |'
+- en: '| \cdashline1-7 DriveVLM | 70.8 | 71.3 | 68.5 | 0.55 | 0.81 | 0.43 |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| \cdashline1-7 DriveVLM | 70.8 | 71.3 | 68.5 | 0.55 | 0.81 | 0.43 |'
+- en: '| DriVLMe (-social) | 69.8 | 66.8 | 26.9 | 0.25 | 0.64 | 0.16 |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-social) | 69.8 | 66.8 | 26.9 | 0.25 | 0.64 | 0.16 |'
+- en: '| DriVLMe (-embodied) | 72.9 | 68.0 | 66.7 | 0.52 | 0.79 | 0.42 |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-embodied) | 72.9 | 68.0 | 66.7 | 0.52 | 0.79 | 0.42 |'
+- en: '| DriVLMe (-domain) | 65.9 | 70.8 | 65.3 | 0.48 | 0.78 | 0.38 |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-domain) | 65.9 | 70.8 | 65.3 | 0.48 | 0.78 | 0.38 |'
+- en: '| DriVLMe (-video) | 62.6 | 68.6 | 46.5 | 0.41 | 0.73 | 0.31 |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-video) | 62.6 | 68.6 | 46.5 | 0.41 | 0.73 | 0.31 |'
+- en: '| DriVLMe (-planner) | 58.2 | 59.1 | 23.7 | 0.22 | 0.63 | 0.13 |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe (-planner) | 58.2 | 59.1 | 23.7 | 0.22 | 0.63 | 0.13 |'
+- en: 'Table 2: Results of open-loop evaluation on the SDN test set. The seen sessions
+    are from CARLA map Town01, Town03, and Town05, while unseen sessions are from
+    CARLA map Town02\. The NfD task measures the agent’s ability to navigate according
+    to human instruction and the RfN task measures the agent’s ability to respond
+    to humans in a situated dialogue, M stands for METEOR.'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：在SDN测试集上的开放循环评估结果。已见会话来自CARLA地图Town01、Town03和Town05，而未见会话来自CARLA地图Town02。NfD任务衡量智能体根据人类指令进行导航的能力，RfN任务衡量智能体在情境对话中回应人类的能力，M代表METEOR。
+- en: 5.3 Baselines
+  id: totrans-126
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3 基准模型
+- en: Expert Baseline.
+  id: totrans-127
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 专家基准模型。
+- en: We compared our model with TOTO [[27](https://arxiv.org/html/2406.03008v2#bib.bib27)],
+    a baseline model implemented with an episodic transformer. Since the TOTO model
+    does not have a text decoder and thus cannot generate dialogue, we only recorded
+    the dialogue move prediction accuracy of TOTO.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将我们的模型与TOTO[[27](https://arxiv.org/html/2406.03008v2#bib.bib27)]进行了比较，TOTO是一个基于情节转换器实现的基准模型。由于TOTO模型没有文本解码器，因此无法生成对话，我们仅记录了TOTO的对话动作预测准确率。
+- en: Generalist Baselines.
+  id: totrans-129
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 通用基准模型。
+- en: 'The GPT-4 [[1](https://arxiv.org/html/2406.03008v2#bib.bib1)] and GPT-4V [[35](https://arxiv.org/html/2406.03008v2#bib.bib35)]
+    models are generalist LLMs we consider.¹¹1We use the OpenAI gpt-4-0125-preview
+    and gpt-4-vision-preview models, respectively. Due to computational constraints,
+    rather than test both models on the entirety of the SDN test set, we chose to
+    randomly sample data points from four strata: seen RfN, unseen RfN, seen NfD,
+    and unseen NfD. To evaluate each model on one of these strata, we randomly sampled
+    200 data points and fed them into a custom prompting infrastructure similar to
+    the structure in Table [2](https://arxiv.org/html/2406.03008v2#S4.F2 "Figure 2
+    ‣ Route Planning Module. ‣ 4.1 Model Architecture ‣ 4 Method ‣ DriVLMe: Enhancing
+    LLM-based Autonomous Driving Agents with Embodied and Social Experiences"). For
+    the vision-enabled model (GPT-4V), we prepended an image $V_{t-1}$ as the current
+    visual input. To help the LLMs better understand the output format, we explain
+    each option in the decision-making prompt. The prompt engineering details are
+    in Appendix [8.2](https://arxiv.org/html/2406.03008v2#Sx2.SS2 "8.2 Prompt Engineering
+    for GPT-4 Baseline ‣ Appendix ‣ DriVLMe: Enhancing LLM-based Autonomous Driving
+    Agents with Embodied and Social Experiences").'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'GPT-4[[1](https://arxiv.org/html/2406.03008v2#bib.bib1)]和GPT-4V[[35](https://arxiv.org/html/2406.03008v2#bib.bib35)]是我们考虑的通用LLM模型。¹¹1我们分别使用了OpenAI的gpt-4-0125-preview和gpt-4-vision-preview模型。由于计算限制，我们没有在整个SDN测试集上测试这两个模型，而是选择从四个层次中随机抽样数据点：已见RfN、未见RfN、已见NfD和未见NfD。为了在这些层次之一上评估每个模型，我们随机抽取了200个数据点，并将其输入到一个类似于表[2](https://arxiv.org/html/2406.03008v2#S4.F2
+    "Figure 2 ‣ Route Planning Module. ‣ 4.1 Model Architecture ‣ 4 Method ‣ DriVLMe:
+    Enhancing LLM-based Autonomous Driving Agents with Embodied and Social Experiences")中的自定义提示基础设施中。对于支持视觉的模型（GPT-4V），我们在当前视觉输入前添加了图像$V_{t-1}$。为了帮助LLM更好地理解输出格式，我们在决策提示中解释了每个选项。提示工程的详细信息见附录[8.2](https://arxiv.org/html/2406.03008v2#Sx2.SS2
+    "8.2 Prompt Engineering for GPT-4 Baseline ‣ Appendix ‣ DriVLMe: Enhancing LLM-based
+    Autonomous Driving Agents with Embodied and Social Experiences")。'
+- en: 5.4 Main Results
+  id: totrans-131
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.4 主要结果
+- en: 'As shown in Table [2](https://arxiv.org/html/2406.03008v2#S5.T2 "Table 2 ‣
+    5.2 Evaluation Metrics ‣ 5 Open-loop Evaluation ‣ DriVLMe: Enhancing LLM-based
+    Autonomous Driving Agents with Embodied and Social Experiences"), our DriveVLMe
+    model significantly outperforms the baseline models across most metrics, except
+    for the physical action accuracy in the NfD task for the unseen map. This discrepancy
+    may be attributed to the unfamiliarity with the unseen Town02, though it is topographically
+    simpler. Overall, DriVLMe can predict more precise decisions and give better responses
+    in the situated dialogue.'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如表 [2](https://arxiv.org/html/2406.03008v2#S5.T2 "Table 2 ‣ 5.2 Evaluation
+    Metrics ‣ 5 Open-loop Evaluation ‣ DriVLMe: Enhancing LLM-based Autonomous Driving
+    Agents with Embodied and Social Experiences") 所示，我们的 DriveVLMe 模型在大多数指标上显著优于基准模型，除了在
+    NfD 任务中未见地图的物理动作准确度。这一差异可能归因于对未见 Town02 的不熟悉，尽管它在地形上较为简单。总体而言，DriVLMe 可以做出更精确的决策，并在情境对话中给出更好的回应。'
+- en: '![Refer to caption](img/376fc9696d835d25e55df2ede9c9f0b9.png)'
+  id: totrans-133
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/376fc9696d835d25e55df2ede9c9f0b9.png)'
+- en: 'Figure 3: Examples of closed-loop evaluation of DriVLMe in CARLA, following
+    action-level natural language instructions.'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：在 CARLA 中进行的 DriVLMe 闭环评估示例，按照动作级别的自然语言指令执行。
+- en: '![Refer to caption](img/fea33a95cfbabced26acffb6280ebb0e.png)'
+  id: totrans-135
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/fea33a95cfbabced26acffb6280ebb0e.png)'
+- en: 'Figure 4: Example of a closed-loop evaluation session: The initial goal of
+    the session is set to Shell, which is later changed to KFC during the course of
+    the evaluation. The yellow solid line represents the path taken by the agent and
+    the yellow dotted line represents the route planned by the planner. We took eight
+    checkpoints in the whole evaluation session and recorded the input dialogue, goal
+    prediction, dialogue response and the physical action taken for each checkpoint.'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：闭环评估会话示例：会话的初始目标设定为 Shell，随后在评估过程中更改为 KFC。黄色实线表示代理所走的路径，黄色虚线表示规划模块规划的路线。我们在整个评估会话中设置了八个检查点，并记录了每个检查点的输入对话、目标预测、对话回应和采取的物理动作。
+- en: 5.5 Ablation Studies
+  id: totrans-137
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.5 消融研究
+- en: To assess the effectiveness of various data and components in developing DriVLMe,
+    we conducted an ablation study. We evaluated the model performance by systematically
+    removing specific training data and components to observe their impact on the
+    model’s ability to generate dialogue responses and predict physical actions.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估在开发 DriVLMe 中各种数据和组件的有效性，我们进行了消融研究。我们通过系统地去除特定的训练数据和组件来评估模型性能，以观察它们对模型生成对话回应和预测物理动作能力的影响。
+- en: •
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Social Data (-social): We removed the human-vehicle dialogue data used for
+    social instruction tuning.'
+  id: totrans-140
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 社会数据（-social）：我们去除了用于社会指令调优的人车对话数据。
+- en: •
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Embodied Data (-embodied): We removed the simulated data used for embodied
+    instruction tuning.'
+  id: totrans-142
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 体现数据（-embodied）：我们去除了用于体现指令调优的模拟数据。
+- en: •
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Domain Data (-domain): We removed the BDD-X data used for domain-general instruction
+    tuning.'
+  id: totrans-144
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 域数据（-domain）：我们去除了用于领域通用指令调优的 BDD-X 数据。
+- en: •
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Video Input (-video): We removed the video processing component from DriVLMe
+    and evaluated its performance without visual information.'
+  id: totrans-146
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 视频输入（-video）：我们去除了 DriVLMe 中的视频处理组件，并在没有视觉信息的情况下评估了其性能。
+- en: •
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Planner Module (-planner): We removed the planner module responsible for route
+    planning in DriVLMe. This experiment aimed to assess the impact of proactive route
+    planning on the model’s navigation capabilities.'
+  id: totrans-148
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 规划模块（-planner）：我们去除了 DriVLMe 中负责路线规划的规划模块。此实验旨在评估主动路线规划对模型导航能力的影响。
+- en: 'As shown in Table [2](https://arxiv.org/html/2406.03008v2#S5.T2 "Table 2 ‣
+    5.2 Evaluation Metrics ‣ 5 Open-loop Evaluation ‣ DriVLMe: Enhancing LLM-based
+    Autonomous Driving Agents with Embodied and Social Experiences"), removing the
+    video input and the planner module both decrease the performance of the model
+    on the RfN tasks on all metrics, indicating the contribution of both models on
+    response generation. A similar decrease in NfD performance is observed, while
+    the impact of removing the planner is significant, suggesting that the route planner
+    module greatly contributes to the next action prediction. Data ablation studies
+    show that social experiences significantly enhance response generation. We observed
+    that embodied experiences mainly aid the model in predicting actions unrelated
+    to route planning, such as lane switching. Consequently, this was less beneficial
+    in the unseen Town02, where lane switching is not necessary.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如表[2](https://arxiv.org/html/2406.03008v2#S5.T2 "Table 2 ‣ 5.2 Evaluation Metrics
+    ‣ 5 Open-loop Evaluation ‣ DriVLMe: Enhancing LLM-based Autonomous Driving Agents
+    with Embodied and Social Experiences")所示，去除视频输入和规划模块会降低模型在RfN任务上的所有指标表现，表明这两个模型对响应生成的贡献。NfD性能的类似下降也被观察到，其中去除规划器的影响尤为显著，表明路线规划模块对下一步动作预测的贡献非常大。数据消融研究表明，社交经验显著增强了响应生成。我们观察到，具身经验主要帮助模型预测与路线规划无关的动作，如车道变换。因此，这在未见过的Town02中效果较差，因为在该场景中车道变换并非必要。'
+- en: 5.6 Evaluation on Realworld Benchmark
+  id: totrans-150
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.6 真实世界基准评估
+- en: 'We also explore whether DriVLMe can transition from simulated evaluations to
+    benchmarks involving real driving scenarios. We utilize the BDD-X [[21](https://arxiv.org/html/2406.03008v2#bib.bib21)]
+    benchmark, which offers video clips recorded by vehicle-mounted cameras along
+    with language interpretations and control signals. We fine-tune the DriVLMe model
+    with LoRA for another 9 epochs on the BDD-X training set, using a learning rate
+    of $5e^{-5}$ with both LoRA rank and alpha set to 256. As indicated in Table [3](https://arxiv.org/html/2406.03008v2#S5.T3
+    "Table 3 ‣ 5.6 Evaluation on Realworld Benchmark ‣ 5 Open-loop Evaluation ‣ DriVLMe:
+    Enhancing LLM-based Autonomous Driving Agents with Embodied and Social Experiences"),
+    DriVLMe successfully adapts to real-world driving scenarios beyond merely navigating
+    in a simulated environment. It outperforms the ADAPT [[18](https://arxiv.org/html/2406.03008v2#bib.bib18)]
+    baseline and achieves comparable performance to the state-of-the-art DriveGPT4 [[64](https://arxiv.org/html/2406.03008v2#bib.bib64)]
+    baseline, surpassing several metrics, without relying on ChatGPT-augmented data
+    as adopted in DriveGPT4.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们还探讨了DriVLMe是否能够从模拟评估过渡到涉及真实驾驶场景的基准测试。我们使用了BDD-X [[21](https://arxiv.org/html/2406.03008v2#bib.bib21)]基准，该基准提供了由车载摄像头录制的视频片段，并附有语言解读和控制信号。我们使用LoRA对DriVLMe模型在BDD-X训练集上进行了9个epochs的微调，学习率设置为$5e^{-5}$，LoRA秩和alpha均设置为256。如表[3](https://arxiv.org/html/2406.03008v2#S5.T3
+    "Table 3 ‣ 5.6 Evaluation on Realworld Benchmark ‣ 5 Open-loop Evaluation ‣ DriVLMe:
+    Enhancing LLM-based Autonomous Driving Agents with Embodied and Social Experiences")所示，DriVLMe成功适应了真实世界的驾驶场景，不仅仅是在模拟环境中进行导航。它超越了ADAPT [[18](https://arxiv.org/html/2406.03008v2#bib.bib18)]基准，并与最先进的DriveGPT4 [[64](https://arxiv.org/html/2406.03008v2#bib.bib64)]基准达到了相当的表现，超越了多个指标，并且不依赖于DriveGPT4中采用的ChatGPT增强数据。'
+- en: '| Model | Description | Justification | Full |  |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 描述 | 理由 | 完整性 |  |'
+- en: '| C$\uparrow$ | B4$\uparrow$ | R$\uparrow$ | C$\uparrow$ | B4$\uparrow$ | R$\uparrow$
+    | C$\uparrow$ | B4$\uparrow$ | R$\uparrow$ |  |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| C$\uparrow$ | B4$\uparrow$ | R$\uparrow$ | C$\uparrow$ | B4$\uparrow$ | R$\uparrow$
+    | C$\uparrow$ | B4$\uparrow$ | R$\uparrow$ |  |'
+- en: '| ADAPT | 219.35 | 33.42 | 61.83 | 94.62 | 9.95 | 32.01 | 93.66 | 17.76 | 44.32
+    |  |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| ADAPT | 219.35 | 33.42 | 61.83 | 94.62 | 9.95 | 32.01 | 93.66 | 17.76 | 44.32
+    |  |'
+- en: '| DriveGPT4 | 254.62 | 35.99 | 63.97 | 101.55 | 10.84 | 31.91 | 102.71 | 19.00
+    | 45.10 |  |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriveGPT4 | 254.62 | 35.99 | 63.97 | 101.55 | 10.84 | 31.91 | 102.71 | 19.00
+    | 45.10 |  |'
+- en: '| DriVLMe | 227.05 | 33.39 | 61.02 | 132.17 | 13.39 | 33.18 | 114.16 | 19.59
+    | 44.83 |  |'
+  id: totrans-156
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe | 227.05 | 33.39 | 61.02 | 132.17 | 13.39 | 33.18 | 114.16 | 19.59
+    | 44.83 |  |'
+- en: '| Model | Speed | Turning Angle |'
+  id: totrans-157
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 速度 | 转向角度 |'
+- en: '| E$\downarrow$ | A0.1$\uparrow$ | A0.5$\uparrow$ | A1$\uparrow$ | A5$\uparrow$
+    | E$\downarrow$ | A0.1$\uparrow$ | A0.5$\uparrow$ | A1$\uparrow$ | A5$\uparrow$
+    |'
+  id: totrans-158
+  prefs: []
+  type: TYPE_TB
+  zh: '| E$\downarrow$ | A0.1$\uparrow$ | A0.5$\uparrow$ | A1$\uparrow$ | A5$\uparrow$
+    | E$\downarrow$ | A0.1$\uparrow$ | A0.5$\uparrow$ | A1$\uparrow$ | A5$\uparrow$
+    |'
+- en: '| ADAPT | 3.02 | 9.56 | 24.77 | 37.07 | 90.39 | 11.98 | 27.93 | 66.83 | 75.13
+    | 89.45 |'
+  id: totrans-159
+  prefs: []
+  type: TYPE_TB
+  zh: '| ADAPT | 3.02 | 9.56 | 24.77 | 37.07 | 90.39 | 11.98 | 27.93 | 66.83 | 75.13
+    | 89.45 |'
+- en: '| DriveGPT4 | 1.30 | 30.09 | 60.88 | 79.92 | 98.44 | 8.98 | 59.23 | 72.89 |
+    79.59 | 95.32 |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriveGPT4 | 1.30 | 30.09 | 60.88 | 79.92 | 98.44 | 8.98 | 59.23 | 72.89 |
+    79.59 | 95.32 |'
+- en: '| DriVLMe | 1.59 | 22.76 | 50.55 | 70.80 | 99.20 | 33.54 | 61.38 | 70.70 |
+    76.21 | 91.55 |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| DriVLMe | 1.59 | 22.76 | 50.55 | 70.80 | 99.20 | 33.54 | 61.38 | 70.70 |
+    76.21 | 91.55 |'
+- en: 'Table 3: Results of open-loop evaluation on the BDD-X test set. We provide
+    evaluation results on action description, action justification, full-text generation
+    and control signal prediction. C stands for CIDEr; B4 stands for BLEU4; R stands
+    for ROUGE; E stands for Root Mean Square Error (RMSE).'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：BDD-X测试集上的开环评估结果。我们提供了关于动作描述、动作解释、全文生成和控制信号预测的评估结果。C代表CIDEr；B4代表BLEU4；R代表ROUGE；E代表均方根误差（RMSE）。
+- en: 6 Closed-loop Evaluation
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 闭环评估
+- en: For the closed-loop evaluation, we developed a human-in-the-loop simulation
+    protocol in CARLA based on the simulator developed in DOROTHIE for human studies.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于闭环评估，我们在CARLA中开发了一个基于DOROTHIE中为人类研究开发的模拟器的人机协同仿真协议。
+- en: 6.1 Experimental Design
+  id: totrans-165
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1 实验设计
+- en: 'We designed our closed-loop experiment to assess the adaptability and robustness
+    of our autonomous driving system under various dynamic scenarios. The experiment
+    was conducted in Town01 and Town02, including both seen and unseen maps. A human
+    subject instructed the DriVLMe agent to navigate to a preset goal by giving natural
+    language instructions following the storyboard, and the agent attempted to follow
+    these instructions, autonomously navigate in the environment, and communicate
+    with the human subject. To comprehensively evaluate the system’s performance,
+    we test the model with different settings as specific in the storyboards below:'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们设计了闭环实验，以评估我们的自动驾驶系统在各种动态场景下的适应性和鲁棒性。实验在Town01和Town02中进行，包括已知和未知的地图。人类参与者通过自然语言指令，按照故事板给DriVLMe代理指示导航到预设目标，代理尝试按照这些指令，自主在环境中导航并与人类参与者沟通。为了全面评估系统性能，我们在下面的故事板中列出了不同设置下的模型测试：
+- en: •
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Long-horizon v.s. Short-horizon Instructions: Users instruct the agent with
+    either long-horizon instructions, involving higher-level navigational goals (e.g.,
+    “go to the KFC”), or short-horizon instructions (e.g., “turn right at the next
+    intersection”) asking for immediate maneuvers.'
+  id: totrans-168
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 长期指令与短期指令：用户通过长期指令（涉及更高层次的导航目标，如“去KFC”）或短期指令（如“在下一个交叉口右转”）指导代理，要求其进行即时操作。
+- en: •
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Weather Change: A sudden weather change (e.g., rain) is triggered during driving.'
+  id: totrans-170
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 天气变化：驾驶过程中发生突如其来的天气变化（例如，下雨）。
+- en: •
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Goal Change: The human user asks for a change of goal to let the agent replan
+    the route. The human user first instructs the agent to navigate to an initial
+    goal and then updates it.'
+  id: totrans-172
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 目标变化：人类用户要求更改目标，迫使代理重新规划路线。人类用户首先指示代理导航到初始目标，然后更新目标。
+- en: •
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Obstacle Addition: An obstacle is placed in front of the agent to force a stop
+    or lane change.'
+  id: totrans-174
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 障碍物添加：在代理前方放置障碍物，迫使其停下或变道。
+- en: 6.2 Connecting DriVLMe to Simulation
+  id: totrans-175
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2 将DriVLMe与仿真连接
+- en: Throughout 20 pilot studies with real human subjects, agents’ interactions with
+    the simulator formed a closed-loop control mechanism. We used a local motion planner
+    to translate the physical actions back into throttle and steering control. Due
+    to the LLM inference rate, we limited the LLM to interact with the environment
+    at a frequency of 2 Hz, and provided the model with the whole interaction history
+    $H_{t}$ to prompt the model. For the evaluation, we used whether the final goal
+    was achieved as the metric and recorded the failure cases for analysis.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在20次实际人类参与者的先导研究中，代理与模拟器的互动形成了闭环控制机制。我们使用本地运动规划器将物理动作转化为油门和转向控制。由于LLM推理速率的限制，我们将LLM与环境的交互频率限制为2
+    Hz，并向模型提供了完整的交互历史$H_{t}$以进行提示。在评估中，我们使用是否达到最终目标作为度量，并记录失败案例进行分析。
+- en: 6.3 Main Results
+  id: totrans-177
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.3 主要结果
+- en: 'The outcomes of our experimental investigations provide compelling evidence
+    regarding the efficacy and robustness of our proposed DriVLMe model in autonomous
+    driving dialogue tasks, with 6 successful sessions out of 20 tests. As can be
+    seen in Figure [3](https://arxiv.org/html/2406.03008v2#S5.F3 "Figure 3 ‣ 5.4 Main
+    Results ‣ 5 Open-loop Evaluation ‣ DriVLMe: Enhancing LLM-based Autonomous Driving
+    Agents with Embodied and Social Experiences"), we find that the DriVLMe model
+    is capable of following simple human instructions and performing the physical
+    actions as requested, in line with previous studies on foundation model agents
+    for autonomous driving. Surprisingly, we find that DriVLMe can effectively call
+    the route planner API for reliable graph planning and re-planning, demonstrating
+    LLMs’ tool use capabilities. The model is also robust under weather changes during
+    the session. Still, these successful sessions are limited to cases when there
+    is one single long-horizon goal or only one change of goal. We observe challenges
+    with multi-turn interactions with multiple short-horizon instructions. DriVLMe
+    also faces difficulties in handling unexpected situations and changes to environmental
+    dynamics. Lastly, the simplified language generation from robotic experiences
+    has triggered concerns about trustworthiness as raised by human subjects. Figure [4](https://arxiv.org/html/2406.03008v2#S5.F4
+    "Figure 4 ‣ 5.4 Main Results ‣ 5 Open-loop Evaluation ‣ DriVLMe: Enhancing LLM-based
+    Autonomous Driving Agents with Embodied and Social Experiences") shows an example
+    of our session with a goal change instruction. We find that the agent can react
+    to goal changes and plan turns according to the plan given by the route planner
+    tool. However, we encountered two failure cases during the experiment. First,
+    the agent failed to stop when the car in front suddenly stopped (timestamp 7).
+    Second, the agent failed to predict a turn at the last intersection, causing the
+    agent to stall at the intersection (as marked on the map). We present the video
+    demonstration for additional details and discuss the limitations of foundation
+    model agents in the following section.'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验调查结果提供了有力证据，证明我们提出的DriVLMe模型在自动驾驶对话任务中的有效性和鲁棒性，在20次测试中成功进行了6次会话。正如图[3](https://arxiv.org/html/2406.03008v2#S5.F3
+    "图3 ‣ 5.4 主要结果 ‣ 5 开环评估 ‣ DriVLMe：通过具身和社交经验增强基于LLM的自动驾驶代理")所示，我们发现DriVLMe模型能够遵循简单的人类指令，并按要求执行物理动作，这与之前关于自动驾驶基础模型代理的研究一致。令人惊讶的是，我们发现DriVLMe能够有效调用路线规划API进行可靠的图形规划和重新规划，展示了LLM在工具使用方面的能力。该模型在会话中的天气变化下也表现出了鲁棒性。然而，这些成功的会话仅限于有一个长期目标或目标只有一次变化的情况。在与多个短期指令的多轮互动中，我们观察到了挑战。DriVLMe还在处理突发情况和环境动态变化时遇到了困难。最后，来自机器人经验的简化语言生成引发了人类受试者对可信度的担忧。图[4](https://arxiv.org/html/2406.03008v2#S5.F4
+    "图4 ‣ 5.4 主要结果 ‣ 5 开环评估 ‣ DriVLMe：通过具身和社交经验增强基于LLM的自动驾驶代理")展示了我们一次目标变化指令的会话示例。我们发现代理能够对目标变化做出反应，并根据路线规划工具给出的计划进行转向。然而，在实验过程中我们遇到了两个失败案例。首先，当前方的车突然停下时，代理未能及时停车（时间戳7）。其次，代理未能预测到最后一个交叉口的转向，导致代理在交叉口停滞（如地图所示）。我们提供了视频演示以获取更多细节，并在下一部分讨论基础模型代理的局限性。
+- en: 7 Limitations and Future Work
+  id: totrans-179
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 局限性与未来工作
+- en: Our pilot studies revealed several failure cases and technical challenges for
+    LLM-based AD agents, outlined as follows.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的初步研究揭示了基于LLM的自动驾驶代理存在若干失败案例和技术挑战，概述如下。
+- en: Imbalanced Embodied Experiences.
+  id: totrans-181
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 具身经验不平衡。
+- en: An inherent challenge in autonomous driving tasks lies in the imbalance of training
+    data, where the majority of data points are routine actions like lane following
+    or maintaining a safe distance from the preceding vehicle. This imbalance can
+    lead to model biases, particularly towards predicting more frequent actions while
+    failing to predict actions like stop. Addressing this issue requires introducing
+    robust data augmentation in embodied experiences, sampling strategies, or domain-specific
+    knowledge into the training process to ensure comprehensive model training across
+    diverse driving scenarios.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动驾驶任务中的一个固有挑战是训练数据的不平衡，大多数数据点是常规动作，如车道跟随或保持与前车的安全距离。这种不平衡可能导致模型偏向，特别是倾向于预测更常见的动作，而无法预测诸如停车之类的动作。解决这个问题需要在具身经验、采样策略或领域特定知识中引入强大的数据增强，以确保在多样化的驾驶场景中进行全面的模型训练。
+- en: Limited World Modeling and Visual Understanding.
+  id: totrans-183
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 限制的世界建模与视觉理解。
+- en: Our experiment revealed instances where the visual encoder failed to capture
+    critical world states due to low image input resolution, such as the color of
+    traffic lights or the interpretation of traffic signs. The absence of optical
+    character recognition (OCR) capabilities further exacerbates the risk of misinterpreting
+    traffic signs and thus breaking traffic rules. Future efforts could explore techniques
+    to enhance image resolution, integrate OCR functionalities, or incorporate complementary
+    sensor modalities to enrich perception and improve overall world modeling performance.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验揭示了由于图像输入分辨率低，视觉编码器未能捕捉到关键世界状态的实例，如交通信号灯的颜色或交通标志的解读。缺乏光学字符识别（OCR）功能进一步加剧了误解交通标志的风险，从而违反交通规则。未来的工作可以探索提高图像分辨率、集成OCR功能或加入补充传感器模态的技术，以丰富感知并改善整体世界建模性能。
+- en: Unexpected Situations and World Dynamics.
+  id: totrans-185
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 意外情况与世界动态。
+- en: Our closed-loop experiment results on unexpected situations like encountering
+    an obstacle have revealed limitations in the LLM agent’s ability to effectively
+    address out-of-distribution corner cases. Such cases are common in real-world
+    driving scenarios, highlighting the need for enhanced capabilities in LLM-based
+    autonomous driving agents to handle unforeseen circumstances. One potential direction
+    for the future is to enable agents to learn from in-the-wild driving video/data
+    and develop a better world model. Alternatively, allowing large language models
+    to proactively seek human help in unforeseen circumstances could also help.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在应对意外情况（如遇到障碍物）时的闭环实验结果揭示了LLM代理在有效应对分布外极端情况方面的局限性。这类情况在真实世界的驾驶场景中十分常见，突显了增强基于LLM的自动驾驶代理应对突发情况的能力的必要性。未来的一个潜在方向是使代理能够从现实驾驶视频/数据中学习并发展更好的世界模型。另一种方法是允许大型语言模型在突发情况下主动寻求人工帮助。
+- en: Language Generation from Embodied Experiences.
+  id: totrans-187
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 来自具身经验的语言生成。
+- en: Furthermore, our investigation revealed that the language generated by our model
+    tends to be oversimplified, primarily consisting of straightforward responses
+    to human instructions or simplistic yes/no replies. Additionally, the model cannot
+    initiate a dialogue with a human instructor, e.g., requesting additional advice
+    or low-level instructions. Future work should focus on enhancing the model’s conversational
+    initiative, enabling self-motivated dialogue.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们的调查发现，我们模型生成的语言往往过于简化，主要由对人类指令的直接回应或简单的“是/否”回答构成。此外，模型无法主动与人类指导者进行对话，例如请求额外的建议或低级别的指令。未来的工作应侧重于增强模型的对话主动性，推动自我驱动的对话。
+- en: Multi-turn Interactions and Instruction Following.
+  id: totrans-189
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 多轮互动与指令跟随。
+- en: Our closed-loop experiments also suggest the challenges of multi-turn interactions
+    and instruction following. As the conversation goes on, the agent occasionally
+    fails to retain previous long-horizon instructions, leading to wrong goal predictions
+    and subsequent disruptions to the planning route. This issue underscores the critical
+    importance of memory retention and context awareness in maintaining an agent model,
+    particularly in situations where extensive dialogue exchange happens. Addressing
+    these challenges through the implementation of memory-based mechanisms within
+    LLM architectures or adding some memory modules in the autonomous driving agent
+    framework could significantly enhance the agent’s ability to follow complex instructions
+    in a complex environment that needs lots of human-agent collaboration.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的闭环实验还表明，在多轮互动和指令跟随方面存在挑战。随着对话的进行，代理偶尔会未能保留之前的长周期指令，从而导致错误的目标预测，并随后中断规划路线。这个问题强调了在维护代理模型时，记忆保持和上下文意识的重要性，尤其是在发生大量对话交流的情况下。通过在大规模语言模型（LLM）架构中实现基于记忆的机制，或在自动驾驶代理框架中增加记忆模块，可能会显著增强代理在复杂环境中遵循复杂指令的能力，这种环境需要大量的人工与代理协作。
+- en: Limited Theory of Mind and Trust-worthiness.
+  id: totrans-191
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 有限的心智理论与可信度。
+- en: Another critical limitation observed in our study is the absence of a situated
+    Theory of Mind (ToM) [[28](https://arxiv.org/html/2406.03008v2#bib.bib28)] in
+    the autonomous agent. At times, the agent misinterprets the instructor’s intentions,
+    mistakenly perceiving low-level instructions as cues to abandon the previously
+    provided long-horizon instruction and predict the goal incorrectly. The agent
+    fails to recognize that the instruction may simply be specifying details within
+    the ongoing long-horizon instructions. This highlights the need for autonomous
+    driving agents with a nuanced understanding of the instructor’s intentions and
+    context, enabling better agent modeling for their interaction partners, thus,
+    gaining trust from humans.
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们研究中观察到的另一个关键限制是自动驾驶代理缺乏情境化的心智理论（ToM）[[28](https://arxiv.org/html/2406.03008v2#bib.bib28)]。有时，代理错误地解读了指令者的意图，错误地将低级指令视为放弃先前提供的长时程指令的提示，并错误预测目标。代理未能认识到指令可能仅仅是指定正在进行的长时程指令中的细节。这突显了自动驾驶代理需要具有更精细的理解指令者意图和上下文的能力，从而为其互动伙伴建立更好的代理模型，进而赢得人类的信任。
+- en: Unacceptable Inference Time.
+  id: totrans-193
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 不可接受的推理时间。
+- en: Our model’s single inference time takes approximately 5 seconds, which significantly
+    exceeds the interval between two decision points, posing a substantial challenge
+    in real-world scenarios where rapid decision-making is imperative. While this
+    delay is avoidable in a simulated environment through step-by-step simulation,
+    addressing this inference time disparity is crucial for practical deployment.
+    Future research directions may focus on distilling the model, leveraging hardware
+    acceleration, or implementing efficient inference strategies to mitigate this
+    bottleneck. This also raises a research problem of balancing the length of the
+    Chain-of-Thought reasoning to reduce the inference time while keeping a comparable
+    performance in task accomplishment.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们模型的单次推理时间大约为5秒，显著超过了两个决策点之间的间隔，这在实际应用中构成了重大挑战，尤其是在快速决策至关重要的场景下。虽然在模拟环境中可以通过逐步模拟避免这一延迟，但解决这一推理时间差异对于实际部署至关重要。未来的研究方向可能集中在模型精简、硬件加速的利用或实现高效的推理策略，以缓解这一瓶颈。这也提出了一个研究问题，即在减少推理时间的同时，如何平衡推理链条的长度，以保持任务完成的相对性能。
+- en: 8 Conclusion
+  id: totrans-195
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 结论
+- en: In this work, we presented DriVLMe, an LLM-based autonomous driving agent that
+    leverages both embodied experiences in a simulated environment and social experiences
+    in real human dialogue. The egocentric perception and conversational interaction
+    empower DriVLMe to engage in meaningful dialogues with human passengers while
+    navigating complex driving environments. Through empirical evaluations, we demonstrated
+    the effectiveness and versatility of DriVLMe in autonomous driving dialogue tasks,
+    showcasing significant improvements in both physical action prediction and dialogue
+    response generation metrics. Our findings have demonstrated the potential of DriVLMe
+    in enabling human-agent communication and autonomous driving, and on the other
+    hand, reveal ed several key limitations and challenges. of foundation models as
+    AD agents, highlighting areas that need future enhancement.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这项工作中，我们提出了基于LLM的自动驾驶代理DriVLMe，该代理结合了在模拟环境中的具身经验和在现实人类对话中的社交经验。以自我为中心的感知和对话互动使DriVLMe能够在复杂的驾驶环境中与人类乘客进行有意义的对话。通过实证评估，我们展示了DriVLMe在自动驾驶对话任务中的有效性和多样性，展示了在物理动作预测和对话响应生成指标上的显著改进。我们的研究结果展示了DriVLMe在实现人机沟通和自动驾驶中的潜力，同时也揭示了作为自动驾驶代理的基础模型的一些关键局限性和挑战，突出了未来需要改进的领域。
+- en: Acknowledgment
+  id: totrans-197
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 致谢
+- en: This work was supported by the Automotive Research Center (ARC) at the University
+    of Michigan and NSF IIS1949634. The authors would like to thank the reviewers
+    for their valuable feedback.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究得到了密歇根大学汽车研究中心（ARC）和NSF IIS1949634的资助支持。作者感谢审稿人提供的宝贵反馈。
+- en: References
+  id: totrans-199
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Achiam et al. [2023] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad,
+    Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman,
+    Shyamal Anadkat, et al. Gpt-4 technical report. *arXiv preprint arXiv:2303.08774*,
+    2023.
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Achiam 等人 [2023] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge
+    Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman,
+    Shyamal Anadkat 等人。Gpt-4技术报告。*arXiv 预印本 arXiv:2303.08774*, 2023。
+- en: Baca et al. [2003] Julie Baca, Feng Zheng, Hualin Gao, and Joseph Picone. Dialog
+    systems for automotive environments. In *INTERSPEECH*, pages 1929–1932, 2003.
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 巴卡等人 [2003] 朱莉·巴卡，郑峰，高华林，约瑟夫·皮科恩。汽车环境中的对话系统。在*INTERSPEECH*，第1929–1932页，2003。
+- en: 'Banerjee and Lavie [2005] Satanjeev Banerjee and Alon Lavie. Meteor: An automatic
+    metric for mt evaluation with improved correlation with human judgments. In *Proceedings
+    of the acl workshop on intrinsic and extrinsic evaluation measures for machine
+    translation and/or summarization*, pages 65–72, 2005.'
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 巴内吉和拉维 [2005] 萨坦吉夫·巴内吉和阿隆·拉维。Meteor：一种用于机器翻译评估的自动化度量，其与人工评判的相关性得到了改善。在*ACL机器翻译和/或总结评估方法内在和外在工作坊论文集*，第65–72页，2005。
+- en: 'Caesar et al. [2020] Holger Caesar, Varun Bankiti, Alex H Lang, Sourabh Vora,
+    Venice Erin Liong, Qiang Xu, Anush Krishnan, Yu Pan, Giancarlo Baldan, and Oscar
+    Beijbom. nuscenes: A multimodal dataset for autonomous driving. In *Proceedings
+    of the IEEE/CVF conference on computer vision and pattern recognition*, pages
+    11621–11631, 2020.'
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 凯撒等人 [2020] 霍尔格·凯撒，瓦伦·班基提，亚历克斯·H·兰，索拉布·沃拉，威尼斯·埃琳·李昂，徐强，阿努什·克里希南，俞潘，贾恩卡洛·巴尔丹，奥斯卡·贝伊博姆。nuscenes：自动驾驶的多模态数据集。在*IEEE/CVF计算机视觉与模式识别大会论文集*，第11621–11631页，2020。
+- en: 'Chen et al. [2023a] Long Chen, Oleg Sinavski, Jan Hünermann, Alice Karnsund,
+    Andrew James Willmott, Danny Birch, Daniel Maund, and Jamie Shotton. Driving with
+    llms: Fusing object-level vector modality for explainable autonomous driving.
+    *arXiv preprint arXiv:2310.01957*, 2023a.'
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 陈等人 [2023a] 陈龙，奥列格·西纳夫斯基，扬·赫内尔曼，爱丽丝·卡恩桑德，安德鲁·詹姆斯·威尔莫特，丹尼·伯奇，丹尼尔·蒙德，杰米·肖顿。使用LLM进行驾驶：融合面向对象的矢量模态以实现可解释的自动驾驶。*arXiv预印本
+    arXiv:2310.01957*，2023a。
+- en: 'Chen et al. [2023b] Li Chen, Penghao Wu, Kashyap Chitta, Bernhard Jaeger, Andreas
+    Geiger, and Hongyang Li. End-to-end autonomous driving: Challenges and frontiers.
+    *arXiv preprint arXiv:2306.16927*, 2023b.'
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 陈等人 [2023b] 陈理，吴鹏豪，卡什雅普·奇塔，伯恩哈德·耶格，安德烈亚斯·盖格，李洪阳。端到端自动驾驶：挑战与前沿。*arXiv预印本 arXiv:2306.16927*，2023b。
+- en: Cui et al. [2024] Can Cui, Yunsheng Ma, Xu Cao, Wenqian Ye, Yang Zhou, Kaizhao
+    Liang, Jintai Chen, Juanwu Lu, Zichong Yang, Kuei-Da Liao, et al. A survey on
+    multimodal large language models for autonomous driving. In *Proceedings of the
+    IEEE/CVF Winter Conference on Applications of Computer Vision*, pages 958–979,
+    2024.
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 崔等人 [2024] 崔灿，马云生，曹旭，叶文倩，周扬，梁凯兆，陈金泰，卢娟武，杨子冲，廖贵达等人。关于自动驾驶的多模态大语言模型调查。在*IEEE/CVF冬季计算机视觉应用会议论文集*，第958–979页，2024。
+- en: 'Cui et al. [2023] Yuchen Cui, Siddharth Karamcheti, Raj Palleti, Nidhya Shivakumar,
+    Percy Liang, and Dorsa Sadigh. No, to the right: Online language corrections for
+    robotic manipulation via shared autonomy. In *Proceedings of the 2023 ACM/IEEE
+    International Conference on Human-Robot Interaction*, pages 93–101, 2023.'
+  id: totrans-207
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 崔等人 [2023] 崔宇辰，悉达尔特·卡拉姆切蒂，拉杰·帕莱蒂，尼迪亚·希瓦库马尔，帕西·梁，朵莎·萨迪赫。不要，往右：通过共享自治进行机器人操作的在线语言纠正。在*2023年ACM/IEEE人类-机器人互动国际会议论文集*，第93–101页，2023。
+- en: 'Deruyttere et al. [2019] Thierry Deruyttere, Simon Vandenhende, Dusan Grujicic,
+    Luc Van Gool, and Marie-Francine Moens. Talk2car: Taking control of your self-driving
+    car. *arXiv preprint arXiv:1909.10838*, 2019.'
+  id: totrans-208
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 德鲁特雷等人 [2019] 蒂埃里·德鲁特雷，西蒙·范登亨德，杜尚·格鲁季奇，卢克·范·古尔，玛丽-弗朗辛·莫恩斯。Talk2car：掌控你的自动驾驶汽车。*arXiv预印本
+    arXiv:1909.10838*，2019。
+- en: 'Dosovitskiy et al. [2017] Alexey Dosovitskiy, German Ros, Felipe Codevilla,
+    Antonio Lopez, and Vladlen Koltun. Carla: An open urban driving simulator. In
+    *Conference on robot learning*, pages 1–16\. PMLR, 2017.'
+  id: totrans-209
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 多索维茨基等人 [2017] 亚历克谢·多索维茨基，赫尔曼·罗斯，费利佩·科德维拉，安东尼奥·洛佩兹，弗拉德伦·科尔图。Carla：一种开放的城市驾驶模拟器。在*机器人学习会议*，第1–16页，PMLR，2017。
+- en: Dupuis and Grezlikowski [2006] Marius Dupuis and Han Grezlikowski. Opendrive®-an
+    open standard for the description of roads in driving simulations. In *Proceedings
+    of the Driving Simulation Conference*, pages 25–36, 2006.
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 杜普伊和格雷兹利科夫斯基 [2006] 马里乌斯·杜普伊和汉·格雷兹利科夫斯基。Opendrive®——一种用于驾驶模拟中道路描述的开放标准。在*驾驶模拟会议论文集*，第25–36页，2006。
+- en: Gao et al. [2024] Haoxiang Gao, Yaqian Li, Kaiwen Long, Ming Yang, and Yiqing
+    Shen. A survey for foundation models in autonomous driving. *arXiv preprint arXiv:2402.01105*,
+    2024.
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 高等人 [2024] 高浩翔，李雅倩，龙凯文，杨敏，沈奕庆。自动驾驶中的基础模型调查。*arXiv预印本 arXiv:2402.01105*，2024。
+- en: 'Gu et al. [2023] Qiao Gu, Alihusein Kuwajerwala, Sacha Morin, Krishna Murthy
+    Jatavallabhula, Bipasha Sen, Aditya Agarwal, Corban Rivera, William Paul, Kirsty
+    Ellis, Rama Chellappa, et al. Conceptgraphs: Open-vocabulary 3d scene graphs for
+    perception and planning. *arXiv preprint arXiv:2309.16650*, 2023.'
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 顾等人 [2023] 顾巧，阿里胡赛因·库瓦杰尔瓦拉，萨查·莫林，克里希纳·穆尔西·贾塔瓦拉布拉，比帕莎·森，阿迪蒂亚·阿加瓦尔，科尔班·里维拉，威廉·保罗，凯尔斯蒂·埃利斯，拉马·切拉帕，等。Conceptgraphs：面向感知与规划的开放词汇3D场景图。*arXiv预印本
+    arXiv:2309.16650*，2023年。
+- en: 'Hu et al. [2021] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu,
+    Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. Lora: Low-rank adaptation of
+    large language models. *arXiv preprint arXiv:2106.09685*, 2021.'
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 胡等人 [2021] 爱德华·J·胡，沈烨龙，菲利普·瓦利斯，泽远·艾伦-朱，李元志，沈晏，王璐，陈威珠。Lora：大规模语言模型的低秩适配。*arXiv预印本
+    arXiv:2106.09685*，2021年。
+- en: Hu et al. [2023] Yihan Hu, Jiazhi Yang, Li Chen, Keyu Li, Chonghao Sima, Xizhou
+    Zhu, Siqi Chai, Senyao Du, Tianwei Lin, Wenhai Wang, et al. Planning-oriented
+    autonomous driving. In *Proceedings of the IEEE/CVF Conference on Computer Vision
+    and Pattern Recognition*, pages 17853–17862, 2023.
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 胡等人 [2023] 余涵胡，杨家志，陈立，李柯宇，司马崇浩，朱熙洲，柴思琪，杜森尧，林天伟，王文海，等。面向规划的自动驾驶。载于*IEEE/CVF计算机视觉与模式识别会议论文集*，第17853–17862页，2023年。
+- en: 'Hu and Shu [2023] Zhiting Hu and Tianmin Shu. Language models, agent models,
+    and world models: The law for machine reasoning and planning. *arXiv preprint
+    arXiv:2312.05230*, 2023.'
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 胡和舒 [2023] 胡志廷，舒天敏。语言模型、代理模型与世界模型：机器推理与规划的法则。*arXiv预印本 arXiv:2312.05230*，2023年。
+- en: 'Huang et al. [2022] Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang,
+    Pete Florence, Andy Zeng, Jonathan James Richard Tompson, Igor Mordatch, Yevgen
+    Chebotar, Pierre Sermanet, Noah Brown, Tomas Jackson, Linda Luu, Sergey Levine,
+    Karol Hausman, and Brian Andrew Ichter. Innermonologue: Embodied reasoning through
+    planning with language models. 2022. CoRL 2022 (to appear).'
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 黄等人 [2022] 黄文龙，夏飞，肖特德，哈里斯·陈，梁杰奇，皮特·弗洛伦斯，安迪·曾，乔纳森·詹姆斯·理查德·汤普森，伊戈尔·莫达奇，耶夫根·切博塔尔，皮埃尔·塞尔马内特，诺亚·布朗，托马斯·杰克逊，琳达·卢，谢尔盖·莱文，卡罗尔·豪斯曼，布赖恩·安德鲁·伊切特。Innermonologue：通过规划与语言模型进行具身推理。2022年，CoRL
+    2022（待发表）。
+- en: 'Jin et al. [2023a] Bu Jin, Xinyu Liu, Yupeng Zheng, Pengfei Li, Hao Zhao, Tong
+    Zhang, Yuhang Zheng, Guyue Zhou, and Jingjing Liu. Adapt: Action-aware driving
+    caption transformer. In *2023 IEEE International Conference on Robotics and Automation
+    (ICRA)*, pages 7554–7561\. IEEE, 2023a.'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 金等人 [2023a] 卜金，刘新宇，郑玉鹏，李鹏飞，赵浩，张彤，郑宇航，周古月，刘晶晶。Adapt：行动感知驾驶字幕转换器。载于*2023年IEEE国际机器人与自动化会议（ICRA）*，第7554–7561页，IEEE，2023a年。
+- en: 'Jin et al. [2023b] Ye Jin, Xiaoxi Shen, Huiling Peng, Xiaoan Liu, Jingli Qin,
+    Jiayang Li, Jintao Xie, Peizhong Gao, Guyue Zhou, and Jiangtao Gong. Surrealdriver:
+    Designing generative driver agent simulation framework in urban contexts based
+    on large language model. *arXiv preprint arXiv:2309.13193*, 2023b.'
+  id: totrans-218
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 金等人 [2023b] 叶金，沈晓曦，彭慧玲，刘小安，秦晶莉，李家阳，谢金涛，高佩中，周古月，龚江涛。Surrealdriver：基于大规模语言模型在城市环境中的生成式驾驶员代理仿真框架设计。*arXiv预印本
+    arXiv:2309.13193*，2023b年。
+- en: Kendall et al. [2019] Alex Kendall, Jeffrey Hawke, David Janz, Przemyslaw Mazur,
+    Daniele Reda, John-Mark Allen, Vinh-Dieu Lam, Alex Bewley, and Amar Shah. Learning
+    to drive in a day. In *2019 international conference on robotics and automation
+    (ICRA)*, pages 8248–8254\. IEEE, 2019.
+  id: totrans-219
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kendall等人 [2019] 亚历克斯·肯达尔，杰弗里·霍克，大卫·詹兹，普热米斯瓦夫·马祖尔，丹尼尔·雷达，约翰-马克·艾伦，林文岳，亚历克斯·比维利，阿马尔·沙阿。一天学会驾驶。载于*2019年国际机器人与自动化会议（ICRA）*，第8248–8254页，IEEE，2019年。
+- en: Kim et al. [2018] Jinkyu Kim, Anna Rohrbach, Trevor Darrell, John Canny, and
+    Zeynep Akata. Textual explanations for self-driving vehicles. *Proceedings of
+    the European Conference on Computer Vision (ECCV)*, 2018.
+  id: totrans-220
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 金等人 [2018] 金进圭，安娜·罗尔巴赫，特雷弗·达雷尔，约翰·卡尼，泽内普·阿卡塔。自动驾驶车辆的文本解释。*欧洲计算机视觉会议（ECCV）论文集*，2018年。
+- en: 'Lee et al. [2004] Bowon Lee, Mark Hasegawa-Johnson, Camille Goudeseune, Suketu
+    Kamdar, Sarah Borys, Ming Liu, and Thomas Huang. Avicar: Audio-visual speech corpus
+    in a car environment. In *Eighth International Conference on Spoken Language Processing*,
+    2004.'
+  id: totrans-221
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 李等人 [2004] 李宝文，马克·长谷川-约翰逊，卡米尔·古代修恩，苏凯图·坎达，莎拉·博里斯，刘明，黄琦。Avicar：车载环境中的视听语音语料库。载于*第八届国际口语语言处理大会论文集*，2004年。
+- en: 'Li et al. [2024] Jialu Li, Aishwarya Padmakumar, Gaurav Sukhatme, and Mohit
+    Bansal. Vln-video: Utilizing driving videos for outdoor vision-and-language navigation.
+    In *Proceedings of the AAAI Conference on Artificial Intelligence*, 2024.'
+  id: totrans-222
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 李等人 [2024] 李佳璐，阿伊什瓦里亚·帕德马库马尔，高拉夫·苏卡特梅，莫希特·班萨尔。Vln-video：利用驾驶视频进行户外视听导航。载于*2024年AAAI人工智能大会论文集*，2024年。
+- en: Li et al. [2023] Xin Li, Yeqi Bai, Pinlong Cai, Licheng Wen, Daocheng Fu, Bo
+    Zhang, Xuemeng Yang, Xinyu Cai, Tao Ma, Jianfei Guo, et al. Towards knowledge-driven
+    autonomous driving. *arXiv preprint arXiv:2312.04316*, 2023.
+  id: totrans-223
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 李等人 [2023] 李鑫，白业琦，蔡品龙，温立成，傅道成，张博，杨雪萌，蔡新宇，马涛，郭建飞 等人。面向知识驱动的自动驾驶。*arXiv 预印本 arXiv:2312.04316*，2023年。
+- en: Liu et al. [2023] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual
+    instruction tuning. 2023.
+  id: totrans-224
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 刘等人 [2023] 刘昊天，李春元，吴庆扬，李永杰。视觉指令调优。2023年。
+- en: 'Ma et al. [2023a] Yingzi Ma, Yulong Cao, Jiachen Sun, Marco Pavone, and Chaowei
+    Xiao. Dolphins: Multimodal language model for driving. *arXiv preprint arXiv:2312.00438*,
+    2023a.'
+  id: totrans-225
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 马等人 [2023a] 马颖紫，曹玉龙，孙家辰，马尔科·帕沃内，肖超伟。海豚：用于驾驶的多模态语言模型。*arXiv 预印本 arXiv:2312.00438*，2023年。
+- en: 'Ma et al. [2022] Ziqiao Ma, Benjamin VanDerPloeg, Cristian-Paul Bara, Yidong
+    Huang, Eui-In Kim, Felix Gervits, Matthew Marge, and Joyce Chai. DOROTHIE: Spoken
+    dialogue for handling unexpected situations in interactive autonomous driving
+    agents. In *Findings of the Association for Computational Linguistics: EMNLP 2022*,
+    pages 4800–4822, Abu Dhabi, United Arab Emirates, 2022.'
+  id: totrans-226
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 马等人 [2022] 马自桥，本杰明·范德普尔，克里斯蒂安-保罗·巴拉，黄易东，金烨仁，费利克斯·杰维茨，马修·马奇，乔伊斯·柴。DOROTHIE：应对互动自动驾驶代理中突发情况的口语对话。在
+    *计算语言学会发现：EMNLP 2022*，第4800–4822页，阿布扎比，阿联酋，2022年。
+- en: 'Ma et al. [2023b] Ziqiao Ma, Jacob Sansom, Run Peng, and Joyce Chai. Towards
+    a holistic landscape of situated theory of mind in large language models. In *Findings
+    of the Association for Computational Linguistics: EMNLP 2023*, pages 1011–1031,
+    2023b.'
+  id: totrans-227
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 马等人 [2023b] 马自桥，雅各布·桑索姆，彭润，乔伊斯·柴。面向大语言模型中情境心智理论的整体视野。在 *计算语言学会发现：EMNLP 2023*，第1011–1031页，2023年。
+- en: 'Maaz et al. [2024] Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Shahbaz
+    Khan. Video-chatgpt: Towards detailed video understanding via large vision and
+    language models. In *Proceedings of the IEEE/CVF conference on computer vision
+    and pattern recognition*, 2024.'
+  id: totrans-228
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 马兹等人 [2024] 穆罕穆德·马兹，哈努娜·拉希德，萨尔曼·汗，法赫德·沙赫巴兹·汗。视频-ChatGPT：通过大型视觉和语言模型实现详细的视频理解。在
+    *IEEE/CVF计算机视觉与模式识别会议论文集*，2024年。
+- en: 'Mao et al. [2023] Jiageng Mao, Yuxi Qian, Junjie Ye, Hang Zhao, and Yue Wang.
+    Gpt-driver: Learning to drive with gpt. In *NeurIPS 2023 Foundation Models for
+    Decision Making Workshop*, 2023.'
+  id: totrans-229
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 毛等人 [2023] 毛佳耕，钱宇熙，叶俊杰，赵杭，王越。Gpt-driver：通过GPT学习驾驶。在 *NeurIPS 2023决策制定基础模型研讨会*，2023年。
+- en: 'Marge et al. [2022] Matthew Marge, Carol Espy-Wilson, Nigel G Ward, Abeer Alwan,
+    Yoav Artzi, Mohit Bansal, Gil Blankenship, Joyce Chai, Hal Daumé III, et al. Spoken
+    language interaction with robots: Recommendations for future research. *Computer
+    Speech & Language*, 71:101255, 2022.'
+  id: totrans-230
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 马奇等人 [2022] 马修·马奇，卡罗尔·埃斯皮·威尔逊，奈吉尔·G·沃德，阿比尔·阿尔万，约阿夫·阿尔茨，莫希特·班萨尔，吉尔·布兰肯希普，乔伊斯·柴，哈勒·杜梅三世
+    等人。与机器人进行口语语言交互：未来研究的建议。*计算机语音与语言*，71:101255，2022年。
+- en: Minato et al. [2023] Takashi Minato, Ryuichiro Higashinaka, Kurima Sakai, Tomo
+    Funayama, Hiromitsu Nishizaki, and Takayuki Nagai. Design of a competition specifically
+    for spoken dialogue with a humanoid robot. *Advanced Robotics*, 37(21):1349–1363,
+    2023.
+  id: totrans-231
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 美纳托等人 [2023] 美纳托隆，东中朗，坂井库马，船山智，西崎宏光，永井高行。专为与类人机器人进行口语对话设计的竞赛。*先进机器人学*，37(21)：1349–1363，2023年。
+- en: 'Mu et al. [2023] Yao Mu, Qinglong Zhang, Mengkang Hu, Wenhai Wang, Mingyu Ding,
+    Jun Jin, Bin Wang, Jifeng Dai, Yu Qiao, and Ping Luo. Embodiedgpt: Vision-language
+    pre-training via embodied chain of thought. In *Advances in Neural Information
+    Processing Systems*, 2023.'
+  id: totrans-232
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 穆等人 [2023] 穆瑶，张庆龙，胡孟康，王文海，丁铭宇，金俊，王斌，戴季峰，乔宇，罗平。Embodiedgpt：通过具身思维链进行视觉-语言预训练。在
+    *神经信息处理系统进展*，2023年。
+- en: Nguyen et al. [2022] Khanh X Nguyen, Yonatan Bisk, and Hal Daumé Iii. A framework
+    for learning to request rich and contextually useful information from humans.
+    In *International Conference on Machine Learning*, pages 16553–16568\. PMLR, 2022.
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 阮等人 [2022] 阮庆祥，约纳坦·比斯克，哈勒·杜梅三世。一个学习从人类请求丰富且具有上下文意义信息的框架。在 *国际机器学习会议*，第16553–16568页，PMLR，2022年。
+- en: OpenAI [2023] OpenAI. Gpt-4v(ision) system card, 2023.
+  id: totrans-234
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI [2023] OpenAI。GPT-4v(ision)系统卡，2023年。
+- en: 'Padmakumar et al. [2022] Aishwarya Padmakumar, Jesse Thomason, Ayush Shrivastava,
+    Patrick Lange, Anjali Narayan-Chen, Spandana Gella, Robinson Piramuthu, Gokhan
+    Tur, and Dilek Hakkani-Tur. Teach: Task-driven embodied agents that chat. In *AAAI*,
+    2022.'
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 帕德马库马尔等人 [2022] 艾什瓦娅·帕德马库马尔，杰西·托马森，阿尤什·施里瓦斯塔瓦，帕特里克·兰格，安贾丽·纳拉扬-陈，斯潘达纳·盖拉，罗宾逊·皮拉穆图，戈汉·图尔，迪勒克·哈卡尼-图尔。Teach：任务驱动的具身智能体进行对话。在
+    *AAAI*，2022年。
+- en: Pellom et al. [2001] Bryan Pellom, Wayne Ward, John Hansen, Ronald Cole, Kadri
+    Hacioglu, Jianping Zhang, Xiuyang Yu, and Sameer Pradhan. University of colorado
+    dialogue systems for travel and navigation. In *Proceedings of the first international
+    conference on Human language technology research*, 2001.
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pellom 等人 [2001] Bryan Pellom, Wayne Ward, John Hansen, Ronald Cole, Kadri Hacioglu,
+    Jianping Zhang, Xiuyang Yu 和 Sameer Pradhan. 科罗拉多大学的旅行与导航对话系统. 见于 *第一届国际人类语言技术研究会议论文集*，2001年。
+- en: Radford et al. [2021] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh,
+    Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack
+    Clark, et al. Learning transferable visual models from natural language supervision.
+    In *International conference on machine learning*, pages 8748–8763\. PMLR, 2021.
+  id: totrans-237
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Radford 等人 [2021] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh,
+    Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack
+    Clark 等人. 从自然语言监督中学习可转移的视觉模型. 见于 *国际机器学习会议*，第8748–8763页。PMLR，2021年。
+- en: 'Rajbhandari et al. [2020] Samyam Rajbhandari, Jeff Rasley, Olatunji Ruwase,
+    and Yuxiong He. Zero: Memory optimizations toward training trillion parameter
+    models. In *SC20: International Conference for High Performance Computing, Networking,
+    Storage and Analysis*, pages 1–16\. IEEE, 2020.'
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Rajbhandari 等人 [2020] Samyam Rajbhandari, Jeff Rasley, Olatunji Ruwase 和 Yuxiong
+    He. Zero：面向训练万亿参数模型的内存优化. 见于 *SC20：国际高性能计算、网络、存储与分析会议*，第1–16页。IEEE，2020年。
+- en: 'Ren et al. [2023] Allen Z Ren, Anushri Dixit, Alexandra Bodrova, Sumeet Singh,
+    Stephen Tu, Noah Brown, Peng Xu, Leila Takayama, Fei Xia, Jake Varley, et al.
+    Robots that ask for help: Uncertainty alignment for large language model planners.
+    In *Conference on Robot Learning*, pages 661–682\. PMLR, 2023.'
+  id: totrans-239
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ren 等人 [2023] Allen Z Ren, Anushri Dixit, Alexandra Bodrova, Sumeet Singh, Stephen
+    Tu, Noah Brown, Peng Xu, Leila Takayama, Fei Xia, Jake Varley 等人. 向机器人求助：为大规模语言模型规划器对齐不确定性.
+    见于 *机器人学习会议*，第661–682页。PMLR，2023年。
+- en: Roh et al. [2020] Junha Roh, Chris Paxton, Andrzej Pronobis, Ali Farhadi, and
+    Dieter Fox. Conditional driving from natural language instructions. In *Proceedings
+    of the Conference on Robot Learning*, pages 540–551, 2020.
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Roh 等人 [2020] Junha Roh, Chris Paxton, Andrzej Pronobis, Ali Farhadi 和 Dieter
+    Fox. 基于自然语言指令的条件驾驶. 见于 *机器人学习会议论文集*，第540–551页，2020年。
+- en: 'Schick et al. [2023] Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu,
+    Maria Lomeli, Eric Hambro, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom.
+    Toolformer: Language models can teach themselves to use tools. In *Advances in
+    Neural Information Processing Systems*, 2023.'
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schick 等人 [2023] Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu,
+    Maria Lomeli, Eric Hambro, Luke Zettlemoyer, Nicola Cancedda 和 Thomas Scialom.
+    Toolformer：语言模型可以自我学习使用工具. 见于 *神经信息处理系统进展*，2023年。
+- en: Schwarting et al. [2018] Wilko Schwarting, Javier Alonso-Mora, and Daniela Rus.
+    Planning and decision-making for autonomous vehicles. *Annual Review of Control,
+    Robotics, and Autonomous Systems*, 1:187–210, 2018.
+  id: totrans-242
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schwarting 等人 [2018] Wilko Schwarting, Javier Alonso-Mora 和 Daniela Rus. 自动驾驶车辆的规划与决策.
+    *控制、机器人学与自动化系统年评*，1:187–210，2018年。
+- en: Schwarting et al. [2019] Wilko Schwarting, Alyssa Pierson, Javier Alonso-Mora,
+    Sertac Karaman, and Daniela Rus. Social behavior for autonomous vehicles. *Proceedings
+    of the National Academy of Sciences*, 116(50):24972–24978, 2019.
+  id: totrans-243
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schwarting 等人 [2019] Wilko Schwarting, Alyssa Pierson, Javier Alonso-Mora, Sertac
+    Karaman 和 Daniela Rus. 自动驾驶车辆的社交行为. *美国国家科学院院刊*，116(50):24972–24978，2019年。
+- en: 'Sha et al. [2023] Hao Sha, Yao Mu, Yuxuan Jiang, Li Chen, Chenfeng Xu, Ping
+    Luo, Shengbo Eben Li, Masayoshi Tomizuka, Wei Zhan, and Mingyu Ding. Languagempc:
+    Large language models as decision makers for autonomous driving. *arXiv preprint
+    arXiv:2310.03026*, 2023.'
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sha 等人 [2023] Hao Sha, Yao Mu, Yuxuan Jiang, Li Chen, Chenfeng Xu, Ping Luo,
+    Shengbo Eben Li, Masayoshi Tomizuka, Wei Zhan 和 Mingyu Ding. Languagempc：大规模语言模型作为自动驾驶决策者.
+    *arXiv 预印本 arXiv:2310.03026*，2023年。
+- en: 'Shah et al. [2023] Dhruv Shah, Błażej Osiński, Sergey Levine, et al. Lm-nav:
+    Robotic navigation with large pre-trained models of language, vision, and action.
+    In *Conference on robot learning*, pages 492–504\. PMLR, 2023.'
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shah 等人 [2023] Dhruv Shah, Błażej Osiński, Sergey Levine 等人. Lm-nav：基于大规模预训练语言、视觉和行动模型的机器人导航.
+    见于 *机器人学习会议*，第492–504页。PMLR，2023年。
+- en: 'Shao et al. [2023] Hao Shao, Yuxuan Hu, Letian Wang, Steven L Waslander, Yu
+    Liu, and Hongsheng Li. Lmdrive: Closed-loop end-to-end driving with large language
+    models. *arXiv preprint arXiv:2312.07488*, 2023.'
+  id: totrans-246
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shao 等人 [2023] Hao Shao, Yuxuan Hu, Letian Wang, Steven L Waslander, Yu Liu
+    和 Hongsheng Li. Lmdrive：基于大规模语言模型的闭环端到端驾驶. *arXiv 预印本 arXiv:2312.07488*，2023年。
+- en: Sharma et al. [2022] Pratyusha Sharma, Balakumar Sundaralingam, Valts Blukis,
+    Chris Paxton, Tucker Hermans, Antonio Torralba, Jacob Andreas, and Dieter Fox.
+    Correcting robot plans with natural language feedback. *arXiv preprint arXiv:2204.05186*,
+    2022.
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sharma 等人 [2022] Pratyusha Sharma, Balakumar Sundaralingam, Valts Blukis, Chris
+    Paxton, Tucker Hermans, Antonio Torralba, Jacob Andreas, 和 Dieter Fox. 使用自然语言反馈修正机器人规划.
+    *arXiv 预印本 arXiv:2204.05186*, 2022.
+- en: 'Sima et al. [2023] Chonghao Sima, Katrin Renz, Kashyap Chitta, Li Chen, Hanxue
+    Zhang, Chengen Xie, Ping Luo, Andreas Geiger, and Hongyang Li. Drivelm: Driving
+    with graph visual question answering. *arXiv preprint arXiv:2312.14150*, 2023.'
+  id: totrans-248
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Sima 等人 [2023] Chonghao Sima, Katrin Renz, Kashyap Chitta, Li Chen, Hanxue
+    Zhang, Chengen Xie, Ping Luo, Andreas Geiger, 和 Hongyang Li. Drivelm: 通过图视觉问答进行驾驶.
+    *arXiv 预印本 arXiv:2312.14150*, 2023.'
+- en: 'Sriram et al. [2019] NN Sriram, Tirth Maniar, Jayaganesh Kalyanasundaram, Vineet
+    Gandhi, Brojeshwar Bhowmick, and K Madhava Krishna. Talk to the vehicle: Language
+    conditioned autonomous navigation of self driving cars. In *2019 IEEE/RSJ International
+    Conference on Intelligent Robots and Systems (IROS)*, pages 5284–5290\. IEEE,
+    2019.'
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sriram 等人 [2019] NN Sriram, Tirth Maniar, Jayaganesh Kalyanasundaram, Vineet
+    Gandhi, Brojeshwar Bhowmick, 和 K Madhava Krishna. 与车辆对话：基于语言的自驾车自主导航. 见 *2019
+    IEEE/RSJ国际智能机器人与系统会议（IROS）*, 页5284–5290. IEEE, 2019.
+- en: Thomason et al. [2020] Jesse Thomason, Michael Murray, Maya Cakmak, and Luke
+    Zettlemoyer. Vision-and-dialog navigation. In *Conference on Robot Learning*,
+    pages 394–406\. PMLR, 2020.
+  id: totrans-250
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Thomason 等人 [2020] Jesse Thomason, Michael Murray, Maya Cakmak, 和 Luke Zettlemoyer.
+    视觉与对话导航. 见 *机器人学习会议*, 页394–406. PMLR, 2020.
+- en: 'Tian et al. [2024] Xiaoyu Tian, Junru Gu, Bailin Li, Yicheng Liu, Chenxu Hu,
+    Yang Wang, Kun Zhan, Peng Jia, Xianpeng Lang, and Hang Zhao. Drivevlm: The convergence
+    of autonomous driving and large vision-language models. *arXiv preprint arXiv:2402.12289*,
+    2024.'
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Tian 等人 [2024] Xiaoyu Tian, Junru Gu, Bailin Li, Yicheng Liu, Chenxu Hu, Yang
+    Wang, Kun Zhan, Peng Jia, Xianpeng Lang, 和 Hang Zhao. Drivevlm: 自动驾驶与大型视觉-语言模型的融合.
+    *arXiv 预印本 arXiv:2402.12289*, 2024.'
+- en: 'Touvron et al. [2023] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language
+    models. *arXiv preprint arXiv:2302.13971*, 2023.'
+  id: totrans-252
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron 等人 [2023] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet,
+    Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro,
+    Faisal Azhar, 等. Llama: 开放且高效的基础语言模型. *arXiv 预印本 arXiv:2302.13971*, 2023.'
+- en: 'van den Heuvel et al. [1999] Henk van den Heuvel, Jérôme Boudy, Robrecht Comeyne,
+    Stephan Euler, Asunción Moreno, and Gaël Richard. The speechdat-car multilingual
+    speech databases for in-car applications: some first validation results. In *EUROSPEECH*,
+    1999.'
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: van den Heuvel 等人 [1999] Henk van den Heuvel, Jérôme Boudy, Robrecht Comeyne,
+    Stephan Euler, Asunción Moreno, 和 Gaël Richard. 用于车载应用的speechdat-car多语言语音数据库：一些初步验证结果.
+    见 *EUROSPEECH*, 1999.
+- en: 'Vasudevan et al. [2021] Arun Balajee Vasudevan, Dengxin Dai, and Luc Van Gool.
+    Talk2nav: Long-range vision-and-language navigation with dual attention and spatial
+    memory. *International Journal of Computer Vision*, 129(1):246–266, 2021.'
+  id: totrans-254
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Vasudevan 等人 [2021] Arun Balajee Vasudevan, Dengxin Dai, 和 Luc Van Gool. Talk2nav:
+    具有双重注意力和空间记忆的长距离视觉-语言导航. *《计算机视觉国际期刊》*, 129(1):246–266, 2021.'
+- en: 'Vedantam et al. [2015] Ramakrishna Vedantam, C Lawrence Zitnick, and Devi Parikh.
+    Cider: Consensus-based image description evaluation. In *Proceedings of the IEEE
+    conference on computer vision and pattern recognition*, pages 4566–4575, 2015.'
+  id: totrans-255
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Vedantam 等人 [2015] Ramakrishna Vedantam, C Lawrence Zitnick, 和 Devi Parikh.
+    Cider: 基于共识的图像描述评估. 见 *IEEE计算机视觉与模式识别大会论文集*, 页4566–4575, 2015.'
+- en: 'Vinitsky et al. [2022] Eugene Vinitsky, Nathan Lichtlé, Xiaomeng Yang, Brandon
+    Amos, and Jakob Foerster. Nocturne: a scalable driving benchmark for bringing
+    multi-agent learning one step closer to the real world. *Advances in Neural Information
+    Processing Systems*, 35:3962–3974, 2022.'
+  id: totrans-256
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Vinitsky 等人 [2022] Eugene Vinitsky, Nathan Lichtlé, Xiaomeng Yang, Brandon
+    Amos, 和 Jakob Foerster. Nocturne: 一个可扩展的驾驶基准，推动多智能体学习更接近现实世界. *《神经信息处理系统进展》*,
+    35:3962–3974, 2022.'
+- en: 'Wang et al. [2022] Wenshuo Wang, Letian Wang, Chengyuan Zhang, Changliu Liu,
+    Lijun Sun, et al. Social interactions for autonomous driving: A review and perspectives.
+    *Foundations and Trends® in Robotics*, 10(3-4):198–376, 2022.'
+  id: totrans-257
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人 [2022] Wenshuo Wang, Letian Wang, Chengyuan Zhang, Changliu Liu, Lijun
+    Sun, 等. 自动驾驶中的社交互动：综述与展望. *《机器人学基础与趋势®》*, 10(3-4):198–376, 2022.
+- en: 'Wang et al. [2023] Wenhai Wang, Jiangwei Xie, ChuanYang Hu, Haoming Zou, Jianan
+    Fan, Wenwen Tong, Yang Wen, Silei Wu, Hanming Deng, et al. Drivemlm: Aligning
+    multi-modal large language models with behavioral planning states for autonomous
+    driving. *arXiv preprint arXiv:2312.09245*, 2023.'
+  id: totrans-258
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. [2023] 文海·王、江伟·谢、川阳·胡、浩铭·邹、建安·范、文文·童、杨·温、思磊·吴、汉铭·邓 等人。Drivemlm：将多模态大语言模型与行为规划状态对齐，用于自动驾驶。*arXiv预印本arXiv:2312.09245*，2023年。
+- en: Wei et al. [2022] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei
+    Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting elicits
+    reasoning in large language models. *Advances in neural information processing
+    systems*, 35:24824–24837, 2022.
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei et al. [2022] 杰森·魏、学智·王、戴尔·舒尔曼斯、马尔滕·博斯马、飞·夏、艾德·池、郭·V·李、丹尼·周 等人。链式思维提示引发大语言模型的推理能力。*神经信息处理系统进展*，35:24824–24837，2022年。
+- en: 'Wen et al. [2023] Licheng Wen, Daocheng Fu, Xin Li, Xinyu Cai, Tao Ma, Pinlong
+    Cai, Min Dou, Botian Shi, Liang He, and Yu Qiao. Dilu: A knowledge-driven approach
+    to autonomous driving with large language models. *arXiv preprint arXiv:2309.16292*,
+    2023.'
+  id: totrans-260
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wen et al. [2023] 丽成·温、道成·傅、辛·李、新宇·蔡、涛·马、品龙·蔡、敏·窦、博天·史、梁·贺、玉·乔。Dilu：基于大语言模型的知识驱动自动驾驶方法。*arXiv预印本arXiv:2309.16292*，2023年。
+- en: 'Weng et al. [2016] Fuliang Weng, Pongtep Angkititrakul, Elizabeth E Shriberg,
+    Larry Heck, Stanley Peters, and John HL Hansen. Conversational in-vehicle dialog
+    systems: The past, present, and future. *IEEE Signal Processing Magazine*, 33(6):49–60,
+    2016.'
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Weng et al. [2016] 复良·翁、朋德·昂吉提特拉库、伊丽莎白·E·施里伯格、拉里·赫克、斯坦利·彼得斯、约翰·HL·汉森。车载对话系统：过去、现在与未来。*IEEE信号处理杂志*，33(6):49–60，2016年。
+- en: 'Xiang et al. [2023] Jiannan Xiang, Tianhua Tao, Yi Gu, Tianmin Shu, Zirui Wang,
+    Zichao Yang, and Zhiting Hu. Language models meet world models: Embodied experiences
+    enhance language models. *Advances in neural information processing systems*,
+    36, 2023.'
+  id: totrans-262
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xiang et al. [2023] 吉安南·向、天华·陶、怡·顾、天敏·舒、子睿·王、子超·杨、志廷·胡。语言模型遇见世界模型：具身经验增强语言模型。*神经信息处理系统进展*，36，2023。
+- en: 'Xu et al. [2023] Zhenhua Xu, Yujia Zhang, Enze Xie, Zhen Zhao, Yong Guo, Kenneth KY
+    Wong, Zhenguo Li, and Hengshuang Zhao. Drivegpt4: Interpretable end-to-end autonomous
+    driving via large language model. *arXiv preprint arXiv:2310.01412*, 2023.'
+  id: totrans-263
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xu et al. [2023] 振华·许、玉佳·张、恩泽·谢、振·赵、永·郭、凯内思·KY·黄、正国·李、恒双·赵。Drivegpt4：通过大语言模型实现可解释的端到端自动驾驶。*arXiv预印本arXiv:2310.01412*，2023年。
+- en: 'Yan et al. [2024] Xu Yan, Haiming Zhang, Yingjie Cai, Jingming Guo, Weichao
+    Qiu, Bin Gao, Kaiqiang Zhou, Yue Zhao, Huan Jin, Jiantao Gao, et al. Forging vision
+    foundation models for autonomous driving: Challenges, methodologies, and opportunities.
+    *arXiv preprint arXiv:2401.08045*, 2024.'
+  id: totrans-264
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yan et al. [2024] 许·严、海鸣·张、英杰·蔡、景明·郭、伟超·邱、彬·高、凯强·周、岳·赵、焕·金、建涛·高 等人。为自动驾驶锻造视觉基础模型：挑战、方法与机遇。*arXiv预印本arXiv:2401.08045*，2024年。
+- en: 'Yang et al. [2023] Jianing Yang, Xuweiyi Chen, Shengyi Qian, Nikhil Madaan,
+    Madhavan Iyengar, David F Fouhey, and Joyce Chai. Llm-grounder: Open-vocabulary
+    3d visual grounding with large language model as an agent. *arXiv preprint arXiv:2309.12311*,
+    2023.'
+  id: totrans-265
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yang et al. [2023] 建宁·杨、旭维一·陈、胜义·钱、尼基尔·马丹、马达万·艾扬格、戴维·F·福海、乔伊斯·蔡。Llm-grounder：作为智能体的大语言模型的开放词汇三维视觉定位。*arXiv预印本arXiv:2309.12311*，2023年。
+- en: 'Yu et al. [2020] Fisher Yu, Haofeng Chen, Xin Wang, Wenqi Xian, Yingying Chen,
+    Fangchen Liu, Vashisht Madhavan, and Trevor Darrell. Bdd100k: A diverse driving
+    dataset for heterogeneous multitask learning. In *Proceedings of the IEEE/CVF
+    conference on computer vision and pattern recognition*, pages 2636–2645, 2020.'
+  id: totrans-266
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yu et al. [2020] 费舍尔·余、昊峰·陈、辛·王、文琪·谢、盈盈·陈、方晨·刘、瓦西什·马达万、特雷弗·达雷尔。Bdd100k：一个多样化的驾驶数据集，用于异构多任务学习。载于
+    *IEEE/CVF计算机视觉与模式识别会议论文集*，第2636–2645页，2020年。
+- en: 'Yu et al. [2024] Shoubin Yu, Jaehong Yoon, and Mohit Bansal. Crema: Multimodal
+    compositional video reasoning via efficient modular adaptation and fusion. *arXiv
+    preprint arXiv:2402.05889*, 2024.'
+  id: totrans-267
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yu et al. [2024] 守彬·余、在洪·尹、莫希特·班萨尔。Crema：通过高效模块适配与融合进行的多模态组合视频推理。*arXiv预印本arXiv:2402.05889*，2024年。
+- en: 'Yuan et al. [2024] Jianhao Yuan, Shuyang Sun, Daniel Omeiza, Bo Zhao, Paul
+    Newman, Lars Kunze, and Matthew Gadd. Rag-driver: Generalisable driving explanations
+    with retrieval-augmented in-context learning in multi-modal large language model.
+    *arXiv preprint arXiv:2402.10828*, 2024.'
+  id: totrans-268
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yuan et al. [2024] 建浩·袁、书阳·孙、丹尼尔·奥梅扎、博·赵、保罗·纽曼、拉尔斯·昆泽、马修·盖德。Rag-driver：基于检索增强的上下文学习与多模态大语言模型进行的可泛化驾驶解释。*arXiv预印本arXiv:2402.10828*，2024年。
+- en: 'Zhang et al. [2019] Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger,
+    and Yoav Artzi. Bertscore: Evaluating text generation with bert. In *International
+    Conference on Learning Representations*, 2019.'
+  id: totrans-269
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人 [2019] Tianyi Zhang、Varsha Kishore、Felix Wu、Kilian Q Weinberger 和 Yoav
+    Artzi. Bertscore：使用 BERT 评估文本生成。在 *国际学习表示会议*，2019。
+- en: 'Zhang et al. [2024] Yichi Zhang, Ziqiao Ma, Xiaofeng Gao, Suhaila Shakiah,
+    Qiaozi Gao, and Joyce Chai. Groundhog: Grounding large language models to holistic
+    segmentation. In *Proceedings of the IEEE/CVF conference on computer vision and
+    pattern recognition*, 2024.'
+  id: totrans-270
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang 等人 [2024] Yichi Zhang、Ziqiao Ma、Xiaofeng Gao、Suhaila Shakiah、Qiaozi Gao
+    和 Joyce Chai. Groundhog: 将大型语言模型与整体分割相结合。在 *IEEE/CVF 计算机视觉与模式识别大会论文集*，2024。'
+- en: 'Zhou et al. [2020] Ming Zhou, Jun Luo, Julian Villella, Yaodong Yang, David
+    Rusu, Jiayu Miao, Weinan Zhang, Montgomery Alban, Iman Fadakar, Zheng Chen, et al.
+    Smarts: Scalable multi-agent reinforcement learning training school for autonomous
+    driving. *arXiv preprint arXiv:2010.09776*, 2020.'
+  id: totrans-271
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhou 等人 [2020] Ming Zhou、Jun Luo、Julian Villella、Yaodong Yang、David Rusu、Jiayu
+    Miao、Weinan Zhang、Montgomery Alban、Iman Fadakar、Zheng Chen 等。Smarts: 可扩展的多智能体强化学习训练学校用于自动驾驶。*arXiv
+    预印本 arXiv:2010.09776*，2020。'
+- en: Appendix
+  id: totrans-272
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录
+- en: 8.1 Language Templates for Verbalizing the Embodied Experiences.
+  id: totrans-273
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 8.1 语言模板用于表述具身经验。
+- en: 'With the data about the surrounding environment, we use templates to generate
+    synthetic data as the caption of the input video:'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关周围环境的数据，我们使用模板生成合成数据，作为输入视频的标题：
+- en: •
+  id: totrans-275
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Distance and Turning Decisions: For the distance to the road end, we generated
+    different outputs based on the distance recorded. When the distance is larger
+    than 10, we used the prompt “I am far from the end of the road. I don’t need to
+    make a decision for turning now.” When the distance is larger than 5 while smaller
+    than 10, we used the prompt “I am near the end of the road. I don’t need to make
+    a decision for turning now.” When the distance is smaller than 5, we used the
+    prompt: “I am at the end of the road, I need to stop if there is a red light,
+    or make a decision to turn left, turn right, or go straight now.”'
+  id: totrans-276
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 距离与转弯决策：对于路段结束的距离，我们根据记录的距离生成不同的输出。当距离大于 10 时，我们使用了提示“我距离路段的尽头很远，现在不需要做转弯决策。”当距离大于
+    5 且小于 10 时，我们使用了提示“我接近路段的尽头，现在不需要做转弯决策。”当距离小于 5 时，我们使用了提示：“我到达路段的尽头，如果有红灯，我需要停车，或者现在需要做出转左、转右或直行的决策。”
+- en: •
+  id: totrans-277
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Lane and Lane Switching Decisions: For the lane information, we used the prompt
+    “I’m on the {lane_number} lane from the left of the road”, and based on whether
+    a lane change is affordable, we chose from the 4 prompts: “I’m not able to change
+    lane”, “I’m only able to change to the right lane”, “I’m only able to change to
+    the left lane”, “I’m able to change to both right and left lane.”'
+  id: totrans-278
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 车道与变道决策：对于车道信息，我们使用了提示“我在从左侧数第{lane_number}条车道”，并根据是否可以变道，选择了以下四个提示中的一个：“我不能变道”，“我只能变到右侧车道”，“我只能变到左侧车道”，“我可以变道到左侧和右侧车道”。
+- en: •
+  id: totrans-279
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Object and Stop Decisions: For each object in front, we used the template “There
+    is a obstacle {object_type} in front of me, the distance is {distance}.” For the
+    object type, we used the object class in CARLA (e.g. vehicle, pedestrian, traffic
+    sign).'
+  id: totrans-280
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 物体与停车决策：对于前方的每个物体，我们使用了模板“前方有一个障碍物{object_type}，距离是{distance}。”对于物体类型，我们使用了
+    CARLA 中的物体类别（例如：车辆、行人、交通标志）。
+- en: •
+  id: totrans-281
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Signs and Stop Decisions: For each traffic sign in front, we used the template
+    “There is a {sign_name} that is {distance} meters from me, showing {state}.” The
+    sign_name is the name of the sign while the state is the information the sign
+    displayed (e.g., red/green for lights, posted speed limits).'
+  id: totrans-282
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 标志与停车决策：对于前方的每个交通标志，我们使用了模板“距离我{distance}米处有一个{sign_name}，显示{state}。”其中，sign_name是标志的名称，state是标志显示的信息（例如，红灯/绿灯，限速标志）。
+- en: •
+  id: totrans-283
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Weather: For the weather, we straightly described that using the template “It’s
+    {weather}.”'
+  id: totrans-284
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 天气：对于天气，我们直接使用模板描述“天气是{weather}”。
+- en: 8.2 Prompt Engineering for GPT-4 Baseline
+  id: totrans-285
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 8.2 GPT-4 基准测试的提示工程
+- en: 'Each prompt template we used for the GPT-4 baseline consists of the following
+    components in order:'
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们用于 GPT-4 基准测试的每个提示模板包含以下组件，按顺序排列：
+- en: '1.'
+  id: totrans-287
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'Image: For the vision-enabled model only (GPT-4V, not GPT-4), we prepended
+    an image of the third-person driver view.'
+  id: totrans-288
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 图像：仅对于支持视觉的模型（GPT-4V，而非 GPT-4），我们添加了第三人称驾驶员视角的图像。
+- en: '2.'
+  id: totrans-289
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'Header: Informs GPT that it must act as a Chauffeur, piloting a car while talking
+    with its passenger.'
+  id: totrans-290
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 标题：告知 GPT 它必须作为司机，驾驶汽车并与乘客交谈。
+- en: '3.'
+  id: totrans-291
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: 'Dialogue History: Turn-by-turn record of the conversation between passenger
+    and driver prior to the time of prompting.'
+  id: totrans-292
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 对话历史：乘客与司机之间在提示之前的逐步对话记录。
+- en: '4.'
+  id: totrans-293
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: 'Current Map: A text-based representation displaying the map along with landmarks,
+    street names, and the vehicle location'
+  id: totrans-294
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 当前地图：基于文本的表示，显示地图及地标、街道名称和车辆位置
+- en: '5.'
+  id: totrans-295
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '5.'
+- en: 'Physical Action History: Turn-by-turn record of the previous physical actions
+    taken by the driver.'
+  id: totrans-296
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 物理动作历史：记录司机先前所采取的每一步物理动作。
+- en: '6.'
+  id: totrans-297
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '6.'
+- en: 'Planner: Asks GPT to call a planning module using the form plan(landmark).
+    If GPT both uses this API correctly and selects the correct landmark, the planning
+    module provides the plan (a sequence of turns at each intersection).'
+  id: totrans-298
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 规划器：要求 GPT 调用一个规划模块，使用形式 plan(landmark)。如果 GPT 正确使用此 API 并选择正确的地标，规划模块将提供计划（即每个交叉口的转弯序列）。
+- en: '7.'
+  id: totrans-299
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '7.'
+- en: 'Question 1: For NfD, this segment asks GPT a multiple-choice navigational question.
+    For RfN, it asks GPT what type of dialogue it would like to output.'
+  id: totrans-300
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 问题 1：对于 NfD，此部分向 GPT 提出一个多项选择的导航问题。对于 RfN，则询问 GPT 希望输出哪种类型的对话。
+- en: '8.'
+  id: totrans-301
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '8.'
+- en: 'Question 2: For NfD, if the correct action takes an argument (e.g., for turning,
+    the argument is a direction), this segment asks for the argument in a multiple-choice
+    format. For RfN, this segment asks for the natural language dialogue. For question
+    2, we utilize teacher forcing, providing the GPT model with the correct answer
+    to question 1 even if it is answered incorrectly.'
+  id: totrans-302
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 问题 2：对于 NfD，如果正确的动作需要一个参数（例如，转向时，参数是方向），此部分将以多项选择的形式询问参数。对于 RfN，此部分将询问自然语言对话。对于问题
+    2，我们采用教师强制方法，即使问题 1 的答案错误，也会向 GPT 提供正确的答案。
+- en: 8.3 Ethics Statement
+  id: totrans-303
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 8.3 伦理声明
+- en: The institution’s Institutional Review Board (IRB) considered this project exempt
+    from ongoing review, registered under eResearch ID HUM00205133. The SDN and BDD-X
+    datasets contain human-generated contents. Our use of both datasets is in compliance
+    with their licenses and exclusively for research purposes.
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该机构的机构审查委员会（IRB）认为该项目免于持续审查，已在 eResearch ID HUM00205133 下注册。SDN 和 BDD-X 数据集包含人工生成的内容。我们使用这两个数据集符合其许可协议，并且仅用于研究目的。

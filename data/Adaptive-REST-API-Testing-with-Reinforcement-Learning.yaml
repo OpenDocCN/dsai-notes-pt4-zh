@@ -1,0 +1,1762 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 11:57:08'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 11:57:08
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Adaptive REST API Testing with Reinforcement Learning
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 自适应REST API测试与强化学习
+- en: 来源：[https://arxiv.org/html/2411.07098/](https://arxiv.org/html/2411.07098/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2411.07098/](https://arxiv.org/html/2411.07098/)
+- en: Abstract
+  id: totrans-6
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Modern web services increasingly rely on REST APIs. Effectively testing these
+    APIs poses challenges due to the vast search space to explore, which involves
+    selecting API operations for sequence creation, choosing parameters for each operation
+    from a potentially large set, and sampling values from the often infinite parameter
+    input space. Current testing tools lack efficient exploration mechanisms, treating
+    all operations and parameters equally without considering their importance or
+    complexity and lacking prioritization strategies. Furthermore, these tools struggle
+    when response schemas are absent in the specification or exhibit variants. To
+    address these limitations, we present an adaptive REST API testing technique that
+    incorporates reinforcement learning to prioritize operations and parameters for
+    exploration. Our approach dynamically analyzes request and response data to inform
+    dependent parameters and adopts a sampling-based strategy for efficient processing
+    of dynamic API feedback. We evaluate our technique on ten RESTful services, comparing
+    it against state-of-the-art tools with respect to code coverage achieved and the
+    number of generated requests, operations covered, and service failures triggered.
+    Additionally, we perform an ablation study on prioritization, dynamic feedback
+    analysis, and sampling to assess their individual effects. Our findings demonstrate
+    that our approach significantly outperforms existing REST API testing tools in
+    terms of effectiveness, efficiency, and fault-finding ability.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代网络服务日益依赖REST API。有效地测试这些API面临诸多挑战，因为需要探索的搜索空间非常广泛，这涉及选择API操作以创建序列、从潜在的庞大集合中为每个操作选择参数，以及从通常无限的参数输入空间中采样值。目前的测试工具缺乏有效的探索机制，它们对所有操作和参数一视同仁，未考虑其重要性或复杂性，也缺乏优先级策略。此外，当响应模式在规范中缺失或存在变种时，这些工具的表现也较差。为了解决这些局限性，我们提出了一种自适应的REST
+    API测试技术，结合了强化学习来优先探索操作和参数。我们的方法动态分析请求和响应数据，以指导相关参数，并采用基于采样的策略来高效处理动态的API反馈。我们在十个RESTful服务上评估了这一技术，并与现有的最先进工具进行了比较，评估指标包括代码覆盖率、生成请求的数量、覆盖的操作以及触发的服务故障。此外，我们还进行了去除实验，研究了优先级设置、动态反馈分析和采样对测试效果的独立影响。我们的研究结果表明，与现有的REST
+    API测试工具相比，我们的方法在效果、效率和故障发现能力上有显著的优势。
+- en: I Introduction
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: I 引言
+- en: The increasing adoption of modern web services has led to a growing reliance
+    on REpresentational State Transfer (REST) APIs for communication and data exchange [richardson2013restful,
+    patni2017pro]. REST APIs adhere to a set of architectural principles that enable
+    scalable, flexible, and efficient interactions between various software components
+    through the use of standard HTTP methods and a stateless client-server model [fielding2000architectural].
+    To facilitate their discovery and use by clients, REST APIs are often documented
+    using specification languages [openapi, swagger, raml, apiblueprint], which let
+    developers describe the APIs in a structured format and provide essential information,
+    such as the available endpoints, input parameters and their schemas, response
+    schemas, etc. Platforms such as APIs Guru [apis_guru] host thousands of RESTful
+    API documents, emphasizing the significance of these standardized API specifications
+    in industry.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代网络服务的日益普及促使了对表现状态转移（REpresentational State Transfer，REST）API在通信和数据交换中的依赖 [richardson2013restful,
+    patni2017pro]。REST API遵循一套架构原则，能够通过使用标准的HTTP方法和无状态的客户端-服务器模型，实现不同软件组件之间的可扩展、灵活和高效的交互 [fielding2000architectural]。为了方便客户端的发现和使用，REST
+    API通常通过规范语言进行文档化 [openapi, swagger, raml, apiblueprint]，这些语言让开发者能够以结构化的格式描述API，并提供必要的信息，例如可用的端点、输入参数及其模式、响应模式等。像APIs
+    Guru [apis_guru]这样的平台托管了成千上万的RESTful API文档，强调了这些标准化API规范在行业中的重要性。
+- en: Standardized documentation formats, such as the OpenAPI specification [openapi],
+    not only facilitate the development of APIs and their use by clients, but also
+    provide a foundation for the development of automated testing techniques for REST
+    APIs, and numerous such techniques and tools have emerged in recent years (e.g.,
+     [arcuri2019restful, Corradini2022, atlidakis2019restler, martin2020restest, karlsson2020automatic,
+    karlsson2020quickrest, liu2022morest, wu2022combinatorial]). In spite of this,
+    effectively testing REST APIs continues to be a challenge, with high code coverage
+    remaining an elusive goal for tools [kim2022automated].
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标准化的文档格式，如 OpenAPI 规范 [openapi]，不仅有助于 API 的开发及其被客户端使用，还为 REST API 自动化测试技术的开发提供了基础，近年来出现了众多此类技术和工具（例如， [arcuri2019restful,
+    Corradini2022, atlidakis2019restler, martin2020restest, karlsson2020automatic,
+    karlsson2020quickrest, liu2022morest, wu2022combinatorial]）。尽管如此，REST API 的有效测试仍然是一个挑战，工具的高代码覆盖率仍然是一个难以实现的目标 [kim2022automated]。
+- en: Testing REST APIs can be challenging because of the large search space for exploration,
+    arising from numerous operations, potential execution orders, inter-parameter
+    dependencies, and associated input parameter value constraints [martin2019catalogue].
+    Current techniques often struggle to explore this space due to the lack effective
+    exploration strategies for operations and their parameters. Existing testing tools
+    tend to treat all operations and parameters equally, disregarding their importance
+    or complexity, leading to suboptimal testing strategies and insufficient coverage
+    of crucial operation and parameter combinations. Moreover, these tools rely on
+    discovering producer-consumer relationships between response schemas and request
+    parameters, which works well when the parameter and response schemas are described
+    in detail in the specification. However, if the schemas are incomplete or imprecise,
+    the tools can become less effective in their exploration.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试 REST API 可能具有挑战性，因为探索的搜索空间很大，来源于众多操作、潜在的执行顺序、参数之间的依赖关系以及相关的输入参数值约束 [martin2019catalogue]。当前的技术往往难以有效探索这个空间，因为缺乏对操作及其参数的有效探索策略。现有的测试工具往往将所有操作和参数视为同等重要，忽视了它们的重要性或复杂性，导致次优的测试策略，并且未能充分覆盖关键的操作和参数组合。此外，这些工具依赖于发现响应模式和请求参数之间的生产者-消费者关系，当参数和响应模式在规范中详细描述时，这种方式效果良好。然而，如果模式不完整或不精确，这些工具在探索中的效果可能会降低。
+- en: In this paper, we present adaptive REST API testing with reinforcement learning
+    (arat-rl), an advanced black-box testing approach that addresses these limitations
+    of existing tools. Our technique incorporates several innovative features, such
+    as leveraging reinforcement learning to prioritize operations and parameters for
+    exploration, dynamically constructing key-value pairs from both response and request
+    data, analyzing these pairs to inform dependent operations and parameters, and
+    utilizing a sampling-based strategy for efficient processing of dynamic API feedback.
+    The primary objective of our approach is to increase code coverage and improve
+    fault-detection capability.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们提出了基于强化学习的自适应 REST API 测试方法（arat-rl），这是一种先进的黑盒测试方法，解决了现有工具的这些局限性。我们的方法包含几个创新特性，例如利用强化学习优先探索操作和参数，从响应和请求数据中动态构建键值对，分析这些键值对以指导依赖操作和参数，并利用基于采样的策略高效处理动态
+    API 反馈。我们方法的主要目标是提高代码覆盖率并改进故障检测能力。
+- en: The core of novelty in arat-rl is an adaptive testing strategy, driven by a
+    reinforcement-learning-based prioritization algorithm for exploring the space
+    of operations and parameters. The algorithm initially determines an operation’s
+    importance based on the parameters used and their frequencies across other operations.
+    This targeted exploration enables efficient coverage of critical operations and
+    parameters, thereby optimizing code coverage. The technique employs reinforcement
+    learning to adjust the priority weights associated with operations and parameters
+    based on feedback, by decreasing importance for successful responses and increasing
+    it for failed responses. The technique also assigns weights to parameter-value
+    mappings based on various sources of input values (e.g., random, specified values,
+    response values, request values, and default values), which lets it adapt the
+    testing strategy and concentrate on areas more likely to contain faults, ultimately
+    enhancing fault-detection capability.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: arat-rl的创新核心在于自适应测试策略，该策略由基于强化学习的优先级算法驱动，用于探索操作和参数的空间。该算法最初基于使用的参数及其在其他操作中的频率确定操作的重要性。这种有针对性的探索使得能够高效覆盖关键操作和参数，从而优化代码覆盖率。该技术使用强化学习根据反馈调整操作和参数的优先级权重，通过减少成功响应的重要性，并增加失败响应的重要性。该技术还根据输入值的各种来源（例如随机值、指定值、响应值、请求值和默认值）为参数-值映射分配权重，从而使其能够调整测试策略，并集中精力测试更可能包含故障的区域，最终提高故障检测能力。
+- en: Another innovative feature of arat-rl is dynamic construction of key-value pairs.
+    In contrast to existing approaches that rely heavily on resource schemas provided
+    in the specification, our technique dynamically constructs key-value pairs by
+    analyzing POST operations (i.e., resource creation HTTP method) and examining
+    both response and request data. For instance, support that an operation takes
+    book title and price as request parameters and, as response, produces a success
+    status code along with a string message (e.g., “Successfully created”). Our technique
+    leverages this information to create key-value pairs for book title and price,
+    upon receiving a successful response, even without such data being present in
+    the response. It takes into account the input parameters used in the request,
+    as they correspond to the created resource. Moreover, if the service returns incomplete
+    resources, our technique still processes the information available in key-value
+    pairs. This dynamic approach enables our tool to identify resources from the API
+    responses and requests and discover hidden dependencies that are not evident from
+    the specification alone.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: arat-rl的另一个创新特点是动态构建键值对。与现有方法过度依赖规范中提供的资源架构不同，我们的技术通过分析POST操作（即资源创建HTTP方法）并检查响应和请求数据，动态构建键值对。例如，假设某个操作将书名和价格作为请求参数，并返回成功状态码以及字符串消息（例如“成功创建”）。我们的技术利用这些信息，在收到成功响应时即使响应中没有此类数据，也会为书名和价格创建键值对。它会考虑请求中使用的输入参数，因为这些参数与创建的资源对应。此外，如果服务返回不完整的资源，我们的技术仍会处理键值对中可用的信息。这种动态方法使我们的工具能够从API的响应和请求中识别资源，并发现仅从规范中无法显现的隐藏依赖关系。
+- en: Finally, arat-rl employs a simple yet effective sampling-based approach that
+    allows it to process dynamic API feedback efficiently and adapt its exploration
+    based on the gathered information. By randomly sampling key-value pairs from responses,
+    our tool reduces the overhead of processing every response for each pair, resulting
+    in more efficient testing and optimized utilization of testing resources.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，arat-rl采用了一种简单而有效的基于采样的方法，使其能够高效处理动态API反馈，并根据收集到的信息调整探索策略。通过随机采样响应中的键值对，我们的工具减少了处理每个键值对时每个响应的开销，从而实现了更高效的测试和测试资源的优化利用。
+- en: 'To evaluate the technique, we conducted empirical studies using 10 RESTful
+    services and compared it against three state-of-the-art REST API testing tools:
+    RESTler [atlidakis2019restler], EvoMaster [arcuri2019restful], and Morest [liu2022morest].
+    We assessed the effectiveness of arat-rl in terms of coverage achieved and service
+    failures triggered, and its efficiency in terms of valid and fault-inducing requests
+    generated and operations covered within a given time budget. Our results show
+    that arat-rl outperforms the competing tools in all the metrics considered—it
+    achieved the highest method, branch, and line coverage rates, along with better
+    fault-detection ability. Specifically, arat-rl covered 119.17%, 59.83%, and 52.42%
+    more branches, lines, and methods than RESTler; 37.03%, 20.87%, and 14.13% more
+    branches, lines, and methods than EvoMaster; and 23.69%, 11.87%, and 9.55% more
+    branches, lines, and methods than Morest. arat-rl also uncovered 9.2x, 2.5x, and
+    2.4x more bugs than RESTler, EvoMaster, and Morest, respectively. In terms of
+    efficiency, arat-rl generated 52.01%, 40.79%, and 1222% more valid and fault-inducing
+    requests and covered 15.38%, 24.14%, and 282.98% more operations than Morest,
+    EvoMaster, and RESTler, respectively, in a one-hour testing time budget. We also
+    conducted an ablation study to assess the individual effects of prioritization,
+    dynamic feedback analysis, and sampling on the overall effectiveness of arat-rl.
+    Our results indicate that reinforcement-learning-based prioritization contributes
+    the most to arat-rl’s effectiveness, followed by dynamic feedback analysis and
+    sampling in that order.'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估该技术，我们使用了10个RESTful服务进行了实证研究，并将其与三种最先进的REST API测试工具进行了比较：RESTler [atlidakis2019restler]、EvoMaster [arcuri2019restful]和Morest [liu2022morest]。我们从覆盖率和服务失败触发情况两个方面评估了arat-rl的有效性，并从生成有效请求和故障引发请求的效率，以及在给定时间预算内所覆盖的操作方面评估了其效率。我们的结果表明，arat-rl在所有考虑的指标上都优于竞争工具——它在方法、分支和行覆盖率上都达到了最高，并且具有更好的故障检测能力。具体来说，arat-rl比RESTler多覆盖了119.17%、59.83%和52.42%的分支、行和方法；比EvoMaster多覆盖了37.03%、20.87%和14.13%的分支、行和方法；比Morest多覆盖了23.69%、11.87%和9.55%的分支、行和方法。arat-rl还分别比RESTler、EvoMaster和Morest发现了9.2倍、2.5倍和2.4倍更多的漏洞。在效率方面，arat-rl在一小时的测试时间预算内，分别比Morest、EvoMaster和RESTler生成了52.01%、40.79%和1222%更多有效请求和故障引发请求，并覆盖了15.38%、24.14%和282.98%更多的操作。我们还进行了消融实验，以评估优先级、动态反馈分析和采样对arat-rl整体有效性的单独影响。我们的结果表明，基于强化学习的优先级排序对arat-rl的有效性贡献最大，其次是动态反馈分析和采样。
+- en: '[⬇](data:text/plain;base64,L3Byb2R1Y3RzL3twcm9kdWN0TmFtZX0vY29uZmlndXJhdGlvbnMve2NvbmZpZ3VyYXRpb25OYW1lfS9mZWF0dXJlcy97ZmVhdHVyZU5hbWV9OgogQFxjb2xvcntrZXl3b3JkY29sb3J9cG9zdEA6CiAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1vcGVyYXRpb25JZEA6IGFkZEZlYXR1cmVUb0NvbmZpZ3VyYXRpb24KICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXByb2R1Y2VzQDoKICAgICAgLSBhcHBsaWNhdGlvbi9qc29uCiAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1wYXJhbWV0ZXJzQDoKICAgICAgLSBAXGNvbG9ye2tleXdvcmRjb2xvcn1uYW1lQDogcHJvZHVjdE5hbWUKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1pbkA6IHBhdGgKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1yZXF1aXJlZEA6IHRydWUKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn10eXBlQDogc3RyaW5nCiAgICAgIC0gQFxjb2xvcntrZXl3b3JkY29sb3J9bmFtZUA6IGNvbmZpZ3VyYXRpb25OYW1lCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9aW5AOiBwYXRoCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9cmVxdWlyZWRAOiB0cnVlCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9dHlwZUA6IHN0cmluZwogICAgICAtIEBcY29sb3J7a2V5d29yZGNvbG9yfW5hbWVAOiBmZWF0dXJlTmFtZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWluQDogcGF0aAogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlcXVpcmVkQDogdHJ1ZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXR5cGVAOiBzdHJpbmcKICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlc3BvbnNlc0A6CiAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWRlZmF1bHRAOgogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWRlc2NyaXB0aW9uQDogc3VjY2Vzc2Z1bCBvcGVyYXRpb24KL3Byb2R1Y3RzL3twcm9kdWN0TmFtZX0vY29uZmlndXJhdGlvbnMve2NvbmZpZ3VyYXRpb25OYW1lfS9mZWF0dXJlczoKICBAXGNvbG9ye2tleXdvcmRjb2xvcn1nZXRAOgogICAgQFxjb2xvcntrZXl3b3JkY29sb3J9b3BlcmF0aW9uSWRAOiBnZXRDb25maWd1cmF0aW9uQWN0aXZlZEZlYXR1cmVzCiAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1wcm9kdWNlc0A6CiAgICAgIC0gYXBwbGljYXRpb24vanNvbgogICAgQFxjb2xvcntrZXl3b3JkY29sb3J9cGFyYW1ldGVyc0A6CiAgICAgIC0gQFxjb2xvcntrZXl3b3JkY29sb3J9bmFtZUA6IHByb2R1Y3ROYW1lCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9aW5AOiBwYXRoCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9cmVxdWlyZWRAOiB0cnVlCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9dHlwZUA6IHN0cmluZwogICAgICAtIEBcY29sb3J7a2V5d29yZGNvbG9yfW5hbWVAOiBjb25maWd1cmF0aW9uTmFtZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWluQDogcGF0aAogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlcXVpcmVkQDogdHJ1ZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXR5cGVAOiBzdHJpbmcKICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlc3BvbnNlc0A6CiAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfScyMDAnQDoKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1kZXNjcmlwdGlvbkA6IHN1Y2Nlc3NmdWwgb3BlcmF0aW9uCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9c2NoZW1hQDoKICAgICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXR5cGVAOiBhcnJheQogICAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9aXRlbXNAOgogICAgICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn10eXBlQDogc3RyaW5n)/products/{productName}/configurations/{configurationName}/features/{featureName}:post:operationId:  addFeatureToConfigurationproduces:-  application/jsonparameters:-  name:  productNamein:  pathrequired:  truetype:  string-  name:  configurationNamein:  pathrequired:  truetype:  string-  name:  featureNamein:  pathrequired:  truetype:  stringresponses:default:description:  successful  operation/products/{productName}/configurations/{configurationName}/features:get:operationId:  getConfigurationActivedFeaturesproduces:-  application/jsonparameters:-  name:  productNamein:  pathrequired:  truetype:  string-  name:  configurationNamein:  pathrequired:  truetype:  stringresponses:’200’:description:  successful  operationschema:type:  arrayitems:type:  string'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,L3Byb2R1Y3RzL3twcm9kdWN0TmFtZX0vY29uZmlndXJhdGlvbnMve2NvbmZpZ3VyYXRpb25OYW1lfS9mZWF0dXJlcy97ZmVhdHVyZU5hbWV9OgogQFxjb2xvcntrZXl3b3JkY29sb3J9cG9zdEA6CiAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1vcGVyYXRpb25JZEA6IGFkZEZlYXR1cmVUb0NvbmZpZ3VyYXRpb24KICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXByb2R1Y2VzQDoKICAgICAgLSBhcHBsaWNhdGlvbi9qc29uCiAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1wYXJhbWV0ZXJzQDoKICAgICAgLSBAXGNvbG9ye2tleXdvcmRjb2xvcn1uYW1lQDogcHJvZHVjdE5hbWUKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1pbkA6IHBhdGgKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1yZXF1aXJlZEA6IHRydWUKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn10eXBlQDogc3RyaW5nCiAgICAgIC0gQFxjb2xvcntrZXl3b3JkY29sb3J9bmFtZUA6IGNvbmZpZ3VyYXRpb25OYW1lCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9aW5AOiBwYXRoCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9cmVxdWlyZWRAOiB0cnVlCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9dHlwZUA6IHN0cmluZwogICAgICAtIEBcY29sb3J7a2V5d29yZGNvbG9yfW5hbWVAOiBmZWF0dXJlTmFtZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWluQDogcGF0aAogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlcXVpcmVkQDogdHJ1ZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXR5cGVAOiBzdHJpbmcKICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlc3BvbnNlc0A6CiAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWRlZmF1bHRAOgogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWRlc2NyaXB0aW9uQDogc3VjY2Vzc2Z1bCBvcGVyYXRpb24KL3Byb2R1Y3RzL3twcm9kdWN0TmFtZX0vY29uZmlndXJhdGlvbnMve2NvbmZpZ3VyYXRpb25OYW1lfS9mZWF0dXJlczoKICBAXGNvbG9ye2tleXdvcmRjb2xvcn1nZXRAOgogICAgQFxjb2xvcntrZXl3b3JkY29sb3J9b3BlcmF0aW9uSWQAOiBnZXRDb25maWd1cmF0aW9uQWN0aXZlZEZlYXR1cmVzCiAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1wcm9kdWNlc0A6CiAgICAgIC0gYXBwbGljYXRpb24vanNvbgogICAgQFxjb2xvcntrZXl3b3JkY29sb3J9cGFyYW1ldGVyc0A6CiAgICAgIC0gQFxjb2xvcntrZXl3b3JkY29sb3J9bmFtZUA6IHByb2R1Y3ROYW1lCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9aW5AOiBwYXRoCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9cmVxdWlyZWRAOiB0cnVlCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9dHlwZUA6IHN0cmluZwogICAgICAtIEBcY29sb3J7a2V5d29yZGNvbG9yfW5hbWVAOiBjb25maWd1cmF0aW9uTmFtZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfWluQDogcGF0aAogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlcXVpcmVkQDogdHJ1ZQogICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXR5cGVAOiBzdHJpbmcKICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXJlc3BvbnNlc0A6CiAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfScyMDAnQDoKICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn1kZXNjcmlwdGlvbkA6IHN1Y2Nlc3NmdWwgb3BlcmF0aW9uCiAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9c2NoZW1hQDoKICAgICAgICAgIEBcY29sb3J7a2V5d29yZGNvbG9yfXR5cGVAOiBhcnJheQogICAgICAgICAgQFxjb2xvcntrZXl3b3JkY29sb3J9aXRlbXNAOgogICAgICAgICAgICBAXGNvbG9ye2tleXdvcmRjb2xvcn10eXBlQDogc3RyaW5n)'
+- en: 'Figure 1: A Part of Features-Service’s OpenAPI Specification.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：Features-Service的OpenAPI规范的一部分。
+- en: 'The main contributions of this work are:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本工作的主要贡献包括：
+- en: •
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A novel approach for adaptive REST API testing that incorporates (1) reinforcement
+    learning to prioritize exploration of operations and parameters, (2) dynamic analysis
+    of request and response data to inform dependent parameters, and (3) a sampling-based
+    strategy for efficient processing of dynamic API feedback.
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一种新颖的自适应REST API测试方法，结合了（1）强化学习以优先探索操作和参数，（2）对请求和响应数据的动态分析以提供依赖参数的信息，以及（3）一种基于采样的策略，用于高效处理动态API反馈。
+- en: •
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Empirical results demonstrating that arat-rl outperforms state-of-the-art REST
+    API testing tools in terms of requests generated, code coverage achieved, and
+    service failures triggered.
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 实证结果表明，arat-rl在生成请求、实现代码覆盖率和触发服务故障方面优于最先进的REST API测试工具。
+- en: •
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: An artifact [artifact] containing the tool, the benchmark services, and the
+    empirical data.
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一个包含工具、基准服务和实证数据的制品 [artifact]。
+- en: II Background and Motivating Example
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: II 背景与激励示例
+- en: We provide a brief introduction to REST APIs, the OpenAPI specification, and
+    reinforcement learning, and then illustrate the novel features of our approach
+    using a running example.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们简要介绍了REST API、OpenAPI规范和强化学习，然后通过一个运行示例来说明我们方法的新特性。
+- en: II-A REST APIs
+  id: totrans-28
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-A REST API
+- en: REST APIs are web APIs that adhere to the RESTful architectural style [fielding2000architectural].
+    REST APIs facilitate communication between clients and servers by exchanging data
+    through standardized protocols, such as HTTP [rodriguez2008restful]. Clients communicate
+    with web services by sending HTTP requests. These requests access and/or manipulate
+    resources managed by the service, where a resource represents data that a client
+    may want to create, delete, update, or access. Requests are sent to an API endpoint,
+    identified by a resource path and an HTTP method specifying the action to be performed
+    on the resource. The most commonly used methods are POST, GET, PUT, and DELETE,
+    for creating, reading, updating, and deleting a resource, respectively. The combination
+    of an endpoint and an HTTP method is called an operation. Besides specifying an
+    operation, a request can also optionally include HTTP headers containing metadata
+    and a body with the request’s payload. Upon receiving and processing a request,
+    the web service returns a response containing headers, possibly a body, and an
+    HTTP status code—a three-digit number indicating the request’s outcome.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: REST API是遵循REST架构风格的Web API [fielding2000architectural]。REST API通过标准化的协议（如HTTP）促进客户端与服务器之间的数据交换 [rodriguez2008restful]。客户端通过发送HTTP请求与Web服务进行通信。这些请求访问和/或操作由服务管理的资源，其中资源表示客户端可能希望创建、删除、更新或访问的数据。请求发送到一个API端点，该端点由资源路径和指定要对资源执行的操作的HTTP方法标识。最常用的方法是POST、GET、PUT和DELETE，分别用于创建、读取、更新和删除资源。端点和HTTP方法的组合称为操作。除了指定操作外，请求还可以选择性地包含包含元数据的HTTP头和包含请求负载的主体。在接收和处理请求后，Web服务返回包含头信息、可能的主体以及HTTP状态码的响应——这是一个三位数，表示请求的结果。
+- en: II-B OpenAPI Specification
+  id: totrans-30
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-B OpenAPI规范
+- en: 'The OpenAPI Specification (OAS) [openapi] is a widely adopted API description
+    format for RESTful APIs, providing a standardized and human-readable way to describe
+    the structure, functionality, and expected behavior of an API. Figure [1](https://arxiv.org/html/2411.07098v1#S1.F1
+    "Figure 1 ‣ I Introduction ‣ Adaptive REST API Testing with Reinforcement Learning")
+    illustrates an example OAS file describing a part of a Features-Service API. This
+    example shows two API operations. The first operation, a POST request, is designed
+    to add a feature name to a product’s configuration. It requires three parameters:
+    the product name, configuration name, and feature name, all of which are specified
+    in the path. Upon successful execution, the API responds with a JSON object, signaling
+    that the feature has been added to the configuration. The second operation, a
+    GET request, retrieves the active features of a product’s configuration. Similar
+    to the first operation, it requires the product name and configuration name as
+    path parameters. The API responds with a 200 status code and an array of strings
+    representing the active features in the specified configuration.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: OpenAPI 规范（OAS）[openapi] 是一种广泛采用的 RESTful API 描述格式，提供了一种标准化且易于人类阅读的方式来描述 API
+    的结构、功能和预期行为。图 [1](https://arxiv.org/html/2411.07098v1#S1.F1 "图 1 ‣ I 引言 ‣ 使用强化学习的自适应
+    REST API 测试") 展示了一个描述 Features-Service API 部分的示例 OAS 文件。此示例展示了两个 API 操作。第一个操作是一个
+    POST 请求，旨在将特性名称添加到产品的配置中。它需要三个参数：产品名称、配置名称和特性名称，所有这些都在路径中指定。成功执行后，API 返回一个 JSON
+    对象，表示该特性已添加到配置中。第二个操作是一个 GET 请求，用于检索产品配置中的活动特性。与第一个操作类似，它需要产品名称和配置名称作为路径参数。API
+    返回 200 状态码，并返回一个表示指定配置中活动特性的字符串数组。
+- en: II-C Reinforcement Learning and Q-Learning
+  id: totrans-32
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-C 强化学习与 Q-learning
+- en: Reinforcement learning (RL) is a type of machine learning where an agent learns
+    to make decisions by interacting with an environment [sutton2018reinforcement].
+    The agent selects actions in various situations (states), observes the consequences
+    (rewards), and learns to choose the best actions to maximize the cumulative reward
+    over time. The learning process in RL is trial-and-error based, meaning the agent
+    discovers the best actions by trying out different options and refining its strategy
+    based on the observed rewards.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 强化学习（RL）是一种机器学习类型，智能体通过与环境交互学习做出决策[sutton2018reinforcement]。智能体在各种情境（状态）下选择动作，观察结果（奖励），并学习选择最佳动作，以便随着时间的推移最大化累计奖励。RL
+    中的学习过程是基于试错的，即智能体通过尝试不同的选项并根据观察到的奖励不断优化其策略，从而发现最佳动作。
+- en: 'Q-learning is a widely used model-free reinforcement learning algorithm that
+    estimates the optimal action-value function, $Q(s,a)$ [watkins1992q]. The Q-function
+    represents the expected cumulative reward the agent can obtain by taking action
+    $a$ in state $s$ and then following the optimal policy. Q-learning uses a table
+    to store Q-values and updates them iteratively based on the agent’s experiences.
+    The learning process consists of the agent performing actions, receiving rewards,
+    and updating the Q-values according to the following update rule:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Q-learning 是一种广泛使用的无模型强化学习算法，它估计最优的动作值函数 $Q(s,a)$ [watkins1992q]。Q 函数表示智能体在状态
+    $s$ 下采取动作 $a$ 后，遵循最优策略所能获得的预期累计奖励。Q-learning 使用表格存储 Q 值，并根据智能体的经验对其进行迭代更新。学习过程包括智能体执行动作、接收奖励，并根据以下更新规则更新
+    Q 值：
+- en: '|  | $Q(s,a)\leftarrow Q(s,a)+\alpha[r+\gamma\max_{a^{\prime}}Q(s^{\prime},a^{\prime%
+    })-Q(s,a)]$ |  | (1) |'
+  id: totrans-35
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $Q(s,a)\leftarrow Q(s,a)+\alpha[r+\gamma\max_{a^{\prime}}Q(s^{\prime},a^{\prime%
+    })-Q(s,a)]$ |  | (1) |'
+- en: where $\alpha$ is the learning rate, $\gamma$ is the discount factor, $s^{\prime}$
+    is the new state after taking action $a$, and $r$ is the immediate reward received.
+    The agent updates the Q-values to converge to their optimal values, which represent
+    the expected long-term reward of taking each action in each state.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中 $\alpha$ 是学习率，$\gamma$ 是折扣因子，$s^{\prime}$ 是执行动作 $a$ 后的新状态，$r$ 是获得的即时奖励。智能体通过更新
+    Q 值，使其收敛到最优值，这些 Q 值代表了在每个状态下采取每个动作的预期长期奖励。
+- en: II-D Motivating Example
+  id: totrans-37
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: II-D 激励示例
+- en: Next, we illustrate the salient features of arat-rl using the Feature-Service
+    specification as an example.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们通过使用 Feature-Service 规范作为示例，展示 arat-rl 的显著特点。
+- en: 'RL-based adaptive exploration. For the example in Figure [1](https://arxiv.org/html/2411.07098v1#S1.F1
+    "Figure 1 ‣ I Introduction ‣ Adaptive REST API Testing with Reinforcement Learning"),
+    to perform the operation addFeatureToConfiguration, we must first create a product
+    using a separate operation and establish a configuration for it using another
+    operation. The sequence of operations should, therefore, be: create product, create
+    configuration, and create feature name for the product with the specified configuration
+    name. This example emphasizes the importance of determining the operation sequence.
+    Our technique initially assigns weights to operations and parameters based on
+    their usage frequency in the specification. In this case, productName is the most
+    frequently used parameter across all operations; therefore, our technique assigns
+    higher weights to operations involving productName. Specifically, the operation
+    for creating a product gets the highest priority.'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于RL的自适应探索。以图[1](https://arxiv.org/html/2411.07098v1#S1.F1 "Figure 1 ‣ I Introduction
+    ‣ Adaptive REST API Testing with Reinforcement Learning")中的示例为例，执行addFeatureToConfiguration操作时，我们必须首先使用单独的操作创建一个产品，并使用另一个操作为该产品建立配置。因此，操作序列应为：创建产品、创建配置，并为具有指定配置名称的产品创建特性名称。这个示例强调了确定操作顺序的重要性。我们的方法初步根据操作和参数在规范中的使用频率分配权重。在这种情况下，productName是所有操作中最常用的参数；因此，我们的方法将更高的权重分配给涉及productName的操作。具体来说，创建产品的操作获得最高优先级。
+- en: Moreover, once an operation is executed, its priority must be adjusted so that
+    it is not explored repeatedly, creating new product instances unnecessarily. After
+    processing a prioritized operation, our technique employs RL to adjust the weights
+    in response to the API response received. If a successful response is obtained,
+    negative rewards are assigned to the processed parameters, as our objective is
+    to explore other uncovered operations. This method naturally leads to the selection
+    of the next priority operation and parameter, facilitating efficient adjustments
+    to the call sequence.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，一旦执行某个操作，其优先级必须进行调整，以避免重复探索，避免不必要地创建新的产品实例。在处理完优先级操作后，我们的方法通过RL调整权重，以响应收到的API响应。如果获得成功响应，处理过的参数将获得负奖励，因为我们的目标是探索其他未覆盖的操作。这种方法自然会导致选择下一个优先级的操作和参数，从而促进有效的调用顺序调整。
+- en: Inter-parameter dependencies [martin2019catalogue] can increase the complexity
+    of the testing process, as some parameters might have mutual exclusivity or other
+    constraints associated with them (e.g., only one of the parameters needs to be
+    specified). RL-based exploration based in feedback received can also help with
+    dealing with this complexity.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参数间依赖关系[martin2019catalogue]可能增加测试过程的复杂性，因为某些参数可能具有互斥性或其他约束（例如，仅需指定其中一个参数）。基于接收到的反馈的RL探索也有助于处理这种复杂性。
+- en: 'Dynamic construction of key-value pairs. One of the key steps in recent REST
+    API testing techniques [Corradini2022, atlidakis2019restler, liu2022morest] is
+    identification of producer-consumer relations between response schemas and request
+    parameters. However, current tools face limitations when operations produce unstructured
+    output (e.g., plain text) or have incomplete response schemas in their specifications.
+    For instance, the addFeatureToConfiguration operation lacks structured response
+    data (e.g., JSON format). Despite this, our approach processes and generates key-value
+    data {productName: value, configurationName: value, featureName: value} from the
+    request data, as the POST HTTP method indicates that a resource is created using
+    the provided inputs.'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '动态构建键值对。在最近的REST API测试技术中，[Corradini2022, atlidakis2019restler, liu2022morest]的一个关键步骤是识别响应模式和请求参数之间的生产者-消费者关系。然而，当操作产生非结构化输出（例如，纯文本）或其规范中响应模式不完整时，当前工具面临一定的限制。例如，addFeatureToConfiguration操作缺少结构化的响应数据（如JSON格式）。尽管如此，我们的方法仍然能够处理并从请求数据中生成键值数据{productName:
+    value, configurationName: value, featureName: value}，因为POST HTTP方法表示使用提供的输入创建了一个资源。'
+- en: By analyzing and storing key-value pairs identified from request and response
+    data, even when the response schema is not explicitly provided or is incomplete,
+    our dynamic key-value pair construction method proves especially beneficial in
+    cases of responses with plain-text descriptions or incomplete response schemas.
+    The technique can effectively uncover hidden dependencies not evident from the
+    specification.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过分析和存储从请求和响应数据中识别出的键值对，即使响应模式未明确提供或不完整，我们的动态键值对构建方法在响应包含纯文本描述或响应模式不完整的情况下尤其有益。该技术能够有效揭示在规范中未明确的隐藏依赖关系。
+- en: Sampling for efficient dynamic key-value pair construction. API response data
+    can sometimes be quite large and processing every response for each key-value
+    pair can be computationally expensive. To address this issue, we have incorporated
+    a sampling-based strategy into our dynamic key-value pair construction method.
+    This strategy efficiently processes the dynamic API feedback and adapts its exploration
+    based on the gathered information while minimizing the overhead of processing
+    every response.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了高效地动态构建键值对进行采样。API 响应数据有时可能非常大，为每个键值对处理每个响应可能会消耗大量计算资源。为了解决这个问题，我们在动态键值对构建方法中加入了一种基于采样的策略。该策略高效处理动态的
+    API 反馈，并根据收集到的信息调整探索，同时最小化处理每个响应的开销。
+- en: '![Refer to caption](img/57e1299f8179d9516ca8e07a5b719427.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/57e1299f8179d9516ca8e07a5b719427.png)'
+- en: 'Figure 2: Overview of our approach.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：我们方法的概述。
+- en: III Our Approach
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: III 我们的方法
+- en: In this section, we introduce our Q-Learning-based REST API testing approach,
+    which intelligently prioritizes and selects the operations, parameters, and value
+    mapping sources while dynamically constructing key-value pairs. Figure [2](https://arxiv.org/html/2411.07098v1#S2.F2
+    "Figure 2 ‣ II-D Motivating Example ‣ II Background and Motivating Example ‣ Adaptive
+    REST API Testing with Reinforcement Learning") provides a high-level overview
+    of our approach. Initially, the Q-Learning Initialization module sets up the necessary
+    variables and tables for the Q-learning process. The Q-Learning Updater subsequently
+    receives these variables and tables and passes them to the Prioritization module,
+    which is responsible for selecting operations, parameters, and value mapping sources.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们介绍了一种基于 Q-Learning 的 REST API 测试方法，该方法智能地优先选择并选择操作、参数和值映射来源，同时动态构建键值对。图
+    [2](https://arxiv.org/html/2411.07098v1#S2.F2 "图 2 ‣ II-D 动机示例 ‣ II 背景和动机示例 ‣
+    基于强化学习的自适应 REST API 测试") 提供了我们方法的高级概述。最初，Q-Learning 初始化模块设置 Q-Learning 过程所需的变量和表格。随后，Q-Learning
+    更新器接收这些变量和表格，并将其传递给优先级模块，后者负责选择操作、参数和值映射来源。
+- en: Afterward, arat-rl sends a request to the System Under Test (SUT) and receives
+    a response. It also supplies the request, response, selected operation, parameters,
+    mapped value source, $\alpha$, $\gamma$, and $\epsilon$ to the Q-Learning Updater.
+    The feedback is analyzed with the request and response, storing key-value pairs
+    extracted from them for future use. The Updater component then adjusts the Q-values
+    based on the outcomes, enabling the approach to adapt and refine its decision-making
+    process over time. arat-rl iterates through this procedure until the specified
+    time limit is reached. In the rest of this section, we present the details of
+    the algorithm.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随后，arat-rl 向被测系统（SUT）发送请求并接收响应。它还将请求、响应、选定操作、参数、映射的值来源、$\alpha$、$\gamma$ 和 $\epsilon$
+    传递给 Q-Learning 更新器。反馈与请求和响应一起进行分析，存储从中提取的键值对以供将来使用。然后，更新器根据结果调整 Q-值，使得该方法能够随着时间的推移适应并完善其决策过程。arat-rl
+    将在此过程中进行多次迭代，直到达到指定的时间限制。本节的其余部分将介绍算法的详细信息。
+- en: III-A Q-Learning Table Initialization
+  id: totrans-50
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-A Q-Learning 表格初始化
+- en: The Q-Learning Table Initialization component, shown in Algorithm [1](https://arxiv.org/html/2411.07098v1#alg1
+    "Algorithm 1 ‣ III-A Q-Learning Table Initialization ‣ III Our Approach ‣ Adaptive
+    REST API Testing with Reinforcement Learning"), is responsible for setting up
+    the initial Q-table and Q-value data structures that guide the decision-making
+    process throughout API testing. Crucially, this process happens without making
+    any API calls.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Q-Learning 表格初始化组件，如算法 [1](https://arxiv.org/html/2411.07098v1#alg1 "算法 1 ‣
+    III-A Q-Learning 表格初始化 ‣ III 我们的方法 ‣ 基于强化学习的自适应 REST API 测试") 所示，负责设置初始的 Q-表和
+    Q-值数据结构，这些结构在整个 API 测试过程中引导决策过程。关键的是，这个过程是在不进行任何 API 调用的情况下完成的。
+- en: The algorithm begins by setting the learning rate ($\alpha$) to 0.1, the discount
+    factor ($\gamma$) to 0.99, and the exploration rate ($\epsilon$) to 0.1 (lines
+    2–4). These parameters control the learning and exploration process of the Q-Learning
+    algorithm. The algorithm then initializes empty dictionaries for the Q-table and
+    Q-value (lines 5–6). These parameters control the Q-Learning process, and the
+    chosen values are those commonly recommended and used (e.g., [qlearningex1, qlearningex2,
+    masadeh2018reinforcement]).
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该算法首先将学习率（$\alpha$）设置为0.1，折扣因子（$\gamma$）设置为0.99，探索率（$\epsilon$）设置为0.1（第2–4行）。这些参数控制Q-Learning算法的学习和探索过程。然后，算法初始化空字典用于Q表和Q值（第5–6行）。这些参数控制Q-Learning过程，选择的值是常用的推荐值（例如，[qlearningex1,
+    qlearningex2, masadeh2018reinforcement]）。
+- en: Algorithm 1 Q-Learning Table Initialization
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法1 Q-Learning表初始化
+- en: 1:procedure InitializeQLearning(operations)2:    Set learning rate ($\alpha$)
+    to 0.13:    Set discount factor ($\gamma$) to 0.994:    Set discount factor ($\epsilon$)
+    to 0.15:Initialize empty dictionary $q\_table$6:Initialize empty dictionary $q\_value$7:    for operation
+    in operations do8:operation_id $\leftarrow$ operation[’operationId’]9:       $q\_value[\text{operation\_id}]\leftarrow$
+    new dictionary10:       for source in [1, 2, 3, 4, 5] do11:          $q\_value[\text{operation\_id}][\text{source}]\leftarrow$
+    012:       end for13:       for parameter in operation[’parameters’] do14:param_name
+    $\leftarrow$ parameter[’name’]15:          $q\_table[\text{param\_name}]=q\_table[\text{param\_name}]+1$16:       end for17:       for response_data
+    in operation_data.get(’responses’) do18:          for key in response_data.keys() do19:             ifkey
+    in $q\_table$ then20:                $q\_table[\text{key}]=q\_table[\text{key}]+1$21:             end if22:          end for23:       end for24:    end for25:    return  $\alpha$,
+    $\gamma$, $\epsilon$, $q\_table$, $q\_value$26:end procedure
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1: procedure InitializeQLearning(operations)  '
+- en: The algorithm iterates through each operation in the API (lines 7–24). For each
+    operation, it extracts the operation’s unique identifier (operation_id) and initializes
+    a new dictionary in the Q-value dictionary for the operation_id (lines 8–9). Next,
+    it initializes the Q-values for each value mapping source (1 to 5) to 0 (lines
+    10–12).
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法遍历API中的每个操作（第7–24行）。对于每个操作，它提取操作的唯一标识符（operation_id），并在Q值字典中为operation_id初始化一个新字典（第8–9行）。接着，它为每个映射源（1到5）的Q值初始化为0（第10–12行）。
+- en: The algorithm proceeds to iterate through each parameter in the operation (lines
+    13–16). It extracts the parameter’s name (param_name) and, if param_name already
+    exists in the Q-table, it increments the corresponding entry by one. If it does
+    not exist, it initializes this entry to one. This step builds the Q-table with
+    a count of occurrences for each parameter.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法接下来会遍历操作中的每个参数（第13–16行）。它提取参数的名称（param_name），如果param_name已经存在于Q表中，它将相应条目的值加1。如果该条目不存在，则初始化为1。此步骤通过统计每个参数的出现次数来构建Q表。
+- en: Subsequently, the algorithm iterates through the response data of each operation
+    (lines 17–23). It extracts keys from the response data and checks if the key is
+    present in the Q-table for the operation_id (line 18). If the key is present in
+    the Q-table for the operation_id, it increments the corresponding entry in the
+    Q-table by 1 (lines 19–21). This step populates the Q-table with the frequency
+    of occurrences for each response key as well.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随后，算法遍历每个操作的响应数据（第17–23行）。它从响应数据中提取键，并检查该键是否存在于Q表中对应的operation_id条目中（第18行）。如果该键存在于Q表中，它将对应的条目值加1（第19–21行）。此步骤还将根据每个响应键的出现频率填充Q表。
+- en: Finally, the algorithm returns the learning rate ($\alpha$), discount factor
+    ($\gamma$), exploration rate ($\epsilon$), Q-table, and Q-value dictionaries (line
+    25). This initial setup provides the Q-Learning algorithm with a foundational
+    understanding of the API operations and their relationships, which is further
+    refined during the testing process.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终，算法返回学习率（$\alpha$）、折扣因子（$\gamma$）、探索率（$\epsilon$）、Q表和Q值字典（第25行）。这个初始设置为Q学习算法提供了对API操作及其关系的基础理解，并在测试过程中进一步优化。
+- en: Algorithm 2 Q-Learning-based Prioritization
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 2 基于Q学习的优先级排序
+- en: 1:procedure SelectOperation2:Initialize $\text{max\_avg\_q\_value}\leftarrow-\infty$3:Initialize
+    $\text{best\_operation}\leftarrow\text{None}$4:    for operation in operations do5:operation_id
+    $\leftarrow$ operation[’operationId’]6:Initialize $\text{sum\_q\_value}\leftarrow
+    0$7:Initialize $\text{num\_params}\leftarrow\text{len(operation['parameters'])}$8:       for parameter
+    in operation[’parameters’] do9:param_name $\leftarrow$ parameter[’name’]10:          $\text{sum\_q\_value}\leftarrow\text{sum\_q\_value}+q\_table[\text{param\_name}]$11:       end for12:       $\text{avg\_q\_value}\leftarrow\text{sum\_q\_value}/\text{num\_params}$13:       if $\text{avg\_q\_value}>\text{max\_avg\_q\_value}$ then14:          $\text{max\_avg\_q\_value}\leftarrow\text{avg\_q\_value}$15:          $\text{best\_operation}\leftarrow\text{operation}$16:       end if17:    end for18:    return  best_operation19:end procedure20:procedure SelectParameters(operation,
+    $\epsilon$)21:Set $n$ randomly ($0\leq n\leq\text{length of operation['parameters']}$)22:Initialize
+    empty list $selected\_parameters$23:    if $\text{random.random()}>\epsilon$ then24:       Sort
+    operation[’parameters’] by Q-values in descending order25:       for $i\leftarrow
+    0$ to $n-1$ do26:Append operation[’parameters’][i] to $selected\_parameters$27:       end for28:    else29:       forparam
+    in $\text{random.sample}(operation[^{\prime}parameters^{\prime}],n)$ do30:Append
+    param to $selected\_parameters$31:       end for32:    end if33:    return  $selected\_parameters$34:end procedure35:procedure SelectValueMappingSource(operation,
+    $\epsilon$)
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1:过程 SelectOperation2:初始化 $\text{max\_avg\_q\_value}\leftarrow-\infty$3:初始化
+    $\text{best\_operation}\leftarrow\text{None}$4:    对于操作操作在操作集合中循环5:操作_id $\leftarrow$
+    操作[’operationId’]6:初始化 $\text{sum\_q\_value}\leftarrow 0$7:初始化 $\text{num\_params}\leftarrow\text{len(operation['parameters'])}$8:       对于参数参数在操作[’parameters’]中循环9:参数名
+    $\leftarrow$ 参数[’name’]10:          $\text{sum\_q\_value}\leftarrow\text{sum\_q\_value}+q\_table[\text{param\_name}]$11:       结束
+    循环12:       $\text{avg\_q\_value}\leftarrow\text{sum\_q\_value}/\text{num\_params}$13:       如果
+    $\text{avg\_q\_value}>\text{max\_avg\_q\_value}$ 则14:          $\text{max\_avg\_q\_value}\leftarrow\text{avg\_q\_value}$15:          $\text{best\_operation}\leftarrow\text{operation}$16:       结束
+    如果17:    结束 循环18:    返回  best_operation19:结束 过程20:过程 SelectParameters(操作, $\epsilon$)21:设置
+    $n$ 随机生成 ($0\leq n\leq\text{length of operation['parameters']}$)22:初始化空列表 $selected\_parameters$23:    如果
+    $\text{random.random()}>\epsilon$ 则24:       按Q值降序排序操作[’parameters’]25:       对于
+    $i\leftarrow 0$ 到 $n-1$ 循环26:将操作[’parameters’][i] 添加到 $selected\_parameters$27:       结束
+    循环28:    否则29:       对于参数在 $\text{random.sample}(operation[^{\prime}parameters^{\prime}],n)$
+    循环30:将参数添加到 $selected\_parameters$31:       结束 循环32:    结束 如果33:    返回  $selected\_parameters$34:结束
+    过程35:过程 SelectValueMappingSource(操作, $\epsilon$)
+- en: 'Source1:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Source1:'
+- en: Example values in specification
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规范中的示例值
+- en: 'Source2:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Source2:'
+- en: Random value generated by the parameter’s type and format
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由参数类型和格式生成的随机值
+- en: 'Source3:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Source3:'
+- en: Dynamically constructed key-value pairs from request
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从请求动态构建的键值对
+- en: 'Source4:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Source4:'
+- en: Dynamically constructed key-value pairs from response
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从响应动态构建的键值对
+- en: 'Source5:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Source5:'
+- en: 'Default values (string: string, number: 1.1, integer: 1, array: [], object:
+    {})'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '默认值（字符串: 字符串，数字: 1.1，整数: 1，数组: []，对象: {}）'
+- en: 36:operation_id $\leftarrow$ operation[’operationId’]37:    $sources\leftarrow[1,2,3,4,5]$38:    if $\text{random.random()}>\epsilon$ then39:       $max\_q\leftarrow\arg\max_{\text{source}\in
+    sources}q\_value[\text{operation\_% id}][\text{source}]$40:       return  $max\_q$41:    else42:       return
+    random.randint(1, 5)43:    end if44:end procedure
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 36:操作_id $\leftarrow$ 操作[’operationId’]37:    $sources\leftarrow[1,2,3,4,5]$38:    如果
+    $\text{random.random()}>\epsilon$ 则39:       $max\_q\leftarrow\arg\max_{\text{source}\in
+    sources}q\_value[\text{operation\_% id}][\text{source}]$40:       返回  $max\_q$41:    否则42:       返回
+    random.randint(1, 5)43:    结束 如果44:结束 过程
+- en: Algorithm 3 Q-Learning-based API Testing
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 3 基于Q学习的API测试
+- en: 1:procedure QLearningUpdater(response, $q\_table$, $q\_value$, selected_operation,
+    selected_parameters, $\alpha$, $\gamma$)2:operation_id $\leftarrow$ selected_operation[’operation_id’]3:    if response.status_code
+    is 2xx (successful) then4:       Extract key-value pairs from request and response5:reward
+    $\leftarrow-1$6:Update $q\_value$ negatively7:    else if response.status_code
+    is 4xx or 500 (unsuccessful) then8:reward $\leftarrow 1$9:Update $q\_value$ positively10:    end if11:    for $eachparaminselected\_parameters$ do12:       for $eachparam\_name,param\_valueinparam.items()$ do13:old_q_value
+    $\leftarrow q\_table$[operation_id][param_name]14:max_q_value_next_state $\leftarrow$
+    max($q\_table$[operation_id].values())15:          $q\_table$[operation_id][param_name]
+    $\leftarrow$ old_q_value + $\alpha$ * (reward + $\gamma$ * (max_q_value_next_state
+    - old_q_value))16:       end for17:    end for18:    return  $q\_table$, $q\_value$19:end procedure20:procedure Main21:Initialize
+    $\epsilon_{max}\leftarrow 1$22:Initialize $\epsilon_{adapt}\leftarrow 1.1$23:Initialize
+    $time_{l}imit\leftarrow$ desired time limit in seconds24:operations $\leftarrow$
+    Load API specification25:    $\alpha$, $\gamma$, $\epsilon$, $q\_table$, $q\_value$  $\leftarrow$
+    InitializeQLearning(operations)26:    while Time Limit do27:best_operation $\leftarrow$
+    SelectOperation()28:selected_parameters $\leftarrow$ SelectParameters(best_operation,
+    $\epsilon$)29:selected_source $\leftarrow$ SelectValueMappingSource(best_operation,
+    $\epsilon$)30:response $\leftarrow$ Execute best_operation with selected_parameters
+    and selected_source31:       $q\_table$, $q\_value$  $\leftarrow$ QLearningUpdater(response,
+    $q\_table$, $q\_value$, selected_operation, selected_parameters, $\alpha$, $\gamma$)32:       $\epsilon\leftarrow\min(\epsilon_{max},\epsilon_{adapt}*\epsilon)$33:    end while34:end procedure
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1:procedure QLearningUpdater(response, $q\_table$, $q\_value$, selected_operation,
+    selected_parameters, $\alpha$, $\gamma$)  '
+- en: III-B Q-Learning-based Prioritization
+  id: totrans-74
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-B 基于Q学习的优先排序
+- en: In this step, we prioritize API operations and select the best parameters and
+    value mapping sources based on their Q-values. We present Algorithm [2](https://arxiv.org/html/2411.07098v1#alg2
+    "Algorithm 2 ‣ III-A Q-Learning Table Initialization ‣ III Our Approach ‣ Adaptive
+    REST API Testing with Reinforcement Learning") (SelectOperation, SelectParameters,
+    and SelectValueMappingSource) to describe the prioritization process.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一步中，我们根据操作的Q值优先排序API操作，并选择最佳的参数和值映射源。我们展示了算法[2](https://arxiv.org/html/2411.07098v1#alg2
+    "Algorithm 2 ‣ III-A Q-Learning Table Initialization ‣ III Our Approach ‣ Adaptive
+    REST API Testing with Reinforcement Learning")（SelectOperation、SelectParameters和SelectValueMappingSource）来描述优先排序过程。
+- en: The SelectOperation procedure (lines 1–19) is responsible for selecting the
+    best API operation to test. The algorithm initializes variables to store the maximum
+    average Q-value and the best operation (lines 2–3). It iterates through each operation,
+    calculating the average Q-value for the operation’s parameters (lines 4–17). The
+    operation with the highest average Q-value is selected as the best operation (line
+    15).
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SelectOperation过程（第1-19行）负责选择要测试的最佳API操作。该算法初始化变量以存储最大平均Q值和最佳操作（第2-3行）。它遍历每个操作，计算该操作参数的平均Q值（第4-17行）。具有最高平均Q值的操作被选为最佳操作（第15行）。
+- en: The SelectParameters procedure (lines 20–34) is responsible for selecting a
+    subset of parameters for the chosen API operation. This selection is guided by
+    the exploration rate ($\epsilon$). If a random value is greater than $\epsilon$,
+    the algorithm selects the top $n$ parameters sorted by their Q-values in descending
+    order (lines 23–27). Otherwise, the algorithm randomly selects $n$ parameters
+    from the operation’s parameters (lines 28–31). The selected parameters are then
+    returned (line 33).
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SelectParameters 程序（第 20 至 34 行）负责为选择的 API 操作选择一组参数。该选择由探索率（$\epsilon$）引导。如果随机值大于
+    $\epsilon$，算法会选择按 Q 值降序排列的前 $n$ 个参数（第 23 至 27 行）。否则，算法会从操作的参数中随机选择 $n$ 个参数（第 28
+    至 31 行）。然后返回所选择的参数（第 33 行）。
+- en: The SelectValueMappingSource procedure (lines 35–44) is responsible for selecting
+    the value mapping source for the chosen API operation. The technique leverages
+    five types of value mapping sources.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SelectValueMappingSource 程序（第 35 至 44 行）负责为选择的 API 操作选择值映射来源。该技术利用五种类型的值映射来源。
+- en: •
+  id: totrans-79
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Source 1 (example values in specification): These values are provided in the
+    API documentation as examples for a parameter. We consider three types of OpenAPI
+    keywords that can specify example values: enum, example, and description [openapi].
+    Although the OpenAPI website mentions that users can specify example values in
+    the description field, these examples are often not provided in a structured format
+    but rather as natural language text. To extract example values from the description
+    field, we create a list containing every word in the text, as well as every quoted
+    phrase.'
+  id: totrans-80
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来源 1（规范中的示例值）：这些值在 API 文档中作为参数的示例值提供。我们考虑三种类型的 OpenAPI 关键字来指定示例值：enum、example
+    和 description [openapi]。尽管 OpenAPI 网站提到用户可以在描述字段中指定示例值，但这些示例通常没有以结构化格式提供，而是作为自然语言文本。为了从描述字段中提取示例值，我们创建一个列表，包含文本中的每个单词，以及每个引用的短语。
+- en: •
+  id: totrans-81
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Source 2 (random value generated by the parameter’s type, format, and constraints):
+    This source generates random values for each parameter based on its type, format,
+    and constraints. To generate random values, we utilize Python’s built-in random
+    library. For date and date-time formats, we employ the datetime library to randomly
+    select dates and times. If the parameter has a regular expression pattern specified
+    in the API documentation, we generate the value randomly using the rstr library [rstr].
+    When a minimum or maximum constraint is present, we pass it to the random library
+    to ensure that the generated values adhere to the specified constraints. This
+    approach allows us to explore a broader range of values compared to the example
+    values provided in the API specification.'
+  id: totrans-82
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来源 2（根据参数的类型、格式和约束生成的随机值）：此来源根据每个参数的类型、格式和约束生成随机值。为了生成随机值，我们使用 Python 内建的 random
+    库。对于日期和日期时间格式，我们使用 datetime 库随机选择日期和时间。如果参数在 API 文档中指定了正则表达式模式，我们使用 rstr 库 [rstr]
+    来随机生成值。当存在最小或最大约束时，我们将其传递给 random 库，以确保生成的值符合指定的约束。这种方法使我们能够探索比 API 规范中提供的示例值更广泛的值范围。
+- en: •
+  id: totrans-83
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Source 3 (dynamically constructed key-value pairs from request): This source
+    extracts key-value pairs from the dynamically constructed request key-value pairs.
+    We employ Gestalt pattern matching [difflib] to identify the key most similar
+    to the parameter name. This technique aids in discovering producer-consumer relationships.'
+  id: totrans-84
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来源 3（来自请求的动态构造的键值对）：此来源从动态构造的请求键值对中提取键值对。我们采用格式塔模式匹配 [difflib] 来识别与参数名称最相似的键。这种技术有助于发现生产者-消费者关系。
+- en: •
+  id: totrans-85
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Source 4 (dynamically constructed key-value pairs from response): Similar to
+    Source 3, this source obtains key-value pairs from dynamically constructed response
+    key-value pairs. We use the same Gestalt pattern matching approach to identify
+    the key, further assisting in the identification of producer-consumer relationships.'
+  id: totrans-86
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来源 4（来自响应的动态构造的键值对）：与来源 3 类似，此来源从动态构造的响应键值对中获取键值对。我们使用相同的格式塔模式匹配方法来识别键，进一步帮助识别生产者-消费者关系。
+- en: •
+  id: totrans-87
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Source 5 (default values): This source uses predefined default values for each
+    data type (string: string, number: 1.1, integer: 1, array: [], object: {}). These
+    default values can be useful for testing how the API behaves when it receives
+    the simplest or most common input values.'
+  id: totrans-88
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来源 5（默认值）：此来源使用每种数据类型的预定义默认值（字符串：string，数字：1.1，整数：1，数组：[]，对象：{}）。这些默认值对于测试API在接收到最简单或最常见的输入值时的行为非常有用。
+- en: Similar to the SelectParameters procedure, the selection of the value mapping
+    source is guided by the exploration rate ($\epsilon$). If a random value is greater
+    than $\epsilon$, the algorithm selects the mapping source with the highest Q-value
+    for the chosen operation (lines 38–40). This helps the algorithm focus on the
+    most promising mapping sources based on prior experience. Otherwise, the algorithm
+    randomly selects a mapping source from the available sources (line 42). This randomness
+    ensures that the algorithm occasionally explores less promising mapping sources
+    to avoid getting stuck in a suboptimal solution.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于SelectParameters过程，值映射源的选择受探索率（$\epsilon$）的指导。如果随机值大于$\epsilon$，则算法选择具有最高Q值的映射源（第38–40行）。这有助于算法根据先前的经验专注于最有前景的映射源。否则，算法随机选择一个映射源（第42行）。这种随机性确保了算法偶尔探索不太有前景的映射源，以避免陷入次优解。
+- en: III-C Q-Learning-based API Testing
+  id: totrans-90
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-C 基于Q学习的API测试
+- en: In this step, we execute the selected API operations with the selected parameters
+    and value mapping sources, and update the Q-values based on the response status
+    codes. Algorithm [3](https://arxiv.org/html/2411.07098v1#alg3 "Algorithm 3 ‣ III-A
+    Q-Learning Table Initialization ‣ III Our Approach ‣ Adaptive REST API Testing
+    with Reinforcement Learning") (QLearningUpdater and Main) describes the API testing
+    process and the update of Q-values using the learning rate ($\alpha$) and discount
+    factor ($\gamma$).
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此步骤中，我们使用选定的参数和值映射源执行选定的API操作，并根据响应状态码更新Q值。算法[3](https://arxiv.org/html/2411.07098v1#alg3
+    "Algorithm 3 ‣ III-A Q-Learning Table Initialization ‣ III Our Approach ‣ Adaptive
+    REST API Testing with Reinforcement Learning")（QLearningUpdater和Main）描述了API测试过程以及使用学习率（$\alpha$）和折扣因子（$\gamma$）更新Q值的过程。
+- en: The QLearningUpdater procedure (lines 1–19) is responsible for updating the
+    Q-values based on the response status codes. It first extracts the operation ID
+    from the selected operation (line 2). If the response status code indicates a
+    successful request (2xx), the algorithm extracts key-value pairs from the request
+    and response, assigns a reward of $-1$, and updates the Q-values negatively (lines 3–6).
+    If the response status code indicates an unsuccessful request (4xx or 500), the
+    algorithm assigns a reward of 1 and updates the Q-values positively (lines 7–10).
+    The Q-values are updated for each parameter in the selected parameters using the
+    Bellman equation (lines 11–16), and the updated Q-values are returned (line 18).
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: QLearningUpdater过程（第1–19行）负责根据响应状态码更新Q值。它首先从选定的操作中提取操作ID（第2行）。如果响应状态码表示请求成功（2xx），则算法从请求和响应中提取键值对，赋予奖励-1，并负向更新Q值（第3–6行）。如果响应状态码表示请求失败（4xx或500），则算法赋予奖励1，并正向更新Q值（第7–10行）。使用贝尔曼方程（第11–16行）为选定参数中的每个参数更新Q值，并返回更新后的Q值（第18行）。
+- en: The Main procedure (lines 20–34) orchestrates the Q-Learning-based API testing
+    process. It initializes the exploration rate ($\epsilon$), its maximum value ($\epsilon_{max}$),
+    its adaptation factor ($\epsilon_{adapt}$), and the desired time limit for testing
+    (lines 21–23). The API specification is loaded and the Q-Learning table is initialized
+    (lines 24–25). The algorithm then enters a loop that continues until the time
+    limit is reached (line 26). In each iteration, the best operation, selected parameters,
+    and selected mapping source are determined (lines 27–29). The API operation is
+    executed with the selected parameters and mapping source, and the response is
+    obtained (line 30). The Q-values are then updated based on the response (line 31),
+    and the exploration rate ($\epsilon$) is updated (line 32).
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主过程（第20–34行）协调基于Q学习的API测试过程。它初始化探索率（$\epsilon$）、最大值（$\epsilon_{max}$）、适应因子（$\epsilon_{adapt}$）以及期望的测试时间限制（第21–23行）。加载API规范并初始化Q学习表（第24–25行）。然后，算法进入一个循环，直到达到时间限制为止（第26行）。在每次迭代中，确定最佳操作、选择的参数和选择的映射源（第27–29行）。使用选定的参数和映射源执行API操作，并获得响应（第30行）。然后，根据响应更新Q值（第31行），并更新探索率（$\epsilon$）（第32行）。
+- en: By continuously updating the Q-values based on the response status codes and
+    adapting the exploration rate, the Q-Learning-based API testing process aims to
+    effectively explore the API operations and parameters, identifying potential issues
+    in the API implementation.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过根据响应状态码持续更新Q值，并调整探索率，基于Q学习的API测试过程旨在有效地探索API操作和参数，识别API实现中的潜在问题。
+- en: IV Evaluation
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: IV 评估
+- en: 'Figure 3: Branch, line, and method coverage achieved by the tools on the benchmark
+    services.'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：工具在基准服务上实现的分支、行和方法覆盖率。
+- en: 'In this section, we present the results of empirical studies conducted to assess
+    arat-rl. Our evaluation aims to address the following research questions:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了为评估arat-rl所进行的实证研究结果。我们的评估旨在解决以下研究问题：
+- en: '1.'
+  id: totrans-98
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'RQ1: How does arat-rl compare with state-of-the-art tools for REST API testing
+    in terms of code coverage?'
+  id: totrans-99
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ1：在代码覆盖率方面，arat-rl与当前最先进的REST API测试工具相比如何？
+- en: '2.'
+  id: totrans-100
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'RQ2: How does the efficiency of arat-rl, measured in terms of valid and fault-inducing
+    requests generated and operations covered within a given time budget, compare
+    to that of other REST API testing tools?'
+  id: totrans-101
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ2：在给定的时间预算内，arat-rl生成的有效请求和故障引发请求及覆盖的操作的效率，与其他REST API测试工具相比如何？
+- en: '3.'
+  id: totrans-102
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: 'RQ3: In terms of error detection, how does our approach perform at identifying
+    500 responses in REST APIs when compared to state-of-the-art REST API testing
+    tools?'
+  id: totrans-103
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ3：在错误检测方面，我们的方法在识别REST API中的500响应时，与最先进的REST API测试工具相比表现如何？
+- en: '4.'
+  id: totrans-104
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: 'RQ4: How do the main components of arat-rl—prioritization, dynamic key-value
+    pair construction, and sampling—contribute to its overall performance?'
+  id: totrans-105
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ4：arat-rl的主要组件——优先级排序、动态键值对构建和采样——如何对其整体性能作出贡献？
+- en: IV-A Experimental Setup
+  id: totrans-106
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-A 实验设置
+- en: We performed our experiments using Google Cloud E2 machines, each equipped with
+    24-core CPU and 96 GB of RAM. We created a machine image containing all the services
+    and tools in our benchmark. For each experiment, we deleted and recreated the
+    machines using this image to minimize potential dependency issues. Each machine
+    hosted all the services and tools under test, but we ran one tool at a time during
+    the experiments. We monitored CPU and memory usage throughout the testing process
+    to ensure that the testing tools were not affected by a lack of memory or CPU
+    resources.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用Google Cloud E2机器进行实验，每台机器配备了24核CPU和96GB内存。我们创建了一个包含基准中所有服务和工具的机器镜像。对于每个实验，我们删除并重新创建这些机器，使用此镜像以最小化潜在的依赖问题。每台机器都托管了所有待测试的服务和工具，但我们在实验过程中一次只运行一个工具。我们在整个测试过程中监控CPU和内存使用情况，以确保测试工具不会因内存或CPU资源不足而受到影响。
+- en: 'To evaluate the effectiveness and efficiency of our approach, we compared its
+    against three state-of-the-art tools: EvoMaster [arcuri2019restful], RESTler [atlidakis2019restler],
+    and Morest [liu2022morest]. We selected 10 RESTful services from a recent REST
+    API testing study as our benchmark. We explain the selection process of these
+    tools and services next.'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们方法的有效性和效率，我们将其与三种最先进的工具进行了比较：EvoMaster [arcuri2019restful]、RESTler [atlidakis2019restler]和Morest
+    [liu2022morest]。我们从最近的REST API测试研究中选择了10个RESTful服务作为基准。接下来，我们将解释这些工具和服务的选择过程。
+- en: Testing Tools Selection
+  id: totrans-109
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 测试工具选择
+- en: As a preliminary note, because arat-rl is a black-box approach, we only considered
+    black-box tools in our comparison. We believe that adding to the comparison white-box
+    tools would result in an unfair comparison, as these tools leverage information
+    about the code, rather than just information in the specification, to generate
+    test inputs.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为初步说明，由于arat-rl是黑盒方法，我们只考虑了黑盒工具进行比较。我们认为将白盒工具加入比较会导致不公平的对比，因为这些工具利用代码中的信息，而不仅仅是规范中的信息来生成测试输入。
+- en: We identified an initial set of 10 tools based on a recent study [kim2022automated].
+    From this list, we chose (the black-box version of) EvoMaster [arcuri2019restful]
+    and RESTler [atlidakis2019restler]. EvoMaster employs an evolutionary algorithm
+    for automated test case generation and was the best-performing tool in that study
+    and in another recent comparison [zhang2022open]. Its strong performance makes
+    it an appropriate candidate for comparison. RESTler adopts a grammar-based fuzzing
+    approach to explore APIs. It is a well-established tool in the field and, in fact,
+    the most popular REST API testing tool in terms of GitHub stars.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们根据一项最近的研究[kim2022automated]确定了一个初始的10个工具集。从这个列表中，我们选择了（黑盒版本的）EvoMaster [arcuri2019restful]和RESTler
+    [atlidakis2019restler]。EvoMaster采用进化算法进行自动化测试用例生成，是该研究和另一项最近对比研究[zhang2022open]中的最佳表现工具。其强大的性能使其成为一个合适的对比候选工具。RESTler采用基于语法的模糊测试方法来探索API。它是该领域一个成熟的工具，事实上，它是GitHub上最受欢迎的REST
+    API测试工具。
+- en: Recently, two new tools have been published. Morest [liu2022morest] has been
+    shown to have superior results compared to EvoMaster. We, therefore, included
+    Morest in our set of tools for comparison, as it could potentially outperform
+    the other tools. The other recent tool, RestCT, was also considered for inclusion
+    in our evaluation. However, we encountered failures while running it. We contacted
+    the authors, who confirmed the issues and said they will work on resolving them.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近发布了两个新工具。Morest [liu2022morest]已被证明相比EvoMaster具有更优的结果。因此，我们将Morest纳入了我们的对比工具集，因为它有可能超越其他工具。另一个新工具RestCT也被考虑纳入我们的评估。但在运行时我们遇到了失败。我们联系了作者，他们确认了问题并表示将致力于解决它们。
+- en: RESTful Services Selection
+  id: totrans-113
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: RESTful 服务选择
+- en: As benchmarks for our evaluation, we selected 10 out of 20 RESTful services
+    from a recent study by Kim et al. [kim2022automated]. We had to exclude 10 services
+    for various reasons. Specifically, we omitted the News service, developed by the
+    author of our baseline EvoMaster, to avoid possible bias. Problem Controller and
+    Spring Batch REST were excluded because they require specific domain knowledge
+    to generate any meaningful test, so using them provides limited information about
+    the tools. We excluded Erc20-rest-service and Spring Boot Actuator because some
+    APIs in these services did not provide valid responses due to external dependencies
+    being updated without corresponding updates in the service code. We also excluded
+    Proxyprint, OCVN, and Scout API due to authentication issues that prevented them
+    from generating meaningful responses. Finally, we excluded CatWatch and Cwa-verification
+    because of their restrictive rate limits, which slowed down the testing process
+    and made it impossible to collect results in a reasonable amount of time.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为我们评估的基准，我们从Kim等人的一项最新研究[kim2022automated]中选择了20个RESTful服务中的10个。我们不得不因各种原因排除10个服务。具体来说，我们排除了由基准EvoMaster的作者开发的新闻服务，以避免可能的偏差。Problem
+    Controller和Spring Batch REST被排除，因为它们需要特定的领域知识来生成有意义的测试，因此使用它们提供的信息有限。我们排除了Erc20-rest-service和Spring
+    Boot Actuator，因为这些服务中的一些API由于外部依赖项的更新未同步更新到服务代码，导致无法提供有效的响应。我们还排除了Proxyprint、OCVN和Scout
+    API，因为认证问题阻止它们生成有意义的响应。最后，我们排除了CatWatch和Cwa-verification，因为它们的限制性速率限制减慢了测试过程，无法在合理的时间内收集结果。
+- en: Our final set of services consisted of Features Service, LanguageTool, NCS,
+    REST Countries, SCS, Genome Nexus, Person Controller, User Management Microservice,
+    Simple Internet-Market, and Project Tracking System.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们最终的服务集包括了Features Service、LanguageTool、NCS、REST Countries、SCS、Genome Nexus、Person
+    Controller、User Management Microservice、Simple Internet-Market和Project Tracking
+    System。
+- en: 'TABLE I: Comparison of operations covered and requests (2xx and 500 status
+    codes) by arat-rl, Morest, EvoMaster, and RESTler.'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表I：arat-rl、Morest、EvoMaster和RESTler所涵盖的操作和请求（2xx和500状态码）的对比。
+- en: 'ARAT-RL Morest EvoMaster RESTler #operations #requests #operations #requests
+    #operations #requests #operations #requests service covered 2xx&500 2xx 500 covered
+    2xx&500 2xx 500 covered 2xx&500 2xx 500 covered 2xx&500 2xx 500 Features Service
+    18 95,479 43,460 52,019 18 103,475 4,920 98,555 18 113,136 33,271 79,865 17 4,671
+    1,820 2,851 Language Tool 2 77,221 67,681 9,540 1 1,273 1,273 0 2 22,006 17,838
+    4,168 1 32,796 32,796 0 NCS 6 62,618 62,618 0 5 18,389 18,389 0 2 61,282 61,282
+    0 2 140 140 0 REST Countries 22 36,297 35,486 811 22 8,431 7,810 621 16 9,842
+    9,658 184 6 259 255 4 SCS 11 115,328 115,328 0 11 110,147 110,147 0 10 66,313
+    66,313 0 10 5,858 5,857 1 Genome Nexus 23 15,819 14,010 1,809 23 32,598 10,661
+    21,937 19 8,374 8,374 0 1 182 182 0 Person Controller 12 101,083 47,737 53,346
+    11 104,226 10,036 94,190 12 91,316 37,544 53,772 1 167 102 65 User Management
+    21 44,121 13,356 30,765 17 1,111 948 163 18 29,064 13,003 16,061 4 79 64 15 Market
+    Service 12 29,393 6,295 23,098 6 1,399 394 1,005 5 10,697 4,302 6,395 2 1,278
+    0 1,278 Project Tracking 53 23,958 21,858 2,100 42 14,906 12,904 2,002 43 15,073
+    13,470 1,603 3 72 65 7 Average 18 60,132 42,783 17,349 15.6 39,595 17,748 21,847
+    14.5 42,710 26,505 16,205 4.7 4,550 4,128 422'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'ARAT-RL Morest EvoMaster RESTler #操作 #请求 #操作 #请求 #操作 #请求 #操作 #请求 服务覆盖了 2xx&500
+    2xx 500 覆盖了 2xx&500 2xx 500 覆盖了 2xx&500 2xx 500 覆盖了 2xx&500 2xx 500 特性 服务 18 95,479
+    43,460 52,019 18 103,475 4,920 98,555 18 113,136 33,271 79,865 17 4,671 1,820
+    2,851 语言工具 2 77,221 67,681 9,540 1 1,273 1,273 0 2 22,006 17,838 4,168 1 32,796
+    32,796 0 NCS 6 62,618 62,618 0 5 18,389 18,389 0 2 61,282 61,282 0 2 140 140 0
+    REST 国家 22 36,297 35,486 811 22 8,431 7,810 621 16 9,842 9,658 184 6 259 255 4
+    SCS 11 115,328 115,328 0 11 110,147 110,147 0 10 66,313 66,313 0 10 5,858 5,857
+    1 基因组 Nexus 23 15,819 14,010 1,809 23 32,598 10,661 21,937 19 8,374 8,374 0 1
+    182 182 0 Person Controller 12 101,083 47,737 53,346 11 104,226 10,036 94,190
+    12 91,316 37,544 53,772 1 167 102 65 用户管理 21 44,121 13,356 30,765 17 1,111 948
+    163 18 29,064 13,003 16,061 4 79 64 15 市场服务 12 29,393 6,295 23,098 6 1,399 394
+    1,005 5 10,697 4,302 6,395 2 1,278 0 1,278 项目跟踪 53 23,958 21,858 2,100 42 14,906
+    12,904 2,002 43 15,073 13,470 1,603 3 72 65 7 平均值 18 60,132 42,783 17,349 15.6
+    39,595 17,748 21,847 14.5 42,710 26,505 16,205 4.7 4,550 4,128 422'
+- en: Result Collection
+  id: totrans-118
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 结果收集
+- en: We ran each testing tool with a time budget of one hour per execution, as a
+    previous study [kim2022automated] indicated that code coverage achieved by these
+    tools tends to plateau within this duration. To accommodate for variability, we
+    replicated the experiments ten times and calculated the average metrics across
+    these runs.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们对每个测试工具进行了每次执行一小时的时间预算测试，之前的研究[kim2022automated]表明，这些工具在此时长内的代码覆盖率通常会趋于平稳。为了适应变动性，我们将实验重复进行了十次，并计算了这些运行的平均度量。
+- en: 'Data collection for code coverage and status codes was performed using JaCoCo [jacoco]
+    and Mitmproxy [mitmproxy], respectively. We focused on identifying unique instances
+    of 500 errors, which generally signal server-side faults. The methodology was
+    as follows:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码覆盖率和状态码的数据收集分别使用了JaCoCo [jacoco]和Mitmproxy [mitmproxy]。我们重点识别500错误的唯一实例，这通常表示服务器端故障。其方法如下：
+- en: '1.'
+  id: totrans-121
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'Stack Trace Collection: For services that provided stack traces accompanying
+    500 errors, we collected these traces, treating each unique trace as a separate
+    fault. In the majority of cases, the errors we collected fall into this category.'
+  id: totrans-122
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 堆栈跟踪收集：对于提供伴随500错误的堆栈跟踪的服务，我们收集了这些跟踪，将每个唯一的堆栈跟踪视为单独的故障。在大多数情况下，我们收集到的错误都属于这一类。
+- en: '2.'
+  id: totrans-123
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'Response Text Analysis: In the absence of stack traces, we analyzed the response
+    text. After removing unrelated components (e.g., timestamps), we classified unique
+    instances of response text linked to 500 status codes as individual faults.'
+  id: totrans-124
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 响应文本分析：在没有堆栈跟踪的情况下，我们分析了响应文本。去除无关组件（如时间戳）后，我们将与500状态码相关的唯一响应文本实例分类为单独的故障。
+- en: This systematic approach allowed us to compile a comprehensive and unique tally
+    of faults for our analysis.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种系统化的方法使我们能够编制出一份全面且独特的故障统计，用于我们的分析。
+- en: 'IV-B RQ1: Effectiveness'
+  id: totrans-126
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'IV-B RQ1: 效果'
+- en: To answer RQ1, we compared the tools in terms of branch, line, and method coverage
+    achieved. Figure [3](https://arxiv.org/html/2411.07098v1#S4.F3 "Figure 3 ‣ IV
+    Evaluation ‣ Adaptive REST API Testing with Reinforcement Learning") presents
+    the results of the study. The bar charts represent the coverage achieved by each
+    tool for each RESTful service, whereas the boxplot at the bottom summarizes of
+    each tool’s performance on the three coverage metrics across all the services.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了回答RQ1，我们比较了各工具在分支、行和方法覆盖率方面的表现。图[3](https://arxiv.org/html/2411.07098v1#S4.F3
+    "图 3 ‣ IV 评估 ‣ 使用强化学习的自适应REST API测试")展示了研究结果。柱状图表示每个工具在每个RESTful服务上的覆盖率，而底部的箱形图则总结了每个工具在所有服务中的三个覆盖度量的表现。
+- en: As demonstrated in Figure [3](https://arxiv.org/html/2411.07098v1#S4.F3 "Figure
+    3 ‣ IV Evaluation ‣ Adaptive REST API Testing with Reinforcement Learning"), arat-rl consistently
+    outperforms the other tools in all three coverage metrics across the selected
+    RESTful services. Our tool performed better, benefiting from operation, parameter,
+    and value mapping prioritization, as seen in the motivating example. arat-rl is
+    especially effective when there is operation dependency, parameter dependency,
+    and value-mapping dependency. For example, the greatest coverage gains occurred
+    for Language-tool, as shown in the figure, which has a complex set of inter-parameter
+    dependencies and value-mapping dependencies. Meanwhile, arat-rl struggles with
+    semantic parameters. For instance, it performed the worst for Market-service.
+    The reason for this is that it requires input data, such as address, email, name,
+    password, and phone number in specific formats, but arat-rl failed to generate
+    valid values for these. Consequently, it was unable to create market users and
+    use the user information for other operations in producer-consumer relationships.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图[3](https://arxiv.org/html/2411.07098v1#S4.F3 "Figure 3 ‣ IV Evaluation ‣
+    Adaptive REST API Testing with Reinforcement Learning")所示，arat-rl在所有三个覆盖度指标中，在所选的RESTful服务中始终优于其他工具。我们的工具表现更好，得益于操作、参数和数值映射优先级的设置，正如在动机示例中所见。arat-rl尤其在存在操作依赖、参数依赖和数值映射依赖时表现出色。例如，最大覆盖率增益发生在Language-tool上，如图所示，它具有一组复杂的参数间依赖和数值映射依赖。与此同时，arat-rl在处理语义参数时表现不佳。例如，它在Market-service上表现最差。原因在于Market-service要求输入特定格式的地址、电子邮件、姓名、密码和电话号码等数据，而arat-rl未能为这些数据生成有效的值。因此，它未能创建市场用户，也无法在生产者-消费者关系中使用用户信息进行其他操作。
+- en: On average, arat-rl attained 36.25% branch coverage, 58.47% line coverage, and
+    59.42% method coverage. In comparison, Morest, which exhibited the second-best
+    performance, reached an average of 29.31% branch coverage, 52.27% line coverage,
+    and 54.24% method coverage. Thus, the coverage gain of arat-rl over Morest is
+    23.69% for branch coverage, 11.87% for line coverage, and 9.55% for method coverage.
+    EvoMaster and RESTler yield lower average coverage rates on all three metrics,
+    with respective results of 26.45%, 48.37%, and 52.07% for EvoMaster and 16.54%,
+    36.58%, and 38.99% for RESTler for branch, line, and method coverage. The coverage
+    gains of arat-rl compared to EvoMaster is 37.03% for branch coverage, 20.87% for
+    line coverage, and 14.13% for method coverage, whereas compared to RESTler, it
+    is 119.17% for branch coverage, 59.83% for line coverage, and 52.42% for method
+    coverage.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 平均而言，arat-rl达到了36.25%的分支覆盖率，58.47%的行覆盖率和59.42%的方法覆盖率。相比之下，表现第二好的Morest平均达到了29.31%的分支覆盖率，52.27%的行覆盖率和54.24%的方法覆盖率。因此，arat-rl相比Morest的覆盖率提升分别为分支覆盖率23.69%，行覆盖率11.87%，方法覆盖率9.55%。EvoMaster和RESTler在所有三个指标上的平均覆盖率较低，EvoMaster的分支、行和方法覆盖率分别为26.45%、48.37%和52.07%，而RESTler的分支、行和方法覆盖率分别为16.54%、36.58%和38.99%。与EvoMaster相比，arat-rl的覆盖率增益分别为分支覆盖率37.03%，行覆盖率20.87%，方法覆盖率14.13%；而与RESTler相比，分别为分支覆盖率119.17%，行覆盖率59.83%，方法覆盖率52.42%。
+- en: These results provide evidence that our technique can effectively explore RESTful
+    services, achieving superior code coverage compared to existing tools, and demonstrate
+    its potential in addressing the challenges in REST API testing and enhancing the
+    overall quality of software applications that rely on RESTful services.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些结果为我们的技术能够有效探索RESTful服务提供了证据，证明其在代码覆盖率方面优于现有工具，并展示了它在解决REST API测试中的挑战和提升依赖于RESTful服务的软件应用整体质量的潜力。
+- en: <svg class="ltx_picture" height="73.07" id="S4.SS2.p5.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,73.07) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="45.51" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">arat-rl consistently outperforms
+    RESTler, EvoMaster, and Morest in terms of branch, line, and method coverage across
+    the selected RESTful services. However, arat-rl can struggle with parameters that
+    require inputs in specific formats.</foreignobject></g></g></svg>
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="73.07" id="S4.SS2.p5.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,73.07) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="45.51" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">arat-rl consistently outperforms
+    RESTler, EvoMaster, and Morest in terms of branch, line, and method coverage across
+    the selected RESTful services. However, arat-rl can struggle with parameters that
+    require inputs in specific formats.</foreignobject></g></g></svg>
+- en: 'TABLE II: Faults detected by the tools in 10 runs.'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 II：工具在10次运行中检测到的故障。
+- en: '|  | RESTler | EvoMaster | Morest | ARAT-RL |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | RESTler | EvoMaster | Morest | ARAT-RL |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| Features-Service | 010 | 010 | 010 | 010 |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| 特征服务 | 010 | 010 | 010 | 010 |'
+- en: '| Language-Tool | 000 | 048 | 000 | 122 |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| 语言工具 | 000 | 048 | 000 | 122 |'
+- en: '| NCS | 000 | 000 | 000 | 000 |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| NCS | 000 | 000 | 000 | 000 |'
+- en: '| REST-Countries | 009 | 010 | 010 | 010 |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| REST国家 | 009 | 010 | 010 | 010 |'
+- en: '| SCS | 003 | 000 | 000 | 000 |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| SCS | 003 | 000 | 000 | 000 |'
+- en: '| Genome-Nexus | 000 | 000 | 005 | 010 |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| Genome-Nexus | 000 | 000 | 005 | 010 |'
+- en: '| Person-Controller | 058 | 221 | 274 | 943 |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| 人员控制器 | 058 | 221 | 274 | 943 |'
+- en: '| User-Management | 010 | 010 | 008 | 010 |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| 用户管理 | 010 | 010 | 008 | 010 |'
+- en: '| Market-Service | 010 | 010 | 010 | 010 |'
+  id: totrans-143
+  prefs: []
+  type: TYPE_TB
+  zh: '| 市场服务 | 010 | 010 | 010 | 010 |'
+- en: '| Project-Tracking | 010 | 010 | 010 | 010 |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| 项目跟踪 | 010 | 010 | 010 | 010 |'
+- en: '| Total | 110 | 319 | 327 | 1125 |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总计 | 110 | 319 | 327 | 1125 |'
+- en: 'IV-C RQ2: Efficiency'
+  id: totrans-146
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-C RQ2：效率
+- en: To address RQ2, we compared arat-rl to Morest, EvoMaster, and RESTler in terms
+    of the number of (1) valid and fault-inducing requests generated (as indicated
+    by HTTP status codes 2xx and 500) and (2) operations covered within a given time
+    budget. Although efficiency is not only dependent on these metrics, due to factors
+    such as API response time, we feel that they still represent meaningful proxies
+    because they indicate the extent to which the tools are exploring the API and
+    successfully identifying faults.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了回答RQ2，我们将arat-rl与Morest、EvoMaster和RESTler进行了比较，比较内容包括（1）生成的有效和引发故障的请求数（通过HTTP状态码2xx和500表示）和（2）在给定时间预算内覆盖的操作数。尽管效率不仅仅依赖于这些指标，因为还受到API响应时间等因素的影响，但我们认为这些指标仍然具有代表性，因为它们反映了工具在探索API和成功识别故障方面的程度。
+- en: 'Table [I](https://arxiv.org/html/2411.07098v1#S4.T1 "TABLE I ‣ RESTful Services
+    Selection ‣ IV-A Experimental Setup ‣ IV Evaluation ‣ Adaptive REST API Testing
+    with Reinforcement Learning") shows these metrics for ten different services:
+    Features Service, Language Tool, NCS, REST Countries, SCS, Genome Nexus, Person
+    Controller, User Management, Market Service, and Project Tracking. For each service,
+    the table lists the number of operations covered and the number of requests made
+    under the categories 2xx&500 (sum of 2xx code and 500 status code), 2xx, and 500,
+    for each of the four tools. In the final row, the table presents the average number
+    of operations covered and requests made by each tool across all the tested services.'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[I](https://arxiv.org/html/2411.07098v1#S4.T1 "TABLE I ‣ RESTful Services Selection
+    ‣ IV-A Experimental Setup ‣ IV Evaluation ‣ Adaptive REST API Testing with Reinforcement
+    Learning")展示了十个不同服务的这些指标：功能服务、语言工具、NCS、REST国家、SCS、基因组联接、人员控制器、用户管理、市场服务和项目跟踪。对于每个服务，表格列出了在2xx&500（2xx状态码和500状态码的总和）、2xx和500类别下，每个工具覆盖的操作数和生成的请求数。在最后一行，表格展示了每个工具在所有测试服务中覆盖的操作数和生成的请求数的平均值。
+- en: In a given testing time budget of one hour, arat-rl generated more valid and
+    fault-inducing requests, resulting in more exploration of the testing search space.
+    Specifically, arat-rl generated 60,132 valid and fault-inducing requests on average,
+    which is 52.01% more than Morest (39,595 requests), 40.79% more than EvoMaster
+    (42,710 requests), and 1222% more than RESTler (4,550 requests).
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在给定的一小时测试时间预算内，arat-rl生成了更多有效且引发故障的请求，从而更充分地探索了测试搜索空间。具体而言，arat-rl平均生成了60,132个有效且引发故障的请求，比Morest（39,595个请求）多52.01%，比EvoMaster（42,710个请求）多40.79%，比RESTler（4,550个请求）多了1222%。
+- en: This difference in the number of requests can be attributed to arat-rl’s approach
+    of processing only a sample of key-value pairs from the response, rather than
+    the entire response. By focusing on sampling key-value pairs, arat-rl efficiently
+    identifies potential areas of improvement, contributing to a more effective REST
+    API testing process.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请求数量的差异可以归因于arat-rl通过只处理响应中的一部分键值对，而不是整个响应的方式。通过聚焦于键值对的抽样，arat-rl高效地识别潜在的改进领域，从而促进了更有效的REST
+    API测试过程。
+- en: Moreover, arat-rl covered more operations on average (18 operations) compared
+    to Morest (15.6 operations), EvoMaster (14.5 operations), and RESTler (4.7 operations).
+    This indicates that arat-rl efficiently generates more requests in a given time
+    budget, which leads to covering more operations within the API, contributing to
+    a more comprehensive testing process.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，arat-rl在平均操作数上覆盖了更多操作（18个操作），相比于Morest（15.6个操作）、EvoMaster（14.5个操作）和RESTler（4.7个操作）。这表明arat-rl在给定的时间预算内高效生成了更多请求，从而覆盖了更多的API操作，促进了更全面的测试过程。
+- en: <svg class="ltx_picture" height="73.84" id="S4.SS3.p6.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,73.84) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="46.28" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">In a one-hour testing time
+    budget, arat-rl outperforms Morest, EvoMaster, and RESTler by generating 52.01%,
+    40.79%, and 1222% more valid and fault-inducing requests respectively, and covering
+    15.38%, 24.14%, and 282.98% more operations.</foreignobject></g></g></svg>
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="73.84" id="S4.SS3.p6.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,73.84) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="46.28" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">In a one-hour testing time
+    budget, arat-rl outperforms Morest, EvoMaster, and RESTler by generating 52.01%,
+    40.79%, and 1222% more valid and fault-inducing requests respectively, and covering
+    15.38%, 24.14%, and 282.98% more operations.</foreignobject></g></g></svg>
+- en: 'IV-D RQ3: Fault-Detection Capability'
+  id: totrans-153
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-D RQ3：故障检测能力
+- en: 'Table [II](https://arxiv.org/html/2411.07098v1#S4.T2 "TABLE II ‣ IV-B RQ1:
+    Effectiveness ‣ IV Evaluation ‣ Adaptive REST API Testing with Reinforcement Learning")
+    shows the number of faults found by each tool in the selected RESTful services.
+    As shown in Table [II](https://arxiv.org/html/2411.07098v1#S4.T2 "TABLE II ‣ IV-B
+    RQ1: Effectiveness ‣ IV Evaluation ‣ Adaptive REST API Testing with Reinforcement
+    Learning"), arat-rl has the highest fault detection capability, with a total of
+    112.5 faults found across the selected RESTful services. In comparison, Morest
+    and EvoMaster found 32.7 and 31.9 faults, respectively, while RESTler detected
+    the lowest number of faults, with a total of 11.0\. arat-rl uncovered 9.2x, 2.5x,
+    and 2.4x more bugs than RESTler, EvoMaster, and Morest, respectively.'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表[II](https://arxiv.org/html/2411.07098v1#S4.T2 "TABLE II ‣ IV-B RQ1: Effectiveness
+    ‣ IV Evaluation ‣ Adaptive REST API Testing with Reinforcement Learning")展示了每个工具在选定的RESTful服务中发现的故障数量。如表[II](https://arxiv.org/html/2411.07098v1#S4.T2
+    "TABLE II ‣ IV-B RQ1: Effectiveness ‣ IV Evaluation ‣ Adaptive REST API Testing
+    with Reinforcement Learning")所示，arat-rl具有最高的故障检测能力，在选定的RESTful服务中共发现了112.5个故障。相比之下，Morest和EvoMaster分别发现了32.7和31.9个故障，而RESTler检测到的故障最少，仅为11.0个。arat-rl发现的故障比RESTler多了9.2倍，比EvoMaster多了2.5倍，比Morest多了2.4倍。'
+- en: Comparing this data against the data on 500 response codes from Table [I](https://arxiv.org/html/2411.07098v1#S4.T1
+    "TABLE I ‣ RESTful Services Selection ‣ IV-A Experimental Setup ‣ IV Evaluation
+    ‣ Adaptive REST API Testing with Reinforcement Learning"), we can see that, although
+    arat-rl generated 20.59% fewer 500 responses, it found 250% more faults than Morest.
+    Compared to EvoMaster, arat-rl generated 7.06% more 500 responses, but also detected
+    240% more faults. This indicates that arat-rl is more efficient at discovering
+    faults via the exploration of diverse API states, whereas those tools tend to
+    trigger the same failures more frequently.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将这些数据与表[I](https://arxiv.org/html/2411.07098v1#S4.T1 "TABLE I ‣ RESTful Services
+    Selection ‣ IV-A Experimental Setup ‣ IV Evaluation ‣ Adaptive REST API Testing
+    with Reinforcement Learning")中的500响应代码数据进行比较，我们可以看到，尽管arat-rl生成了20.59%的500响应更少，但它发现的故障数量比Morest多了250%。与EvoMaster相比，arat-rl生成的500响应多了7.06%，但故障检测量也多了240%。这表明，arat-rl在通过探索多样的API状态来发现故障方面更为高效，而这些工具则倾向于更频繁地触发相同的故障。
+- en: arat-rl’s superior fault detection capability is particularly evident in the
+    Language-Tool and Person-Controller services, where it detected 12.2 and 94.3
+    faults, respectively. These services have larger sets of parameters. For example,
+    Language-Tool’s main operation /check, which checks text grammar, has 11 parameters.
+    Similarly, Person-Controller’s main operation /api/person, which creates/modifies
+    person instances, has 8 parameters. In contrast, the other services’ operations
+    have three or fewer parameters.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: arat-rl在语言工具和人员控制服务中展现出了优越的故障检测能力，分别检测到了12.2个和94.3个故障。这些服务有更多的参数集。例如，Language-Tool的主要操作/check，用于检查文本语法，拥有11个参数。类似地，Person-Controller的主要操作/api/person，用于创建/修改人员实例，拥有8个参数。相比之下，其他服务的操作参数不超过三个。
+- en: arat-rl intelligently tries various parameter combinations with a reward system
+    in Q-learning because we give negative rewards for the parameters in the successfully
+    requested ones. This ability to explore various parameter combinations is a significant
+    factor in revealing more bugs, especially in services with a larger number of
+    parameters. These results indicate that arat-rl’s reinforcement-learning-based
+    approach can effectively discover faults in RESTful services, providing valuable
+    feedback to developers for improving software quality.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: arat-rl通过Q学习中的奖励系统智能地尝试各种参数组合，因为我们对成功请求中的参数给予负奖励。这种探索多种参数组合的能力是发现更多BUG的一个重要因素，尤其是在参数较多的服务中。这些结果表明，arat-rl基于强化学习的方法能够有效地发现RESTful服务中的故障，为开发人员提供有价值的反馈，从而提高软件质量。
+- en: <svg class="ltx_picture" height="89.67" id="S4.SS4.p5.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,89.67) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="62.11" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">arat-rl exhibits a superior
+    fault-detection capability, uncovering 9.2x, 2.5x, and 2.4x more bugs than RESTler,
+    EvoMaster, and Morest, respectively. This is mainly attributed to its intelligent
+    RL-based exploration of various parameter combinations in services with a larger
+    number of parameters.</foreignobject></g></g></svg>
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="89.67" id="S4.SS4.p5.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,89.67) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="62.11" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">arat-rl exhibits a superior
+    fault-detection capability, uncovering 9.2x, 2.5x, and 2.4x more bugs than RESTler,
+    EvoMaster, and Morest, respectively. This is mainly attributed to its intelligent
+    RL-based exploration of various parameter combinations in services with a larger
+    number of parameters.</foreignobject></g></g></svg>
+- en: 'TABLE III: Results of the ablation Study.'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表III：消融研究结果
+- en: Branch Line Method Faults Detected ARAT-RL 36.25 58.47 59.42 112.10 ARAT-RL
+    (no prioritization) 28.70 (+26.3%) 53.27 (+9.8%) 55.51 0(+7%) 100.10 (+12%) ARAT-RL
+    (no feedback) 32.69 (+10.9%) 54.80 (+6.9%) 56.09 (+5.9%) 110.80 (+1.2%) ARAT-RL
+    (no sampling) 34.10 0(+6.3%) 56.39 (+3.7%) 57.20 (+3.9%) 112.50 (-0.4%)
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分支线方法 检测到的故障 ARAT-RL 36.25 58.47 59.42 112.10 ARAT-RL（无优先级）28.70（+26.3%）53.27（+9.8%）55.51
+    0（+7%）100.10（+12%）ARAT-RL（无反馈）32.69（+10.9%）54.80（+6.9%）56.09（+5.9%）110.80（+1.2%）ARAT-RL（无采样）34.10
+    0（+6.3%）56.39（+3.7%）57.20（+3.9%）112.50（-0.4%）
+- en: 'IV-E RQ4: Ablation Study'
+  id: totrans-161
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'IV-E RQ4: 消融研究'
+- en: 'To address RQ4, we conducted an ablation study to assess the impact of the
+    main novel components of arat-rl on its performance. We compared the performance
+    of arat-rl to three variants: (1) arat-rl without prioritization, (2) arat-rl without
+    dynamic key-value construction from feedback, and (3) arat-rl without sampling.
+    The results are presented in Table [III](https://arxiv.org/html/2411.07098v1#S4.T3
+    "TABLE III ‣ IV-D RQ3: Fault-Detection Capability ‣ IV Evaluation ‣ Adaptive REST
+    API Testing with Reinforcement Learning").'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了回答RQ4，我们进行了一个消融研究，评估arat-rl中主要新颖组件对其性能的影响。我们将arat-rl的性能与三个变体进行了比较：（1）没有优先级机制的arat-rl，（2）没有基于反馈的动态键值构建的arat-rl，以及（3）没有采样的arat-rl。结果见表[III](https://arxiv.org/html/2411.07098v1#S4.T3
+    "TABLE III ‣ IV-D RQ3: Fault-Detection Capability ‣ IV Evaluation ‣ Adaptive REST
+    API Testing with Reinforcement Learning")。'
+- en: 'As illustrated in Table [III](https://arxiv.org/html/2411.07098v1#S4.T3 "TABLE
+    III ‣ IV-D RQ3: Fault-Detection Capability ‣ IV Evaluation ‣ Adaptive REST API
+    Testing with Reinforcement Learning"), the removal of any component results in
+    reduction branch, line, and method coverage, as well as the number of found detected.
+    Eliminating the prioritization component leads to the most substantial decline
+    in performance, with branch, line, and method coverage decreasing to 28.70%, 53.27%,
+    and 55.51%, respectively, and the number of found faults dropping to 100\. This
+    evidence highlights the critical role of the prioritization mechanism in arat-rl’s
+    effectiveness.'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如表[III](https://arxiv.org/html/2411.07098v1#S4.T3 "TABLE III ‣ IV-D RQ3: Fault-Detection
+    Capability ‣ IV Evaluation ‣ Adaptive REST API Testing with Reinforcement Learning")所示，去除任何组件都会导致分支、行和方法覆盖率的降低，以及发现故障数量的减少。去除优先级机制会导致性能显著下降，分支、行和方法覆盖率分别降至28.70%、53.27%和55.51%，而发现的故障数量降至100个。这一证据突显了优先级机制在arat-rl有效性中的关键作用。'
+- en: The absence of feedback and sampling components also negatively affects performance.
+    Without feedback, arat-rl’s branch, line, and method coverage decreases to 32.69%,
+    54.80%, and 56.09%, respectively, and the number of found faults is reduced to
+    110.80\. Likewise, without sampling, branch, line, and method coverage drops to
+    34.10%, 56.39%, and 57.20%, respectively, while the number of found faults experiences
+    a slight increase to 112.50, which may be attributed to random variations.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缺少反馈和采样组件同样会对性能产生负面影响。没有反馈时，arat-rl的分支、行和方法覆盖率分别降至32.69%、54.80%和56.09%，而发现的故障数量降至110.80个。同样，没有采样时，分支、行和方法覆盖率分别降至34.10%、56.39%和57.20%，而发现的故障数量略微增加至112.50个，这可能归因于随机变动。
+- en: These findings emphasize that each component of arat-rl is essential for its
+    overall effectiveness. The prioritization mechanism, feedback loop, and sampling
+    strategy work together to optimize the tool’s performance in terms of code coverage
+    and fault detection capabilities.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些发现强调了arat-rl的每个组件对其整体有效性的重要性。优先级机制、反馈环路和采样策略共同作用，优化了工具在代码覆盖率和故障检测能力方面的表现。
+- en: <svg class="ltx_picture" height="73.07" id="S4.SS5.p5.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,73.07) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="45.51" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Each component of arat-rl–prioritization,
+    feedback, and sampling—contributes to arat-rl’s overall effectiveness. The prioritization
+    mechanism, in particular, plays a significant role in enhancing arat-rl’s performance
+    in code coverage achieved and faults detected.</foreignobject></g></g></svg>
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="73.07" id="S4.SS5.p5.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,73.07) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="45.51" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Each component of arat-rl–prioritization,
+    feedback, and sampling—contributes to arat-rl’s overall effectiveness. The prioritization
+    mechanism, in particular, plays a significant role in enhancing arat-rl’s performance
+    in code coverage achieved and faults detected.</foreignobject></g></g></svg>
+- en: IV-F Threats to Validity
+  id: totrans-167
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-F 有效性威胁
+- en: In this section, we address potential threats to our study’s validity and the
+    steps taken to mitigate them. The internal validity is influenced by tool implementations
+    and configurations, as well as the selected RESTful services. To minimize these
+    threats, we used the latest tool versions, used default options, and chose a diverse
+    set of 10 services for a fair comparison against state-of-the-art tools. Some
+    testing tools might have randomness, but we addressed this issue by running each
+    tool 10 times and computing the average results.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们讨论了可能影响研究有效性的威胁以及为减轻这些威胁所采取的措施。内部有效性受到工具实现和配置的影响，以及所选的RESTful服务。为了尽量减少这些威胁，我们使用了最新的工具版本，采用了默认选项，并选择了10个多样化的服务，以便与最先进的工具进行公平比较。某些测试工具可能存在随机性，但我们通过每个工具运行10次并计算平均结果来解决这一问题。
+- en: The external validity is affected by the limited number of RESTful services
+    tested, impacting the generalizability of our findings. We tried to ensure a fair
+    evaluation by selecting a diverse set of services, but future work should test
+    a larger and more diverse set. Construct validity concerns the metrics and tool
+    comparisons used. Metrics such as branch, line, and method coverage, number of
+    requests, and 500 status codes as faults, although commonly, may not capture the
+    test tools’ full quality. Additional metrics, such as mutation scores, could provide
+    a better understanding. Including more tools or approaches in future studies would
+    allow a more comprehensive evaluation of our technique’s performance.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 外部效度受到测试的 RESTful 服务数量有限的影响，从而影响我们研究结果的普适性。我们尽力通过选择多样化的服务集来确保公正的评估，但未来的工作应测试更大规模和更具多样性的服务集。构造效度关注所使用的度量标准和工具比较。常见的度量标准，如分支覆盖、行覆盖、方法覆盖、请求次数和将
+    500 状态码视为故障的数量，虽然常用，但可能无法全面反映测试工具的质量。额外的度量标准，如突变得分，可能能提供更好的理解。未来研究中加入更多工具或方法，将有助于对我们技术性能进行更全面的评估。
+- en: In addition, we measured efficiency by considering the number of meaningful
+    requests generated by the tools, including valid and fault-inducing ones, as well
+    as the number of operations each tool covered within a given time budget. While
+    these metrics give us some perspective on a tool’s performance, they do not consider
+    all possible factors. Other aspects, such as the response times from the services,
+    may also significantly impact overall efficiency.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们通过考虑工具生成的有意义请求的数量（包括有效请求和故障诱发请求），以及每个工具在给定时间预算内覆盖的操作数量来衡量效率。尽管这些度量标准为我们提供了工具性能的一些视角，但它们并未考虑所有可能的因素。其他方面，如服务的响应时间，也可能显著影响整体效率。
+- en: V Related Work
+  id: totrans-171
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: V 相关工作
+- en: In this section, we provide an overview of related work in automated REST API
+    testing, requirements based test case generation, and reinforcement learning based
+    test case generation.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们概述了自动化 REST API 测试、基于需求的测试用例生成和基于强化学习的测试用例生成的相关工作。
+- en: 'Automated REST API testing: EvoMaster [arcuri2019restful] is a white-box technique
+    using evolutionary algorithms for test case generation, refining tests based on
+    fitness and checking for 500 status codes. In contrast, black-box techniques include
+    various tools with different strategies. RESTler [atlidakis2019restler] generates
+    stateful test cases by inferring producer-consumer dependencies and targets 500
+    failures. RestTestGen [Corradini2022] exploits data dependencies and uses oracles
+    for status codes and schema compliance. QuickREST [karlsson2020quickrest] is a
+    property-based technique with stateful testing, checking non-500 status codes
+    and schema compliance. RESTest [martin2020restest] accounts for inter-parameter
+    dependencies, producing nominal and faulty tests with five types of oracles. Morest [liu2022morest]
+    uses a dynamically updating RESTful-service Property Graph for meaningful test
+    case generation. RestCT [wu2022combinatorial] employs Combinatorial Testing for
+    RESTful API testing, generating test cases based on Swagger specifications.'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动化 REST API 测试：EvoMaster [arcuri2019restful] 是一种白盒技术，使用进化算法生成测试用例，通过适应度进行测试优化并检查
+    500 状态码。相比之下，黑盒技术包括各种具有不同策略的工具。RESTler [atlidakis2019restler] 通过推断生产者-消费者依赖关系生成有状态测试用例，并针对
+    500 错误进行测试。RestTestGen [Corradini2022] 利用数据依赖关系，并使用预言机检查状态码和架构符合性。QuickREST [karlsson2020quickrest]
+    是一种基于属性的技术，进行有状态测试，检查非 500 状态码和架构符合性。RESTest [martin2020restest] 考虑了参数之间的相互依赖，生成具有五种类型预言机的正常和故障测试。Morest [liu2022morest]
+    使用动态更新的 RESTful 服务属性图生成有意义的测试用例。RestCT [wu2022combinatorial] 使用组合测试法进行 RESTful
+    API 测试，根据 Swagger 规范生成测试用例。
+- en: Open-source black-box tools like Schemathesis [Zac2021schemathesis], Dredd [dredd],
+    and Tcases [tcases] offer various testing capabilities. Schemathesis generates
+    requests from input specifications, providing five types of oracles to check response
+    compliance. Dredd tests REST APIs by comparing responses with expected results,
+    validating status codes, headers, and body content. Tcases is a model-based tool
+    that constructs an input space model from OpenAPI specifications, generating test
+    cases covering valid input dimensions and checking response status codes for validation.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开源黑盒工具，如 Schemathesis [Zac2021schemathesis]、Dredd [dredd] 和 Tcases [tcases]
+    提供了多种测试功能。Schemathesis 根据输入规范生成请求，提供五种类型的预言器来检查响应的符合性。Dredd 通过将响应与预期结果进行比较，测试
+    REST API，验证状态码、头信息和正文内容。Tcases 是一个基于模型的工具，从 OpenAPI 规范构建输入空间模型，生成涵盖有效输入维度的测试用例，并检查响应状态码以进行验证。
+- en: 'Requirements based test case generation: In requirements based testing, notable
+    works include ucsCNL [barros2011ucscnl], which uses controlled natural language
+    for use case specifications, and UML Collaboration Diagrams [badri2004use]. Requirements
+    by Contracts [nebut2003requirements] proposed a custom language for functional
+    requirements, while SCENT-Method [ryser1999scenario] employed a scenario-based
+    approach with statecharts. SDL-based Test Generation [tahat2001requirement] transformed
+    SDL requirements into EFSMs, and RTCM [yue2015rtcm] introduced a natural language-based
+    framework with templates, rules, and keywords. These approaches typically deal
+    with less formal requirements with the goal of generating test cases as accurately
+    as possible according to the intended requirements. In contrast, arat-rl focuses
+    on more formally specified REST APIs, which provide a structured basis for testing
+    and effectively explore and adapt during the testing process to find faults.'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于需求的测试用例生成：在基于需求的测试中，值得注意的工作包括 ucsCNL [barros2011ucscnl]，该方法使用受控自然语言进行用例规范编写，以及
+    UML 协作图 [badri2004use]。需求契约 [nebut2003requirements] 提出了一个用于功能需求的定制语言，而 SCENT-Method
+    [ryser1999scenario] 采用了基于情境的方式，结合状态图进行测试。基于 SDL 的测试生成 [tahat2001requirement] 将
+    SDL 需求转化为 EFSMs，RTCM [yue2015rtcm] 引入了一个基于自然语言的框架，利用模板、规则和关键词。通常，这些方法处理的是较少正式化的需求，目的是尽可能准确地根据预期需求生成测试用例。相比之下，arat-rl
+    专注于更正式规范的 REST API，这为测试提供了结构化的基础，并在测试过程中有效地探索和适应，以发现缺陷。
+- en: 'Reinforcement learning based test case generation: Several recent studies have
+    investigated the use of reinforcement learning in software testing, focusing primarily
+    on web applications and mobile apps. These challenges often arise from hidden
+    states, whereas in our approach, we have access to all states through the API
+    specification but face more constraints on operations, parameters, and mapping
+    values. Zheng et al.[zheng2021webrl] proposed an automatic web client testing
+    approach utilizing curiosity-driven reinforcement learning. Pan et al.[pan2020androidrl]
+    introduced a similar curiosity-driven approach for testing Android applications.
+    Koroglu et al.[koroglu2018qbe] presented QBE, a Q-learning-based exploration method
+    for Android apps. Mariani et al.[mariani2021autoblacktest] proposed AutoBlackTest,
+    an automatic black-box testing approach for interactive applications. Adamo et
+    al.[adamo2018androidrl] developed a reinforcement learning-based technique specifically
+    for Android GUI testing. Vuong and Takada[vuong2018androidrl] also applied reinforcement
+    learning to automated testing of Android apps. Köroğlu and Sen [koroglu2020androidrl]
+    presented a method for generating functional tests from UI test scenarios using
+    reinforcement learning for Android applications.'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于强化学习的测试用例生成：近年来，多个研究探讨了强化学习在软件测试中的应用，主要聚焦于 Web 应用和移动应用。这些挑战通常源于隐藏状态，而在我们的方法中，通过
+    API 规范可以访问所有状态，但面临着操作、参数和映射值的更多约束。Zheng 等人 [zheng2021webrl] 提出了一个利用好奇心驱动的强化学习进行自动化
+    Web 客户端测试的方法。Pan 等人 [pan2020androidrl] 为 Android 应用测试引入了类似的好奇心驱动方法。Koroglu 等人
+    [koroglu2018qbe] 提出了 QBE，一种基于 Q-learning 的 Android 应用探索方法。Mariani 等人 [mariani2021autoblacktest]
+    提出了 AutoBlackTest，一种用于交互式应用的自动黑盒测试方法。Adamo 等人 [adamo2018androidrl] 针对 Android
+    图形用户界面（GUI）测试开发了一种基于强化学习的技术。Vuong 和 Takada [vuong2018androidrl] 也将强化学习应用于 Android
+    应用的自动化测试。Köroğlu 和 Sen [koroglu2020androidrl] 提出了一个通过强化学习从 UI 测试场景生成功能测试的方法，专门用于
+    Android 应用。
+- en: VI Conclusion and Future Work
+  id: totrans-177
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VI 结论与未来工作
+- en: In this paper, we introduced arat-rl, a reinforcement learning-based approach
+    for the automated testing of REST APIs. We assessed its effectiveness, efficiency,
+    and fault-detection capability in comparison to state-of-the-art tools such as
+    Morest, EvoMaster, and RESTler. Our experiments demonstrated arat-rl’s superior
+    performance in terms of branch, line, and method coverage achieved, requests generated,
+    and faults detected. We also conducted an ablation study, which highlighted the
+    importance of arat-rl’s novel features—prioritization, dynamic key-value construction
+    based on response data, and sampling from response data to speed up key-value
+    construction—in enhancing arat-rl’s performance.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文介绍了arat-rl，一种基于强化学习的方法，用于自动化测试REST API。我们评估了其与最先进工具（如Morest、EvoMaster和RESTler）的效果、效率和故障检测能力。我们的实验结果表明，arat-rl在分支、行和方法覆盖率、生成的请求数量以及检测到的故障方面表现优异。我们还进行了消融研究，突出展示了arat-rl的新颖特性——优先级排序、基于响应数据的动态键值构建以及从响应数据中抽样以加速键值构建——在提升arat-rl性能方面的重要作用。
+- en: In future work, we will improve arat-rl’s performance by addressing its limitations
+    in recognizing semantic constraints and generating inputs with specific formatting
+    requirements, such as email, address, or phone number, as observed in our benchmark.
+    We also plan to investigate ways to emulate complex dependency relationships such
+    as those we observed for Morest. We will also study the impact of RL prioritization
+    over time and investigate the effect of using different pattern-matching approaches.
+    Additionally, we plan to extend our approach to support other types of web APIs,
+    such as GraphQL or gRPC, by adapting our algorithms and testing framework to accommodate
+    their specific requirements. Lastly, incorporating additional metrics and evaluation
+    techniques, such as mutation testing, will enable a more comprehensive assessment
+    of test case quality.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在未来的工作中，我们将通过解决arat-rl在识别语义约束和生成具有特定格式要求的输入（例如电子邮件、地址或电话号码）方面的局限性来提高其性能，正如我们在基准测试中所观察到的那样。我们还计划研究如何模拟复杂的依赖关系，例如我们在Morest中观察到的那些关系。我们还将研究强化学习（RL）优先级随时间变化的影响，并调查使用不同模式匹配方法的效果。此外，我们计划通过调整我们的算法和测试框架，以适应GraphQL或gRPC等其他类型的Web
+    API，来扩展我们的方法以支持这些API。最后，结合额外的度量标准和评估技术（例如突变测试）将有助于更全面地评估测试用例的质量。
+- en: Data availability
+  id: totrans-180
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 数据可用性
+- en: The artifact associated with this submission includes code, datasets, and other
+    relevant material [artifact]. It can be used for reproducing the experiments presented
+    in the paper and facilitating further research in this area.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与本次提交相关的文档包括代码、数据集以及其他相关材料[artifact]。它可以用于重现本文中的实验，并促进该领域的进一步研究。

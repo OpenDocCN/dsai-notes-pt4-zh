@@ -1,0 +1,3236 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 13:03:04'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:03:04
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Stance Detection with Collaborative Role-Infused LLM-Based Agents
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 立场检测与协作性角色注入型LLM代理
+- en: 来源：[https://arxiv.org/html/2310.10467/](https://arxiv.org/html/2310.10467/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2310.10467/](https://arxiv.org/html/2310.10467/)
+- en: Xiaochong Lan, Chen Gao^∗, Depeng Jin, Yong Li^∗
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Xiaochong Lan, Chen Gao^∗, Depeng Jin, Yong Li^∗
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: '^†^†footnotetext: *Corresponding Author'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^†^†脚注：*通讯作者
+- en: Stance detection automatically detects an author’s position on a particular
+    topic within a text, vital for content analysis in web and social media research.
+    With the development of LLMs, researchers have begun to explore their potential
+    for stance detection. Despite their promising capabilities, LLMs encounter challenges
+    when directly applied to stance detection. First, stance detection demands multi-aspect
+    knowledge to fully understand elements in the text. Second, stance detection requires
+    advanced reasoning to infer viewpoints, as stances are often implicitly embedded
+    rather than explicitly stated in the text. To address these challenges, we design
+    a three-stage framework COLA (short for Collaborative rOle-infused LLM-based Agents)
+    in which LLMs are designated distinct roles, creating a collaborative system.
+    The framework consists of three stages. First, in the multidimensional text analysis
+    stage, we configure the LLMs to act as a linguistic expert, a domain specialist,
+    and a social media veteran to get a multifaceted analysis of texts, thus overcoming
+    the first challenge. Next, in the reasoning-enhanced debating stage, for each
+    potential stance, we designate a specific LLM-based agent to advocate for it,
+    guiding the LLM to detect logical connections between text features and stance,
+    addressing the second challenge. Finally, in the stance conclusion stage, a final
+    decision maker agent consolidates prior insights to determine the stance. COLA
+    avoids the need for extra annotated data and model training, making it highly
+    user-friendly. What’s more, COLA achieves state-of-the-art performance across
+    multiple widely-used datasets. Ablation studies validate the effectiveness of
+    each module in our approach. Further experiments have demonstrated the explainability
+    and the versatility of our approach. In summary, our approach excels in usability,
+    accuracy, effectiveness, explainability and versatility, showcasing its significant
+    value.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 立场检测是自动识别作者在文本中对某一特定话题的立场，对于网页和社交媒体研究中的内容分析至关重要。随着大型语言模型（LLMs）的发展，研究人员开始探索它们在立场检测中的潜力。尽管LLMs展现了良好的能力，但在直接应用于立场检测时仍面临挑战。首先，立场检测需要多方面的知识才能全面理解文本中的元素。其次，立场检测需要高级推理能力来推断观点，因为立场往往是隐性嵌入的，而不是明确陈述的。为了应对这些挑战，我们设计了一个三阶段框架COLA（即协作性角色注入型LLM代理），在该框架中，LLMs被赋予不同的角色，形成一个协作系统。该框架包括三个阶段。首先，在多维文本分析阶段，我们将LLMs配置为语言学专家、领域专家和社交媒体资深人士，从多个角度分析文本，从而克服第一个挑战。接着，在增强推理的辩论阶段，对于每个潜在的立场，我们指定一个特定的LLM代理来为其辩护，引导LLM检测文本特征与立场之间的逻辑联系，解决第二个挑战。最后，在立场结论阶段，一个最终决策代理整合之前的洞见来确定立场。COLA避免了额外注释数据和模型训练的需求，使其高度用户友好。而且，COLA在多个广泛使用的数据集上实现了最先进的表现。消融研究验证了我们方法中每个模块的有效性。进一步的实验展示了我们方法的可解释性和多功能性。总之，我们的方法在可用性、准确性、有效性、可解释性和多功能性方面表现出色，展示了其重要价值。
+- en: Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 引言
+- en: Stance detection is commonly defined as automatically detecting the stance (as
+    Favor, Against, or Neutral) of the author towards a target (Mohammad et al. [2016](https://arxiv.org/html/2310.10467v2#bib.bib32)).
+    Over the years, numerous methodologies have been proposed for stance detection (Küçük
+    and Can [2020](https://arxiv.org/html/2310.10467v2#bib.bib22); AlDayel and Magdy
+    [2021](https://arxiv.org/html/2310.10467v2#bib.bib1)). However, a persistent challenge
+    lies in the need to train models specifically for the targets of interest. Even
+    with advancements in cross-target stance detection (Liang et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib27))
+    and zero-shot stance detection (Allaway and McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2);
+    Liang et al. [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26)), training
+    on annotated corpora is always required. However, acquiring large-scale labeled
+    datasets is not trivial, which curtails the model’s usability.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 立场检测通常被定义为自动检测作者对目标的立场（支持、反对或中立）（Mohammad等人，[2016](https://arxiv.org/html/2310.10467v2#bib.bib32)）。多年来，已提出了许多立场检测方法（Küçük和Can，[2020](https://arxiv.org/html/2310.10467v2#bib.bib22);
+    AlDayel和Magdy，[2021](https://arxiv.org/html/2310.10467v2#bib.bib1)）。然而，一个持久的挑战在于需要专门针对感兴趣的目标训练模型。即使在跨目标立场检测（Liang等人，[2021](https://arxiv.org/html/2310.10467v2#bib.bib27)）和零-shot立场检测（Allaway和McKeown，[2020](https://arxiv.org/html/2310.10467v2#bib.bib2);
+    Liang等人，[2022a](https://arxiv.org/html/2310.10467v2#bib.bib26)）取得进展，仍然需要在标注的语料库上训练。然而，获取大规模标记数据集并非易事，这限制了模型的可用性。
+- en: Recently, large language models (LLMs) have demonstrated remarkable capabilities
+    across various applications (Brown et al. [2020](https://arxiv.org/html/2310.10467v2#bib.bib7);
+    Park et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib35)). The inherent
+    semantic understanding of these large models presents an exciting opportunity
+    for stance detection. Most LLMs can be easily interacted with by users through
+    zero-shot prompting, which significantly enhances their usability. Thus, with
+    their strength and usability, large language models offer new possibilities for
+    stance detection.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，大型语言模型（LLMs）在各种应用中展示了显著的能力（Brown等人，[2020](https://arxiv.org/html/2310.10467v2#bib.bib7);
+    Park等人，[2023](https://arxiv.org/html/2310.10467v2#bib.bib35)）。这些大模型固有的语义理解能力为立场检测提供了令人兴奋的机会。大多数LLMs可以通过零-shot提示与用户轻松交互，显著增强了它们的可用性。因此，凭借它们的力量和可用性，大型语言模型为立场检测提供了新的可能性。
+- en: Researchers have discerned the transformative potential LLMs bring to stance
+    detection. Some works have proposed simple methods using LLMs for stance detection (Zhang,
+    Ding, and Jing [2022](https://arxiv.org/html/2310.10467v2#bib.bib51); Zhang et al.
+    [2023](https://arxiv.org/html/2310.10467v2#bib.bib52)). Yet, while these works
+    report satisfactory results on specific subsets of certain datasets, our rigorous
+    replications indicate that these methods frequently fail to match the performance
+    of state-of-the-art non-LLM baselines. This can be attributed to two inherent
+    challenges of stance detection, which can be listed as follows.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 研究人员已经洞察到LLMs为立场检测带来的变革潜力。一些作品提出了使用LLMs进行立场检测的简单方法（Zhang, Ding和Jing，[2022](https://arxiv.org/html/2310.10467v2#bib.bib51);
+    Zhang等人，[2023](https://arxiv.org/html/2310.10467v2#bib.bib52)）。然而，虽然这些作品在特定数据集的特定子集上报告了令人满意的结果，我们的严格复制研究表明，这些方法往往无法与最先进的非LLM基线性能匹配。这可以归因于立场检测的两个固有挑战，列举如下。
+- en: •
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: First, stance detection demands multi-aspect knowledge. As shown in Figure [1](https://arxiv.org/html/2310.10467v2#Sx1.F1
+    "Figure 1 ‣ Introduction ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents"), sentences may contain elements like domain-specific terms, cultural
+    references, social media linguistic styles, and more. These are not immediately
+    comprehensible to large language models and require specialized parsing to be
+    truly understood.
+  id: totrans-15
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 首先，立场检测需要多方面的知识。如图 [1](https://arxiv.org/html/2310.10467v2#Sx1.F1 "Figure 1
+    ‣ Introduction ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents") 所示，句子可能包含领域特定术语、文化引用、社交媒体语言风格等元素。这些对于大型语言模型并非立即可理解，需要专门的解析才能真正理解。
+- en: •
+  id: totrans-16
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Second, stance detection necessitates advanced reasoning. Often, authors don’t
+    state their stances directly but inadvertently reveal them in various ways, such
+    as through their attitudes towards related topics or events, as shown in Figure [1](https://arxiv.org/html/2310.10467v2#Sx1.F1
+    "Figure 1 ‣ Introduction ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents"). Stance detection requires reasoning from various textual features to
+    arrive at the correct stance.
+  id: totrans-17
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 第二，立场检测需要高级推理。通常，作者不会直接表明他们的立场，而是通过他们对相关话题或事件的态度等方式无意中透露，如图[1](https://arxiv.org/html/2310.10467v2#Sx1.F1
+    "图1 ‣ 引言 ‣ 基于协作角色注入LLM驱动代理的立场检测")所示。立场检测需要从多种文本特征中进行推理，以得出正确的立场。
+- en: 'Figure 1: Illustration of the challenges of stance detection.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：立场检测挑战的示意图。
+- en: To address these challenges, we introduce our three-stage framework named COLA
+    (short for Collaborative rOle-infused LLM-based Agents). Specifically, we design
+    a stance detection system consisting of role-infused LLM-based agents, with each
+    role bearing distinct responsibilities and significance. To counter the first
+    challenge, we design a multidimensional text analysis stage. In this stage, LLMs
+    are designated with three roles, named as linguistic expert, domain specialist,
+    and social media veteran, to analyze text from various perspectives, covering
+    syntax, textual elements, and platform-specific expressions, ultimately revealing
+    stance indicators. Addressing the second challenge, we propose a reasoning-enhanced
+    debating stage. In this stage, advocates for each stance category draw evidence
+    from previous analyses, presenting arguments that compel LLMs to uncover the underlying
+    logic linking textual features and stances. Lastly, a stance conclusion stage
+    determines the text’s stance, drawing insights both from the original text and
+    the debates.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了应对这些挑战，我们提出了名为COLA（三阶段协作角色注入LLM驱动代理框架）的方法。具体而言，我们设计了一个立场检测系统，系统由角色注入的LLM驱动代理组成，每个角色承担不同的职责和意义。为应对第一个挑战，我们设计了一个多维文本分析阶段。在这个阶段，LLM被分配为三个角色，分别是语言专家、领域专家和社交媒体老兵，来从不同角度分析文本，涵盖语法、文本元素和平台特定表达，最终揭示立场指示器。针对第二个挑战，我们提出了一个增强推理的辩论阶段。在这一阶段，代表每个立场类别的支持者从先前的分析中提取证据，提出论点，迫使LLM揭示文本特征与立场之间的潜在逻辑联系。最后，立场结论阶段根据原始文本和辩论得出文本的立场。
+- en: Our approach does not necessitate annotated data nor additional model training,
+    hence ensuring high usability. Extensive experiments validate our method’s superior
+    performance over existing baselines, affirming its accuracy¹¹1In this work, unless
+    explicitly stated otherwise, we use accuracy to express the overall strong performance
+    of the model on classification tasks, rather than solely referring to the accuracy
+    metric.. Ablation studies demonstrate the effectiveness of each module. Case studies
+    and quantitative experiments show that our approach can generate reasonable explanations
+    for its output, demonstrating our approach’s explainability. The powerful performance
+    of our proposed framework in a series of text classification tasks underscores
+    its versatility. Our approach stands out for its usability, accuracy, effectiveness,
+    explainability, and versatility, all of which highlight its value.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的方法不需要注释数据或额外的模型训练，因此确保了高可用性。大量实验验证了我们方法在现有基准上的优越性能，确认了其准确性¹¹1在本研究中，除非特别声明，否则我们使用准确性来表示模型在分类任务中的整体强大表现，而不仅仅指代准确性指标。。消融研究展示了每个模块的有效性。案例研究和定量实验表明，我们的方法能够为其输出生成合理的解释，展示了我们方法的可解释性。我们提出的框架在一系列文本分类任务中的强大表现凸显了其多样性。我们的方法因其可用性、准确性、有效性、可解释性和多样性而脱颖而出，所有这些都突显了其价值。
+- en: 'Our main contributions are summarized as follows:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的主要贡献总结如下：
+- en: •
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: To the best of our knowledge, we are the first to employ multiple LLM agents
+    for stance detection.
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 据我们所知，我们是首个使用多个LLM代理进行立场检测的研究。
+- en: •
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We introduce an approach based on collaborative role-infused LLM-empowered agents,
+    which achieves a remarkable 19.2% absolute improvement over the best non-LLM zero-shot
+    stance detection baseline on the SEM16 dataset. Additionally, it offers high usability
+    and explainability.
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出了一种基于协作角色注入的LLM驱动代理的方法，在SEM16数据集上相对于最佳非LLM零-shot立场检测基准取得了显著的19.2%绝对提升。此外，该方法还具有高可用性和可解释性。
+- en: •
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Our proposed three-stage framework—analyst, debater, and summarizer—offers significant
+    potential for a range of text classification tasks, providing a powerful tool
+    for text analysis on web and social media.
+  id: totrans-27
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出的三阶段框架——分析师、辩论者和总结者——为多种文本分类任务提供了重要潜力，成为网络和社交媒体文本分析的强大工具。
+- en: The subsequent sections are organized as follows. In Section [Related Work](https://arxiv.org/html/2310.10467v2#Sx2
+    "Related Work ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents"),
+    we review related works. In the Section [Methods](https://arxiv.org/html/2310.10467v2#Sx3
+    "Methods ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents"),
+    we describe our three-stage framework in detail. Then, in Section [Experiments](https://arxiv.org/html/2310.10467v2#Sx4
+    "Experiments ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents")
+    and [Results and Discussions](https://arxiv.org/html/2310.10467v2#Sx5 "Results
+    and Discussions ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents"),
+    we present our experiments, providing robust empirical evidence that demonstrates
+    the superiority of our method from multiple perspectives. Lastly, in Section [Conclusion
+    and Future Work](https://arxiv.org/html/2310.10467v2#Sx6 "Conclusion and Future
+    Work ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents"), we
+    conclude our work and highlight potential areas for future improvement.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 后续章节的安排如下：在[相关工作](https://arxiv.org/html/2310.10467v2#Sx2 "Related Work ‣ Stance
+    Detection with Collaborative Role-Infused LLM-Based Agents")一节，我们回顾相关工作。在[方法](https://arxiv.org/html/2310.10467v2#Sx3
+    "Methods ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents")一节，我们详细描述了我们的三阶段框架。然后，在[实验](https://arxiv.org/html/2310.10467v2#Sx4
+    "Experiments ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents")和[结果与讨论](https://arxiv.org/html/2310.10467v2#Sx5
+    "Results and Discussions ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents")一节，我们展示了我们的实验，提供了充分的实证证据，证明了我们的方法在多个角度上的优越性。最后，在[结论与未来工作](https://arxiv.org/html/2310.10467v2#Sx6
+    "Conclusion and Future Work ‣ Stance Detection with Collaborative Role-Infused
+    LLM-Based Agents")一节，我们总结了我们的工作，并指出了未来改进的潜在方向。
+- en: Related Work
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 相关工作
+- en: 'This section is structured as follows: First, we provide a detailed overview
+    of advancements in stance detection. Next, we introduce recent progress in large
+    language models. Lastly, we focus on reviewing a subset of works closely related
+    to ours, specifically multi LLM-based agents systems.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节的结构如下：首先，我们提供关于立场检测的进展的详细概述。接下来，我们介绍大规模语言模型的最新进展。最后，我们重点回顾与我们工作密切相关的一些研究，特别是基于多重
+    LLM 的代理系统。
+- en: Stance detection. Stance detection aims to discern the stance of the author
+    towards a particular target from textual content. Typically, stances are categorized
+    into favor, against, neutral. A plethora of algorithms for stance detection have
+    been proposed by researchers, encompassing both feature-based methods (Bar-Haim
+    et al. [2017](https://arxiv.org/html/2310.10467v2#bib.bib6); Lozhnikov, Derczynski,
+    and Mazzara [2020](https://arxiv.org/html/2310.10467v2#bib.bib31)) and deep learning
+    techniques (Wei, Mao, and Zeng [2018](https://arxiv.org/html/2310.10467v2#bib.bib47);
+    Liu et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib30)). These methodologies
+    have enabled in-depth analysis of content on the internet and social media platforms.
+    For example, Jang et al. ([2018](https://arxiv.org/html/2310.10467v2#bib.bib20))
+    develop a method to find controversies on social media by generating stance-aware
+    summaries of tweets. Grcar et al. ([2017](https://arxiv.org/html/2310.10467v2#bib.bib17))
+    examine the Twitter stance before the Brexit referendum, revealing the pro-Brexit
+    camp’s higher influence.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 立场检测。立场检测旨在从文本内容中辨别作者对特定目标的立场。通常，立场分为支持、反对、中立。研究人员提出了大量的立场检测算法，包括基于特征的方法（Bar-Haim
+    等人 [2017](https://arxiv.org/html/2310.10467v2#bib.bib6)；Lozhnikov、Derczynski 和
+    Mazzara [2020](https://arxiv.org/html/2310.10467v2#bib.bib31)）和深度学习技术（Wei、Mao
+    和 Zeng [2018](https://arxiv.org/html/2310.10467v2#bib.bib47)；Liu 等人 [2021](https://arxiv.org/html/2310.10467v2#bib.bib30)）。这些方法使得对互联网和社交媒体平台内容的深入分析成为可能。例如，Jang
+    等人（[2018](https://arxiv.org/html/2310.10467v2#bib.bib20)）开发了一种通过生成关注立场的推文摘要来发现社交媒体上的争议的方法。Grcar
+    等人（[2017](https://arxiv.org/html/2310.10467v2#bib.bib17)）考察了英国脱欧公投前的 Twitter 立场，揭示了支持脱欧阵营更高的影响力。
+- en: Conventionally, stance detection necessitates training on datasets annotated
+    for specific targets. Such datasets are not trivially obtainable, thereby constraining
+    the usability of many methods. Recognizing this limitation, researchers have ventured
+    into cross-target stance detection, aiming to train classifiers that can adapt
+    to unfamiliar but related targets after being trained on a known target (Xu et al.
+    [2018](https://arxiv.org/html/2310.10467v2#bib.bib49); Wei and Mao [2019](https://arxiv.org/html/2310.10467v2#bib.bib46);
+    Liang et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib27)). Recently,
+    there has been an emergence of zero-shot stance detection approaches that automatically
+    detects the stance on unseen tasks (Allaway and McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2);
+    Liang et al. [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26)). However,
+    all these methods require training on annotated datasets. Unlike these methods,
+    our approach uses pre-trained LLM, removing the need for additional annotated
+    data. Through prompt engineering, we refine these models without extra training,
+    offering a solution with high usability.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统上，立场检测需要在特定目标的标注数据集上进行训练。这类数据集并非易得，因此限制了许多方法的可用性。鉴于这一限制，研究人员开始探索跨目标立场检测，旨在训练能够在已知目标上训练后，适应陌生但相关目标的分类器（Xu等人
+    [2018](https://arxiv.org/html/2310.10467v2#bib.bib49）；Wei和Mao [2019](https://arxiv.org/html/2310.10467v2#bib.bib46)；Liang等人
+    [2021](https://arxiv.org/html/2310.10467v2#bib.bib27)）。最近，出现了一些零-shot立场检测方法，可以自动检测未见过的任务的立场（Allaway和McKeown
+    [2020](https://arxiv.org/html/2310.10467v2#bib.bib2)；Liang等人 [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26)）。然而，所有这些方法都需要在标注数据集上进行训练。与这些方法不同，我们的方法使用预训练的LLM，消除了对额外标注数据的需求。通过提示工程，我们在无需额外训练的情况下精细化这些模型，提供了一种高可用性的解决方案。
+- en: Large language models. Large language models (LLMs) represent one of the most
+    significant advancements of artificial intelligence in recent years. Since the
+    release of ChatGPT²²2chat.openai.com at the end of 2022, LLMs have witnessed a
+    meteoric rise in attention, predominantly driven by their outstanding performance.
+    A myriad of LLMs, such as GPT-4 (OpenAI [2023](https://arxiv.org/html/2310.10467v2#bib.bib34)),
+    Llama 2 (Touvron et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib42)),
+    ChatGLM (Zeng et al. [2022](https://arxiv.org/html/2310.10467v2#bib.bib50)), and
+    others, have been introduced at a rapid pace. In conventional NLP tasks, the zero-shot
+    capabilities of these LLMs often rival or even surpass meticulously crafted, domain-specific
+    models (Wei et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib45)). The
+    emergence of robust capabilities, such as planning and reasoning within LLMs,
+    has further enabled their adoption across diverse applications. Some endeavors
+    integrate LLMs with existing tools (Qin et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib38);
+    Schick et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib39)), others explore
+    the potential of LLMs to create new tools (Cai et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib8)),
+    and there is a growing trend towards leveraging LLMs for dynamic decision-making,
+    planning, and embodied intelligence (Shinn et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib40);
+    Xiang et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib48)).
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型。大型语言模型（LLMs）代表了近年来人工智能领域最重要的进展之一。自2022年底发布ChatGPT²²2chat.openai.com以来，LLMs受到了空前关注，主要由于其出色的表现。像GPT-4（OpenAI
+    [2023](https://arxiv.org/html/2310.10467v2#bib.bib34)）、Llama 2（Touvron等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib42)）、ChatGLM（Zeng等人
+    [2022](https://arxiv.org/html/2310.10467v2#bib.bib50)）等LLM的推出速度非常快。在传统的自然语言处理任务中，这些LLMs的零-shot能力通常与精心制作的、特定领域的模型相媲美，甚至超越它们（Wei等人
+    [2021](https://arxiv.org/html/2310.10467v2#bib.bib45)）。LLMs中出现的强大能力，如规划和推理，进一步推动了它们在各种应用中的广泛采用。一些研究结合了现有工具与LLMs（Qin等人
+    [2023](https://arxiv.org/html/2310.10467v2#bib.bib38）；Schick等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib39)），另一些则探索了LLMs创造新工具的潜力（Cai等人
+    [2023](https://arxiv.org/html/2310.10467v2#bib.bib8)），还有越来越多的趋势将LLMs应用于动态决策、规划和体现智能（Shinn等人
+    [2023](https://arxiv.org/html/2310.10467v2#bib.bib40)；Xiang等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib48)）。
+- en: Inherently, the vast knowledge and potent semantic understanding of LLMs offer
+    immense potential in tackling stance detection tasks. Several research initiatives
+    have indeed explored the application of LLMs in stance detection (Zhang, Ding,
+    and Jing [2022](https://arxiv.org/html/2310.10467v2#bib.bib51); Ziems et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib54);
+    Zhang et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib52)). However,
+    these existing methods often adopt relatively straightforward approaches, neglecting
+    the intrinsic challenges specific to stance detection. As a result, our rigorous
+    replication efforts have frequently found their performance to be subpar in comparison
+    to annotated data dependent baselines. In contrast, our method is specifically
+    tailored to cater to the expert knowledge and intricate reasoning often required
+    for stance detection, consequently achieving commendable results.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本质上，LLMs（大语言模型）所具备的庞大知识量和强大的语义理解能力在处理立场检测任务中提供了巨大的潜力。确实，有多个研究项目探索了LLMs在立场检测中的应用（Zhang,
+    Ding, 和 Jing [2022](https://arxiv.org/html/2310.10467v2#bib.bib51); Ziems 等 [2023](https://arxiv.org/html/2310.10467v2#bib.bib54);
+    Zhang 等 [2023](https://arxiv.org/html/2310.10467v2#bib.bib52)）。然而，这些现有的方法通常采用相对简单的方式，忽略了立场检测特有的内在挑战。因此，我们在严格复现的过程中，常常发现其性能相较于依赖标注数据的基准方法显得不尽如人意。相比之下，我们的方法专门针对立场检测所需的专家知识和复杂推理进行量身定制，从而取得了令人称赞的成果。
+- en: Multi LLM-based agents system. Systems comprised of multiple LLM-based agents
+    have demonstrated complex and powerful capabilities not inherent to individual
+    LLM. Leveraging the human-like capacities of LLM, systems formed from multiple
+    LLM-based agents have been applied in both online and offline societal simulations,
+    showcasing credibility at the individual level and emergent social behaviors (Li
+    et al. [2023b](https://arxiv.org/html/2310.10467v2#bib.bib24); Gao et al. [2023a](https://arxiv.org/html/2310.10467v2#bib.bib15)).
+    For instance, Part et al. ([2023](https://arxiv.org/html/2310.10467v2#bib.bib35))
+    construct an AI town with 25 agents, witnessing phenomena such as mayoral elections
+    and party organization. Gao et al. ([2023b](https://arxiv.org/html/2310.10467v2#bib.bib16))
+    conduct simulations of online social networks with thousands of LLM-based agents,
+    observing group emotional responses and opinion shifts that mirrored real-world
+    trends. What’s more, some studies have employed collaborative efforts between
+    LLMs with distinct roles to accomplish tasks. In METAGPT (Hong et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib18)),
+    LLM-based agents with different roles collaboratively develop computer software,
+    while DERA (Nair et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib33))
+    uses discussions among various agents to refine medical summary dialogues and
+    care plan generation. Additionally, several efforts have utilized debates between
+    large language model agents to enhance model performance. For example, ChatEval (Chan
+    et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib9)) improves text evaluation
+    capabilities through multi-agent debates. Du et al.([2023](https://arxiv.org/html/2310.10467v2#bib.bib14))
+    amplify the factuality and reasoning capacities of large language models by facilitating
+    debates among them.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多LLM基础代理系统。由多个LLM基础代理组成的系统展示了单一LLM所不具备的复杂和强大能力。利用LLM类人化的能力，多个LLM基础代理组成的系统已被应用于线上和线下的社会模拟，展示了个体层面的可信度以及涌现的社会行为（Li
+    等 [2023b](https://arxiv.org/html/2310.10467v2#bib.bib24); Gao 等 [2023a](https://arxiv.org/html/2310.10467v2#bib.bib15)）。例如，Part
+    等人 ([2023](https://arxiv.org/html/2310.10467v2#bib.bib35)) 构建了一个由25个代理组成的AI小镇，见证了市长选举和党派组织等现象。Gao
+    等人 ([2023b](https://arxiv.org/html/2310.10467v2#bib.bib16)) 进行了成千上万的LLM基础代理的在线社交网络模拟，观察到群体情感反应和观点变化，这些现象与现实世界的趋势相吻合。此外，一些研究采用了不同角色的LLM之间的协作来完成任务。在METAGPT（Hong
+    等 [2023](https://arxiv.org/html/2310.10467v2#bib.bib18)）中，具有不同角色的LLM基础代理协同开发计算机软件，而DERA（Nair
+    等 [2023](https://arxiv.org/html/2310.10467v2#bib.bib33)）则通过多个代理之间的讨论来优化医疗总结对话和护理计划生成。此外，还有一些研究通过大语言模型代理之间的辩论来提升模型性能。例如，ChatEval（Chan
+    等 [2023](https://arxiv.org/html/2310.10467v2#bib.bib9)）通过多代理辩论提升文本评估能力。Du 等人 ([2023](https://arxiv.org/html/2310.10467v2#bib.bib14))
+    通过促进大语言模型之间的辩论，增强了模型的事实性和推理能力。
+- en: To the best of our knowledge, our work is the pioneering effort in employing
+    multi LLM-based agents for the task of stance detection.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 据我们所知，我们的工作是首个采用多LLM基础的代理系统进行立场检测任务的尝试。
+- en: 'Figure 2: Architecture of our proposed COLA.'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：我们提出的COLA架构。
+- en: Methods
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 方法
+- en: Task Description and Model Overview
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 任务描述与模型概述
+- en: 'In stance detection, the objective is to decide the stance of a given opinionated
+    document with respect to a specified target. Let us define a dataset $D=\{(x_{i}=(d_{i},t_{i}),y_{i})\}^{n}_{i=1}$
+    consisting of $n$ instances. For each instance, $x_{i}$ represents a tuple comprising
+    a document $d_{i}$ and a corresponding target $t_{i}$. The task is to detect the
+    stance $y_{i}$, which can be one of the following categories: favor, against,
+    or neutral.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在立场检测中，目标是决定给定的有立场的文档相对于指定目标的立场。我们定义一个数据集 $D=\{(x_{i}=(d_{i},t_{i}),y_{i})\}^{n}_{i=1}$，其中包含
+    $n$ 个实例。对于每个实例，$x_{i}$ 表示一个元组，其中包含文档 $d_{i}$ 和相应的目标 $t_{i}$。任务是检测立场 $y_{i}$，它可以是以下三种类别之一：支持、反对或中立。
+- en: 'As illustrated in Figure [2](https://arxiv.org/html/2310.10467v2#Sx2.F2 "Figure
+    2 ‣ Related Work ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents"), our approach consists of three stages: multidimensional text analysis
+    stage, reasoning-enhanced debating stage, and stance conclusion stage. In the
+    multidimensional text analysis stage, the linguisic expert, the domain specialist
+    and the social media veteran analyze the text from web or social media from various
+    perspectives, providing a holistic understanding. In the reasoning-enhanced debating
+    stage, for each possible stance, a debater defends it, seeking possible logical
+    chains between text features and the stance. Finally, in the stance conclusion
+    stage, a final judge determines the stance based on the statements made by all
+    debaters. Next, we will introduce the components of our approach in detail.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图[2](https://arxiv.org/html/2310.10467v2#Sx2.F2 "图2 ‣ 相关工作 ‣ 基于协作角色注入LLM的立场检测")所示，我们的方法包括三个阶段：多维文本分析阶段、增强推理辩论阶段和立场结论阶段。在多维文本分析阶段，语言专家、领域专家和社交媒体资深人士从不同角度分析网络或社交媒体中的文本，提供全面的理解。在增强推理辩论阶段，对于每种可能的立场，一位辩手会为其辩护，寻求文本特征与立场之间可能的逻辑链条。最后，在立场结论阶段，最终裁判根据所有辩手的陈述确定立场。接下来，我们将详细介绍我们方法的各个组成部分。
+- en: Multidimensional Text Analysis Stage
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 多维文本分析阶段
+- en: 'Challenge:'
+  id: totrans-43
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 挑战：
+- en: Stance detection necessitates a profound grasp of multi-aspect knowledge. Sentences
+    on social media that convey the authors’ stances may be influenced by various
+    linguistic phenomena, such as grammatical structures, tenses, and moods. There
+    is also often an abundance of domain-specific terminologies, including references
+    to characters, political parties, and events, and their relationships with the
+    target. Additionally, unique language features of social media, such as hashtags,
+    come into play. Although large language models have assimilated vast knowledge
+    from their training data, their direct application for stance detection often
+    fails to adequately harness this knowledge, leading to suboptimal results, a fact
+    corroborated by our subsequent experiments.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 立场检测需要深入掌握多方面的知识。社交媒体上的句子可能受到各种语言现象的影响，例如语法结构、时态和语气，从而传达作者的立场。此外，句子中往往包含大量领域特定的术语，包括人物、政党和事件的引用及其与目标的关系。同时，社交媒体的独特语言特征，如标签（hashtags），也起到了作用。尽管大规模语言模型已经吸收了来自其训练数据的丰富知识，但它们在立场检测中的直接应用往往未能充分利用这些知识，导致效果不尽如人意，这一点在我们的后续实验中得到了验证。
+- en: 'Approach:'
+  id: totrans-45
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 方法：
+- en: To address this challenge and leverage the rich knowledge encoded within large
+    language models, we designed a multidimensional text analysis stage. During this
+    stage, we introduce three distinct LLM-based agents to parse the text from different
+    perspectives, ensuring a comprehensive understanding of potential elements influencing
+    the author’s stance. These agents are the Linguistic Expert, Domain Specialist,
+    and Social Media Veteran. We ask the LLM to behave as their designated roles through
+    prompting. Specifically, the inputs and outputs of the role-infused agents in
+    this stage are as follows.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了应对这一挑战并利用大规模语言模型中编码的丰富知识，我们设计了一个多维文本分析阶段。在此阶段，我们引入了三个基于LLM的不同代理，从不同的角度解析文本，确保全面理解可能影响作者立场的要素。这些代理分别是语言专家、领域专家和社交媒体资深人士。我们通过提示要求LLM扮演其指定角色。具体来说，角色注入代理在此阶段的输入和输出如下所示。
+- en: 'Input: A text with a stance.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输入：带有立场的文本。
+- en: 'Output: The individual analyses of the text by the linguistic expert, the domain
+    specialist, and the social media veteran.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出：语言专家、领域专家和社交媒体资深人士对文本的个别分析。
+- en: The detailed configurations of agents are as follows.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代理人的详细配置如下。
+- en: 'Linguistic Expert. This Agent is tasked with dissecting the text from a linguistic
+    standpoint, exploring factors including but not limited to:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语言学专家。该角色负责从语言学角度剖析文本，探讨的因素包括但不限于：
+- en: •
+  id: totrans-51
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Grammatical structure. The arrangement and relationship of words in a sentence,
+    which determines how different elements combine to produce specific meanings.
+  id: totrans-52
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 语法结构。句子中单词的排列和关系，决定了不同元素如何结合以产生特定的含义。
+- en: •
+  id: totrans-53
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Tense and inflection. Tense identifies when an action occurs, influencing the
+    stance’s immediacy or distance. Inflection adjusts word forms, providing clues
+    about the sentence’s grammatical and relational context.
+  id: totrans-54
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 时态和词形变化。时态表明动作发生的时间，影响语气的紧迫性或距离感。词形变化调整单词形式，提供关于句子语法和关系背景的线索。
+- en: •
+  id: totrans-55
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Rhetorical devices. These are techniques used to enhance the expressiveness
+    of language. By emphasizing, contrasting, or evoking emotions, they shape the
+    tone and attitude of a statement.
+  id: totrans-56
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 修辞手法。这些是用于增强语言表现力的技巧。通过强调、对比或唤起情感，它们塑造了陈述的语气和态度。
+- en: •
+  id: totrans-57
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Lexical choices. The selection of particular words or phrases in writing, which
+    can reveal deeper nuances, biases, or viewpoints about a topic.
+  id: totrans-58
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 词汇选择。写作中选择特定单词或短语，这可以揭示关于某个话题的更深层次含义、偏见或观点。
+- en: The specific prompt is as follows,
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体的提示如下，
+- en: You are a linguist. Accurately and concisely explain the linguistic elements
+    in the sentence and how these elements affect meaning, including grammatical structure,
+    tense and inflection, virtual speech, rhetorical devices, lexical choices and
+    so on. Do nothing else. {tweet}
+  id: totrans-60
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 你是一个语言学家。准确简洁地解释句子中的语言学元素，以及这些元素如何影响含义，包括语法结构、时态和词形变化、虚拟语气、修辞手法、词汇选择等。什么都不做。{tweet}
+- en: 'Domain Specialist. This agent focuses on domain-relevant knowledge, exploring
+    facets such as:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 领域专家。该角色专注于与领域相关的知识，探索诸如以下方面：
+- en: •
+  id: totrans-62
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Characters. Key individuals or entities in a text.
+  id: totrans-63
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 角色。文本中的关键个体或实体。
+- en: •
+  id: totrans-64
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Events. Significant occurrences within a text. How they’re portrayed can hint
+    at the author’s stance on certain issues or topics.
+  id: totrans-65
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 事件。文本中的重要事件。它们的描写可能暗示作者对某些问题或话题的立场。
+- en: •
+  id: totrans-66
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Organizations. Established groups mentioned. Their depiction can showcase the
+    author’s feelings towards certain societal structures or institutions.
+  id: totrans-67
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 组织。提到的已建立团体。它们的描绘可以展示作者对某些社会结构或机构的情感。
+- en: •
+  id: totrans-68
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Parties. Political groups with distinct ideologies. A text’s treatment of these
+    can provide insights into the author’s political leanings or criticisms.
+  id: totrans-69
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 当事人。具有不同意识形态的政治团体。文本对这些团体的处理可以为我们提供作者政治倾向或批评的线索。
+- en: •
+  id: totrans-70
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Religions. Specific faiths or spiritual beliefs. How they are referenced might
+    shed light on the author’s personal beliefs or societal observations.
+  id: totrans-71
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 宗教。特定的信仰或精神信仰。它们的提及可能揭示作者的个人信仰或社会观察。
+- en: The specific prompt is as follows,
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体的提示如下，
+- en: You are a {role}. Accurately and concisely explain the key elements contained
+    in the quote, such as characters, events, parties, religions, etc. Also explain
+    their relationship with {target} (if exist). Do nothing else. {tweet}
+  id: totrans-73
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 你是一个{角色}。准确简洁地解释引用中的关键元素，例如角色、事件、当事人、宗教等。还需解释它们与{目标}的关系（如果有的话）。什么都不做。{tweet}
+- en: 'Social Media Veteran. This agent delves into the nuances of social media expression,
+    focusing on aspects like:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 社交媒体老手。该角色深入探讨社交媒体表达的细微差别，关注以下方面：
+- en: •
+  id: totrans-75
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Hashtags. Specific labels used on social media platforms, assisting in categorizing
+    posts or emphasizing specific themes, making content easily discoverable.
+  id: totrans-76
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 标签。社交媒体平台上使用的特定标签，有助于对帖子进行分类或强调特定主题，使内容容易被发现。
+- en: •
+  id: totrans-77
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Internet slangs and colloquialisms. These refer to informal terms and expressions
+    often used in online communities. Their usage can introduce nuances, cultural
+    contexts, or specific attitudes, making them significant indicators of the underlying
+    stance in a statement.
+  id: totrans-78
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 网络俚语和俗语。这些指的是在在线社区中常用的非正式术语和表达方式。它们的使用可以引入细微差别、文化背景或特定态度，是揭示陈述背后立场的重要指示器。
+- en: •
+  id: totrans-79
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Emotional tone. This captures the sentiment inherent in a piece of writing,
+    revealing the author’s feelings, whether positive, negative, or neutral, about
+    a particular subject.
+  id: totrans-80
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 情感语气。它捕捉了写作中固有的情感，揭示了作者对某一特定主题的感受，无论是积极的、消极的，还是中立的。
+- en: The specific prompt is as follows,
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体的提示如下，
+- en: You are a heavy social media user and are very familiar with the way of expression
+    on the Internet. Analyze the following sentence, focusing on the content, emotional
+    tone, implied meaning, and so on. Do nothing else. {tweet}
+  id: totrans-82
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 你是一个重度社交媒体用户，非常熟悉互联网上的表达方式。分析以下句子，重点关注内容、情感语调、暗示意义等。不要做其他事情。{tweet}
+- en: Reasoning-Enhanced Debating Stage
+  id: totrans-83
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 增强推理的辩论阶段
+- en: 'Challenge:'
+  id: totrans-84
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 挑战：
+- en: The task of stance detection requires sophisticated reasoning. Authors often
+    do not explicitly state their positions in a text. Instead, their stances may
+    be implied through their sentiment towards certain entities or by mechanisms like
+    comparison and contrast. Identifying these implicit stances requires detailed
+    reasoning. Although large-scale language models possess some reasoning capabilities,
+    their performance can be suboptimal in intricate reasoning tasks without proper
+    guidance, which can affect the quality of stance detection results.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 立场检测任务需要复杂的推理。作者通常不会在文本中明确表述他们的立场。相反，他们的立场可能通过对某些实体的情感态度，或通过比较与对比等机制间接表达。识别这些隐含的立场需要详细的推理。尽管大规模语言模型具备一定的推理能力，但在没有适当引导的情况下，它们在复杂推理任务中的表现可能不尽如人意，这会影响立场检测结果的质量。
+- en: 'Approach:'
+  id: totrans-86
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 方法：
+- en: Drawing inspiration from recent works that leverage discussions or debates among
+    large models to enhance their performance (Du et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib14);
+    Chan et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib9); Liang et al.
+    [2023](https://arxiv.org/html/2310.10467v2#bib.bib29)), especially in reasoning
+    tasks, we introduce a reasoning-enhanced debating stage. In this stage, for every
+    potential stance, an agent is designated. This agent seeks evidence from expert
+    analyses of the text and advocates for its designated stance. Specifically, the
+    inputs and outputs of agents in this stage are as follows.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从近期利用大型模型之间的讨论或辩论来增强其表现的研究中汲取灵感（Du 等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib14);
+    Chan 等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib9); Liang 等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib29)），特别是在推理任务中，我们引入了增强推理的辩论阶段。在这个阶段，对于每个潜在立场，都指定一个代理。该代理从专家对文本的分析中寻找证据，并为其指定的立场辩护。具体来说，该阶段中代理的输入和输出如下。
+- en: 'Input: A text with a stance. The analyses of the text by the linguistic expert,
+    the domain specialist, and the social media veteran.'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输入：带有立场的文本。语言学专家、领域专家和社交媒体资深用户对文本的分析。
+- en: 'Output: The debate from each agent for the stance they support, including the
+    evidence it chooses and its logical chain.'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出：每个代理支持其立场的辩论，包括它选择的证据和其逻辑链。
+- en: The specific prompt is as follows,
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体的提示如下：
+- en: 'Tweet:{tweet}. Linguistic analysis:{LingResponse}. The analysis of {role}:{ExpertResponse}.
+    The analysis of a heavy social media user: {UserResponse}. You think the attitude
+    behind the tweet is {stance} of {target}. Identify the top three pieces of evidence
+    from the analyses that best support your opinion and argue for your opinion.'
+  id: totrans-91
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 推文：{tweet}。语言学分析：{LingResponse}。{role}的分析：{ExpertResponse}。重度社交媒体用户的分析：{UserResponse}。你认为这条推文背后的态度是{stance}的{target}。从分析中识别出最能支持你观点的三条证据，并为你的观点辩护。
+- en: In our framework, we only engage in a single round of debate, reserving multi-round
+    debates for future exploration. Directing agents to search for evidence and defend
+    their aligned stances compels the large language model to establish logical connections
+    between discerned textual features (as well as their multifaceted interpretations)
+    and the actual underlying stance of the text. By having multiple agents debate
+    in favor of different stances, the system encourages the large model’s divergent
+    thinking. These outputs subsequently feed into the stance conclusion stage, which
+    renders a final, judicious judgment.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的框架中，我们只进行单轮辩论，保留多轮辩论供未来探索。指引代理搜索证据并为其对立立场辩护，迫使大规模语言模型在发现的文本特征（及其多重解释）与文本实际的潜在立场之间建立逻辑联系。通过让多个代理支持不同立场辩论，系统鼓励大模型的发散思维。这些输出随后将输入到立场结论阶段，做出最终的、审慎的判断。
+- en: Stance Conclusion Stage
+  id: totrans-93
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 立场结论阶段
+- en: 'To infer a conclusive stance from diverse agent debates, we introduce the stance
+    conclusion stage. In this stage, a judger agent determines the final stance of
+    a text based on both the text itself and the arguments presented by debater agents.
+    The process is delineated as:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了从不同的代理辩论中推断出一个结论性的立场，我们引入了立场结论阶段。在这个阶段，判断代理根据文本本身以及辩论代理提出的论点，确定文本的最终立场。这个过程被描述如下：
+- en: 'Input: A text with an embedded stance. Arguments from each agent, including
+    evidence and their logical reasoning.'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输入：带有嵌入立场的文本。来自每个代理的论点，包括证据和逻辑推理。
+- en: Output:The identified stance of the text.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出：文本的已识别立场。
+- en: The specific prompt can be as follows,
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体的提示可以如下所示，
+- en: 'Determine whether the sentence is in favor of or against {target}, or is neutral.
+    Sentence: {tweet}. Judge this in relation to the following arguments: Arguments
+    that the attitude is in favor: {FavorResponse}. Arguments that the attitude is
+    against: {AgainstResponse}. Arguments that the attitude is neutral: {NeutralResponse}
+    Choose from: A: Against B: Favor C: Neutral'
+  id: totrans-98
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 判断句子是支持还是反对{target}，或者是中立的。句子：{tweet}。根据以下论点进行判断：支持的论点：{FavorResponse}。反对的论点：{AgainstResponse}。中立的论点：{NeutralResponse}。选择以下选项之一：A：反对
+    B：支持 C：中立
+- en: ''
+  id: totrans-99
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Constraint: Answer with only the option above that is most accurate and nothing
+    else.'
+  id: totrans-100
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 限制条件：仅回答最准确的选项，不要添加其他内容。
+- en: The judger agent evaluates the text’s inherent qualities, the evidence provided
+    by debaters, and their logical frameworks to reach an informed decision.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 判断代理评估文本的内在特性、辩论者提供的证据以及他们的逻辑框架，以做出有根据的决策。
+- en: After going through the three stages mentioned above, we have effectively extracted
+    the underlying stance towards the given target from the text.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 经过上述三个阶段后，我们已经有效地从文本中提取出了针对给定目标的潜在立场。
+- en: '| Dataset | Target | Pro | Con | Neutral |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据集 | 目标 | 支持 | 反对 | 中立 |'
+- en: '| SEM16 | DT | 148 (20.9%) | 299 (42.3%) | 260 (36.8%) |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| SEM16 | DT | 148 (20.9%) | 299 (42.3%) | 260 (36.8%) |'
+- en: '| HC | 163 (16.6%) | 565 (57.4%) | 256 (26.0%) |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| HC | 163 (16.6%) | 565 (57.4%) | 256 (26.0%) |'
+- en: '| FM | 268 (28.2%) | 511 (53.8%) | 170 (17.9%) |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| FM | 268 (28.2%) | 511 (53.8%) | 170 (17.9%) |'
+- en: '| LA | 167 (17.9%) | 544 (58.3%) | 222 (23.8%) |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| LA | 167 (17.9%) | 544 (58.3%) | 222 (23.8%) |'
+- en: '| A | 124 (16.9%) | 464 (63.3%) | 145 (19.8%) |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| A | 124 (16.9%) | 464 (63.3%) | 145 (19.8%) |'
+- en: '| CC | 335 (59.4%) | 26 (4.6%) | 203 (36.0%) |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| CC | 335 (59.4%) | 26 (4.6%) | 203 (36.0%) |'
+- en: '| P-Stance | Biden | 3217 (44.1%) | 4079 (55.9%) | - |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| P-Stance | Biden | 3217 (44.1%) | 4079 (55.9%) | - |'
+- en: '| Sanders | 3551 (56.1%) | 2774 (43.9%) | - |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| Sanders | 3551 (56.1%) | 2774 (43.9%) | - |'
+- en: '| Trump | 3663 (46.1%) | 4290 (53.9%) | - |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| Trump | 3663 (46.1%) | 4290 (53.9%) | - |'
+- en: '| VAST | - | 6952 (37.5%) | 7297 (39.3%) | 4296 (23.2%) |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| VAST | - | 6952 (37.5%) | 7297 (39.3%) | 4296 (23.2%) |'
+- en: 'Table 1: Statistics of our utilized datasets.'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：我们使用的数据集统计信息。
+- en: Experiments
+  id: totrans-115
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 实验
+- en: In this section, we describe the specific setup of our experiments.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一部分，我们描述了实验的具体设置。
+- en: Datasets
+  id: totrans-117
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 数据集
+- en: 'Following many existing works (Liang et al. [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26);
+    Augenstein et al. [2016](https://arxiv.org/html/2310.10467v2#bib.bib5); Li et al.
+    [2023a](https://arxiv.org/html/2310.10467v2#bib.bib23)), we conduct experiments
+    on three widely-used datasets:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据许多现有的研究工作（Liang 等人 [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26);
+    Augenstein 等人 [2016](https://arxiv.org/html/2310.10467v2#bib.bib5); Li 等人 [2023a](https://arxiv.org/html/2310.10467v2#bib.bib23)），我们在三个广泛使用的数据集上进行了实验：
+- en: 'SEM16 (Mohammad et al. [2016](https://arxiv.org/html/2310.10467v2#bib.bib32)).
+    This dataset features six specific targets from diverse domains, namely Donald
+    Trump (DT), Hillary Clinton (HC), Feminist Movement (FM), Legalization of Abortion
+    (LA), Atheism (A), and Climate Change is Real Concern (CC). Each instance is classified
+    into one of the three stance categories: Favor, Against, or None.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SEM16 （Mohammad 等人 [2016](https://arxiv.org/html/2310.10467v2#bib.bib32)）。该数据集包含来自不同领域的六个特定目标，分别是唐纳德·特朗普（DT）、希拉里·克林顿（HC）、女权运动（FM）、堕胎合法化（LA）、无神论（A）和气候变化是现实问题（CC）。每个实例被分类为三个立场类别之一：支持、反对或无立场。
+- en: 'P-Stance (Li et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib25)).
+    This dataset focuses on the political domain, and comprises three targets: Donald
+    Trump (Trump), Joe Biden (Biden), Bernie Sanders (Sanders). Stance labels include
+    Favor and Against.'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: P-Stance （Li 等人 [2021](https://arxiv.org/html/2310.10467v2#bib.bib25)）。该数据集聚焦于政治领域，包括三个目标：唐纳德·特朗普（Trump）、乔·拜登（Biden）、伯尼·桑德斯（Sanders）。立场标签包括支持和反对。
+- en: VAST (Allaway and McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2)).
+    This dataset is characterized by its large number of varying targets. An instance
+    in VAST includes a sentence, a target, and a stance, which may be Pro, Con, or
+    Neutral.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: VAST（Allaway 和 McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2)）。该数据集的特点是具有大量变化的目标。VAST
+    中的一个实例包括一句话、一个目标和一个立场，立场可以是支持、反对或中立。
+- en: The statistics of our utilized datasets are shown in Table [1](https://arxiv.org/html/2310.10467v2#Sx3.T1
+    "Table 1 ‣ Stance Conclusion Stage ‣ Methods ‣ Stance Detection with Collaborative
+    Role-Infused LLM-Based Agents"). To ensure a fair comparison, We follow the majority
+    of existing works (Allaway and McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2);
+    Allaway, Srikanth, and McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3);
+    Liang et al. [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26); Zhang, Li,
+    and Song [2019](https://arxiv.org/html/2310.10467v2#bib.bib53)) to test the performance
+    of our model. Specifically, on the SEM16 and P-Stance datasets, we test the performance
+    of our model on the test set. On VAST dataset, we test the performance of our
+    model over zero-shot condition. To ensure a fair comparison with LLM-based baselines,
+    we first sample the test set to replicate their results under their prompts, and
+    then conduct experiments on the dataset. For zero-shot stance detection approaches,
+    we evaluate their performance across all three datasets. However, for in-target
+    stance detection methods, we assess their performance on SEM16 and P-Stance, because
+    the targets within the VAST dataset are mainly few-shot or zero-shot. The datasets
+    contain no personally identifiable information, but may contain offensive content
+    because the text has a clear stance on topics such as religions, politics, climate,
+    etc. We strictly adhere to the requirements of the respective licenses when using
+    all datasets mentioned in the paper.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用的数据集的统计数据如表格[1](https://arxiv.org/html/2310.10467v2#Sx3.T1 "Table 1 ‣ Stance
+    Conclusion Stage ‣ Methods ‣ Stance Detection with Collaborative Role-Infused
+    LLM-Based Agents")所示。为了确保公平比较，我们遵循大多数现有的工作（Allaway 和 McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2);
+    Allaway, Srikanth 和 McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3);
+    Liang 等 [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26); Zhang, Li 和 Song
+    [2019](https://arxiv.org/html/2310.10467v2#bib.bib53)）来测试我们模型的表现。具体来说，在 SEM16
+    和 P-Stance 数据集上，我们测试了我们模型在测试集上的表现。在 VAST 数据集上，我们测试了我们模型在零-shot 条件下的表现。为了与基于 LLM
+    的基准进行公平比较，我们首先采样测试集来复制它们在其提示下的结果，然后在数据集上进行实验。对于零-shot 立场检测方法，我们评估了它们在所有三个数据集上的表现。然而，对于在目标内的立场检测方法，我们只在
+    SEM16 和 P-Stance 上评估它们的表现，因为 VAST 数据集中的目标主要是少样本或零-shot 的。数据集中不包含任何可识别个人身份的信息，但可能包含冒犯性内容，因为文本对宗教、政治、气候等主题有明确立场。我们在使用本文中提到的所有数据集时，严格遵守各自许可的要求。
+- en: '| Model | SEM16(%) | P-Stance(%) | VAST(%) |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | SEM16(%) | P-Stance(%) | VAST(%) |'
+- en: '| DT | HC | FM | LA | A | CC | Trump | Biden | Sanders | All |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| DT | HC | FM | LA | A | CC | Trump | Biden | Sanders | All |'
+- en: '| TOAD | 49.5 | 51.2 | 54.1 | 46.2 | 46.1 | 30.9 | 53.0 | 68.4 | 62.9 | 41.0
+    |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| TOAD | 49.5 | 51.2 | 54.1 | 46.2 | 46.1 | 30.9 | 53.0 | 68.4 | 62.9 | 41.0
+    |'
+- en: '| TGA Net | 40.7 | 49.3 | 46.6 | 45.2 | 52.7 | 36.6 | - | - | - | 65.7 |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| TGA Net | 40.7 | 49.3 | 46.6 | 45.2 | 52.7 | 36.6 | - | - | - | 65.7 |'
+- en: '| BERT-GCN | 42.3 | 50.0 | 44.3 | 44.2 | 53.6 | 35.5 | - | - | - | 68.6 |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| BERT-GCN | 42.3 | 50.0 | 44.3 | 44.2 | 53.6 | 35.5 | - | - | - | 68.6 |'
+- en: '| PT-HCL | 50.1 | 54.5 | 54.6 | 50.9 | 56.5 | 38.9 | - | - | - | 71.6 |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| PT-HCL | 50.1 | 54.5 | 54.6 | 50.9 | 56.5 | 38.9 | - | - | - | 71.6 |'
+- en: '| JointCL | 50.5 | 54.8 | 53.8 | 49.5 | 54.5 | 39.7 | 62.0 | 59.0 | 73.0 |
+    72.3 |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| JointCL | 50.5 | 54.8 | 53.8 | 49.5 | 54.5 | 39.7 | 62.0 | 59.0 | 73.0 |
+    72.3 |'
+- en: '| GPT-3.5 | 62.5 | 68.7 | 44.7 | 51.5 | 9.1 | 31.1 | 62.9 | 80.0 | 71.5 | 62.3
+    |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 | 62.5 | 68.7 | 44.7 | 51.5 | 9.1 | 31.1 | 62.9 | 80.0 | 71.5 | 62.3
+    |'
+- en: '| GPT-3.5+COT | 63.3 | 70.9 | 47.7 | 53.4 | 13.3 | 34.0 | 63.9 | 81.2 | 73.2
+    | 68.9 |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5+COT | 63.3 | 70.9 | 47.7 | 53.4 | 13.3 | 34.0 | 63.9 | 81.2 | 73.2
+    | 68.9 |'
+- en: '| COLA(ours) | 68.5 | $\textbf{81.7}^{*}$ | $\textbf{63.4}^{*}$ | $\textbf{71.0}^{*}$
+    | $\textbf{70.8}^{*}$ | $\textbf{65.5}^{*}$ | $\textbf{86.6}^{*}$ | 84.0 | $\textbf{79.7}^{*}$
+    | 73.0 |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| COLA(我们的) | 68.5 | $\textbf{81.7}^{*}$ | $\textbf{63.4}^{*}$ | $\textbf{71.0}^{*}$
+    | $\textbf{70.8}^{*}$ | $\textbf{65.5}^{*}$ | $\textbf{86.6}^{*}$ | 84.0 | $\textbf{79.7}^{*}$
+    | 73.0 |'
+- en: 'Table 2: Comparison of COLA and baselines in zero-shot stance detection task.
+    Bold and underline refer to the best and 2nd-best performance. * denotes COLA
+    improves the best baseline at $p<0.05$ with paired t-test.'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 2：在零-shot 立场检测任务中 COLA 和基准模型的比较。粗体和下划线表示最佳和第二最佳表现。* 表示 COLA 在 $p<0.05$ 的配对
+    t 检验下改善了最佳基准。
+- en: '| Category | Model | SEM16(%) | P-Stance(%) |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类别 | 模型 | SEM16(%) | P-Stance(%) |'
+- en: '| DT | HC | FM | LA | A | CC | Trump | Biden | Sanders |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| DT | HC | FM | LA | A | CC | Trump | Biden | Sanders |'
+- en: '|  | BiCond | 59.0 | 56.1 | 52.9 | 61.2 | 55.3 | 35.6 | 73.0 | 69.4 | 64.6
+    |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | BiCond | 59.0 | 56.1 | 52.9 | 61.2 | 55.3 | 35.6 | 73.0 | 69.4 | 64.6
+    |'
+- en: '|  | BERT | 57.9 | 61.3 | 59.0 | 63.1 | 60.7 | 38.8 | 67.7 | 73.1 | 68.2 |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | BERT | 57.9 | 61.3 | 59.0 | 63.1 | 60.7 | 38.8 | 67.7 | 73.1 | 68.2 |'
+- en: '| In-target Labeled Data | CrossNet | 60.2 | 60.2 | 55.7 | 61.3 | 56.4 | 40.1
+    | 58.0 | 65.0 | 53.0 |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在目标标注数据 | CrossNet | 60.2 | 60.2 | 55.7 | 61.3 | 56.4 | 40.1 | 58.0 | 65.0
+    | 53.0 |'
+- en: '| Dependent Methods | ATT-LSTM | 55.3 | 59.8 | 55.3 | 62.6 | 55.9 | 39.2 |
+    - | - | - |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| 依赖方法 | ATT-LSTM | 55.3 | 59.8 | 55.3 | 62.6 | 55.9 | 39.2 | - | - | - |'
+- en: '|  | ASGCN | 58.7 | 61.0 | 58.7 | 63.2 | 59.5 | 40.6 | 77.0 | 78.4 | 70.8 |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | ASGCN | 58.7 | 61.0 | 58.7 | 63.2 | 59.5 | 40.6 | 77.0 | 78.4 | 70.8 |'
+- en: '|  | TPDG | 63.0 | 73.4 | 67.3 | 74.7 | 64.7 | 42.3 | 76.8 | 78.1 | 71.0 |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | TPDG | 63.0 | 73.4 | 67.3 | 74.7 | 64.7 | 42.3 | 76.8 | 78.1 | 71.0 |'
+- en: '| Zero-shot Method | COLA(ours) | 68.5 | $\textbf{81.7}^{*}$ | 63.4 | 71.0
+    | 70.8 | $\textbf{67.5}^{*}$ | $\textbf{86.6}^{*}$ | $\textbf{84.0}^{*}$ | $\textbf{79.7}^{*}$
+    |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| 零-shot 方法 | COLA（我们的方法） | 68.5 | $\textbf{81.7}^{*}$ | 63.4 | 71.0 | 70.8
+    | $\textbf{67.5}^{*}$ | $\textbf{86.6}^{*}$ | $\textbf{84.0}^{*}$ | $\textbf{79.7}^{*}$
+    |'
+- en: 'Table 3: Comparison of zero-shot COLA and baselines fully trained on labeled
+    data for the in-target stance detection task. Bold and underline refer to the
+    best and 2nd-best performance. * denotes COLA improves the best baseline at $p<0.05$
+    with paired t-test.'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：零-shot COLA与完全在标注数据上训练的基线方法在目标态度检测任务中的比较。粗体和下划线表示最佳和第二最佳表现。* 表示COLA在$p<0.05$的配对t检验下改善了最佳基线。
+- en: Implementation Details
+  id: totrans-144
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 实现细节
+- en: Implementation of COLA
+  id: totrans-145
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: COLA实现
+- en: In our study, we employ the GPT-3.5 Turbo model, provided by OpenAI, as our
+    backbone. We opt for GPT-3.5 Turbo primarily due to its superior performance,
+    cost-effectiveness, and the ease of interaction offered via OpenAI API. These
+    attributes not only facilitate efficient research but also ensure the usability
+    of our methodology for future application. By utilizing the system instruction
+    feature available through OpenAI API, we instruct the model to act as various
+    agent roles, feeding text inputs via prompts and collecting textual outputs from
+    the model. To maximize reproducibility, we set the temperature parameter to 0\.
+    The reported results are the average of 5 repeated runs to ensure statistical
+    reliability. ³³3The source code of our proposed framework is released at https://github.com/tsinghua-fib-lab/COLA.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的研究中，我们采用了OpenAI提供的GPT-3.5 Turbo模型作为骨干模型。我们选择GPT-3.5 Turbo主要是因为它具有优越的性能、成本效益以及通过OpenAI
+    API提供的便捷交互方式。这些特性不仅促进了高效的研究，而且确保了我们的方法在未来的应用中具有可用性。通过利用OpenAI API提供的系统指令功能，我们指示模型充当各种代理角色，通过提示输入文本并收集模型的文本输出。为了最大化可复现性，我们将温度参数设置为0。报告的结果是5次重复运行的平均值，以确保统计可靠性。³³3我们提出的框架的源代码已发布在https://github.com/tsinghua-fib-lab/COLA。
+- en: Evaluation Metric
+  id: totrans-147
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 评估指标
+- en: For SEM16 and P-Stance datasets, following previous works (Allaway, Srikanth,
+    and McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3); Li et al. [2023a](https://arxiv.org/html/2310.10467v2#bib.bib23)),
+    we calculate $F_{avg}$, which represents the average of F1 scores for Favor and
+    Against. For the VAST dataset, we adopt the commonly-used method from Allaway
+    et al. ([2020](https://arxiv.org/html/2310.10467v2#bib.bib2)) and compute the
+    Macro-F1 score to assess model performance.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于SEM16和P-Stance数据集，按照之前的研究（Allaway, Srikanth, and McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3);
+    Li et al. [2023a](https://arxiv.org/html/2310.10467v2#bib.bib23)），我们计算$F_{avg}$，它表示Favor和Against的F1分数平均值。对于VAST数据集，我们采用Allaway等人（[2020](https://arxiv.org/html/2310.10467v2#bib.bib2)）常用的方法，并计算宏F1分数来评估模型性能。
+- en: Comparison Methods
+  id: totrans-149
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 比较方法
+- en: 'We compare COLA with state-of-the-art (SOTA) methods in stance detection. We
+    conduct comparisons with methods for two tasks: zero-shot stance detection and
+    in-target stance detection.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将COLA与最先进的（SOTA）方法在态度检测方面进行了比较。我们进行了两项任务的比较：零-shot态度检测和目标态度检测。
+- en: 'We compare our method with various zero-shot stance detection methods. This
+    includes adversarial learning method: TOAD (Allaway, Srikanth, and McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3)),
+    contrastive learning methods: PT-HCL (Liang et al. [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26)),
+    JointCL (Liang et al. [2022b](https://arxiv.org/html/2310.10467v2#bib.bib28)),
+    Bert-based techniques: TGA-Net (Allaway and McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2))
+    and Bert-GCN (Liu et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib30)).
+    We also include two baselines based on large language models: GPT-3.5 Turbo and
+    GPT-3.5 Turbo+Chain-of-thought(COT), both of which can be considered zero-shots,
+    implemented in strict accordance with Zhang et al. ([2022](https://arxiv.org/html/2310.10467v2#bib.bib51))
+    and Zhang et al. ([2023](https://arxiv.org/html/2310.10467v2#bib.bib52)), respectively.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将我们的方法与各种零样本立场检测方法进行比较。这包括对抗学习方法：TOAD（Allaway, Srikanth, 和 McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3)），对比学习方法：PT-HCL（Liang
+    等人 [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26)），JointCL（Liang 等人 [2022b](https://arxiv.org/html/2310.10467v2#bib.bib28)），基于Bert的技术：TGA-Net（Allaway
+    和 McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2)）和Bert-GCN（Liu 等人
+    [2021](https://arxiv.org/html/2310.10467v2#bib.bib30)）。我们还包括了两种基于大语言模型的基线：GPT-3.5
+    Turbo 和 GPT-3.5 Turbo+Chain-of-thought（COT），这两者均可视为零样本方法，严格按照 Zhang 等人（[2022](https://arxiv.org/html/2310.10467v2#bib.bib51)）和
+    Zhang 等人（[2023](https://arxiv.org/html/2310.10467v2#bib.bib52)）的方式实现。
+- en: 'To further verify the performance of our model, we compare our model to in-target
+    stance detection methods. Such methods undergo extensive training on datasets
+    for a given target and are then evaluated on the test set of the same target.
+    In contrast, our method remains strictly zero-shot, with no fine-tuning applied
+    to our backbone model. We compare our approach with various in-target stance detection
+    baselines, including RNN-based methods: BiCond (Augenstein et al. [2016](https://arxiv.org/html/2310.10467v2#bib.bib5)),
+    and ATT-LSTM (Wang et al. [2016](https://arxiv.org/html/2310.10467v2#bib.bib44));
+    Attention-based method: CrossNet (Xu et al. [2018](https://arxiv.org/html/2310.10467v2#bib.bib49));
+    Bert-based method: BERT (Devlin et al. [2018](https://arxiv.org/html/2310.10467v2#bib.bib13));
+    and Graph-based methods: ASGCN (Zhang, Li, and Song [2019](https://arxiv.org/html/2310.10467v2#bib.bib53))
+    and TPDG (Liang et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib27)).'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进一步验证我们模型的性能，我们将我们的模型与目标检测方法进行比较。这些方法经过大量训练，使用特定目标的数据集，然后在同一目标的测试集上进行评估。与之相比，我们的方法始终保持零样本，且没有对骨干模型进行微调。我们将我们的方法与多种目标检测方法的基线进行比较，包括基于RNN的方法：BiCond（Augenstein
+    等人 [2016](https://arxiv.org/html/2310.10467v2#bib.bib5)），和ATT-LSTM（Wang 等人 [2016](https://arxiv.org/html/2310.10467v2#bib.bib44)）；基于注意力的方法：CrossNet（Xu
+    等人 [2018](https://arxiv.org/html/2310.10467v2#bib.bib49)）；基于Bert的方法：BERT（Devlin
+    等人 [2018](https://arxiv.org/html/2310.10467v2#bib.bib13)）；基于图的方法：ASGCN（Zhang,
+    Li 和 Song [2019](https://arxiv.org/html/2310.10467v2#bib.bib53)）和TPDG（Liang 等人
+    [2021](https://arxiv.org/html/2310.10467v2#bib.bib27)）。
+- en: For non-LLM approaches, we retrieve results from existing literature for a comprehensive
+    comparison (Allaway and McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2);
+    Allaway, Srikanth, and McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3);
+    Liu et al. [2021](https://arxiv.org/html/2310.10467v2#bib.bib30); Liang et al.
+    [2021](https://arxiv.org/html/2310.10467v2#bib.bib27), [2022a](https://arxiv.org/html/2310.10467v2#bib.bib26);
+    Huang et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib19); Khiabani and
+    Zubiaga [2024](https://arxiv.org/html/2310.10467v2#bib.bib21)).
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于非LLM方法，我们从现有文献中检索结果进行全面比较（Allaway 和 McKeown [2020](https://arxiv.org/html/2310.10467v2#bib.bib2)；Allaway,
+    Srikanth, 和 McKeown [2021](https://arxiv.org/html/2310.10467v2#bib.bib3)；Liu 等人
+    [2021](https://arxiv.org/html/2310.10467v2#bib.bib30)；Liang 等人 [2021](https://arxiv.org/html/2310.10467v2#bib.bib27)，[2022a](https://arxiv.org/html/2310.10467v2#bib.bib26)；Huang
+    等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib19)；Khiabani 和 Zubiaga [2024](https://arxiv.org/html/2310.10467v2#bib.bib21)））。
+- en: Results and Discussions
+  id: totrans-154
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 结果与讨论
+- en: 'In this section, we aim to answer the following research questions (RQs) with
+    the help of experimental results:'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们旨在通过实验结果回答以下研究问题（RQ）。
+- en: 'RQ1: How is the performance of COLA compared with state-of-the-art stance detection
+    models? (Accuracy)'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ1：COLA的性能与现有的最先进立场检测模型相比如何？（准确性）
+- en: 'RQ2: Is every component in our model effective and contributory to performance
+    enhancement? (Effectiveness)'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ2：我们模型中的每个组件是否都对性能提升有效且有贡献？（有效性）
+- en: 'RQ3: Can our model explain the rationale and logic behind its stance determinations?
+    (Explainability)'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ3：我们的模型能否解释其立场判断背后的理由和逻辑？（可解释性）
+- en: 'RQ4: Is our framework adaptable to other text classification tasks related
+    to web and social media content analysis? (Versatility)'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ4：我们的框架是否适用于与网络和社交媒体内容分析相关的其他文本分类任务？（多功能性）
+- en: Overall Performance (RQ1)
+  id: totrans-160
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 总体表现（RQ1）
+- en: In Table [2](https://arxiv.org/html/2310.10467v2#Sx4.T2 "Table 2 ‣ Datasets
+    ‣ Experiments ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents"),
+    we present the zero-shot stance detection performance of COLA across three datasets
+    in comparison to baseline methods. Furthermore, Table [3](https://arxiv.org/html/2310.10467v2#Sx4.T3
+    "Table 3 ‣ Datasets ‣ Experiments ‣ Stance Detection with Collaborative Role-Infused
+    LLM-Based Agents") showcases the results of both our zero-shot COLA and the in-target
+    labeled data dependent baselines on the SEM16 and P-Stance datasets for the in-target
+    stance detection task. Overall results have demonstrated the strong performance
+    of our approach. Specifically, the key findings are enumerated below.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在表[2](https://arxiv.org/html/2310.10467v2#Sx4.T2 "表 2 ‣ 数据集 ‣ 实验 ‣ 基于协作角色注入的LLM代理的立场检测")中，我们展示了COLA在三个数据集上与基准方法相比的零-shot立场检测表现。此外，表[3](https://arxiv.org/html/2310.10467v2#Sx4.T3
+    "表 3 ‣ 数据集 ‣ 实验 ‣ 基于协作角色注入的LLM代理的立场检测")展示了我们零-shot COLA与基于目标标签数据依赖的基准方法在SEM16和P-Stance数据集上的表现，用于目标立场检测任务。总体结果证明了我们方法的强大表现。具体来说，以下是主要发现：
+- en: •
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Our method outperforms the state-of-the-art zero-shot stance detection approaches
+    across all metrics. On most metrics across three datasets, our model demonstrates
+    statistically significant improvements over the best baseline. For the CC and
+    LA targets in the SEM16 dataset, our approach achieves substantial gains over
+    the best baseline, with absolute increases in $F_{avg}$ of 16.9% and 26.6% respectively.
+    On the VAST dataset, which comprises tens of thousands of instances, our model
+    secures a notable absolute boost of 0.7% in the overall Macro-F1 Score. This attests
+    to the robust zero-shot stance detection capabilities of our approach.
+  id: totrans-163
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们的方法在所有指标上都超越了最先进的零-shot立场检测方法。在三个数据集的大多数指标上，我们的模型相较于最佳基准方法表现出了统计学上显著的改进。对于SEM16数据集中的CC和LA目标，我们的方法在$F_{avg}$上分别实现了16.9%和26.6%的绝对提升。在包含数万个实例的VAST数据集上，我们的模型在总体Macro-F1分数上实现了0.7%的显著绝对提升。这证明了我们方法在零-shot立场检测方面的强大能力。
+- en: •
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The performance of our approach matches that of in-target stance detection baselines.
+    The zero-shot stance detection performance of our method is closely aligned with
+    that of the state-of-the-art in-target stance detection techniques, even when
+    they are fully trained on corresponding targets. On the SEM16 dataset, our approach
+    significantly outperforms the best baseline, TPDG, on the HC and CC targets, while
+    maintaining comparable performance on other targets. On the P-Stance dataset,
+    our method consistently outperforms the performance of all baselines across all
+    targets. Remarkably, even though these comparison methods have been extensively
+    trained on their respective targets, our approach still sustains comparable or
+    superior performance, underscoring our method’s strong performance.
+  id: totrans-165
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们方法的表现与目标立场检测基准方法相当。我们方法的零-shot立场检测表现与最先进的目标立场检测技术紧密对齐，即使这些方法在相应目标上已经完全训练过。在SEM16数据集上，我们的方法在HC和CC目标上显著超越了最佳基准方法TPDG，同时在其他目标上的表现相当。在P-Stance数据集上，我们的方法在所有目标上始终超越了所有基准方法的表现。值得注意的是，尽管这些比较方法已经在各自的目标上经过了广泛的训练，我们的方法仍然保持了相当或更优的表现，凸显了我们方法的强大性能。
+- en: •
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Direct application of LLMs may yield poor performance, especially on abstract
+    concept targets. On the SEM16 dataset, for the targets A (Atheism) and CC (Climate
+    Change is a Real Concern), GPT-3.5 achieves only 9.1% and 31.1% in $F_{avg}$ respectively.
+    Even with the enhanced GPT-3.5+COT, the scores are merely 13.3% and 34.0%. Across
+    almost all datasets and metrics, the performance of simply deploying large language
+    models significantly lags behind our proposed method. This underscores the limitations
+    of directly using large language models for stance detection tasks, especially
+    in handling stances towards abstract concept targets, highlighting the necessity
+    and validity of our design.
+  id: totrans-167
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 直接应用大语言模型（LLMs）可能会导致较差的表现，特别是在抽象概念目标上。在 SEM16 数据集上，对于目标 A（无神论）和 CC（气候变化是一个真正的问题），GPT-3.5
+    的 $F_{avg}$ 分别只有 9.1% 和 31.1%。即便是增强版的 GPT-3.5+COT，其得分也仅为 13.3% 和 34.0%。在几乎所有数据集和评估指标上，单纯部署大语言模型的性能明显落后于我们提出的方法。这凸显了直接使用大语言模型进行立场检测任务的局限性，尤其是在处理抽象概念目标的立场时，强调了我们设计的必要性和有效性。
+- en: '| Model | SEM16(%) |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | SEM16(%) |'
+- en: '| --- | --- |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| DT | HC | FM | LA | A | CC |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| DT | HC | FM | LA | A | CC |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| Flan-UL2 | 64.4 | 70.1 | 65.3 | 67.3 | 57.5 | 68.5 |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| Flan-UL2 | 64.4 | 70.1 | 65.3 | 67.3 | 57.5 | 68.5 |'
+- en: '| Flan-UL2 with COLA | 64.9 | 72.3 | 65.7 | 69.8 | 61.6 | 75.1 |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| Flan-UL2 与 COLA | 64.9 | 72.3 | 65.7 | 69.8 | 61.6 | 75.1 |'
+- en: '| ChatGLM-2 6B | 37.9 | 60.2 | 42.0 | 43.2 | 41.0 | 13.7 |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatGLM-2 6B | 37.9 | 60.2 | 42.0 | 43.2 | 41.0 | 13.7 |'
+- en: '| ChatGLM-2 6B with COLA | 45.3 | 60.6 | 55.4 | 43.9 | 43.6 | 37.6 |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatGLM-2 6B 与 COLA | 45.3 | 60.6 | 55.4 | 43.9 | 43.6 | 37.6 |'
+- en: 'Table 4: Performance of COLA when utilizing Flan-UL2 or GhatGLM-2 6B as backbones.'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：使用 Flan-UL2 或 ChatGLM-2 6B 作为主干模型时 COLA 的表现。
+- en: To confirm that our method can enhance stance detection based on LLMs and not
+    just augment the capabilities of the closed-source GPT-3.5 Turbo, we conduct experiments
+    using other LLM backbones. Specifically, we utilized the Flan-UL2 and ChatGLM2-6B
+    models for experiments on the SEM16 dataset. Flan-UL2 demonstrates notable performance
+    in stance detection tasks (Ziems et al. [2023](https://arxiv.org/html/2310.10467v2#bib.bib54)),
+    while ChatGLM2-6B is a more commonly employed model. The results of these experiments
+    are presented in Table [4](https://arxiv.org/html/2310.10467v2#Sx5.T4 "Table 4
+    ‣ Overall Performance (RQ1) ‣ Results and Discussions ‣ Stance Detection with
+    Collaborative Role-Infused LLM-Based Agents").
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证我们的方法能够提升基于大语言模型（LLMs）的立场检测性能，而不仅仅是增强封闭源代码的 GPT-3.5 Turbo 的能力，我们进行了使用其他
+    LLM 主干模型的实验。具体来说，我们利用了 Flan-UL2 和 ChatGLM2-6B 模型在 SEM16 数据集上的实验。Flan-UL2 在立场检测任务中表现出色（Ziems
+    等人 [2023](https://arxiv.org/html/2310.10467v2#bib.bib54)），而 ChatGLM2-6B 是一个更常用的模型。这些实验的结果见表
+    [4](https://arxiv.org/html/2310.10467v2#Sx5.T4 "Table 4 ‣ Overall Performance
+    (RQ1) ‣ Results and Discussions ‣ Stance Detection with Collaborative Role-Infused
+    LLM-Based Agents")。
+- en: It can be observed that the performance of Flan-UL2 surpassed that of GPT-3.5
+    Turbo, while ChatGLM2 6B significantly underperforms in comparison. On the SEM16
+    dataset, regardless of whether the LLM backbone is Flan-UL2 or ChatGLM2-6B, the
+    performance of COLA consistently exceeded that of the LLM backbones. Notably,
+    on the less efficient ChatGLM2-6B, COLA contributes to a more significant performance
+    enhancement, exemplified by a 23.9% absolute increase in $F_{avg}$ on the CC Target
+    and a 13.4% absolute increase in $F_{avg}$ on FM. These experimental results demonstrate
+    that our method can enhance stance detection performance not only for GPT-3.5
+    Turbo but also for other LLMs.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以观察到，Flan-UL2 的表现超过了 GPT-3.5 Turbo，而 ChatGLM2 6B 的表现则明显较差。在 SEM16 数据集上，无论 LLM
+    主干是 Flan-UL2 还是 ChatGLM2-6B，COLA 的表现始终超过了这些 LLM 主干。值得注意的是，在效率较低的 ChatGLM2-6B 上，COLA
+    的性能提升更为显著，表现为 CC 目标的 $F_{avg}$ 绝对提高了 23.9%，FM 目标的 $F_{avg}$ 绝对提高了 13.4%。这些实验结果表明，我们的方法不仅能提升
+    GPT-3.5 Turbo 的立场检测性能，也能增强其他 LLMs 的性能。
+- en: Ablation Study (RQ2)
+  id: totrans-179
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 消融研究 (RQ2)
+- en: To investigate the impacts of each module in our design, we conduct ablation
+    studies to assess the performance of our framework when each module is removed.
+    The results are shown in Table [5](https://arxiv.org/html/2310.10467v2#Sx5.T5
+    "Table 5 ‣ Study on reasoning-enhanced debating stage. ‣ Ablation Study (RQ2)
+    ‣ Results and Discussions ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents"), which demonstrate that every module in our framework contributes to
+    performance enhancement. In the following, we provide a detailed description of
+    the results.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了研究我们设计中每个模块的影响，我们进行了消融实验，评估当每个模块被移除时框架的性能。结果显示在表[5](https://arxiv.org/html/2310.10467v2#Sx5.T5
+    "Table 5 ‣ Study on reasoning-enhanced debating stage. ‣ Ablation Study (RQ2)
+    ‣ Results and Discussions ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents")中，结果表明我们框架中的每个模块都有助于性能的提升。接下来，我们将对结果进行详细描述。
+- en: Study on multidimensional text analysis stage.
+  id: totrans-181
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 多维文本分析阶段的研究。
+- en: During the multidimensional text analysis stage, three expert agents from different
+    domains concurrently analyze the text. We individually remove each of these experts
+    to assess the performance of our approach. We also evaluated the performance when
+    all expert analyses are excluded. The results show that the removal of any expert
+    agent results in a certain degree of performance degradation in all cases except
+    for FM on SEM16 dataset. Moreover, eliminating the entire multidimensional text
+    analysis stage leads to a significant performance drop. The most pronounced performance
+    decline is observed for the LA target on SEM16 dataset. Removing the Linguistic
+    Expert, Domain Specialist, and Social Media Veteran leads to decreases in $F_{avg}$
+    to 68.9%, 67.9%, and 64.1%, respectively. What’s more, without the multidimensional
+    text analysis stage, the $F_{avg}$ drops to a mere 63.8%. This could be attributed
+    to the complexity of the LA topic across various domains such as religions and
+    society. These findings underscore the effectiveness of our multidimensional text
+    analysis stage and the design of each agent therein.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在多维文本分析阶段，来自不同领域的三个专家代理同时分析文本。我们逐一移除这些专家来评估我们方法的性能。同时，我们还评估了在排除所有专家分析时的性能。结果表明，除SEM16数据集上的FM外，移除任何专家代理都会导致性能在所有情况下有所下降。此外，去除整个多维文本分析阶段会导致性能显著下降。在SEM16数据集上，LA目标的性能下降最为明显。移除语言专家、领域专家和社交媒体专家分别导致$F_{avg}$下降到68.9%、67.9%和64.1%。更重要的是，去除多维文本分析阶段后，$F_{avg}$降至仅为63.8%。这可能归因于LA话题在宗教和社会等多个领域中的复杂性。这些发现凸显了我们多维文本分析阶段的有效性以及其中每个代理的设计。
+- en: Study on reasoning-enhanced debating stage.
+  id: totrans-183
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 推理增强辩论阶段的研究。
+- en: In the reasoning-enhanced debating phase, we introduce debates among agents
+    with differing perspectives to augment the reasoning capabilities of our LLM-based
+    system. We remove this stage and let the judger agent directly deduce the text’s
+    stance from the expert agents’ text analysis, aiming to verify the effectiveness
+    of the debating design. Removing the debating stage results in a greater performance
+    loss than removing the text analysis stage. Upon the removal of the debating stage,
+    our method experiences a noticeable performance degradation. The most significant
+    drops are observed for the abstract concept targets LA (Legalization of Abortion),
+    CC (Climate Change is Real Concern) and A (Atheism), with the absolute $F_{avg}$
+    declining by 31.2%, 14.1%, and 11.2%, respectively. This indicates that the reasoning-enhanced
+    debating stage offers substantial benefits, especially when dealing with relatively
+    abstract targets. The results validate the effectiveness of the reasoning-enhanced
+    debating stage design.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在推理增强辩论阶段，我们引入了具有不同观点的代理之间的辩论，以增强基于LLM的系统的推理能力。我们移除了这一阶段，让判断代理直接根据专家代理的文本分析推断文本的立场，旨在验证辩论设计的有效性。去除辩论阶段导致的性能损失大于去除文本分析阶段。当去除辩论阶段时，我们的方法出现了明显的性能下降。最显著的下降出现在抽象概念目标LA（堕胎合法化）、CC（气候变化是真正的关切）和A（无神论），其中$F_{avg}$绝对值分别下降了31.2%、14.1%和11.2%。这表明推理增强辩论阶段提供了显著的收益，特别是在处理相对抽象的目标时。结果验证了推理增强辩论阶段设计的有效性。
+- en: In summary, comprehensive ablation studies have demonstrated the effectiveness
+    of each module in our designed method.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，全面的消融研究已证明了我们设计方法中每个模块的有效性。
+- en: '| Model | SEM16(%) |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | SEM16(%) |'
+- en: '| --- | --- |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| DT | HC | FM | LA | A | CC |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| DT | HC | FM | LA | A | CC |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| COLA | 68.5 | 81.7 | 63.4 | 71.0 | 70.8 | 67.5 |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| COLA | 68.5 | 81.7 | 63.4 | 71.0 | 70.8 | 67.5 |'
+- en: '| w/o Liguisitic Expert | 64.3 | 80.5 | 63.3 | 68.9 | 69.9 | 65.5 |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无语言学专家 | 64.3 | 80.5 | 63.3 | 68.9 | 69.9 | 65.5 |'
+- en: '| w/o Domain Specialist | 66.5 | 79.2 | 64.4 | 67.9 | 70.7 | 65.4 |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无领域专家 | 66.5 | 79.2 | 64.4 | 67.9 | 70.7 | 65.4 |'
+- en: '| w/o Social Media Veteran | 64.8 | 76.8 | 64.5 | 64.1 | 67.7 | 63.5 |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无社交媒体资深者 | 64.8 | 76.8 | 64.5 | 64.1 | 67.7 | 63.5 |'
+- en: '| w/o Text Analysis Stage | 64.4 | 77.2 | 65.7 | 63.8 | 67.0 | 62.3 |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无文本分析阶段 | 64.4 | 77.2 | 65.7 | 63.8 | 67.0 | 62.3 |'
+- en: '| w/o Debating Stage | 64.7 | 74.9 | 62.5 | 39.2 | 59.6 | 53.4 |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无辩论阶段 | 64.7 | 74.9 | 62.5 | 39.2 | 59.6 | 53.4 |'
+- en: 'Table 5: Experimental results of ablation study.'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：消融研究的实验结果。
+- en: 'Figure 3: Cases of explainations generated by our approach.'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：我们方法生成的解释案例。
+- en: '| Method | SEM16(%) |'
+  id: totrans-198
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | SEM16(%) |'
+- en: '| --- | --- |'
+  id: totrans-199
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| DT | HC | FM | LA | A | CC |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| DT | HC | FM | LA | A | CC |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| GPT-3.5 | 69.0 | 74.0 | 59.1 | 52.0 | 8.1 | 24.7 |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 | 69.0 | 74.0 | 59.1 | 52.0 | 8.1 | 24.7 |'
+- en: '| COLA | 71.2 | 75.9 | 69.1 | 71.0 | 62.3 | 64.0 |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '| COLA | 71.2 | 75.9 | 69.1 | 71.0 | 62.3 | 64.0 |'
+- en: '| GPT-3.5+COLA’s Explainations | 69.4 | 77.7 | 70.7 | 66.7 | 61.9 | 54.5 |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5+COLA的解释 | 69.4 | 77.7 | 70.7 | 66.7 | 61.9 | 54.5 |'
+- en: 'Table 6: Performance of GPT-3.5 Turbo, COLA and GPT-3.5 Turbo with explainations
+    generated by COLA. Experiments are conducted on the whole SEM16 dataset. Best
+    scores are in bold.'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6：GPT-3.5 Turbo、COLA和使用COLA生成解释的GPT-3.5 Turbo的表现。实验在整个SEM16数据集上进行。最佳得分用**粗体**表示。
+- en: '| Category | Model | Restaurant14(%) | Laptop(%) | Restaurant15(%) |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类别 | 模型 | Restaurant14(%) | Laptop(%) | Restaurant15(%) |'
+- en: '| Accuracy | Macro-F1 | Accuracy | Macro-F1 | Accuracy | Macro-F1 |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| 准确率 | Macro-F1 | 准确率 | Macro-F1 | 准确率 | Macro-F1 |'
+- en: '| Labeled Data | DGEDT | 86.3 | 80.0 | 79.8 | 75.6 | 84.0 | 71.0 |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| 标注数据 | DGEDT | 86.3 | 80.0 | 79.8 | 75.6 | 84.0 | 71.0 |'
+- en: '| Dependent Methods | dotGCN | 86.2 | 80.5 | 81.0 | 78.1 | 85.2 | 72.7 |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| 依赖方法 | dotGCN | 86.2 | 80.5 | 81.0 | 78.1 | 85.2 | 72.7 |'
+- en: '| Zero-shot Methods | GPT-3.5 Turbo | 70.6 | 59.7 | 85.0 | 66.7 | 84.0 | 62.4
+    |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '| 零-shot方法 | GPT-3.5 Turbo | 70.6 | 59.7 | 85.0 | 66.7 | 84.0 | 62.4 |'
+- en: '| Ours | 74.1 | 65.7 | 87.0 | 67.5 | 90.5 | 64.3 |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 | 74.1 | 65.7 | 87.0 | 67.5 | 90.5 | 64.3 |'
+- en: 'Table 7: Performance of our framework and baselines on aspect-based sentiment
+    analysis. Best scores are in bold.'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7：我们框架和基线模型在基于方面的情感分析任务上的表现。最佳得分用**粗体**表示。
+- en: '| Model | Accuracy(%) | F1-Score(%) |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 准确率(%) | F1-Score(%) |'
+- en: '| --- | --- | --- |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Hybrid RCNN | 74.8 | 59.6 |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '| 混合RCNN | 74.8 | 59.6 |'
+- en: '| GPT-3.5 Turbo | 67.6 | 56.0 |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 Turbo | 67.6 | 56.0 |'
+- en: '| Ours | 76.5 | 63.9 |'
+  id: totrans-217
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 | 76.5 | 63.9 |'
+- en: 'Table 8: Performance of our framework and baselines on persuasion prediction.
+    Best scores are in bold.'
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 8：我们框架和基线模型在说服预测任务上的表现。最佳得分用**粗体**表示。
+- en: Study on Explainablity (RQ3)
+  id: totrans-219
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 可解释性研究 (RQ3)
+- en: An explainable artificial intelligence (XAI) is one that offers clear insights
+    or justifications to make its decisions comprehensible (Arrieta et al. [2020](https://arxiv.org/html/2310.10467v2#bib.bib4)).
+    By elucidating its decision-making processes, an XAI augments transparency and
+    reinforces model trustability (Das and Rad [2020](https://arxiv.org/html/2310.10467v2#bib.bib12)).
+    Large language models inherently possess the capability to explain their outputs.
+    By prompting them about the rationale behind their decisions, we can obtain explanations
+    for their determinations directly. To delve deeper into the explainablility of
+    our approach, we conduct both case studies and quantitative experiments to verify
+    its ability to generate clear and reasonable explanations.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可解释的人工智能（XAI）是一种能够提供清晰见解或解释的人工智能，使其决策过程易于理解（Arrieta等人，[2020](https://arxiv.org/html/2310.10467v2#bib.bib4)）。通过阐明其决策过程，XAI增强了透明度并增强了模型的可信度（Das和Rad，[2020](https://arxiv.org/html/2310.10467v2#bib.bib12)）。大型语言模型本身具有解释其输出的能力。通过询问它们决策背后的理由，我们可以直接获得它们的判断解释。为了深入探讨我们方法的可解释性，我们进行案例研究和定量实验，以验证其生成清晰且合理解释的能力。
+- en: Case Studies.
+  id: totrans-221
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 案例研究。
+- en: 'During the stance conclusion stage, we mandate the judger agent to provide
+    outputs in a JSON format, consisting of two components: the stance and a concise
+    explanation not exceeding 100 tokens. We conduct our experiments on the SEM16
+    dataset. After closely examining the generated outputs, we find that our model
+    can provide clear explanations for its decisions. In Figure [3](https://arxiv.org/html/2310.10467v2#Sx5.F3
+    "Figure 3 ‣ Study on reasoning-enhanced debating stage. ‣ Ablation Study (RQ2)
+    ‣ Results and Discussions ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents"), we show two cases to illustrate, which are discussed as follows:'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在立场结论阶段，我们要求判断者代理以 JSON 格式提供输出，包含两个组件：立场和不超过 100 个标记的简明解释。我们在 SEM16 数据集上进行实验。在仔细检查生成的输出后，我们发现我们的模型能够为其决策提供清晰的解释。在图
+    [3](https://arxiv.org/html/2310.10467v2#Sx5.F3 "Figure 3 ‣ Study on reasoning-enhanced
+    debating stage. ‣ Ablation Study (RQ2) ‣ Results and Discussions ‣ Stance Detection
+    with Collaborative Role-Infused LLM-Based Agents") 中，我们展示了两个案例并做了如下讨论：
+- en: •
+  id: totrans-223
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'In the first case, the tweet “The ruling by @Scotus is a major setback for
+    @EPA & the environment. #dirtycoal” agrees that climate change is a real concern.
+    Our model detects this stance. In its generated explanation, the model discerns
+    the mention of the EPA and the usage of the #dirtycoal tag, indicating an environmental
+    concern. Moreover, the model perceives an emotional tone of frustration, further
+    reflecting a pro-environmental perspective.'
+  id: totrans-224
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '在第一个例子中，推文“@Scotus 的裁决是对 @EPA 和环境的重大打击。#dirtycoal”表示气候变化是一个现实的担忧。我们的模型检测到了这一立场。在它生成的解释中，模型辨认出提到
+    EPA 和使用了 #dirtycoal 标签，这表明了对环境的关注。此外，模型还感知到一种沮丧的情感语气，进一步反映了亲环境的立场。'
+- en: •
+  id: totrans-225
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'In the second case, the tweet “@GovtsTheProblem This is what I see: Make way
+    4 ur queen peasants! Don’t touch or talk 2 her U filth! #NoHillary2016 #Benghazi”
+    portrays an opposing stance toward Hillary. Our model rationally explains its
+    judgment from a linguistic perspective (utilization of derogatory language), a
+    domain-specialist perspective (mentioning the Benghazi incident in a negative
+    context), and a social media lens (the hashtag #NoHillary2016). These cases validate
+    the model’s proficiency in generating clear and reasonable explanations.'
+  id: totrans-226
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '在第二个例子中，推文“@GovtsTheProblem 这是我看到的：给你们的王后腾路！不要碰她，也不要跟她说话，你们这些脏人！#NoHillary2016
+    #Benghazi”表现出对希拉里的反对立场。我们的模型从语言学角度（使用贬义词）、领域专家角度（将班加西事件置于负面语境中）以及社交媒体角度（#NoHillary2016
+    标签）理性地解释了这一判断。这些例子验证了模型在生成清晰合理解释方面的能力。'
+- en: Quantitative Experiments.
+  id: totrans-227
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 定量实验。
+- en: To further validate our model’s ability to produce clear and logical explanations,
+    we conduct quantitative experiments. For the SEM16 dataset, we collect explanations
+    (from the second part of the JSON output) related to each instance’s stance generated
+    by COLA. These explanations, along with the original text, are fed into the GPT-3.5
+    Turbo model. We inform the model that these explanations could be used as references
+    for its decisions. As a result, we obtain a new set of judgments from the model.
+    It’s evident that the performance of GPT-3.5 Turbo significantly improves by incorporating
+    explanations generated by COLA in addition to the original texts, as presented
+    in Table [6](https://arxiv.org/html/2310.10467v2#Sx5.T6 "Table 6 ‣ Study on reasoning-enhanced
+    debating stage. ‣ Ablation Study (RQ2) ‣ Results and Discussions ‣ Stance Detection
+    with Collaborative Role-Infused LLM-Based Agents"). Note that we do experiments
+    on the whole SEM16 dataset here, rather than the test set, to enhance the credibility
+    of the results. There is a noticeable increase for the A(Atheism) and CC(Climate
+    Change is Real Concern) targets, with $F_{avg}$ improving by 51.6 and 29.3 points,
+    respectively. For the HC(Hillary Clinton) and FM(Feminist Movement) targets, the
+    results even exceed that of COLA. This further confirms our model’s strong ability
+    in generating clear and logical explanations.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进一步验证我们模型生成清晰且合逻辑的解释的能力，我们进行定量实验。在SEM16数据集上，我们收集了与每个实例立场相关的解释（来自JSON输出的第二部分），这些解释由COLA生成。然后将这些解释与原文一起输入到GPT-3.5
+    Turbo模型中。我们告知模型，这些解释可以作为其决策的参考。结果，我们从模型中获得了一组新的判断。显然，通过将COLA生成的解释与原文结合使用，GPT-3.5
+    Turbo的表现显著提高，如表[6](https://arxiv.org/html/2310.10467v2#Sx5.T6 "Table 6 ‣ Study
+    on reasoning-enhanced debating stage. ‣ Ablation Study (RQ2) ‣ Results and Discussions
+    ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents")所示。请注意，我们在这里对整个SEM16数据集进行了实验，而不是仅限于测试集，以增强结果的可信度。对于A（无神论）和CC（气候变化是一个真实的关注问题）目标，$F_{avg}$分别提高了51.6和29.3点。对于HC（希拉里·克林顿）和FM（女权运动）目标，结果甚至超过了COLA。这进一步验证了我们模型在生成清晰且合逻辑的解释方面的强大能力。
+- en: Overall, both case studies and quantitative experiments have demonstrated the
+    high explainability of our method. Its high explainability and accuracy make it
+    a trustworthy approach.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，案例研究和定量实验均已证明我们方法的高可解释性。其高可解释性和准确性使其成为一种值得信赖的方法。
+- en: Study on Versatility (RQ4)
+  id: totrans-230
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 多功能性研究（RQ4）
+- en: 'Our proposed COLA can be summarized as an Analyst-Debater-Summarizer framework.
+    In this section, we conduct experiments to validate that the Analyst-Debater-Summarizer
+    framework can be applied to other text classification tasks for text analysis
+    on web and social media, not just as an ad-hoc approach for stance detection.
+    We perform experiments on two additional text classification tasks: aspect-based
+    sentiment analysis and persuasion prediction. We select aspect-based sentiment
+    analysis because it demands precise understanding of sentiments tied to specific
+    elements in text, reflecting the detailed analysis capability of our framework.
+    Meanwhile, persuasion prediction is chosen due to its emphasis on detecting underlying
+    intent, highlighting COLA’s ability to adeptly handle intricate conversational
+    dynamics commonly seen in web and social media exchanges.'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出的COLA可以总结为一个分析师-辩论者-总结者框架。在这一部分，我们进行实验以验证该分析师-辩论者-总结者框架可以应用于其他文本分类任务，以进行网络和社交媒体上的文本分析，而不仅仅是作为立场检测的临时方法。我们在两个额外的文本分类任务上进行实验：基于方面的情感分析和说服力预测。我们选择基于方面的情感分析，因为它要求精确理解与文本中特定元素相关的情感，反映了我们框架的详细分析能力。同时，选择说服力预测是因为它强调检测潜在意图，突显了COLA在处理网络和社交媒体交流中常见的复杂对话动态方面的能力。
+- en: Aspect-based Sentiment Analysis
+  id: totrans-232
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 基于方面的情感分析
+- en: •
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Experimental Setup: Aspect-based sentiment analysis is to determine the sentiment
+    polarity (Positive, Negative, or Neutral) expressed towards each aspect mentioned
+    in the text  (Pontiki et al. [2014](https://arxiv.org/html/2310.10467v2#bib.bib37)).
+    In this task, we modify the debater component in our original framework to engage
+    in sentiment debates instead of stance debates, while keeping other design unchanged.
+    We evaluate our approach’s performance on the Restaurant14, Restaurant 15, and
+    Laptop datasets from SemEval14 (Pontiki et al. [2014](https://arxiv.org/html/2310.10467v2#bib.bib37))
+    and SemEval15 (Pontiki et al. [2016](https://arxiv.org/html/2310.10467v2#bib.bib36)).
+    We follow Chen et al. ([2017](https://arxiv.org/html/2310.10467v2#bib.bib11))
+    and use Accuracy and Macro-F1 score as evaluation metrics. We compare our approach
+    with state-of-the-art models that require training, namely DGEDT (Tang et al.
+    [2020](https://arxiv.org/html/2310.10467v2#bib.bib41)) and dotGCN (Chen et al.
+    [2022](https://arxiv.org/html/2310.10467v2#bib.bib10)).'
+  id: totrans-234
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 实验设置：基于方面的情感分析是指确定文本中提到的每个方面所表达的情感极性（积极、消极或中立）（Pontiki等人 [2014](https://arxiv.org/html/2310.10467v2#bib.bib37)）。在此任务中，我们修改了原始框架中的辩手组件，使其进行情感辩论，而不是立场辩论，同时保持其他设计不变。我们在SemEval14（Pontiki等人
+    [2014](https://arxiv.org/html/2310.10467v2#bib.bib37)）和SemEval15（Pontiki等人 [2016](https://arxiv.org/html/2310.10467v2#bib.bib36)）的数据集上评估我们方法的表现，数据集包括Restaurant14、Restaurant15和Laptop。我们参考Chen等人([2017](https://arxiv.org/html/2310.10467v2#bib.bib11))的方法，使用准确率和宏观F1值作为评估指标。我们将我们的方法与需要训练的最新模型进行比较，具体为DGEDT（Tang等人
+    [2020](https://arxiv.org/html/2310.10467v2#bib.bib41)）和dotGCN（Chen等人 [2022](https://arxiv.org/html/2310.10467v2#bib.bib10)）。
+- en: •
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Results: The experimental results are presented in Table [7](https://arxiv.org/html/2310.10467v2#Sx5.T7
+    "Table 7 ‣ Study on reasoning-enhanced debating stage. ‣ Ablation Study (RQ2)
+    ‣ Results and Discussions ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents"). It can be observed that our zero-shot method performs comparably to
+    the best baseline models that rely on labeled data. On the Restaurant15 dataset,
+    our approach even outperforms the top baseline on Accuracy. Another crucial finding
+    is that our approach consistently outperforms directly applying GPT-3.5 Turbo
+    while maintaining ease of use.'
+  id: totrans-236
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 结果：实验结果见表[7](https://arxiv.org/html/2310.10467v2#Sx5.T7 "Table 7 ‣ Study on
+    reasoning-enhanced debating stage. ‣ Ablation Study (RQ2) ‣ Results and Discussions
+    ‣ Stance Detection with Collaborative Role-Infused LLM-Based Agents")。可以观察到，我们的零-shot方法在性能上与依赖标注数据的最佳基线模型相当。在Restaurant15数据集上，我们的方法甚至在准确率上超越了最佳基线模型。另一个重要的发现是，我们的方法在保持易用性的同时，始终优于直接使用GPT-3.5
+    Turbo。
+- en: Persuasion Prediction
+  id: totrans-237
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 说服预测
+- en: •
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Experimental Setup: Following Ziems et al. ([2023](https://arxiv.org/html/2310.10467v2#bib.bib54)),
+    we define persuasion prediction as determining whether one party in a conversation
+    is persuaded after the conversation ends. In this task, we replace the three experts
+    in our original framework with two experts: a domain expert and a psychologist.
+    They provide detailed analyses of various concepts and nouns in the conversation
+    topics and analyze the psychological changes of the individuals involved. The
+    debaters are modified to argue for whether a participant in the conversation has
+    been persuaded. We use the dataset provided by Wang et al.([2019](https://arxiv.org/html/2310.10467v2#bib.bib43))
+    and follow their evaluation metrics, using Accuracy and Macro-F1.'
+  id: totrans-239
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 实验设置：根据Ziems等人([2023](https://arxiv.org/html/2310.10467v2#bib.bib54))的研究，我们将说服预测定义为在对话结束后，判断对话中的一方是否已被说服。在此任务中，我们将原始框架中的三位专家替换为两位专家：一位领域专家和一位心理学家。他们提供了关于对话主题中各种概念和名词的详细分析，并分析了参与者的心理变化。辩手们的角色被修改为讨论对话中的某个参与者是否已被说服。我们使用Wang等人([2019](https://arxiv.org/html/2310.10467v2#bib.bib43))提供的数据集，并按照他们的评估指标，使用准确率和宏观F1值进行评估。
+- en: •
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Results: We compare our approach with Hybrid RCNN (Wang et al. [2019](https://arxiv.org/html/2310.10467v2#bib.bib43))
+    and GPT-3.5 Turbo, and the results are presented in Table [8](https://arxiv.org/html/2310.10467v2#Sx5.T8
+    "Table 8 ‣ Study on reasoning-enhanced debating stage. ‣ Ablation Study (RQ2)
+    ‣ Results and Discussions ‣ Stance Detection with Collaborative Role-Infused LLM-Based
+    Agents"). The experimental results show that our approach achieves better performance
+    compared to the baseline and a significant improvement over GPT-3.5 Turbo.'
+  id: totrans-241
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 结果：我们将我们的方法与Hybrid RCNN（Wang等人 [2019](https://arxiv.org/html/2310.10467v2#bib.bib43)）和GPT-3.5
+    Turbo进行了比较，结果见表[8](https://arxiv.org/html/2310.10467v2#Sx5.T8 "表8 ‣ 推理增强辩论阶段研究
+    ‣ 消融研究 (RQ2) ‣ 结果与讨论 ‣ 基于协作角色注入LLM的立场检测")。实验结果表明，我们的方法在性能上优于基线，并且相较于GPT-3.5 Turbo有显著的提升。
+- en: The Analyst-Debater-Summarizer framework has proven to be highly successful
+    in both aspect-based sentiment analysis and persuasion classification tasks. On
+    a series of tasks, our zero-shot framework performs on par with state-of-the-art
+    baselines that rely on training data and significantly outperforms direct application
+    of GPT-3.5 Turbo. These experiments demonstrate the versatility of our approach.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Analyst-Debater-Summarizer框架在基于方面的情感分析和劝说分类任务中表现非常成功。在一系列任务中，我们的零-shot框架的表现与依赖训练数据的最先进基准相当，并且显著优于直接应用GPT-3.5
+    Turbo。这些实验展示了我们方法的多功能性。
+- en: Discussions
+  id: totrans-243
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'In the aforementioned experiment, we extensively evaluate the performance of
+    our approach across various dimensions, which are listed as follows:'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上述实验中，我们从多个维度广泛评估了我们方法的性能，具体如下：
+- en: •
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: First, from the perspective of our method’s design rationale, the ablation study
+    confirms that every component in our approach contributes to a performance boost,
+    indicating that the design is free of redundancy and can be considered efficacious.
+  id: totrans-246
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 首先，从我们方法设计的原理角度来看，消融研究确认我们方法中的每个组件都有助于性能提升，表明该设计没有冗余，可以视为有效。
+- en: •
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Second, in comparison with existing methods, experimental evidence shows that
+    our approach outperforms all other zero-shot methods on stance detection. Furthermore,
+    its performance is on par with in-target stance detection methods that rely on
+    in-target labeled data, exhibiting impressive accuracy.
+  id: totrans-248
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 其次，与现有方法相比，实验数据显示，我们的方法在立场检测方面优于所有其他零-shot方法。此外，其性能与依赖目标标签数据的目标立场检测方法相当，表现出令人印象深刻的准确性。
+- en: •
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: In addition, for two other text classification tasks related to web and social
+    media content analysis, our method achieves results comparable to state-of-the-art
+    baselines, underscoring its versatility.
+  id: totrans-250
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 此外，对于与网页和社交媒体内容分析相关的另外两个文本分类任务，我们的方法取得了与最先进基准相当的结果，突显了其多功能性。
+- en: •
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: What’s more, from a practical application standpoint, our method does not require
+    additional training for the model. Instead, it can be implemented by interacting
+    with existing large language models through APIs or other means, showcasing its
+    strong usability.
+  id: totrans-252
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 更重要的是，从实际应用角度来看，我们的方法无需额外的模型训练。相反，可以通过与现有的大型语言模型通过API或其他方式交互来实现，展示了其强大的可用性。
+- en: •
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Finally, the experiments also prove that our framework can provide clear and
+    rational explanations for its decisions, ensuring a high degree of explainability.
+    Such generated explanations can bolster users’ trust in our approach and are conducive
+    to further analysis.
+  id: totrans-254
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 最后，实验还证明，我们的框架能够为其决策提供清晰且合理的解释，确保了较高的可解释性。这些生成的解释有助于增强用户对我们方法的信任，并有利于进一步的分析。
+- en: Given these advantages, our method promises a broad range of applications.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于这些优势，我们的方法有望应用于广泛的领域。
+- en: Conclusion and Future Work
+  id: totrans-256
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 结论与未来工作
+- en: 'In this work, we harness the strong capabilities of LLMs for advanced stance
+    detection. We propose COLA, where multiple LLM-based agents collaborate to reach
+    an conclusion. This method encompasses three stages: the multidimensional text
+    analysis stage, the reasoning-enhanced debating stage, and the stance conclusion
+    stage. Experimental results demonstrate that our approach achieves high accuracy,
+    effectiveness, explainability, and versatility, showcasing its significant applicability.'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本研究中，我们利用LLM的强大能力进行高级立场检测。我们提出了COLA，其中多个基于LLM的代理合作达成结论。该方法包括三个阶段：多维文本分析阶段、推理增强辩论阶段和立场结论阶段。实验结果表明，我们的方法在准确性、有效性、可解释性和多功能性方面均取得了优异的成绩，展示了其显著的应用潜力。
+- en: Due to the absence of real-time training data for large language models, the
+    performance in analyzing real-time topics might be slightly compromised. For future
+    work, we intend to incorporate a real-time updating knowledge base into the text
+    analysis stage to enhance our framework’s capability to analyze texts that include
+    current events. We plan to first retrieve relevant information from the real-time
+    knowledge base, and then have the LLMs use this information to generate analytical
+    texts. Furthermore, there remains vast potential for exploring its implementation
+    in addressing extensive text analysis tasks on web and social media.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于缺乏用于大规模语言模型的实时训练数据，在分析实时话题时的表现可能会略有妥协。对于未来的工作，我们打算将实时更新的知识库纳入文本分析阶段，以增强我们框架在分析包含时事的文本方面的能力。我们计划首先从实时知识库中检索相关信息，然后让大规模语言模型（LLMs）利用这些信息生成分析性文本。此外，仍然有巨大的潜力可以探索其在解决网络和社交媒体上广泛文本分析任务中的应用。
+- en: Ethics Statement
+  id: totrans-259
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 伦理声明
+- en: All the datasets that we utilize for this research are open-access datasets.
+    The VAST dataset provides full text data directly. In accordance with Twitter’s
+    privacy agreement for academic purposes, the SEM16 and P-Stance datasets are accessed
+    using the official Twitter API⁴⁴4https://developer.twitter.com/en/docs/twitter-api
+    to retrieve complete text data based on Tweet IDs. The datasets do not include
+    any personally identifiable information, but they might include offensive content
+    as the text expresses strong opinions on subjects like religion, politics, climate,
+    etc. We consistently comply with the respective licenses’ requirements when utilizing
+    all the datasets referenced in the paper. We use the GPT-3.5 Turbo API service
+    provided by OpenAI, with adherence to OpenAI’s terms and policies.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们用于本研究的所有数据集都是开放访问的数据集。VAST数据集直接提供完整的文本数据。根据Twitter的隐私协议用于学术目的，SEM16和P-Stance数据集通过官方Twitter
+    API⁴⁴4https://developer.twitter.com/en/docs/twitter-api获取完整的文本数据，基于Tweet ID。数据集不包含任何可识别个人身份的信息，但可能包含冒犯性内容，因为文本表达了关于宗教、政治、气候等敏感话题的强烈意见。在使用论文中引用的所有数据集时，我们始终遵守各自许可证的要求。我们使用由OpenAI提供的GPT-3.5
+    Turbo API服务，并遵守OpenAI的条款和政策。
+- en: In our primary experiments, we employed GPT-3.5 Turbo as the backbone. While
+    the use of closed-source LLMs entails significant financial costs, our framework
+    has demonstrated improved stance detection performance with open-source LLMs as
+    well. It is important to acknowledge that running LLMs requires substantial energy,
+    a common issue for all algorithms based on LLMs. We look forward to advancements
+    in energy-efficient hardware technologies that could alleviate this concern.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的主要实验中，我们使用了GPT-3.5 Turbo作为核心框架。虽然使用闭源的大规模语言模型（LLMs）涉及较大的财务成本，但我们的框架在使用开源LLMs时也展示了改进的立场检测性能。需要注意的是，运行LLMs需要大量的能源，这是所有基于LLMs的算法的共同问题。我们期待能有节能硬件技术的进步，缓解这一问题。
+- en: Regarding potential misuse, we recognize that our technology, like many others,
+    carries the risk of being exploited for unethical purposes, such as such as for
+    silencing critics or identifying and targeting dissenting voices on social media
+    by certain entities. We urge users of our technology to commit to responsible
+    and ethical usage. It is crucial to balance technological advancement with a conscientious
+    approach to mitigate risks, especially in areas like stance detection that intersect
+    with sensitive societal and political domains.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于潜在的滥用问题，我们认识到我们的技术，像许多其他技术一样，存在被某些实体用于不道德目的的风险，例如用于压制批评声音或识别并在社交媒体上针对异见者。我们敦促我们的技术用户承诺负责任和道德的使用。平衡技术进步与有意识的方法来减少风险至关重要，尤其是在立场检测等与敏感社会和政治领域交叉的领域。
+- en: Acknowledgements
+  id: totrans-263
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 致谢
+- en: This work is supported by the National Science Foundation of China under U23B2030,
+    62272262 and 72342032.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本工作得到了中国国家自然科学基金的支持，项目号：U23B2030，62272262和72342032。
+- en: References
+  id: totrans-265
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'AlDayel and Magdy (2021) AlDayel, A.; and Magdy, W. 2021. Stance detection
+    on social media: State of the art and trends. *Information Processing & Management*,
+    58(4): 102597.'
+  id: totrans-266
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'AlDayel和Magdy（2021）AlDayel, A.; 和 Magdy, W. 2021. 社交媒体上的立场检测：现状与趋势。*Information
+    Processing & Management*, 58(4): 102597。'
+- en: 'Allaway and McKeown (2020) Allaway, E.; and McKeown, K. 2020. Zero-shot stance
+    detection: A dataset and model using generalized topic representations. *arXiv
+    preprint arXiv:2010.03640*.'
+  id: totrans-267
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Allaway和McKeown（2020）Allaway, E.; 和 McKeown, K. 2020. 零-shot立场检测：使用广义话题表示的数据集和模型。*arXiv预印本arXiv:2010.03640*。
+- en: Allaway, Srikanth, and McKeown (2021) Allaway, E.; Srikanth, M.; and McKeown,
+    K. 2021. Adversarial learning for zero-shot stance detection on social media.
+    *arXiv preprint arXiv:2105.06603*.
+  id: totrans-268
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Allaway, Srikanth 和 McKeown (2021) Allaway, E.; Srikanth, M.; 和 McKeown, K.
+    2021. 面向社交媒体的零样本立场检测的对抗学习。*arXiv 预印本 arXiv:2105.06603*。
+- en: 'Arrieta et al. (2020) Arrieta, A. B.; Díaz-Rodríguez, N.; Del Ser, J.; Bennetot,
+    A.; Tabik, S.; Barbado, A.; García, S.; Gil-López, S.; Molina, D.; Benjamins,
+    R.; et al. 2020. Explainable Artificial Intelligence (XAI): Concepts, taxonomies,
+    opportunities and challenges toward responsible AI. *Information fusion*, 58:
+    82–115.'
+  id: totrans-269
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Arrieta 等人 (2020) Arrieta, A. B.; Díaz-Rodríguez, N.; Del Ser, J.; Bennetot,
+    A.; Tabik, S.; Barbado, A.; García, S.; Gil-López, S.; Molina, D.; Benjamins,
+    R.; 等人 2020. 可解释人工智能 (XAI)：概念、分类、机会与挑战，迈向负责任的人工智能。*信息融合*，58: 82–115。'
+- en: Augenstein et al. (2016) Augenstein, I.; Rocktäschel, T.; Vlachos, A.; and Bontcheva,
+    K. 2016. Stance detection with bidirectional conditional encoding. *arXiv preprint
+    arXiv:1606.05464*.
+  id: totrans-270
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Augenstein 等人 (2016) Augenstein, I.; Rocktäschel, T.; Vlachos, A.; 和 Bontcheva,
+    K. 2016. 基于双向条件编码的立场检测。*arXiv 预印本 arXiv:1606.05464*。
+- en: 'Bar-Haim et al. (2017) Bar-Haim, R.; Bhattacharya, I.; Dinuzzo, F.; Saha, A.;
+    and Slonim, N. 2017. Stance classification of context-dependent claims. In *Proceedings
+    of the 15th Conference of the European Chapter of the Association for Computational
+    Linguistics: Volume 1, Long Papers*, 251–261.'
+  id: totrans-271
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bar-Haim 等人 (2017) Bar-Haim, R.; Bhattacharya, I.; Dinuzzo, F.; Saha, A.; 和
+    Slonim, N. 2017. 上下文相关声明的立场分类。在 *第15届欧洲计算语言学协会年会论文集：第1卷，长篇论文*，251–261。
+- en: 'Brown et al. (2020) Brown, T.; Mann, B.; Ryder, N.; Subbiah, M.; Kaplan, J. D.;
+    Dhariwal, P.; Neelakantan, A.; Shyam, P.; Sastry, G.; Askell, A.; et al. 2020.
+    Language models are few-shot learners. *Advances in neural information processing
+    systems*, 33: 1877–1901.'
+  id: totrans-272
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Brown 等人 (2020) Brown, T.; Mann, B.; Ryder, N.; Subbiah, M.; Kaplan, J. D.;
+    Dhariwal, P.; Neelakantan, A.; Shyam, P.; Sastry, G.; Askell, A.; 等人 2020. 语言模型是少样本学习者。*神经信息处理系统进展*，33:
+    1877–1901。'
+- en: Cai et al. (2023) Cai, T.; Wang, X.; Ma, T.; Chen, X.; and Zhou, D. 2023. Large
+    language models as tool makers. *arXiv preprint arXiv:2305.17126*.
+  id: totrans-273
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cai 等人 (2023) Cai, T.; Wang, X.; Ma, T.; Chen, X.; 和 Zhou, D. 2023. 大型语言模型作为工具制造者。*arXiv
+    预印本 arXiv:2305.17126*。
+- en: 'Chan et al. (2023) Chan, C.-M.; Chen, W.; Su, Y.; Yu, J.; Xue, W.; Zhang, S.;
+    Fu, J.; and Liu, Z. 2023. ChatEval: Towards Better LLM-based Evaluators through
+    Multi-Agent Debate. *arXiv preprint arXiv:2308.07201*.'
+  id: totrans-274
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chan 等人 (2023) Chan, C.-M.; Chen, W.; Su, Y.; Yu, J.; Xue, W.; Zhang, S.; Fu,
+    J.; 和 Liu, Z. 2023. ChatEval: 通过多代理辩论促进更好的基于大型语言模型的评估器。*arXiv 预印本 arXiv:2308.07201*。'
+- en: 'Chen et al. (2022) Chen, C.; Teng, Z.; Wang, Z.; and Zhang, Y. 2022. Discrete
+    opinion tree induction for aspect-based sentiment analysis. In *Proceedings of
+    the 60th Annual Meeting of the Association for Computational Linguistics (Volume
+    1: Long Papers)*, 2051–2064.'
+  id: totrans-275
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人 (2022) Chen, C.; Teng, Z.; Wang, Z.; 和 Zhang, Y. 2022. 基于方面的情感分析中的离散意见树归纳。在
+    *第60届计算语言学协会年会论文集（第1卷：长篇论文）*，2051–2064。
+- en: Chen et al. (2017) Chen, P.; Sun, Z.; Bing, L.; and Yang, W. 2017. Recurrent
+    attention network on memory for aspect sentiment analysis. In *Proceedings of
+    the 2017 conference on empirical methods in natural language processing*, 452–461.
+  id: totrans-276
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人 (2017) Chen, P.; Sun, Z.; Bing, L.; 和 Yang, W. 2017. 基于记忆的方面情感分析的递归注意力网络。在
+    *2017年自然语言处理经验方法会议论文集*，452–461。
+- en: 'Das and Rad (2020) Das, A.; and Rad, P. 2020. Opportunities and challenges
+    in explainable artificial intelligence (xai): A survey. *arXiv preprint arXiv:2006.11371*.'
+  id: totrans-277
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Das 和 Rad (2020) Das, A.; 和 Rad, P. 2020. 可解释人工智能 (XAI) 的机会与挑战：一项调查。*arXiv 预印本
+    arXiv:2006.11371*。
+- en: 'Devlin et al. (2018) Devlin, J.; Chang, M.-W.; Lee, K.; and Toutanova, K. 2018.
+    Bert: Pre-training of deep bidirectional transformers for language understanding.
+    *arXiv preprint arXiv:1810.04805*.'
+  id: totrans-278
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Devlin 等人 (2018) Devlin, J.; Chang, M.-W.; Lee, K.; 和 Toutanova, K. 2018. Bert:
+    语言理解的深度双向转换器预训练。*arXiv 预印本 arXiv:1810.04805*。'
+- en: Du et al. (2023) Du, Y.; Li, S.; Torralba, A.; Tenenbaum, J. B.; and Mordatch,
+    I. 2023. Improving Factuality and Reasoning in Language Models through Multiagent
+    Debate. *arXiv preprint arXiv:2305.14325*.
+  id: totrans-279
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Du 等人 (2023) Du, Y.; Li, S.; Torralba, A.; Tenenbaum, J. B.; 和 Mordatch, I.
+    2023. 通过多代理辩论提升语言模型的事实性和推理能力。*arXiv 预印本 arXiv:2305.14325*。
+- en: 'Gao et al. (2023a) Gao, C.; Lan, X.; Li, N.; Yuan, Y.; Ding, J.; Zhou, Z.;
+    Xu, F.; and Li, Y. 2023a. Large language models empowered agent-based modeling
+    and simulation: A survey and perspectives. *arXiv preprint arXiv:2312.11970*.'
+  id: totrans-280
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gao 等人 (2023a) Gao, C.; Lan, X.; Li, N.; Yuan, Y.; Ding, J.; Zhou, Z.; Xu, F.;
+    和 Li, Y. 2023a. 大型语言模型驱动的基于代理的建模与仿真：综述与展望。*arXiv 预印本 arXiv:2312.11970*。
+- en: 'Gao et al. (2023b) Gao, C.; Lan, X.; Lu, Z.; Mao, J.; Piao, J.; Wang, H.; Jin,
+    D.; and Li, Y. 2023b. S³: Social-network Simulation System with Large Language
+    Model-Empowered Agents. *arXiv preprint arXiv:2307.14984*.'
+  id: totrans-281
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Gao 等人（2023b）Gao, C.; Lan, X.; Lu, Z.; Mao, J.; Piao, J.; Wang, H.; Jin, D.;
+    和 Li, Y. 2023b. S³: 基于大语言模型增强代理的社交网络模拟系统。*arXiv 预印本 arXiv:2307.14984*。'
+- en: 'Grčar et al. (2017) Grčar, M.; Cherepnalkoski, D.; Mozetič, I.; and Kralj Novak,
+    P. 2017. Stance and influence of Twitter users regarding the Brexit referendum.
+    *Computational social networks*, 4: 1–25.'
+  id: totrans-282
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Grčar 等人（2017）Grčar, M.; Cherepnalkoski, D.; Mozetič, I.; 和 Kralj Novak, P.
+    2017. Twitter 用户在 Brexit 公投中的立场与影响。*计算社交网络*，4: 1–25。'
+- en: 'Hong et al. (2023) Hong, S.; Zheng, X.; Chen, J.; Cheng, Y.; Zhang, C.; Wang,
+    Z.; Yau, S. K. S.; Lin, Z.; Zhou, L.; Ran, C.; et al. 2023. Metagpt: Meta programming
+    for multi-agent collaborative framework. *arXiv preprint arXiv:2308.00352*.'
+  id: totrans-283
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Hong 等人（2023）Hong, S.; Zheng, X.; Chen, J.; Cheng, Y.; Zhang, C.; Wang, Z.;
+    Yau, S. K. S.; Lin, Z.; Zhou, L.; Ran, C.; 等人. 2023. Metagpt: 面向多代理协作框架的元编程。*arXiv
+    预印本 arXiv:2308.00352*。'
+- en: 'Huang et al. (2023) Huang, H.; Zhang, B.; Li, Y.; Zhang, B.; Sun, Y.; Luo,
+    C.; and Peng, C. 2023. Knowledge-enhanced prompt-tuning for stance detection.
+    *ACM Transactions on Asian and Low-Resource Language Information Processing*,
+    22(6): 1–20.'
+  id: totrans-284
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Huang 等人（2023）Huang, H.; Zhang, B.; Li, Y.; Zhang, B.; Sun, Y.; Luo, C.; 和
+    Peng, C. 2023. 基于知识增强的立场检测提示调优。*ACM 亚洲与低资源语言信息处理学报*，22(6): 1–20。'
+- en: Jang and Allan (2018) Jang, M.; and Allan, J. 2018. Explaining controversy on
+    social media via stance summarization. In *The 41st International ACM SIGIR Conference
+    on Research & Development in Information Retrieval*, 1221–1224.
+  id: totrans-285
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jang 和 Allan（2018）Jang, M.; 和 Allan, J. 2018. 通过立场总结解释社交媒体上的争议。发表于*第41届国际ACM
+    SIGIR信息检索研究与发展会议*，1221–1224。
+- en: 'Khiabani and Zubiaga (2024) Khiabani, P. J.; and Zubiaga, A. 2024. SocialPET:
+    Socially Informed Pattern Exploiting Training for Few-Shot Stance Detection in
+    Social Media. *arXiv preprint arXiv:2403.05216*.'
+  id: totrans-286
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Khiabani 和 Zubiaga（2024）Khiabani, P. J.; 和 Zubiaga, A. 2024. SocialPET: 基于社会信息的模式挖掘训练用于社交媒体中少样本立场检测。*arXiv
+    预印本 arXiv:2403.05216*。'
+- en: 'Küçük and Can (2020) Küçük, D.; and Can, F. 2020. Stance detection: A survey.
+    *ACM Computing Surveys (CSUR)*, 53(1): 1–37.'
+  id: totrans-287
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Küçük 和 Can（2020）Küçük, D.; 和 Can, F. 2020. 立场检测：一项综述。*ACM 计算机调查（CSUR）*，53(1):
+    1–37。'
+- en: Li et al. (2023a) Li, A.; Liang, B.; Zhao, J.; Zhang, B.; Yang, M.; and Xu,
+    R. 2023a. Stance Detection on Social Media with Background Knowledge. In *Proceedings
+    of the 2023 Conference on Empirical Methods in Natural Language Processing*, 15703–15717.
+  id: totrans-288
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2023a）Li, A.; Liang, B.; Zhao, J.; Zhang, B.; Yang, M.; 和 Xu, R. 2023a.
+    利用背景知识进行社交媒体中的立场检测。发表于*2023年自然语言处理经验方法会议论文集*，15703–15717。
+- en: Li et al. (2023b) Li, N.; Gao, C.; Li, Y.; and Liao, Q. 2023b. Large language
+    model-empowered agents for simulating macroeconomic activities. *arXiv preprint
+    arXiv:2310.10436*.
+  id: totrans-289
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2023b）Li, N.; Gao, C.; Li, Y.; 和 Liao, Q. 2023b. 基于大语言模型增强的代理用于模拟宏观经济活动。*arXiv
+    预印本 arXiv:2310.10436*。
+- en: 'Li et al. (2021) Li, Y.; Sosea, T.; Sawant, A.; Nair, A. J.; Inkpen, D.; and
+    Caragea, C. 2021. P-stance: A large dataset for stance detection in political
+    domain. In *Findings of the Association for Computational Linguistics: ACL-IJCNLP
+    2021*, 2355–2365.'
+  id: totrans-290
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li 等人（2021）Li, Y.; Sosea, T.; Sawant, A.; Nair, A. J.; Inkpen, D.; 和 Caragea,
+    C. 2021. P-stance: 政治领域立场检测的大型数据集。发表于*2021年计算语言学会会议成果：ACL-IJCNLP 2021*，2355–2365。'
+- en: Liang et al. (2022a) Liang, B.; Chen, Z.; Gui, L.; He, Y.; Yang, M.; and Xu,
+    R. 2022a. Zero-shot stance detection via contrastive learning. In *Proceedings
+    of the ACM Web Conference 2022*, 2738–2747.
+  id: totrans-291
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang 等人（2022a）Liang, B.; Chen, Z.; Gui, L.; He, Y.; Yang, M.; 和 Xu, R. 2022a.
+    基于对比学习的零样本立场检测。发表于*2022年ACM Web会议论文集*，2738–2747。
+- en: Liang et al. (2021) Liang, B.; Fu, Y.; Gui, L.; Yang, M.; Du, J.; He, Y.; and
+    Xu, R. 2021. Target-adaptive graph for cross-target stance detection. In *Proceedings
+    of the Web Conference 2021*, 3453–3464.
+  id: totrans-292
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang 等人（2021）Liang, B.; Fu, Y.; Gui, L.; Yang, M.; Du, J.; He, Y.; 和 Xu, R.
+    2021. 面向跨目标立场检测的目标自适应图。发表于*2021年Web会议论文集*，3453–3464。
+- en: 'Liang et al. (2022b) Liang, B.; Zhu, Q.; Li, X.; Yang, M.; Gui, L.; He, Y.;
+    and Xu, R. 2022b. Jointcl: a joint contrastive learning framework for zero-shot
+    stance detection. In *Proceedings of the 60th Annual Meeting of the Association
+    for Computational Linguistics (Volume 1: Long Papers)*, volume 1, 81–91\. Association
+    for Computational Linguistics.'
+  id: totrans-293
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Liang 等人（2022b）Liang, B.; Zhu, Q.; Li, X.; Yang, M.; Gui, L.; He, Y.; 和 Xu,
+    R. 2022b. Jointcl: 一种联合对比学习框架用于零样本立场检测。发表于*第60届计算语言学协会年会（第一卷：长篇论文）论文集*，第1卷，81–91。计算语言学协会。'
+- en: Liang et al. (2023) Liang, T.; He, Z.; Jiao, W.; Wang, X.; Wang, Y.; Wang, R.;
+    Yang, Y.; Tu, Z.; and Shi, S. 2023. Encouraging Divergent Thinking in Large Language
+    Models through Multi-Agent Debate. *arXiv preprint arXiv:2305.19118*.
+  id: totrans-294
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang 等人（2023）Liang, T.; He, Z.; Jiao, W.; Wang, X.; Wang, Y.; Wang, R.; Yang,
+    Y.; Tu, Z.; 和 Shi, S. 2023. 通过多代理辩论鼓励大型语言模型的发散思维。*arXiv 预印本 arXiv:2305.19118*。
+- en: 'Liu et al. (2021) Liu, R.; Lin, Z.; Tan, Y.; and Wang, W. 2021. Enhancing zero-shot
+    and few-shot stance detection with commonsense knowledge graph. In *Findings of
+    the Association for Computational Linguistics: ACL-IJCNLP 2021*, 3152–3157.'
+  id: totrans-295
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人（2021）Liu, R.; Lin, Z.; Tan, Y.; 和 Wang, W. 2021. 通过常识知识图增强零样本和少样本立场检测。在
+    *计算语言学协会的发现：ACL-IJCNLP 2021*，3152–3157。
+- en: 'Lozhnikov, Derczynski, and Mazzara (2020) Lozhnikov, N.; Derczynski, L.; and
+    Mazzara, M. 2020. Stance prediction for russian: data and analysis. In *Proceedings
+    of 6th International Conference in Software Engineering for Defence Applications:
+    SEDA 2018 6*, 176–186\. Springer.'
+  id: totrans-296
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lozhnikov, Derczynski 和 Mazzara（2020）Lozhnikov, N.; Derczynski, L.; 和 Mazzara,
+    M. 2020. 俄语立场预测：数据与分析。在 *第6届国防应用软件工程国际会议：SEDA 2018 6*，176–186. Springer。
+- en: 'Mohammad et al. (2016) Mohammad, S.; Kiritchenko, S.; Sobhani, P.; Zhu, X.;
+    and Cherry, C. 2016. Semeval-2016 task 6: Detecting stance in tweets. In *Proceedings
+    of the 10th international workshop on semantic evaluation (SemEval-2016)*, 31–41.'
+  id: totrans-297
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mohammad 等人（2016）Mohammad, S.; Kiritchenko, S.; Sobhani, P.; Zhu, X.; 和 Cherry,
+    C. 2016. Semeval-2016 任务6：检测推文中的立场。在 *第10届国际语义评估研讨会（SemEval-2016）*，31–41。
+- en: 'Nair et al. (2023) Nair, V.; Schumacher, E.; Tso, G.; and Kannan, A. 2023.
+    DERA: enhancing large language model completions with dialog-enabled resolving
+    agents. *arXiv preprint arXiv:2303.17071*.'
+  id: totrans-298
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Nair 等人（2023）Nair, V.; Schumacher, E.; Tso, G.; 和 Kannan, A. 2023. DERA: 利用对话启用的解决代理增强大型语言模型的生成。*arXiv
+    预印本 arXiv:2303.17071*。'
+- en: OpenAI (2023) OpenAI, R. 2023. GPT-4 technical report. *arXiv*, 2303–08774.
+  id: totrans-299
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI（2023）OpenAI, R. 2023. GPT-4 技术报告。*arXiv*，2303–08774。
+- en: 'Park et al. (2023) Park, J. S.; O’Brien, J. C.; Cai, C. J.; Morris, M. R.;
+    Liang, P.; and Bernstein, M. S. 2023. Generative agents: Interactive simulacra
+    of human behavior. *arXiv preprint arXiv:2304.03442*.'
+  id: totrans-300
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Park 等人（2023）Park, J. S.; O’Brien, J. C.; Cai, C. J.; Morris, M. R.; Liang,
+    P.; 和 Bernstein, M. S. 2023. 生成代理：人类行为的互动模拟。*arXiv 预印本 arXiv:2304.03442*。
+- en: 'Pontiki et al. (2016) Pontiki, M.; Galanis, D.; Papageorgiou, H.; Androutsopoulos,
+    I.; Manandhar, S.; AL-Smadi, M.; Al-Ayyoub, M.; Zhao, Y.; Qin, B.; De Clercq,
+    O.; et al. 2016. Semeval-2016 task 5: Aspect based sentiment analysis. In *ProWorkshop
+    on Semantic Evaluation (SemEval-2016)*, 19–30\. Association for Computational
+    Linguistics.'
+  id: totrans-301
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pontiki 等人（2016）Pontiki, M.; Galanis, D.; Papageorgiou, H.; Androutsopoulos,
+    I.; Manandhar, S.; AL-Smadi, M.; Al-Ayyoub, M.; Zhao, Y.; Qin, B.; De Clercq,
+    O.; 等人 2016. Semeval-2016 任务5：基于方面的情感分析。在 *语义评估工作坊（SemEval-2016）*，19–30. 计算语言学协会。
+- en: 'Pontiki et al. (2014) Pontiki, M.; Galanis, D.; Pavlopoulos, J.; Papageorgiou,
+    H.; Androutsopoulos, I.; and Manandhar, S. 2014. SemEval-2014 Task 4: Aspect Based
+    Sentiment Analysis. In *Proceedings of the 8th International Workshop on Semantic
+    Evaluation (SemEval 2014)*, 27–35\. Dublin, Ireland: Association for Computational
+    Linguistics.'
+  id: totrans-302
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pontiki 等人（2014）Pontiki, M.; Galanis, D.; Pavlopoulos, J.; Papageorgiou, H.;
+    Androutsopoulos, I.; 和 Manandhar, S. 2014. SemEval-2014 任务4：基于方面的情感分析。在 *第8届国际语义评估研讨会（SemEval
+    2014）*，27–35. 爱尔兰都柏林：计算语言学协会。
+- en: 'Qin et al. (2023) Qin, Y.; Liang, S.; Ye, Y.; Zhu, K.; Yan, L.; Lu, Y.; Lin,
+    Y.; Cong, X.; Tang, X.; Qian, B.; et al. 2023. Toolllm: Facilitating large language
+    models to master 16000+ real-world apis. *arXiv preprint arXiv:2307.16789*.'
+  id: totrans-303
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Qin 等人（2023）Qin, Y.; Liang, S.; Ye, Y.; Zhu, K.; Yan, L.; Lu, Y.; Lin, Y.;
+    Cong, X.; Tang, X.; Qian, B.; 等人 2023. Toolllm: 促进大型语言模型掌握16000+现实世界 API。*arXiv
+    预印本 arXiv:2307.16789*。'
+- en: 'Schick et al. (2023) Schick, T.; Dwivedi-Yu, J.; Dessì, R.; Raileanu, R.; Lomeli,
+    M.; Zettlemoyer, L.; Cancedda, N.; and Scialom, T. 2023. Toolformer: Language
+    models can teach themselves to use tools. *arXiv preprint arXiv:2302.04761*.'
+  id: totrans-304
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Schick 等人（2023）Schick, T.; Dwivedi-Yu, J.; Dessì, R.; Raileanu, R.; Lomeli,
+    M.; Zettlemoyer, L.; Cancedda, N.; 和 Scialom, T. 2023. Toolformer: 语言模型可以自我学习使用工具。*arXiv
+    预印本 arXiv:2302.04761*。'
+- en: 'Shinn et al. (2023) Shinn, N.; Cassano, F.; Labash, B.; Gopinath, A.; Narasimhan,
+    K.; and Yao, S. 2023. Reflexion: Language Agents with Verbal Reinforcement Learning
+    (arXiv: 2303.11366). arXiv.'
+  id: totrans-305
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Shinn 等人（2023）Shinn, N.; Cassano, F.; Labash, B.; Gopinath, A.; Narasimhan,
+    K.; 和 Yao, S. 2023. Reflexion: 带有语言强化学习的语言代理（arXiv: 2303.11366）。arXiv。'
+- en: Tang et al. (2020) Tang, H.; Ji, D.; Li, C.; and Zhou, Q. 2020. Dependency graph
+    enhanced dual-transformer structure for aspect-based sentiment classification.
+    In *Proceedings of the 58th annual meeting of the association for computational
+    linguistics*, 6578–6588.
+  id: totrans-306
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Tang 等人（2020）Tang, H.; Ji, D.; Li, C.; 和 Zhou, Q. 2020. 依赖图增强的双重变换器结构用于基于方面的情感分类.
+    在 *第58届计算语言学协会年会论文集*，6578–6588。
+- en: 'Touvron et al. (2023) Touvron, H.; Martin, L.; Stone, K.; Albert, P.; Almahairi,
+    A.; Babaei, Y.; Bashlykov, N.; Batra, S.; Bhargava, P.; Bhosale, S.; et al. 2023.
+    Llama 2: Open foundation and fine-tuned chat models. *arXiv preprint arXiv:2307.09288*.'
+  id: totrans-307
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron 等人（2023）Touvron, H.; Martin, L.; Stone, K.; Albert, P.; Almahairi,
+    A.; Babaei, Y.; Bashlykov, N.; Batra, S.; Bhargava, P.; Bhosale, S.; 等人. 2023.
+    Llama 2: 开放基础模型和微调的聊天模型. *arXiv 预印本 arXiv:2307.09288*。'
+- en: 'Wang et al. (2019) Wang, X.; Shi, W.; Kim, R.; Oh, Y.; Yang, S.; Zhang, J.;
+    and Yu, Z. 2019. Persuasion for good: Towards a personalized persuasive dialogue
+    system for social good. *arXiv preprint arXiv:1906.06725*.'
+  id: totrans-308
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人（2019）Wang, X.; Shi, W.; Kim, R.; Oh, Y.; Yang, S.; Zhang, J.; 和 Yu,
+    Z. 2019. 促成善意：朝着一个个性化的社会公益说服对话系统迈进. *arXiv 预印本 arXiv:1906.06725*。
+- en: Wang et al. (2016) Wang, Y.; Huang, M.; Zhu, X.; and Zhao, L. 2016. Attention-based
+    LSTM for aspect-level sentiment classification. In *Proceedings of the 2016 conference
+    on empirical methods in natural language processing*, 606–615.
+  id: totrans-309
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人（2016）Wang, Y.; Huang, M.; Zhu, X.; 和 Zhao, L. 2016. 基于注意力机制的LSTM用于方面级情感分类.
+    在 *2016年自然语言处理经验方法会议论文集*，606–615。
+- en: Wei et al. (2021) Wei, J.; Bosma, M.; Zhao, V. Y.; Guu, K.; Yu, A. W.; Lester,
+    B.; Du, N.; Dai, A. M.; and Le, Q. V. 2021. Finetuned language models are zero-shot
+    learners. *arXiv preprint arXiv:2109.01652*.
+  id: totrans-310
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等人（2021）Wei, J.; Bosma, M.; Zhao, V. Y.; Guu, K.; Yu, A. W.; Lester, B.;
+    Du, N.; Dai, A. M.; 和 Le, Q. V. 2021. 微调语言模型是零-shot学习者. *arXiv 预印本 arXiv:2109.01652*。
+- en: Wei and Mao (2019) Wei, P.; and Mao, W. 2019. Modeling transferable topics for
+    cross-target stance detection. In *Proceedings of the 42nd International ACM SIGIR
+    Conference on Research and Development in Information Retrieval*, 1173–1176.
+  id: totrans-311
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 和 Mao（2019）Wei, P.; 和 Mao, W. 2019. 为跨目标立场检测建模可转移主题. 在 *第42届国际ACM SIGIR信息检索研究与开发大会论文集*，1173–1176。
+- en: Wei, Mao, and Zeng (2018) Wei, P.; Mao, W.; and Zeng, D. 2018. A target-guided
+    neural memory model for stance detection in twitter. In *2018 International Joint
+    Conference on Neural Networks (IJCNN)*, 1–8\. IEEE.
+  id: totrans-312
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei, Mao 和 Zeng（2018）Wei, P.; Mao, W.; 和 Zeng, D. 2018. 一种针对推特立场检测的目标引导神经记忆模型.
+    在 *2018年国际联合神经网络大会（IJCNN）*，1–8. IEEE。
+- en: 'Xiang et al. (2023) Xiang, J.; Tao, T.; Gu, Y.; Shu, T.; Wang, Z.; Yang, Z.;
+    and Hu, Z. 2023. Language Models Meet World Models: Embodied Experiences Enhance
+    Language Models. *arXiv preprint arXiv:2305.10626*.'
+  id: totrans-313
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xiang 等人（2023）Xiang, J.; Tao, T.; Gu, Y.; Shu, T.; Wang, Z.; Yang, Z.; 和 Hu,
+    Z. 2023. 语言模型遇上世界模型：体现的体验增强语言模型. *arXiv 预印本 arXiv:2305.10626*。
+- en: Xu et al. (2018) Xu, C.; Paris, C.; Nepal, S.; and Sparks, R. 2018. Cross-target
+    stance classification with self-attention networks. *arXiv preprint arXiv:1805.06593*.
+  id: totrans-314
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xu 等人（2018）Xu, C.; Paris, C.; Nepal, S.; 和 Sparks, R. 2018. 基于自注意力网络的跨目标立场分类.
+    *arXiv 预印本 arXiv:1805.06593*。
+- en: 'Zeng et al. (2022) Zeng, A.; Liu, X.; Du, Z.; Wang, Z.; Lai, H.; Ding, M.;
+    Yang, Z.; Xu, Y.; Zheng, W.; Xia, X.; et al. 2022. Glm-130b: An open bilingual
+    pre-trained model. *arXiv preprint arXiv:2210.02414*.'
+  id: totrans-315
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zeng 等人（2022）Zeng, A.; Liu, X.; Du, Z.; Wang, Z.; Lai, H.; Ding, M.; Yang,
+    Z.; Xu, Y.; Zheng, W.; Xia, X.; 等人. 2022. Glm-130b: 一个开放的双语预训练模型. *arXiv 预印本 arXiv:2210.02414*。'
+- en: Zhang, Ding, and Jing (2022) Zhang, B.; Ding, D.; and Jing, L. 2022. How would
+    stance detection techniques evolve after the launch of chatgpt? *arXiv preprint
+    arXiv:2212.14548*.
+  id: totrans-316
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang, Ding 和 Jing（2022）Zhang, B.; Ding, D.; 和 Jing, L. 2022. ChatGPT发布后，立场检测技术会如何发展？*arXiv
+    预印本 arXiv:2212.14548*。
+- en: Zhang et al. (2023) Zhang, B.; Fu, X.; Ding, D.; Huang, H.; Li, Y.; and Jing,
+    L. 2023. Investigating Chain-of-thought with ChatGPT for Stance Detection on Social
+    Media. *arXiv preprint arXiv:2304.03087*.
+  id: totrans-317
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人（2023）Zhang, B.; Fu, X.; Ding, D.; Huang, H.; Li, Y.; 和 Jing, L. 2023.
+    探索通过 ChatGPT 进行链式思维来进行社交媒体上的立场检测. *arXiv 预印本 arXiv:2304.03087*。
+- en: Zhang, Li, and Song (2019) Zhang, C.; Li, Q.; and Song, D. 2019. Aspect-based
+    Sentiment Classification with Aspect-specific Graph Convolutional Networks. In
+    *Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing
+    and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP)*,
+    4568–4578.
+  id: totrans-318
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang, Li 和 Song（2019）Zhang, C.; Li, Q.; 和 Song, D. 2019. 基于方面的情感分类与方面特定图卷积网络.
+    在 *2019年自然语言处理经验方法会议及第9届国际联合自然语言处理会议（EMNLP-IJCNLP）*，4568–4578。
+- en: Ziems et al. (2023) Ziems, C.; Held, W.; Shaikh, O.; Chen, J.; Zhang, Z.; and
+    Yang, D. 2023. Can Large Language Models Transform Computational Social Science?
+    *arXiv preprint arXiv:2305.03514*.
+  id: totrans-319
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ziems 等人（2023）Ziems, C.; Held, W.; Shaikh, O.; Chen, J.; Zhang, Z.; 和 Yang,
+    D. 2023. 大型语言模型能否改变计算社会科学？*arXiv 预印本 arXiv:2305.03514*。
+- en: Paper Checklist
+  id: totrans-320
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 论文检查清单
+- en: '1.'
+  id: totrans-321
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: For most authors…
+  id: totrans-322
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 对于大多数作者来说…
+- en: (a)
+  id: totrans-323
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (a)
+- en: Would answering this research question advance science without violating social
+    contracts, such as violating privacy norms, perpetuating unfair profiling, exacerbating
+    the socio-economic divide, or implying disrespect to societies or cultures? Yes.
+  id: totrans-324
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 回答这个研究问题是否能推动科学进步，同时不违反社会契约，如不侵犯隐私规范、不加剧不公平的刻板印象、不加剧社会经济鸿沟或不对社会或文化表示不尊重？是的。
+- en: (b)
+  id: totrans-325
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (b)
+- en: Do your main claims in the abstract and introduction accurately reflect the
+    paper’s contributions and scope? Yes.
+  id: totrans-326
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您的摘要和引言中的主要论点是否准确反映了论文的贡献和范围？是的。
+- en: (c)
+  id: totrans-327
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (c)
+- en: Do you clarify how the proposed methodological approach is appropriate for the
+    claims made? Yes.
+  id: totrans-328
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否阐明了所提出的方法论方法对于所做的论断是如何适当的？是的。
+- en: (d)
+  id: totrans-329
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (d)
+- en: Do you clarify what are possible artifacts in the data used, given population-specific
+    distributions? NA
+  id: totrans-330
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否阐明了在所使用的数据中，考虑到特定人群分布，可能的伪影是什么？NA
+- en: (e)
+  id: totrans-331
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (e)
+- en: Did you describe the limitations of your work? Yes, see the Conclusion and Future
+    Work.
+  id: totrans-332
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否描述了您的工作的局限性？是的，见结论与未来工作。
+- en: (f)
+  id: totrans-333
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (f)
+- en: Did you discuss any potential negative societal impacts of your work? NA
+  id: totrans-334
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了您的研究可能带来的负面社会影响？NA
+- en: (g)
+  id: totrans-335
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (g)
+- en: Did you discuss any potential misuse of your work? NA
+  id: totrans-336
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了您的研究可能被误用的情况？NA
+- en: (h)
+  id: totrans-337
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (h)
+- en: Did you describe steps taken to prevent or mitigate potential negative outcomes
+    of the research, such as data and model documentation, data anonymization, responsible
+    release, access control, and the reproducibility of findings? Yes, see the Experimental
+    Setup.
+  id: totrans-338
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否描述了为防止或缓解研究可能带来的负面后果所采取的步骤，例如数据和模型文档、数据匿名化、负责任的发布、访问控制以及研究结果的可重复性？是的，见实验设置。
+- en: (i)
+  id: totrans-339
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (i)
+- en: Have you read the ethics review guidelines and ensured that your paper conforms
+    to them? Yes.
+  id: totrans-340
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否阅读了伦理审查指南，并确保您的论文符合其中的要求？是的。
+- en: '2.'
+  id: totrans-341
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: Additionally, if your study involves hypotheses testing…
+  id: totrans-342
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 此外，如果您的研究涉及假设检验…
+- en: (a)
+  id: totrans-343
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (a)
+- en: Did you clearly state the assumptions underlying all theoretical results? NA
+  id: totrans-344
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否清楚地陈述了所有理论结果背后的假设？NA
+- en: (b)
+  id: totrans-345
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (b)
+- en: Have you provided justifications for all theoretical results? NA
+  id: totrans-346
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否为所有理论结果提供了论证？NA
+- en: (c)
+  id: totrans-347
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (c)
+- en: Did you discuss competing hypotheses or theories that might challenge or complement
+    your theoretical results? NA
+  id: totrans-348
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了可能挑战或补充您理论结果的竞争性假设或理论？NA
+- en: (d)
+  id: totrans-349
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (d)
+- en: Have you considered alternative mechanisms or explanations that might account
+    for the same outcomes observed in your study? NA
+  id: totrans-350
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否考虑了其他机制或解释，这些机制或解释可能解释您研究中观察到的相同结果？NA
+- en: (e)
+  id: totrans-351
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (e)
+- en: Did you address potential biases or limitations in your theoretical framework?
+    NA
+  id: totrans-352
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否解决了您理论框架中可能存在的偏见或局限性？NA
+- en: (f)
+  id: totrans-353
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (f)
+- en: Have you related your theoretical results to the existing literature in social
+    science? NA
+  id: totrans-354
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否将您的理论结果与社会科学领域的现有文献进行了关联？NA
+- en: (g)
+  id: totrans-355
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (g)
+- en: Did you discuss the implications of your theoretical results for policy, practice,
+    or further research in the social science domain? NA
+  id: totrans-356
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了您的理论结果对社会科学领域的政策、实践或进一步研究的影响？NA
+- en: '3.'
+  id: totrans-357
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: Additionally, if you are including theoretical proofs…
+  id: totrans-358
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 此外，如果您包含了理论证明…
+- en: (a)
+  id: totrans-359
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (a)
+- en: Did you state the full set of assumptions of all theoretical results? NA
+  id: totrans-360
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否陈述了所有理论结果的完整假设集？NA
+- en: (b)
+  id: totrans-361
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (b)
+- en: Did you include complete proofs of all theoretical results? NA
+  id: totrans-362
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否提供了所有理论结果的完整证明？NA
+- en: '4.'
+  id: totrans-363
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: Additionally, if you ran machine learning experiments…
+  id: totrans-364
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 此外，如果您进行的机器学习实验…
+- en: (a)
+  id: totrans-365
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (a)
+- en: Did you include the code, data, and instructions needed to reproduce the main
+    experimental results (either in the supplemental material or as a URL)? Yes, see
+    the Experimental Setup.
+  id: totrans-366
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否包含了重现主要实验结果所需的代码、数据和说明（无论是在补充材料中，还是作为 URL）？是的，见实验设置。
+- en: (b)
+  id: totrans-367
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (b)
+- en: Did you specify all the training details (e.g., data splits, hyperparameters,
+    how they were chosen)? NA
+  id: totrans-368
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否指定了所有训练细节（例如数据划分、超参数及其选择方式）？NA
+- en: (c)
+  id: totrans-369
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (c)
+- en: Did you report error bars (e.g., with respect to the random seed after running
+    experiments multiple times)? Yes, we conduct multiple repeated experiments. In
+    the main experimental results, we use a paired t-test when claiming that our method
+    outperformed the best baseline.
+  id: totrans-370
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否报告了误差条（例如，在多次实验后关于随机种子的误差）？是的，我们进行了多次重复实验。在主要实验结果中，当声明我们的方法优于最佳基线时，我们使用了配对
+    t 检验。
+- en: (d)
+  id: totrans-371
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (d)
+- en: Did you include the total amount of compute and the type of resources used (e.g.,
+    type of GPUs, internal cluster, or cloud provider)? NA
+  id: totrans-372
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否包括了计算总量和使用的资源类型（例如，GPU类型、内部集群或云服务提供商）？NA
+- en: (e)
+  id: totrans-373
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (e)
+- en: Do you justify how the proposed evaluation is sufficient and appropriate to
+    the claims made? Yes, see Experimental Setup and Experimental Results.
+  id: totrans-374
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否证明了所提议的评估对所做的主张是充分且恰当的？是的，见实验设置和实验结果。
+- en: (f)
+  id: totrans-375
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (f)
+- en: Do you discuss what is “the cost“ of misclassification and fault (in)tolerance?
+    NA
+  id: totrans-376
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了“误分类”和容错性的问题（包括成本）？NA
+- en: '5.'
+  id: totrans-377
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '5.'
+- en: Additionally, if you are using existing assets (e.g., code, data, models) or
+    curating/releasing new assets, without compromising anonymity…
+  id: totrans-378
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 此外，如果您使用现有资源（例如代码、数据、模型）或整理/发布新资源，且不妥协匿名性…
+- en: (a)
+  id: totrans-379
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (a)
+- en: If your work uses existing assets, did you cite the creators? Yes, see the Experimental
+    Setup and Experimental Results.
+  id: totrans-380
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 如果您的工作使用了现有资源，您是否引用了创作者？是的，见实验设置和实验结果。
+- en: (b)
+  id: totrans-381
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (b)
+- en: Did you mention the license of the assets? Yes.
+  id: totrans-382
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否提到了资产的许可证？是的。
+- en: (c)
+  id: totrans-383
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (c)
+- en: Did you include any new assets in the supplemental material or as a URL? Yes,
+    we provide the code for COLA.
+  id: totrans-384
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否在附加材料中或作为网址提供了任何新资源？是的，我们提供了 COLA 的代码。
+- en: (d)
+  id: totrans-385
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (d)
+- en: Did you discuss whether and how consent was obtained from people whose data
+    you’re using/curating? No, because we only use open-sourced datasets.
+  id: totrans-386
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了如何以及是否从使用/整理的数据的人员那里获得了同意？没有，因为我们仅使用开源数据集。
+- en: (e)
+  id: totrans-387
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (e)
+- en: Did you discuss whether the data you are using/curating contains personally
+    identifiable information or offensive content? Yes, see the Datasets.
+  id: totrans-388
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了所使用/整理的数据是否包含个人可识别信息或冒犯性内容？是的，见数据集部分。
+- en: (f)
+  id: totrans-389
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (f)
+- en: If you are curating or releasing new datasets, did you discuss how you intend
+    to make your datasets FAIR? NA
+  id: totrans-390
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 如果您整理或发布了新的数据集，您是否讨论了如何使您的数据集符合 FAIR 原则？NA
+- en: (g)
+  id: totrans-391
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (g)
+- en: If you are curating or releasing new datasets, did you create a Datasheet for
+    the Dataset? NA
+  id: totrans-392
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 如果您整理或发布了新的数据集，是否为数据集创建了数据表？NA
+- en: '6.'
+  id: totrans-393
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '6.'
+- en: Additionally, if you used crowdsourcing or conducted research with human subjects,
+    without compromising anonymity…
+  id: totrans-394
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 此外，如果您使用了众包或进行涉及人类参与者的研究，且不妥协匿名性…
+- en: (a)
+  id: totrans-395
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (a)
+- en: Did you include the full text of instructions given to participants and screenshots?
+    NA
+  id: totrans-396
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否包括了提供给参与者的完整指令文本和截图？NA
+- en: (b)
+  id: totrans-397
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (b)
+- en: Did you describe any potential participant risks, with mentions of Institutional
+    Review Board (IRB) approvals? NA
+  id: totrans-398
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否描述了任何潜在的参与者风险，并提到了机构审查委员会（IRB）的批准？NA
+- en: (c)
+  id: totrans-399
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (c)
+- en: Did you include the estimated hourly wage paid to participants and the total
+    amount spent on participant compensation? NA
+  id: totrans-400
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否包括了支付给参与者的估计时薪和总支出的参与者补偿金额？NA
+- en: (d)
+  id: totrans-401
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (d)
+- en: Did you discuss how data is stored, shared, and deidentified? NA
+  id: totrans-402
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 您是否讨论了数据是如何存储、共享和去标识化的？NA

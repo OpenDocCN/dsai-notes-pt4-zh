@@ -1,0 +1,1374 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 12:43:32'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:43:32
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Self-Organized Agents: A LLM Multi-Agent Framework toward Ultra Large-Scale
+    Code Generation and Optimization'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 自组织代理：面向超大规模代码生成与优化的LLM多代理框架
+- en: 来源：[https://arxiv.org/html/2404.02183/](https://arxiv.org/html/2404.02183/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2404.02183/](https://arxiv.org/html/2404.02183/)
+- en: Yoichi Ishibashi
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 石桥洋一
+- en: TsukushiAI
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TsukushiAI
+- en: ishibashi.tsukushiai@gmail.com
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ishibashi.tsukushiai@gmail.com
+- en: '&Yoshimasa Nishimura'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&西村良政'
+- en: TsukushiAI
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TsukushiAI
+- en: nishimura.tsukushiai@gmail.com
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: nishimura.tsukushiai@gmail.com
+- en: Abstract
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Recent advancements in automatic code generation using large language model
+    (LLM) agent have brought us closer to the future of automated software development.
+    However, existing single-agent approaches face limitations in generating and improving
+    large-scale, complex codebases due to constraints in context length. To tackle
+    this challenge, we propose Self-Organized multi-Agent framework (SoA), a novel
+    multi-agent framework that enables the scalable and efficient generation and optimization
+    of large-scale code. In SoA, self-organized agents operate independently to generate
+    and modify code components while seamlessly collaborating to construct the overall
+    codebase. A key feature of our framework is the automatic multiplication of agents
+    based on problem complexity, allowing for dynamic scalability. This enables the
+    overall code volume to be increased indefinitely according to the number of agents,
+    while the amount of code managed by each agent remains constant. We evaluate SoA
+    on the HumanEval benchmark and demonstrate that, compared to a single-agent system,
+    each agent in SoA handles significantly less code, yet the overall generated code
+    is substantially greater. Moreover, SoA surpasses the powerful single-agent baseline
+    by 5% in terms of Pass@1 accuracy. ¹¹1Our code will be available at [https://github.com/tsukushiAI/self-organized-agent](https://github.com/tsukushiAI/self-organized-agent).
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，利用大语言模型（LLM）代理进行自动代码生成的进展，使我们更接近自动化软件开发的未来。然而，现有的单一代理方法由于上下文长度的限制，面临在生成和优化大规模、复杂代码库时的局限性。为了解决这一挑战，我们提出了自组织多代理框架（SoA），这是一种新型的多代理框架，能够实现大规模代码的可扩展和高效生成与优化。在SoA中，自组织代理独立运行，生成和修改代码组件，同时无缝协作以构建整体代码库。我们框架的一个关键特性是，代理根据问题的复杂性自动增殖，从而实现动态扩展。这使得整体代码量可以根据代理数量无限增加，而每个代理管理的代码量保持不变。我们在HumanEval基准上评估了SoA，并展示了与单一代理系统相比，SoA中的每个代理处理的代码显著较少，但整体生成的代码大大增加。此外，在Pass@1准确度方面，SoA比强大的单一代理基准高出5%。¹¹1我们的代码将在[https://github.com/tsukushiAI/self-organized-agent](https://github.com/tsukushiAI/self-organized-agent)发布。
+- en: 'Self-Organized Agents: A LLM Multi-Agent Framework toward'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自组织代理：面向超大规模代码生成与优化的LLM多代理框架
+- en: Ultra Large-Scale Code Generation and Optimization
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 超大规模代码生成与优化
+- en: Yoichi Ishibashi TsukushiAI ishibashi.tsukushiai@gmail.com                       
+    Yoshimasa Nishimura TsukushiAI nishimura.tsukushiai@gmail.com
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 石桥洋一 TsukushiAI ishibashi.tsukushiai@gmail.com                        西村良政 TsukushiAI
+    nishimura.tsukushiai@gmail.com
+- en: §​ 1 Introduction
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: §​ 1 引言
+- en: In recent years, research on agents using Large Language Models (LLMs) Brown
+    et al. ([2020](https://arxiv.org/html/2404.02183v1#bib.bib3)); OpenAI ([2023](https://arxiv.org/html/2404.02183v1#bib.bib16));
+    Touvron et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib21)), such as
+    ReAct Yao et al. ([2023b](https://arxiv.org/html/2404.02183v1#bib.bib24)), Reflexion Shinn
+    et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20)), Toolformer Schick
+    et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib18)), and AutoGPT ²²2[https://github.com/Significant-Gravitas/](https://github.com/Significant-Gravitas/),
+    has been expanding the possibilities of automating human tasks. These advancements
+    have particularly contributed to the rapid development of automatic code generation
+    techniques in the field of automated application and tool development Hong et al.
+    ([2023](https://arxiv.org/html/2404.02183v1#bib.bib7)); Dong et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib5));
+    Huang et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib8)). Compared
+    to non-agent-based methods Muennighoff et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib14));
+    Li et al. ([2023b](https://arxiv.org/html/2404.02183v1#bib.bib11)), these research
+    achievements have led to remarkable performance improvements in automatic code
+    generation Zhong et al. ([2024](https://arxiv.org/html/2404.02183v1#bib.bib26));
+    Zhou et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib27)).
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，使用大语言模型（LLMs）的代理研究取得了长足进展，包括Brown等人（[2020](https://arxiv.org/html/2404.02183v1#bib.bib3)）；OpenAI（[2023](https://arxiv.org/html/2404.02183v1#bib.bib16)）；Touvron等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib21)），如ReAct
+    Yao等人（[2023b](https://arxiv.org/html/2404.02183v1#bib.bib24)）、Reflexion Shinn等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib20)）、Toolformer
+    Schick等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib18)）和AutoGPT ²²2[https://github.com/Significant-Gravitas/](https://github.com/Significant-Gravitas/)，这些研究开拓了自动化人类任务的可能性。这些进展特别促进了自动化应用和工具开发领域自动代码生成技术的快速发展，Hong等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib7)）；Dong等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib5)）；Huang等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib8)）。与非代理方法相比，Muennighoff等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib14)）；Li等人（[2023b](https://arxiv.org/html/2404.02183v1#bib.bib11)），这些研究成果在自动代码生成方面取得了显著的性能提升，Zhong等人（[2024](https://arxiv.org/html/2404.02183v1#bib.bib26)）；Zhou等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib27)）。
+- en: 'Figure 1: Left (single agent): A single agent is solely responsible for the
+    entire implementation. As the codebase grows larger, the load increases for code
+    generation, modification, and memory management, making it difficult to manage
+    and develop. The larger the entire codebase becomes, the more it puts pressure
+    on the context length during self-debugging, limiting the amount of code that
+    can be managed. Right (SoA): The implementation is distributed among multiple
+    agents. The agents are independent; code generation, modification, and memory
+    management are separated from other agents. Each agent manages only its own part,
+    allowing it to focus on the implementation regardless of the complexity of the
+    entire codebase. Furthermore, agents automatically multiply according to the complexity
+    of the problem. This allows for the generation and modification of complex and
+    large-scale code while maintaining a constant amount of code management/generation/modification
+    per agent.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：左侧（单一代理）：单个代理负责整个实现。随着代码库的不断增长，代码生成、修改和内存管理的负载也随之增加，这使得管理和开发变得困难。整个代码库越大，自我调试时对上下文长度的压力就越大，限制了能够管理的代码量。右侧（SoA）：实现被分配给多个代理。代理是独立的；代码生成、修改和内存管理与其他代理分离。每个代理只管理自己的部分，从而可以专注于实现，而不必考虑整个代码库的复杂性。此外，代理会根据问题的复杂性自动扩展。这使得可以在保持每个代理管理/生成/修改代码量恒定的情况下，生成和修改复杂的大规模代码。
+- en: Most recent research has focused on single-agent approaches for code generation.
+    These single-agent code generation methods face limitations, especially in terms
+    of scalability, when the implementation becomes complex and requires a large codebase.
+    The main reason for this technical difficulty is that a single agent must manage
+    the entire code generation process alone. For instance, implementing a machine
+    learning algorithm involves several stages, such as data preprocessing, algorithm
+    training, and result evaluation, which include many functions and classes. When
+    these complex components are combined, the codebase inevitably becomes very large.
+    However, there are limitations to the context length of LLMs, and as the number
+    of input tokens increases, the inference performance decreases Levy et al. ([2024](https://arxiv.org/html/2404.02183v1#bib.bib9));
+    Shaham et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib19)); Li et al.
+    ([2023a](https://arxiv.org/html/2404.02183v1#bib.bib10)). Consistently understanding
+    and generating or modifying appropriate code for such an extensive codebase poses
+    a significant challenge for a single agent in terms of comprehending and managing
+    the context. Consequently, the single-agent approach struggles to efficiently
+    generate and modify code as its complexity and size increase.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的研究大多集中在单代理方法上进行代码生成。这些单代理代码生成方法在扩展性上存在局限性，尤其是在实现变得复杂并需要大量代码库时。造成这一技术难题的主要原因是，单个代理必须独自管理整个代码生成过程。例如，实现一个机器学习算法涉及多个阶段，如数据预处理、算法训练和结果评估，这些阶段包括许多函数和类。当这些复杂的组件组合在一起时，代码库不可避免地会变得非常庞大。然而，LLM的上下文长度存在限制，随着输入令牌数量的增加，推理性能会下降，Levy
+    等人 ([2024](https://arxiv.org/html/2404.02183v1#bib.bib9)); Shaham 等人 ([2023](https://arxiv.org/html/2404.02183v1#bib.bib19));
+    Li 等人 ([2023a](https://arxiv.org/html/2404.02183v1#bib.bib10))。对于这样一个庞大的代码库，单个代理在理解和生成或修改适当的代码时面临显著挑战，因为它需要理解和管理大量的上下文。因此，随着复杂度和规模的增加，单代理方法在高效生成和修改代码方面力不从心。
+- en: 'To tackle these challenges, we propose a self-organized multi agent framework
+    that can automatically generate and modify large-scale code ([Figure 1](https://arxiv.org/html/2404.02183v1#S1.F1
+    "Figure 1 ‣ §​ 1 Introduction ‣ Self-Organized Agents: A LLM Multi-Agent Framework
+    toward Ultra Large-Scale Code Generation and Optimization")). *Self-organization* Ashby
+    ([1947](https://arxiv.org/html/2404.02183v1#bib.bib2)) is a phenomenon in which
+    living organisms or matter create an orderly, large structure as a result of their
+    individual autonomous behaviors, despite lacking the ability to oversee the entire
+    system. In our framework, self-organized agents, each responsible for different
+    code parts or tasks, independently generate and modify code. With the self-organization
+    of agents, a single agent no longer needs to comprehend the entire codebase, making
+    it possible to scale up large-scale code simply by increasing the number of agents.
+    Another feature of our framework is that agents automatically multiply according
+    to the complexity of the problem, allowing the overall codebase to expand while
+    keeping the amount of code handled by each agent constant. These features enable
+    the dynamic and flexible generation and modification of large-scale code, which
+    was impossible with the traditional single-agent approach.'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了应对这些挑战，我们提出了一种自组织多代理框架，能够自动生成和修改大规模代码（[图 1](https://arxiv.org/html/2404.02183v1#S1.F1
+    "Figure 1 ‣ §​ 1 Introduction ‣ Self-Organized Agents: A LLM Multi-Agent Framework
+    toward Ultra Large-Scale Code Generation and Optimization")）。*自组织* Ashby ([1947](https://arxiv.org/html/2404.02183v1#bib.bib2))
+    是一种现象，指的是生物体或物质通过各自独立的自主行为，尽管无法监督整个系统，依然能形成有序的、庞大的结构。在我们的框架中，自组织代理，每个负责不同的代码部分或任务，独立生成和修改代码。通过代理的自组织，单个代理不再需要理解整个代码库，从而通过增加代理的数量，可以简单地扩展大规模代码。我们框架的另一个特点是，代理根据问题的复杂度自动增殖，使得整体代码库得以扩展，同时保持每个代理处理的代码量不变。这些特性使得大规模代码的动态和灵活生成与修改成为可能，而传统的单代理方法无法实现这一点。'
+- en: 'In our experiments, we evaluated the performance of this framework using HumanEval Chen
+    et al. ([2021](https://arxiv.org/html/2404.02183v1#bib.bib4)), a benchmark for
+    code generation. The results show that our self-organized multi-agent framework
+    outperformed Reflexion Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20)),
+    an existing powerful code generation agent ([§​ 4.1](https://arxiv.org/html/2404.02183v1#S4.SS1
+    "§​ 4.1 Main Results ‣ §​ 4 Experiments ‣ Self-Organized Agents: A LLM Multi-Agent
+    Framework toward Ultra Large-Scale Code Generation and Optimization")), demonstrating
+    the effectiveness of our approach in generating and modifying code. Furthermore,
+    through a detailed analysis of the experimental results, we revealed how agents
+    automatically multiply according to the complexity of the problem, effectively
+    scaling up the overall code volume while keeping the code generation per agent
+    constant ([§​ 4.2](https://arxiv.org/html/2404.02183v1#S4.SS2 "§​ 4.2 Analysis
+    ‣ §​ 4 Experiments ‣ Self-Organized Agents: A LLM Multi-Agent Framework toward
+    Ultra Large-Scale Code Generation and Optimization")). These experimental results
+    support the contribution of our framework, which overcomes the scalability issues
+    faced by single-agent approaches and provides a solution capable of handling larger
+    projects.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在我们的实验中，我们使用HumanEval（Chen等人，[2021](https://arxiv.org/html/2404.02183v1#bib.bib4)），一个用于代码生成的基准，评估了该框架的表现。结果表明，我们的自组织多代理框架在代码生成方面优于现有的强大代码生成代理Reflexion（Shinn等人，[2023](https://arxiv.org/html/2404.02183v1#bib.bib20)）（[§​
+    4.1](https://arxiv.org/html/2404.02183v1#S4.SS1 "§​ 4.1 Main Results ‣ §​ 4 Experiments
+    ‣ Self-Organized Agents: A LLM Multi-Agent Framework toward Ultra Large-Scale
+    Code Generation and Optimization")），展示了我们方法在生成和修改代码方面的有效性。此外，通过对实验结果的详细分析，我们揭示了代理如何根据问题的复杂性自动增殖，有效地扩大整体代码量，同时保持每个代理的代码生成不变（[§​
+    4.2](https://arxiv.org/html/2404.02183v1#S4.SS2 "§​ 4.2 Analysis ‣ §​ 4 Experiments
+    ‣ Self-Organized Agents: A LLM Multi-Agent Framework toward Ultra Large-Scale
+    Code Generation and Optimization")）。这些实验结果支持了我们框架的贡献，它克服了单代理方法面临的可扩展性问题，提供了一种能够处理更大规模项目的解决方案。'
+- en: §​ 2 Code Generation Task
+  id: totrans-23
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: §​ 2 代码生成任务
+- en: The code generation task involves generating Python functions from docstrings Chen
+    et al. ([2021](https://arxiv.org/html/2404.02183v1#bib.bib4)). In this task, an
+    agent is given a docstring that defines the types of the function’s inputs and
+    expected outputs, as well as the specific requirements that the function should
+    meet. The agent is then required to generate the code for a function that fulfills
+    the specified functionality. The generated code is verified for accuracy using
+    unit tests, and the quality of the code is evaluated based on its ability to pass
+    the test cases. As with previous studies Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20));
+    Zhong et al. ([2024](https://arxiv.org/html/2404.02183v1#bib.bib26)); Zhou et al.
+    ([2023](https://arxiv.org/html/2404.02183v1#bib.bib27)), we use the evaluation
+    metric Pass@$1$ Chen et al. ([2021](https://arxiv.org/html/2404.02183v1#bib.bib4)),
+    where a problem is considered solved if any of the $k$ code samples pass all test
+    cases.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码生成任务涉及从文档字符串生成Python函数，参考了Chen等人（[2021](https://arxiv.org/html/2404.02183v1#bib.bib4)）。在这个任务中，代理会获得一个文档字符串，定义了函数输入的类型、期望的输出以及函数应满足的特定要求。然后，代理需要生成一个满足指定功能的函数代码。生成的代码会通过单元测试进行准确性验证，代码的质量根据其能通过测试用例的能力来评估。与以往的研究类似，Shinn等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib20)）；Zhong等人（[2024](https://arxiv.org/html/2404.02183v1#bib.bib26)）；Zhou等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib27)），我们使用评估指标Pass@$1$，Chen等人（[2021](https://arxiv.org/html/2404.02183v1#bib.bib4)），其中一个问题如果$k$个代码样本中的任何一个通过所有测试用例，则认为该问题已经解决。
+- en: §​ 3 Self-organized Agent Framework
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: §​ 3 自组织代理框架
+- en: Our Self-organized Agents (SoA) framework enables efficient implementation of
+    large-scale and complex code by having self-organized agents independently generate
+    and modify small-scale and simple code. In this section, we introduce the important
+    components of SoA, namely the agents and the layers responsible for more abstract
+    processing than the agents, and finally introduce the code generation and modification
+    protocols in the SoA framework.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的自组织代理（SoA）框架通过让自组织代理独立生成和修改小规模且简单的代码，从而实现了大规模和复杂代码的高效实现。在本节中，我们介绍了SoA的重要组成部分，即代理和负责比代理更抽象处理的层，并最终介绍了SoA框架中的代码生成和修改协议。
+- en: §​ 3.1 Child Agent
+  id: totrans-27
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: §​ 3.1 子代理
+- en: 'Child agents implement a given function based on its docstrings. As shown in
+    [Figure 2](https://arxiv.org/html/2404.02183v1#S3.F2 "Figure 2 ‣ §​ 3.1 Child
+    Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized Agents: A LLM Multi-Agent
+    Framework toward Ultra Large-Scale Code Generation and Optimization"), this agent
+    has a simple structure consisting of two elements: an LLM and memory. The LLM
+    generates code from the given docstrings and modifies the code based on the results
+    of unit tests. The memory stores the code generated by the agent itself and retrieves
+    the latest code to be input to the LLM along with the unit test feedback during
+    code modification. If an agent has these minimal specifications, it is possible
+    to use an off-the-shelf agents (e.g., Reflexion) as a Child agent. We deliberately
+    use a simple agent to verify the effectiveness of SoA in a simple setup.'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 子代理根据给定的文档字符串实现函数。如[图2](https://arxiv.org/html/2404.02183v1#S3.F2 "图2 ‣ §​ 3.1
+    子代理 ‣ §​ 3 自我组织代理框架 ‣ 自我组织代理：一个面向超大规模代码生成和优化的LLM多代理框架")所示，这个代理具有由两个元素组成的简单结构：一个LLM和一个内存。LLM从给定的文档字符串生成代码，并根据单元测试的结果修改代码。内存存储代理自己生成的代码，并在代码修改过程中检索最新的代码和单元测试反馈，并将其输入到LLM中。如果一个代理具备这些最基本的规格，便可以使用现成的代理（例如，Reflexion）作为子代理。我们故意使用一个简单的代理来验证SoA在简单设置中的有效性。
+- en: 'Figure 2: Overview of code generation. Child agents generate executable Python
+    function from a given docstring. The Mother agent generates the skeleton of the
+    function. The Mother spawns a new initialized agent (Child or Mother) and delegates
+    unimplemented functions.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：代码生成概览。子代理从给定的文档字符串生成可执行的Python函数。母代理生成函数的骨架。母代理生成一个新的初始化代理（子代理或母代理），并委派未实现的函数。
+- en: Code Generation
+  id: totrans-30
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代码生成
+- en: 'The main role of Child agents is to generate functions that meet the specifications
+    based on the given function’s docstrings. As shown in [Figure 2](https://arxiv.org/html/2404.02183v1#S3.F2
+    "Figure 2 ‣ §​ 3.1 Child Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized
+    Agents: A LLM Multi-Agent Framework toward Ultra Large-Scale Code Generation and
+    Optimization"), the agent follows the instructions to generate the rest of the
+    function and complete it. The completed function implementation is stored in memory,
+    and the unit tests for the function are also stored as they form the basis for
+    future code modifications.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 子代理的主要角色是根据给定函数的文档字符串生成符合规范的函数。如[图2](https://arxiv.org/html/2404.02183v1#S3.F2
+    "图2 ‣ §​ 3.1 子代理 ‣ §​ 3 自我组织代理框架 ‣ 自我组织代理：一个面向超大规模代码生成和优化的LLM多代理框架")所示，代理根据指令生成剩余的函数并完成它。完成的函数实现被存储在内存中，且函数的单元测试也被存储，因为它们构成了未来代码修改的基础。
+- en: 'Code Modification: Empowering Child Agents with Self-Organization and Adaptability'
+  id: totrans-32
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代码修改：赋予子代理自我组织和适应能力
+- en: 'One of the most remarkable aspects of agents in the SoA framework is their
+    ability to autonomously improve their code based on the state of nearby agents
+    . This process sets SoA apart from traditional agent approaches and showcases
+    the power of self-organization in code modification. While existing agents like
+    Reflexion Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20))
+    rely solely on the results of unit tests, Child agents in SoA go beyond this limitation
+    by independently observing the state of their mother agent, such as differences
+    in modifications and feedback. By gathering this invaluable information from their
+    surrounding environment, Child agents can adapt their behavior and make more informed
+    decisions about code modification, even without explicit instructions. The modifications
+    and feedback generated by the Mother agent serve as an important source of information
+    for the Child agents. Armed with these insights, Child agents can more effectively
+    modify their own code, contributing to the overall improvement of the codebase
+    in a way that is both efficient and adaptive. [Figure 3](https://arxiv.org/html/2404.02183v1#S3.F3
+    "Figure 3 ‣ §​ 3.2 Mother Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized
+    Agents: A LLM Multi-Agent Framework toward Ultra Large-Scale Code Generation and
+    Optimization") illustrates this process, which begins with the execution of unit
+    tests and the retrieval of the latest implementation from memory. The Child agent
+    then harnesses the power of the LLM to create a code modification proposal, seamlessly
+    combining the information observed from the Mother agent with the test results
+    and the latest implementation details. By storing the modified code in memory,
+    Child agents create a feedback loop that continuously refines and improves the
+    codebase over time. This iterative process, driven by the principles of self-organization
+    and adaptability, enables SoA to tackle complex code modification tasks with efficiency
+    and effectiveness. As Child agents work in harmony with their Mother agent, they
+    contribute to the creation of a more optimized and large codebase.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SoA 框架中代理的一个显著特点是它们能够根据周围代理的状态自主地改进自己的代码。这一过程使得 SoA 区别于传统的代理方法，并展示了自组织在代码修改中的力量。尽管像
+    Reflexion Shinn 等（[2023](https://arxiv.org/html/2404.02183v1#bib.bib20)）等现有代理仅依赖于单元测试结果，但
+    SoA 中的子代理通过独立观察母代理的状态，如修改差异和反馈，突破了这一限制。通过从周围环境中收集这些宝贵信息，子代理能够调整其行为，并在没有明确指令的情况下作出更明智的代码修改决策。母代理生成的修改和反馈为子代理提供了重要的信息来源。通过这些洞察，子代理能够更有效地修改自己的代码，从而以高效且适应性强的方式促进代码库的整体改进。[图
+    3](https://arxiv.org/html/2404.02183v1#S3.F3 "图 3 ‣ §​ 3.2 母代理 ‣ §​ 3 自组织代理框架
+    ‣ 自组织代理：一个面向超大规模代码生成和优化的 LLM 多代理框架") 展示了这个过程，过程从执行单元测试并从记忆中检索最新的实现开始。然后，子代理利用
+    LLM 的力量创建代码修改提案，将从母代理观察到的信息与测试结果和最新的实现细节无缝结合。通过将修改后的代码存储在记忆中，子代理创建了一个反馈循环，持续不断地优化和改进代码库。这个迭代过程由自组织和适应性原则驱动，使得
+    SoA 能够高效且有效地处理复杂的代码修改任务。随着子代理与母代理的协同工作，它们有助于创建一个更优化、更庞大的代码库。
+- en: §​ 3.2 Mother Agent
+  id: totrans-34
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: §​ 3.2 母代理（Mother Agent）
+- en: The Mother is an agent that generates new agents (Mother or Child). Similar
+    to Child agents, the Mother agent independently implements the specific Python
+    function based on its given docstrings. The Mother has memory, code generation
+    capabilities, and self-debugging functions, as same as Child agents. The unique
+    feature of the Mother agent is its ability to generate multiple Child agents according
+    to the complexity of the problem and delegate parts of the implementation to these
+    agents. This structure allows the Mother agent to focus on implementing abstract
+    processes, while the Child agents generated by the Mother agent concentrate on
+    implementing concrete processes. This division of labor enhances the overall efficiency
+    and flexibility of the SoA framework.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 母代理是一个生成新代理（母代理或子代理）的代理。与子代理类似，母代理根据其给定的文档字符串独立实现特定的 Python 函数。母代理具有记忆、代码生成能力和自我调试功能，这些功能与子代理相同。母代理的独特之处在于，它能够根据问题的复杂性生成多个子代理，并将部分实现任务委派给这些代理。这种结构使得母代理可以专注于实现抽象过程，而母代理生成的子代理则专注于实现具体过程。这种分工提高了
+    SoA 框架的整体效率和灵活性。
+- en: 'Figure 3: Overview of code modification. Agents (Mother/Child) observe the
+    state of Mother (feedback, old code, and updated code) and use this information
+    to improve the functions for which they are responsible. The state of the upper
+    agent is used to modify code by lower agents within the hierarchy. This state
+    propagation promotes collaboration and information sharing throughout the hierarchy,
+    enabling efficient code modification.'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：代码修改概览。代理（母体/子体）观察母体的状态（反馈、旧代码和更新的代码），并利用这些信息改进它们所负责的函数。上层代理的状态被下层代理用于修改代码。这种状态传播促进了层次结构中的协作与信息共享，从而实现高效的代码修改。
+- en: Code Generation
+  id: totrans-37
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代码生成
+- en: 'We explain the code generation process by the Mother agent using the implementation
+    example of the is_sum_of_odds_ten function shown in [Figure 2](https://arxiv.org/html/2404.02183v1#S3.F2
+    "Figure 2 ‣ §​ 3.1 Child Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized
+    Agents: A LLM Multi-Agent Framework toward Ultra Large-Scale Code Generation and
+    Optimization"). The starting point is the function’s docstrings and unit tests,
+    which are memorized for reference in the later self-debugging phase. The first
+    task of the Mother agent is to generate a skeleton of the implementation from
+    the given docstrings, including subfunctions such as get_odd_numbers to extract
+    odd numbers and sum_of_numbers to calculate their sum. The number and types of
+    these subfunctions are automatically determined by the LLM based on the complexity
+    of the problem.'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过母体代理的代码生成过程，结合[图 2](https://arxiv.org/html/2404.02183v1#S3.F2 "图 2 ‣ §​
+    3.1 子代理 ‣ §​ 3 自组织代理框架 ‣ 自组织代理：面向超大规模代码生成与优化的LLM多代理框架")中展示的is_sum_of_odds_ten函数的实现示例进行说明。起点是该函数的文档字符串和单元测试，这些内容在后续的自我调试阶段会被记忆并作为参考。母体代理的第一项任务是根据给定的文档字符串生成实现的框架，包括提取奇数的子函数get_odd_numbers和计算奇数和的子函数sum_of_numbers。这些子函数的数量和类型由LLM根据问题的复杂性自动确定。
+- en: It is important to note that these subfunctions are unimplemented, and the Mother
+    agent does not directly implement them. Instead, it delegates the implementation
+    of the subfunctions to other agents, allowing the Mother agent to focus on generating
+    the skeleton and streamline its own code generation process. After the docstrings
+    and unit tests for the subfunctions are generated, they are assigned to newly
+    initialized agents for implementation. These agents proceed with the implementation
+    of their respective functions without looking at the internals of the is_sum_of_odds_ten
+    function implemented by the Mother agent. Since agents within the same Mother
+    can work asynchronously, the overall code generation process is streamlined.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的是，这些子函数尚未实现，母体代理并不会直接实现它们。相反，它将子函数的实现委托给其他代理，使母体代理能够专注于生成框架，并简化自身的代码生成过程。在生成子函数的文档字符串和单元测试之后，这些任务会分配给新初始化的代理进行实现。这些代理会在不查看母体代理实现的is_sum_of_odds_ten函数内部的情况下，继续各自函数的实现。由于同一母体内的代理可以异步工作，整体的代码生成过程得以简化。
+- en: Code Modification
+  id: totrans-40
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代码修改
+- en: 'The Mother’s code modification is almost the same as the Child’s code modification
+    ([Figure 3](https://arxiv.org/html/2404.02183v1#S3.F3 "Figure 3 ‣ §​ 3.2 Mother
+    Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized Agents: A LLM Multi-Agent
+    Framework toward Ultra Large-Scale Code Generation and Optimization")). It observes
+    information from the upper Mother and uses it to modify the functions it is responsible
+    for. The only difference is that the feedback it generates and the code before
+    and after modification are used by lower-level agents (Child or Mother).'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 母体的代码修改几乎与子体的代码修改相同（[图 3](https://arxiv.org/html/2404.02183v1#S3.F3 "图 3 ‣ §​
+    3.2 母体代理 ‣ §​ 3 自组织代理框架 ‣ 自组织代理：面向超大规模代码生成与优化的LLM多代理框架")）。它观察上层母体的信息，并利用这些信息修改它负责的函数。唯一的区别是，它生成的反馈以及修改前后的代码将被下层代理（子体或母体）使用。
+- en: §​ 3.3 Self-organized Agent Process
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: §​ 3.3 自组织代理过程
+- en: 'The Self-organized Agent (SoA) framework is a distributed framework in which
+    multiple agents (including Mother agents and Child agents) repeatedly generate
+    and modify functions. The core of this framework lies in the principle of self-organization,
+    where each agent functions independently without the need to directly observe
+    the entire codebase. The hierarchical combination of Mother agents and Child agents
+    forms an agent network that effectively constructs a single large-scale codebase.
+    In this hierarchical structure, Mother agents decompose complex problems into
+    more manageable smaller problems by dividing tasks and delegating them to the
+    agents they have generated. Although each agent is independent, the agents as
+    a whole can work efficiently towards the implementation of a single function.
+    Despite the fact that the amount of code each agent generates, modifies, and manages
+    is always small, the number of agents scales, allowing the amount of code generated
+    to be increased indefinitely according to the difficulty of the problem. Detailed
+    algorithms are presented in Algorithm [1](https://arxiv.org/html/2404.02183v1#alg1
+    "Algorithm 1 ‣ Appendix A Pseudocode ‣ Self-Organized Agents: A LLM Multi-Agent
+    Framework toward Ultra Large-Scale Code Generation and Optimization") in the appendix.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自组织代理（SoA）框架是一个分布式框架，其中多个代理（包括母体代理和子代理）反复生成和修改函数。该框架的核心在于自组织原理，每个代理独立工作，无需直接观察整个代码库。母体代理和子代理的层次化组合形成了一个代理网络，能够有效地构建一个单一的大规模代码库。在这个层次结构中，母体代理通过分解任务并将它们委派给自己生成的代理，将复杂问题分解为更易管理的小问题。尽管每个代理都是独立的，但所有代理协同工作，可以高效地实现单个功能。尽管每个代理生成、修改和管理的代码量始终较小，但代理的数量可以扩展，从而根据问题的难度无限增加生成的代码量。详细算法请参见附录中的算法[1](https://arxiv.org/html/2404.02183v1#alg1
+    "算法1 ‣ 附录A伪代码 ‣ 自组织代理：面向超大规模代码生成与优化的LLM多代理框架")。
+- en: 'Figure 4: Overview of the SoA framework. Mother agents and Child agents hierarchically
+    construct a network and perform function generation and modification. Mother agents
+    delegate tasks to other Mother agents or Child agents, and each agent independently
+    executes tasks while effectively implementing a single function as a whole.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：SoA框架概览。母体代理和子代理层次化地构建一个网络，执行函数的生成和修改。母体代理将任务委派给其他母体代理或子代理，每个代理独立执行任务，同时有效地实现单个功能的整体执行。
+- en: Code Generation
+  id: totrans-45
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代码生成
+- en: 'The code generation process in the SoA framework begins with the function’s
+    docstrings and unit tests. In the initial stage, there is only one initialized
+    Mother agent, which is the root of the tree structure. Based on the input docstrings
+    and unit tests, it generates docstrings and unit tests for subtasks and passes
+    them to other agents it generates (see [§​ 3.2](https://arxiv.org/html/2404.02183v1#S3.SS2
+    "§​ 3.2 Mother Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized Agents:
+    A LLM Multi-Agent Framework toward Ultra Large-Scale Code Generation and Optimization")).
+    If the tree structure reaches a predetermined depth, the tasks are passed to Child
+    agents; otherwise, they are passed to newly generated Mother agents. By repeatedly
+    proliferating and increasing the number of agents until the last agent, it is
+    possible to generate large-scale code while keeping the amount of code managed
+    by individual agents constant.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SoA框架中的代码生成过程始于函数的文档字符串和单元测试。在初始阶段，只有一个初始化的母体代理，它是树形结构的根节点。基于输入的文档字符串和单元测试，它为子任务生成文档字符串和单元测试，并将它们传递给它生成的其他代理（参见
+    [§​ 3.2](https://arxiv.org/html/2404.02183v1#S3.SS2 "§​ 3.2 母体代理 ‣ §​ 3 自组织代理框架
+    ‣ 自组织代理：面向超大规模代码生成与优化的LLM多代理框架")）。如果树结构达到预定的深度，任务会被传递给子代理；否则，任务会被传递给新生成的母体代理。通过反复繁殖并增加代理数量，直到最后一个代理，便可以在保持每个代理管理的代码量不变的情况下生成大规模的代码。
+- en: Code Modification
+  id: totrans-47
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代码修改
+- en: 'Once code generation is complete, the process transitions to the code modification
+    phase. First, the implementations of all agents are combined to create the final
+    implementation. This final implementation is evaluated using the unit tests provided
+    to the root Mother, and feedback is generated from the results. Since there are
+    no agents higher than this root Mother, information from higher-level agents as
+    shown in [Figure 3](https://arxiv.org/html/2404.02183v1#S3.F3 "Figure 3 ‣ §​ 3.2
+    Mother Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized Agents: A
+    LLM Multi-Agent Framework toward Ultra Large-Scale Code Generation and Optimization")
+    is not used. The modification process starts based on this feedback and propagates
+    information from the root Mother agent to the Child agents. Each agent updates
+    its implementation based on the received feedback, generates new feedback, and
+    transmits it to lower-level agents (see [§​ 3.2](https://arxiv.org/html/2404.02183v1#S3.SS2
+    "§​ 3.2 Mother Agent ‣ §​ 3 Self-organized Agent Framework ‣ Self-Organized Agents:
+    A LLM Multi-Agent Framework toward Ultra Large-Scale Code Generation and Optimization")).
+    Finally, the Child agents update their own implementations, and the process terminates
+    (see [§​ 3.1](https://arxiv.org/html/2404.02183v1#S3.SS1 "§​ 3.1 Child Agent ‣
+    §​ 3 Self-organized Agent Framework ‣ Self-Organized Agents: A LLM Multi-Agent
+    Framework toward Ultra Large-Scale Code Generation and Optimization")). This series
+    of processes is repeated until a predetermined maximum number of iterations is
+    reached.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦代码生成完成，过程将过渡到代码修改阶段。首先，将所有代理的实现合并，生成最终的实现。使用提供给根母代理的单元测试来评估最终实现，并根据结果生成反馈。由于没有比根母代理更高级别的代理，因此不使用来自更高层级代理的信息，如[图3](https://arxiv.org/html/2404.02183v1#S3.F3
+    "图 3 ‣ §​ 3.2 母代理 ‣ §​ 3 自组织代理框架 ‣ 自组织代理：面向超大规模代码生成与优化的LLM多代理框架")所示。修改过程基于此反馈开始，并将信息从根母代理传播到子代理。每个代理根据收到的反馈更新其实现，生成新的反馈，并将其传输给更低层级的代理（见[§​
+    3.2](https://arxiv.org/html/2404.02183v1#S3.SS2 "§​ 3.2 母代理 ‣ §​ 3 自组织代理框架 ‣ 自组织代理：面向超大规模代码生成与优化的LLM多代理框架")）。最终，子代理更新自身的实现，过程终止（见[§​
+    3.1](https://arxiv.org/html/2404.02183v1#S3.SS1 "§​ 3.1 子代理 ‣ §​ 3 自组织代理框架 ‣ 自组织代理：面向超大规模代码生成与优化的LLM多代理框架")）。这一系列过程会一直重复，直到达到预定的最大迭代次数。
+- en: §​ 4 Experiments
+  id: totrans-49
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: §​ 4 实验
+- en: LLM Selection
+  id: totrans-50
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: LLM选择
+- en: We used GPT3.5-turbo³³3gpt3.5-turbo-1106 for code generation and feedback generation.⁴⁴4GPT-4
+    was not selected due to the high experimental cost required.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用了GPT3.5-turbo³³3gpt3.5-turbo-1106进行代码生成和反馈生成。⁴⁴4GPT-4由于实验成本过高而未被选择。
+- en: Baselines
+  id: totrans-52
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 基准线
+- en: We compare SoA with several state-of-the-art code generation methods including
+    AlphaCode Li et al. ([2022](https://arxiv.org/html/2404.02183v1#bib.bib12)), Incoder Fried
+    et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib6)), Codex Chen et al.
+    ([2021](https://arxiv.org/html/2404.02183v1#bib.bib4)), CoT Wei et al. ([2022](https://arxiv.org/html/2404.02183v1#bib.bib22)),
+    and Gemini Pro Anil et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib1)).
+    Additionally, we evaluate the performance of various GPT-3.5-based agents, such
+    as ChatGPT, Self-Edit Zhang et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib25)),
+    and Reflexion Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20)).
+    These baselines are chosen to represent a diverse range of approaches, including
+    single-agent and multi-agent systems, as well as those with and without self-debugging
+    capabilities.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将SoA与几种最先进的代码生成方法进行了比较，包括AlphaCode Li等人（[2022](https://arxiv.org/html/2404.02183v1#bib.bib12)）、Incoder
+    Fried等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib6)）、Codex Chen等人（[2021](https://arxiv.org/html/2404.02183v1#bib.bib4)）、CoT
+    Wei等人（[2022](https://arxiv.org/html/2404.02183v1#bib.bib22)）以及Gemini Pro Anil等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib1)）。此外，我们还评估了多种基于GPT-3.5的代理的表现，如ChatGPT、Self-Edit
+    Zhang等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib25)）和Reflexion Shinn等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib20)）。这些基准线的选择代表了多种方法的多样性，包括单代理系统和多代理系统，以及具有和不具有自我调试功能的方法。
+- en: Agent Configuration
+  id: totrans-54
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 代理配置
+- en: To evaluate the effectiveness of the SoA framework, we selected the Reflexion
+    agent as a baseline. Reflexion iteratively modifies code based on the given docstrings
+    and automatically generated unit tests until it reaches the maximum number of
+    iterations or passes the unit tests. The main difference between Reflexion and
+    SoA is that Reflexion is composed of a single agent, while SoA is composed of
+    self-organized multiple agents. In the SoA configuration, we set the maximum number
+    of iterations for the learning loop to 8 and the maximum tree depth to 2. Additionally,
+    following Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20)),
+    we provided a few-shot trajectory to the LLM.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估SoA框架的有效性，我们选择了Reflexion代理作为基准。Reflexion基于给定的文档字符串和自动生成的单元测试，迭代地修改代码，直到达到最大迭代次数或通过单元测试。Reflexion与SoA的主要区别在于，Reflexion由一个单一代理组成，而SoA由自组织的多个代理组成。在SoA配置中，我们将学习循环的最大迭代次数设置为8，最大树深度设置为2。此外，按照Shinn等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib20)）的方法，我们为LLM提供了少量示例轨迹。
+- en: Data and Tasks
+  id: totrans-56
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 数据和任务
+- en: To evaluate the performance of automatic code generation, we used the HumanEval
+    Chen et al. ([2021](https://arxiv.org/html/2404.02183v1#bib.bib4)) benchmark.
+    HumanEval is a set that includes diverse programming problems designed to measure
+    the functional correctness of generated code. We used the Python language set
+    for evaluation and followed the evaluation methodology of Reflexion Shinn et al.
+    ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20)). In this process, multiple
+    test cases are created for each generated code, and $n$ test cases are randomly
+    selected to construct a test suite. This test suite is used to verify whether
+    the generated code functions correctly. We set 6 unit tests for Reflexion and
+    1 unit test for SoA.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估自动代码生成的性能，我们使用了HumanEval Chen等人（[2021](https://arxiv.org/html/2404.02183v1#bib.bib4)）基准。HumanEval是一组包含多样化编程问题的测试集，旨在衡量生成代码的功能正确性。我们使用了Python语言集进行评估，并遵循了Reflexion
+    Shinn等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib20)）的评估方法。在此过程中，为每个生成的代码创建多个测试用例，并随机选择$n$个测试用例来构建测试套件。该测试套件用于验证生成的代码是否能正确运行。我们为Reflexion设置了6个单元测试，为SoA设置了1个单元测试。
+- en: '| Method | SD | SO | Pass@1 |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | SD | SO | Pass@1 |'
+- en: '| AlphaCode   Li et al. ([2022](https://arxiv.org/html/2404.02183v1#bib.bib12))
+    | ✘ | ✘ | 17.1 |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| AlphaCode   Li等人 ([2022](https://arxiv.org/html/2404.02183v1#bib.bib12))
+    | ✘ | ✘ | 17.1 |'
+- en: '| Incoder   Fried et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib6))
+    | ✘ | ✘ | 15.2 |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| Incoder   Fried等人 ([2023](https://arxiv.org/html/2404.02183v1#bib.bib6))
+    | ✘ | ✘ | 15.2 |'
+- en: '| Codex   Chen et al. ([2021](https://arxiv.org/html/2404.02183v1#bib.bib4))
+    | ✘ | ✘ | 47.0 |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| Codex   Chen等人 ([2021](https://arxiv.org/html/2404.02183v1#bib.bib4)) | ✘
+    | ✘ | 47.0 |'
+- en: '| Gemini Pro   Anil et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib1))
+    | ✘ | ✘ | 67.7 |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| Gemini Pro   Anil等人 ([2023](https://arxiv.org/html/2404.02183v1#bib.bib1))
+    | ✘ | ✘ | 67.7 |'
+- en: '| GPT-3.5 | CoT Wei et al. ([2022](https://arxiv.org/html/2404.02183v1#bib.bib22))
+    | ✘ | ✘ | 44.6 |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 | CoT Wei等人 ([2022](https://arxiv.org/html/2404.02183v1#bib.bib22))
+    | ✘ | ✘ | 44.6 |'
+- en: '| ChatGPT | ✘ | ✘ | 57.3 |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatGPT | ✘ | ✘ | 57.3 |'
+- en: '| Self-Edit Zhang et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib25))
+    | ✔ | ✘ | 62.2 |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| Self-Edit Zhang等人 ([2023](https://arxiv.org/html/2404.02183v1#bib.bib25))
+    | ✔ | ✘ | 62.2 |'
+- en: '| Reflexion Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20))
+    | ✔ | ✘ | 66.5 |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| Reflexion Shinn等人 ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20))
+    | ✔ | ✘ | 66.5 |'
+- en: '| SoA (ours) | ✔ | ✔ | 71.4 |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| SoA（我们的） | ✔ | ✔ | 71.4 |'
+- en: 'Table 1: Results of SoA and baselines on HumanEval. The score of ChatGPT is
+    taken from Dong et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib5)).
+    SD indicates whether the agent uses self-debugging with unit tests, while SO denotes
+    whether the agent employs self-organized multi-agent collaboration.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：SoA与基准方法在HumanEval上的结果。ChatGPT的得分来自Dong等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib5)）。SD表示代理是否使用了带有单元测试的自我调试，而SO表示代理是否采用了自组织的多代理协作。
+- en: §​ 4.1 Main Results
+  id: totrans-69
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: §​ 4.1 主要结果
+- en: '[Table 1](https://arxiv.org/html/2404.02183v1#S4.T1 "Table 1 ‣ Data and Tasks
+    ‣ §​ 4 Experiments ‣ Self-Organized Agents: A LLM Multi-Agent Framework toward
+    Ultra Large-Scale Code Generation and Optimization") compares the Pass@1 accuracy
+    of the proposed method and the baseline. Comparing SoA with Reflexion, a strong
+    baseline, SoA outperforms Reflexion by 5% in Pass@1\. Considering that each agent
+    in SoA does not see the entire code, this is a surprising result. This result
+    suggests that self-organized agents can generate code that functions well as a
+    whole without needing to oversee the entire code, by independently implementing
+    the functions assigned to them.'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表1](https://arxiv.org/html/2404.02183v1#S4.T1 "Table 1 ‣ Data and Tasks ‣
+    §​ 4 Experiments ‣ Self-Organized Agents: A LLM Multi-Agent Framework toward Ultra
+    Large-Scale Code Generation and Optimization") 比较了所提方法和基准的Pass@1准确率。将SoA与强基准Reflexion进行比较，SoA在Pass@1上超越Reflexion
+    5%。考虑到SoA中的每个智能体并没有看到整个代码，这一结果令人惊讶。这一结果表明，自组织智能体能够生成一个整体运行良好的代码，而无需监督整个代码，而是通过独立实现分配给它们的功能。'
+- en: §​ 4.2 Analysis
+  id: totrans-71
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: §​ 4.2 分析
+- en: One of the most critical aspects of our study is the efficiency of the self-organized
+    multi-agent approach in large-scale code generation. To showcase the superior
+    performance of SoA, we conducted a comprehensive comparative analysis between
+    Reflexion, a state-of-the-art single-agent system, and our proposed multi-agent
+    system. Using the HumanEval benchmark, we meticulously examined the overall scale
+    of the code generated by both systems and the amount of code each agent independently
+    generated and memorized. To ensure a fair comparison, we removed comments and
+    docstrings from the HumanEval results and focused on the number of characters
+    and tokens of pure code.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们研究中最关键的一个方面是自组织多智能体方法在大规模代码生成中的效率。为了展示SoA的优越性能，我们进行了全面的对比分析，比较了最先进的单智能体系统Reflexion与我们提出的多智能体系统。通过使用HumanEval基准，我们仔细检查了两种系统生成的代码总体规模，以及每个智能体独立生成和记忆的代码量。为了确保公平比较，我们从HumanEval结果中去除了注释和文档字符串，并专注于纯代码的字符数和标记数。
+- en: '[Figure 5](https://arxiv.org/html/2404.02183v1#S4.F5 "Figure 5 ‣ §​ 4.2 Analysis
+    ‣ §​ 4 Experiments ‣ Self-Organized Agents: A LLM Multi-Agent Framework toward
+    Ultra Large-Scale Code Generation and Optimization") presents a visualization
+    of the average amount of code generated by SoA and Reflexion from the perspective
+    of individual functions and all functions. In the context of HumanEval, which
+    requires the implementation of a single function, SoA’s code amount is calculated
+    by summing the code generated by each agent, while Reflexion’s code amount is
+    based on a single function. The *code amount per function* in SoA refers to the
+    code generated by each individual agent, whereas in Reflexion, it is equivalent
+    to the code amount of a single function. The results unequivocally demonstrate
+    SoA’s superiority over Reflexion in terms of the number of tokens per final code
+    and the average number of characters per function. What is remarkable is that
+    despite each agent in SoA handling significantly fewer tokens/characters compared
+    to the single agent in Reflexion, the overall output generated by SoA is substantially
+    greater. This finding underscores the exceptional scalability of SoA, indicating
+    its ability to handle increasingly complex tasks by seamlessly adding more agents
+    to the system. Our results suggest that by increasing the depth of the agent hierarchy
+    and introducing more Mother agents, SoA can generate even larger-scale code by
+    efficiently distributing the workload among multiple agents. As the tree structure
+    becomes deeper, the system exhibits an infinite scaling potential, enabling the
+    generation of increasingly complex and extensive codebases while ensuring that
+    each agent handles a manageable portion of the code. Each agent can maintain a
+    manageable amount of code while theoretically allowing for an indefinite increase
+    in the overall code generation capacity.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图5](https://arxiv.org/html/2404.02183v1#S4.F5 "Figure 5 ‣ §​ 4.2 Analysis
+    ‣ §​ 4 Experiments ‣ Self-Organized Agents: A LLM Multi-Agent Framework toward
+    Ultra Large-Scale Code Generation and Optimization")展示了从单个函数和所有函数的角度来看，SoA与Reflexion平均生成的代码量的可视化。在HumanEval的背景下，HumanEval要求实现一个单一的函数，SoA的代码量是通过将每个代理生成的代码相加来计算的，而Reflexion的代码量则基于单个函数。SoA中每个函数的*代码量*是指每个代理生成的代码量，而在Reflexion中，它等同于单个函数的代码量。结果明确表明，在每个最终代码的标记数和每个函数的平均字符数方面，SoA明显优于Reflexion。值得注意的是，尽管SoA中每个代理处理的标记/字符数量明显少于Reflexion中的单一代理，SoA的整体输出却显著更大。这一发现凸显了SoA的卓越可扩展性，表明它通过无缝增加更多代理来处理越来越复杂的任务。我们的结果表明，通过增加代理层次的深度并引入更多母代理，SoA可以通过高效分配工作负载在多个代理之间生成更大规模的代码。随着树结构变得更深，系统展现出无限的扩展潜力，能够生成越来越复杂和庞大的代码库，同时确保每个代理处理一部分可管理的代码。每个代理可以保持可管理的代码量，同时理论上允许总体代码生成能力的无限增长。'
+- en: This distributed approach empowers SoA to significantly scale up its ability
+    to tackle large-scale and complex coding tasks with remarkable efficiency and
+    high quality, far surpassing the limitations encountered by single-agent systems
+    like Reflexion, where a sole agent is responsible for managing and generating
+    the entire codebase.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种分布式方法使得SoA能够显著扩展其处理大规模和复杂编码任务的能力，具有卓越的效率和高质量，远远超越了单代理系统如Reflexion所面临的局限性，其中一个代理负责管理和生成整个代码库。
+- en: 'Figure 5: Comparison of code generation amount between SoA (mulit-agent) and
+    Reflexion (single agent).'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：SoA（多代理）与Reflexion（单代理）之间的代码生成量比较。
+- en: §​ 5 Related Work
+  id: totrans-76
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: §​ 5 相关工作
+- en: LLM Agents
+  id: totrans-77
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: LLM代理
+- en: Recent advancements in LLM agents, such as ReAct Yao et al. ([2023b](https://arxiv.org/html/2404.02183v1#bib.bib24)),
+    Reflexion Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20)),
+    Toolformer Schick et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib18)),
+    and Self-Refine Madaan et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib13)),
+    have primarily focused on single-agent approaches, where one agent is responsible
+    for both generation and modification tasks. Among these, Reflexion Shinn et al.
+    ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20)) has gained significant
+    attention in the field of code generation due to its outstanding performance.
+    However, despite their strengths, these single-agent approaches face inherent
+    limitations when it comes to generating and modifying large-scale codebases. To
+    address these limitations and push the boundaries of what is possible with LLM
+    agents, we propose SoA, a novel multi-agent framework that harnesses the power
+    of self-organization and collaboration. While we intentionally adopted simple
+    agents for SoA in this work, our framework is flexible enough to incorporate more
+    sophisticated and powerful methods Zhong et al. ([2024](https://arxiv.org/html/2404.02183v1#bib.bib26));
+    Zhou et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib27)) and other
+    state-of-the-art LLMs ⁵⁵5[https://claude.ai/](https://claude.ai/), further enhancing
+    its potential for large-scale code generation and modification.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，在LLM智能体领域取得了进展，如ReAct Yao et al. ([2023b](https://arxiv.org/html/2404.02183v1#bib.bib24))、Reflexion
+    Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20))、Toolformer
+    Schick et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib18))和Self-Refine
+    Madaan et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib13))，这些方法主要集中于单一智能体方法，其中一个智能体负责生成和修改任务。在这些方法中，Reflexion
+    Shinn et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib20))因其在代码生成领域的出色表现而引起了广泛关注。然而，尽管这些方法有其优点，它们在生成和修改大规模代码库时仍面临固有的局限性。为了克服这些局限，并推动LLM智能体技术的边界，我们提出了SoA，这是一个新颖的多智能体框架，能够利用自组织和协作的力量。尽管在本研究中我们故意为SoA采用了简单的智能体，我们的框架足够灵活，可以整合更复杂和更强大的方法，如Zhong
+    et al. ([2024](https://arxiv.org/html/2404.02183v1#bib.bib26))；Zhou et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib27))以及其他最先进的LLM技术⁵⁵5[https://claude.ai/](https://claude.ai/)，进一步增强其在大规模代码生成和修改方面的潜力。
+- en: Multi-Agent Collaboration for Software Development
+  id: totrans-79
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 软件开发中的多智能体协作
+- en: In recent years, several multi-agent-based approaches have emerged as promising
+    solutions for software development, such as MetaGPT Hong et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib7)),
+    ChatDev Qian et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib17)), Self-collaboration Dong
+    et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib5)), and AgentCoder Huang
+    et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib8)). These methods typically
+    personify agents and assign them specific names or occupational roles, such as
+    programmers, project managers, or QA engineers, to allocate tasks. While this
+    approach has shown promise, our method takes a different and more flexible approach.
+    Instead of assigning fixed occupational roles, we subdivide agent capabilities
+    based on *code functionality*, allowing each agent to demonstrate its expertise
+    without being constrained by predefined roles. This fine-grained task allocation
+    enables more flexible problem-solving and adaptation to the complexity of the
+    software development process. Moreover, by incorporating the concepts of self-organization
+    and self-proliferation, our agents can dynamically scale up the overall code volume
+    based on the difficulty of the problem at hand, providing a highly adaptable and
+    efficient framework for large-scale code generation and modification.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，一些基于多智能体的方法作为软件开发的有前景的解决方案相继出现，例如MetaGPT Hong et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib7))、ChatDev
+    Qian et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib17))、Self-collaboration
+    Dong et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib5))和AgentCoder
+    Huang et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib8))。这些方法通常将智能体拟人化，并为其分配特定的名称或职业角色，例如程序员、项目经理或QA工程师，以分配任务。虽然这种方法展现出了一定的前景，我们的方法采取了不同且更为灵活的方式。我们并不为智能体分配固定的职业角色，而是根据*代码功能性*对智能体的能力进行细分，使每个智能体能够展示其专业技能，而不受预定义角色的限制。这种精细化的任务分配使得问题解决更具灵活性，并能适应软件开发过程中的复杂性。此外，通过结合自组织和自繁衍的概念，我们的智能体能够根据当前问题的难度动态扩展整体代码量，为大规模代码生成和修改提供了一个高度适应性和高效的框架。
+- en: Macro vs. Micro Perspectives
+  id: totrans-81
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 宏观与微观视角
+- en: While both multi-agent-based methods Hong et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib7));
+    Qian et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib17)); Dong et al.
+    ([2023](https://arxiv.org/html/2404.02183v1#bib.bib5)); Huang et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib8))
+    and our proposed SoA framework share the common goal of automating software development,
+    they address different technical aspects of the process. Existing multi-agent
+    methods primarily focus on optimizing the macro structure of software development,
+    such as project management and task allocation. In contrast, our method takes
+    a more micro-level perspective, focusing on the elemental technologies of code
+    generation and modification. These approaches are not mutually exclusive but rather
+    complementary, offering a more comprehensive solution to the challenges faced
+    in automatic software development. By combining the strengths of both macro and
+    micro-level approaches, we can create a powerful and holistic framework that efficiently
+    handles the complexities of large-scale code generation and modification.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然基于多智能体的方法，如Hong等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib7)）；Qian等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib17)）；Dong等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib5)）；Huang等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib8)）和我们提出的SoA框架，具有自动化软件开发的共同目标，但它们解决的是软件开发过程中的不同技术方面。现有的多智能体方法主要关注优化软件开发的宏观结构，如项目管理和任务分配。相比之下，我们的方法采取了更微观的视角，专注于代码生成和修改的基础技术。这些方法并非互相排斥，而是互为补充，为自动化软件开发面临的挑战提供了更全面的解决方案。通过结合宏观和微观方法的优势，我们可以创建一个强大而全面的框架，能够高效处理大规模代码生成和修改的复杂性。
+- en: Prompt Engineering
+  id: totrans-83
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 提示工程
+- en: Tree-of-Thought (ToT) Yao et al. ([2023a](https://arxiv.org/html/2404.02183v1#bib.bib23))
+    and Skeleton of Thought (SoT) Ning et al. ([2023](https://arxiv.org/html/2404.02183v1#bib.bib15))
+    are prompt engineering techniques that utilize tree-like structures. ToT represents
+    reasoning steps as nodes to explore correct reasoning paths, while SoT generates
+    a skeleton of the answer and completes the contents in parallel to decrease generation
+    latency. In contrast, SoA uses a tree structure with agents as nodes, focusing
+    on their collaboration and self-organization to generate and modify code efficiently.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 思维树（ToT）Yao等人（[2023a](https://arxiv.org/html/2404.02183v1#bib.bib23)）和思维骨架（SoT）Ning等人（[2023](https://arxiv.org/html/2404.02183v1#bib.bib15)）是利用树状结构的提示工程技术。ToT将推理步骤表示为节点，以探索正确的推理路径，而SoT则生成答案的骨架，并并行完成内容以减少生成延迟。相比之下，SoA使用以智能体为节点的树形结构，重点是它们的协作和自组织，以高效生成和修改代码。
+- en: §​ 6 Conclusion
+  id: totrans-85
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: §​ 6 结论
+- en: In this work, we introduced Self-organized Agents (SoA), a novel multi-agent
+    framework for efficient and scalable automatic code generation and optimization
+    using large language models (LLMs). SoA addresses the limitations of single-agent
+    approaches in handling large-scale, complex codebases by leveraging the power
+    of self-organization and distributed code generation. In SoA, self-organized agents
+    operate independently to generate and modify code components while seamlessly
+    collaborating to construct the overall codebase. A key feature of our framework
+    is the automatic multiplication of agents based on problem complexity, allowing
+    for dynamic scalability and enabling the overall code volume to be increased indefinitely
+    according to the number of agents, while the amount of code managed by each agent
+    remains constant.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本研究中，我们介绍了自组织智能体（SoA），一种新型的多智能体框架，旨在利用大语言模型（LLMs）实现高效且可扩展的自动代码生成和优化。SoA通过利用自组织和分布式代码生成的能力，解决了单一智能体方法在处理大规模复杂代码库时的局限性。在SoA中，自组织智能体独立操作，生成和修改代码组件，同时无缝协作以构建整体代码库。我们框架的一个关键特点是根据问题复杂度自动增加智能体的数量，从而实现动态可扩展性，允许整体代码量根据智能体的数量无限增加，而每个智能体管理的代码量保持不变。
+- en: We evaluated SoA on the HumanEval benchmark and demonstrated its superior performance
+    compared to Reflexion, a state-of-the-art single-agent system, with SoA achieving
+    a 5% improvement in terms of Pass@1 accuracy. Furthermore, our in-depth analysis
+    revealed SoA’s remarkable scalability, as each agent in SoA handles significantly
+    less code compared to the single-agent baseline, yet the overall generated code
+    is substantially greater. These results highlight the effectiveness of SoA in
+    generating and optimizing large-scale code efficiently and with high quality.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在 HumanEval 基准上评估了 SoA，并展示了其优于 Reflexion（一个先进的单一代理系统）的表现，SoA 在 Pass@1 准确率上提升了
+    5%。此外，我们的深入分析显示了 SoA 显著的可扩展性，因为 SoA 中的每个代理处理的代码远少于单一代理基准系统，但整体生成的代码量却大大增加。这些结果突显了
+    SoA 在高效且高质量地生成和优化大规模代码方面的有效性。
+- en: However, it is essential to acknowledge the limitations of the current implementation
+    of SoA. The framework’s performance may be affected by the choice of LLM and the
+    quality of the generated unit tests. Additionally, SoA has been evaluated on a
+    limited set of programming tasks, and its effectiveness in handling more complex,
+    real-world software development projects remains to be investigated. Furthermore,
+    the communication and collaboration mechanisms among agents in SoA can be further
+    optimized to improve efficiency and fault tolerance.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，必须承认当前 SoA 实现的局限性。框架的性能可能会受到 LLM 选择以及生成的单元测试质量的影响。此外，SoA 仅在有限的编程任务集上进行了评估，其在处理更复杂的实际软件开发项目中的有效性仍需进一步研究。此外，SoA
+    中代理之间的通信与协作机制可以进一步优化，以提高效率和容错能力。
+- en: Despite these limitations, we believe that the SoA framework has significant
+    potential for future research and development in the field of automatic software
+    development.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管存在这些局限性，我们认为 SoA 框架在自动化软件开发领域的未来研究与发展中具有重要潜力。
+- en: References
+  id: totrans-90
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Anil et al. (2023) Rohan Anil, Sebastian Borgeaud, Yonghui Wu, Jean-Baptiste
+    Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M. Dai, Anja Hauth,
+    Katie Millican, David Silver, Slav Petrov, Melvin Johnson, Ioannis Antonoglou,
+    Julian Schrittwieser, Amelia Glaese, Jilin Chen, Emily Pitler, Timothy P. Lillicrap,
+    Angeliki Lazaridou, Orhan Firat, James Molloy, Michael Isard, Paul Ronald Barham,
+    Tom Hennigan, Benjamin Lee, Fabio Viola, Malcolm Reynolds, Yuanzhong Xu, Ryan
+    Doherty, Eli Collins, Clemens Meyer, Eliza Rutherford, Erica Moreira, Kareem Ayoub,
+    Megha Goel, George Tucker, Enrique Piqueras, Maxim Krikun, Iain Barr, Nikolay
+    Savinov, Ivo Danihelka, Becca Roelofs, Anaïs White, Anders Andreassen, Tamara
+    von Glehn, Lakshman Yagati, Mehran Kazemi, Lucas Gonzalez, Misha Khalman, Jakub
+    Sygnowski, and et al. 2023. [Gemini: A family of highly capable multimodal models](https://doi.org/10.48550/ARXIV.2312.11805).
+    *CoRR*, abs/2312.11805.'
+  id: totrans-91
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Anil 等人（2023）Rohan Anil、Sebastian Borgeaud、Yonghui Wu、Jean-Baptiste Alayrac、Jiahui
+    Yu、Radu Soricut、Johan Schalkwyk、Andrew M. Dai、Anja Hauth、Katie Millican、David
+    Silver、Slav Petrov、Melvin Johnson、Ioannis Antonoglou、Julian Schrittwieser、Amelia
+    Glaese、Jilin Chen、Emily Pitler、Timothy P. Lillicrap、Angeliki Lazaridou、Orhan Firat、James
+    Molloy、Michael Isard、Paul Ronald Barham、Tom Hennigan、Benjamin Lee、Fabio Viola、Malcolm
+    Reynolds、Yuanzhong Xu、Ryan Doherty、Eli Collins、Clemens Meyer、Eliza Rutherford、Erica
+    Moreira、Kareem Ayoub、Megha Goel、George Tucker、Enrique Piqueras、Maxim Krikun、Iain
+    Barr、Nikolay Savinov、Ivo Danihelka、Becca Roelofs、Anaïs White、Anders Andreassen、Tamara
+    von Glehn、Lakshman Yagati、Mehran Kazemi、Lucas Gonzalez、Misha Khalman、Jakub Sygnowski
+    等人。2023年。[Gemini: 一种高效能多模态模型家族](https://doi.org/10.48550/ARXIV.2312.11805)。*CoRR*，abs/2312.11805。'
+- en: Ashby (1947) W Ross Ashby. 1947. Principles of the self-organizing dynamic system.
+    *The Journal of general psychology*, 37(2):125–128.
+  id: totrans-92
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ashby（1947）W·Ross Ashby。1947年。自组织动态系统的原理。*普通心理学杂志*，37(2):125–128。
+- en: 'Brown et al. (2020) Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah,
+    Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry,
+    Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan,
+    Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, Christopher
+    Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack
+    Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya Sutskever, and Dario
+    Amodei. 2020. [Language models are few-shot learners](https://proceedings.neurips.cc/paper/2020/hash/1457c0d6bfcb4967418bfb8ac142f64a-Abstract.html).
+    In *Advances in Neural Information Processing Systems 33: Annual Conference on
+    Neural Information Processing Systems 2020, NeurIPS 2020, December 6-12, 2020,
+    virtual*.'
+  id: totrans-93
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown 等人（2020）汤姆·B·布朗，本杰明·曼，尼克·莱德，梅拉妮·苏比亚，贾里德·卡普兰，普拉弗·达里瓦尔，阿尔文·尼拉坎坦，普拉纳夫·夏姆，吉里什·萨斯特里，阿曼达·阿斯克尔，桑迪尼·阿贾尔瓦尔，阿里尔·赫伯特-沃斯，格雷琴·克鲁格，汤姆·亨尼汉，瑞温·查尔德，阿迪蒂亚·拉梅什，丹尼尔·M·齐格勒，杰弗里·吴，克莱门斯·温特，克里斯托弗·赫塞，马克·陈，埃里克·西格勒，马特乌什·利特温，斯科特·格雷，本杰明·切斯，杰克·克拉克，克里斯托弗·伯纳，萨姆·麦肯德里什，亚历克·拉德福，伊利亚·苏茨克维尔，和达里奥·阿莫代伊。2020年。[语言模型是少样本学习者](https://proceedings.neurips.cc/paper/2020/hash/1457c0d6bfcb4967418bfb8ac142f64a-Abstract.html)。发表于*神经信息处理系统进展
+    33：2020年神经信息处理系统年会，NeurIPS 2020，2020年12月6日至12日，虚拟会议*。
+- en: Chen et al. (2021) Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Pondé
+    de Oliveira Pinto, Jared Kaplan, Harrison Edwards, Yuri Burda, Nicholas Joseph,
+    Greg Brockman, Alex Ray, Raul Puri, Gretchen Krueger, Michael Petrov, Heidy Khlaaf,
+    Girish Sastry, Pamela Mishkin, Brooke Chan, Scott Gray, Nick Ryder, Mikhail Pavlov,
+    Alethea Power, Lukasz Kaiser, Mohammad Bavarian, Clemens Winter, Philippe Tillet,
+    Felipe Petroski Such, Dave Cummings, Matthias Plappert, Fotios Chantzis, Elizabeth
+    Barnes, Ariel Herbert-Voss, William Hebgen Guss, Alex Nichol, Alex Paino, Nikolas
+    Tezak, Jie Tang, Igor Babuschkin, Suchir Balaji, Shantanu Jain, William Saunders,
+    Christopher Hesse, Andrew N. Carr, Jan Leike, Joshua Achiam, Vedant Misra, Evan
+    Morikawa, Alec Radford, Matthew Knight, Miles Brundage, Mira Murati, Katie Mayer,
+    Peter Welinder, Bob McGrew, Dario Amodei, Sam McCandlish, Ilya Sutskever, and
+    Wojciech Zaremba. 2021. [Evaluating large language models trained on code](http://arxiv.org/abs/2107.03374).
+    *CoRR*, abs/2107.03374.
+  id: totrans-94
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2021）马克·陈，杰瑞·特沃雷克，希乌·俊，齐名·袁，亨里克·庞德·德·奥利维拉·平托，贾里德·卡普兰，哈里森·爱德华兹，尤里·布尔达，尼古拉斯·约瑟夫，格雷格·布罗克曼，亚历克斯·雷，劳尔·普里，格雷琴·克鲁格，迈克尔·彼得罗夫，海迪·克拉夫，吉里什·萨斯特里，帕梅拉·米什金，布鲁克·陈，斯科特·格雷，尼克·莱德，米哈伊尔·帕夫洛夫，阿莱西娅·鲍尔，卢卡斯·凯泽，穆罕默德·巴瓦里安，克莱门斯·温特，菲利普·蒂莱，费利佩·佩特罗斯基·苏赫，戴夫·卡明斯，马蒂亚斯·普拉普特，福蒂奥斯·昌茨，伊丽莎白·巴恩斯，阿里尔·赫伯特-沃斯，威廉·赫本·古斯，亚历克斯·尼科尔，亚历克斯·帕诺，尼科拉斯·特扎克，季·唐，伊戈尔·巴布什金，苏奇尔·巴拉吉，尚塔努·贾因，威廉·桑德斯，克里斯托弗·赫塞，安德鲁·N·卡尔，詹·莱克，约书亚·阿奇姆，维丹特·米斯拉，埃文·莫里卡瓦，亚历克·拉德福，马修·奈特，迈尔斯·布伦德奇，米拉·穆拉蒂，凯蒂·梅耶，彼得·维林德，鲍勃·麦格鲁，达里奥·阿莫代伊，萨姆·麦肯德里什，伊利亚·苏茨克维尔，和沃伊切赫·扎伦巴。2021年。[评估在代码上训练的大型语言模型](http://arxiv.org/abs/2107.03374)。*CoRR*,
+    abs/2107.03374。
+- en: Dong et al. (2023) Yihong Dong, Xue Jiang, Zhi Jin, and Ge Li. 2023. [Self-collaboration
+    code generation via chatgpt](https://doi.org/10.48550/ARXIV.2304.07590). *CoRR*,
+    abs/2304.07590.
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dong 等人（2023）易洪·董，雪·姜，智·金，格·李。2023年。[通过 ChatGPT 自我协作生成代码](https://doi.org/10.48550/ARXIV.2304.07590)。*CoRR*,
+    abs/2304.07590。
+- en: 'Fried et al. (2023) Daniel Fried, Armen Aghajanyan, Jessy Lin, Sida Wang, Eric
+    Wallace, Freda Shi, Ruiqi Zhong, Scott Yih, Luke Zettlemoyer, and Mike Lewis.
+    2023. [Incoder: A generative model for code infilling and synthesis](https://openreview.net/pdf?id=hQwb-lbM6EL).
+    In *The Eleventh International Conference on Learning Representations, ICLR 2023,
+    Kigali, Rwanda, May 1-5, 2023*. OpenReview.net.'
+  id: totrans-96
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fried 等人（2023）丹尼尔·弗里德，阿门·阿哈贾扬扬，杰西·林，思达·王，埃里克·华莱士，弗雷达·史，瑞奇·钟，斯科特·易，卢克·泽特尔莫耶，和迈克·刘易斯。2023年。[Incoder：用于代码填充和生成的生成模型](https://openreview.net/pdf?id=hQwb-lbM6EL)。发表于*第十一届国际学习表征会议，ICLR
+    2023，卢旺达基加利，2023年5月1日至5日*。OpenReview.net。
+- en: 'Hong et al. (2023) Sirui Hong, Xiawu Zheng, Jonathan Chen, Yuheng Cheng, Jinlin
+    Wang, Ceyao Zhang, Zili Wang, Steven Ka Shing Yau, Zijuan Lin, Liyang Zhou, Chenyu
+    Ran, Lingfeng Xiao, and Chenglin Wu. 2023. [Metagpt: Meta programming for multi-agent
+    collaborative framework](https://doi.org/10.48550/ARXIV.2308.00352). *CoRR*, abs/2308.00352.'
+  id: totrans-97
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hong 等人（2023）思瑞·洪，夏吴·郑，乔纳森·陈，宇恒·程，金林·王，策耀·张，子立·王，史蒂文·卡·辛·姚，子娟·林，丽阳·周，晨宇·冉，凌峰·肖，和承琳·吴。2023年。[Metagpt：用于多智能体协作框架的元编程](https://doi.org/10.48550/ARXIV.2308.00352)。*CoRR*,
+    abs/2308.00352。
+- en: 'Huang et al. (2023) Dong Huang, Qingwen Bu, Jie M. Zhang, Michael Luck, and
+    Heming Cui. 2023. [Agentcoder: Multi-agent-based code generation with iterative
+    testing and optimisation](https://doi.org/10.48550/ARXIV.2312.13010). *CoRR*,
+    abs/2312.13010.'
+  id: totrans-98
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang等人（2023）Dong Huang, Qingwen Bu, Jie M. Zhang, Michael Luck, 和 Heming Cui.
+    2023. [Agentcoder：基于多代理的代码生成与迭代测试和优化](https://doi.org/10.48550/ARXIV.2312.13010).
+    *CoRR*, abs/2312.13010.
+- en: 'Levy et al. (2024) Mosh Levy, Alon Jacoby, and Yoav Goldberg. 2024. [Same task,
+    more tokens: the impact of input length on the reasoning performance of large
+    language models](https://doi.org/10.48550/ARXIV.2402.14848). *CoRR*, abs/2402.14848.'
+  id: totrans-99
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Levy等人（2024）Mosh Levy, Alon Jacoby, 和 Yoav Goldberg. 2024. [相同任务，更多令牌：输入长度对大型语言模型推理表现的影响](https://doi.org/10.48550/ARXIV.2402.14848).
+    *CoRR*, abs/2402.14848.
+- en: 'Li et al. (2023a) Jiaqi Li, Mengmeng Wang, Zilong Zheng, and Muhan Zhang. 2023a.
+    [Loogle: Can long-context language models understand long contexts?](https://doi.org/10.48550/ARXIV.2311.04939)
+    *CoRR*, abs/2311.04939.'
+  id: totrans-100
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li等人（2023a）Jiaqi Li, Mengmeng Wang, Zilong Zheng, 和 Muhan Zhang. 2023a. [Loogle：长篇上下文语言模型能否理解长上下文？](https://doi.org/10.48550/ARXIV.2311.04939)
+    *CoRR*, abs/2311.04939.
+- en: 'Li et al. (2023b) Raymond Li, Loubna Ben Allal, Yangtian Zi, Niklas Muennighoff,
+    Denis Kocetkov, Chenghao Mou, Marc Marone, Christopher Akiki, Jia Li, Jenny Chim,
+    Qian Liu, Evgenii Zheltonozhskii, Terry Yue Zhuo, Thomas Wang, Olivier Dehaene,
+    Mishig Davaadorj, Joel Lamy-Poirier, João Monteiro, Oleh Shliazhko, Nicolas Gontier,
+    Nicholas Meade, Armel Zebaze, Ming-Ho Yee, Logesh Kumar Umapathi, Jian Zhu, Benjamin
+    Lipkin, Muhtasham Oblokulov, Zhiruo Wang, Rudra Murthy V, Jason Stillerman, Siva Sankalp
+    Patel, Dmitry Abulkhanov, Marco Zocca, Manan Dey, Zhihan Zhang, Nour Moustafa-Fahmy,
+    Urvashi Bhattacharyya, Wenhao Yu, Swayam Singh, Sasha Luccioni, Paulo Villegas,
+    Maxim Kunakov, Fedor Zhdanov, Manuel Romero, Tony Lee, Nadav Timor, Jennifer Ding,
+    Claire Schlesinger, Hailey Schoelkopf, Jan Ebert, Tri Dao, Mayank Mishra, Alex
+    Gu, Jennifer Robinson, Carolyn Jane Anderson, Brendan Dolan-Gavitt, Danish Contractor,
+    Siva Reddy, Daniel Fried, Dzmitry Bahdanau, Yacine Jernite, Carlos Muñoz Ferrandis,
+    Sean Hughes, Thomas Wolf, Arjun Guha, Leandro von Werra, and Harm de Vries. 2023b.
+    [Starcoder: may the source be with you!](https://doi.org/10.48550/ARXIV.2305.06161)
+    *CoRR*, abs/2305.06161.'
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li等人（2023b）Raymond Li, Loubna Ben Allal, Yangtian Zi, Niklas Muennighoff, Denis
+    Kocetkov, Chenghao Mou, Marc Marone, Christopher Akiki, Jia Li, Jenny Chim, Qian
+    Liu, Evgenii Zheltonozhskii, Terry Yue Zhuo, Thomas Wang, Olivier Dehaene, Mishig
+    Davaadorj, Joel Lamy-Poirier, João Monteiro, Oleh Shliazhko, Nicolas Gontier,
+    Nicholas Meade, Armel Zebaze, Ming-Ho Yee, Logesh Kumar Umapathi, Jian Zhu, Benjamin
+    Lipkin, Muhtasham Oblokulov, Zhiruo Wang, Rudra Murthy V, Jason Stillerman, Siva
+    Sankalp Patel, Dmitry Abulkhanov, Marco Zocca, Manan Dey, Zhihan Zhang, Nour Moustafa-Fahmy,
+    Urvashi Bhattacharyya, Wenhao Yu, Swayam Singh, Sasha Luccioni, Paulo Villegas,
+    Maxim Kunakov, Fedor Zhdanov, Manuel Romero, Tony Lee, Nadav Timor, Jennifer Ding,
+    Claire Schlesinger, Hailey Schoelkopf, Jan Ebert, Tri Dao, Mayank Mishra, Alex
+    Gu, Jennifer Robinson, Carolyn Jane Anderson, Brendan Dolan-Gavitt, Danish Contractor,
+    Siva Reddy, Daniel Fried, Dzmitry Bahdanau, Yacine Jernite, Carlos Muñoz Ferrandis,
+    Sean Hughes, Thomas Wolf, Arjun Guha, Leandro von Werra, 和 Harm de Vries. 2023b.
+    [Starcoder: 愿源代码与你同在！](https://doi.org/10.48550/ARXIV.2305.06161) *CoRR*, abs/2305.06161.'
+- en: Li et al. (2022) Yujia Li, David H. Choi, Junyoung Chung, Nate Kushman, Julian
+    Schrittwieser, Rémi Leblond, Tom Eccles, James Keeling, Felix Gimeno, Agustin Dal
+    Lago, Thomas Hubert, Peter Choy, Cyprien de Masson d’Autume, Igor Babuschkin,
+    Xinyun Chen, Po-Sen Huang, Johannes Welbl, Sven Gowal, Alexey Cherepanov, James
+    Molloy, Daniel J. Mankowitz, Esme Sutherland Robson, Pushmeet Kohli, Nando de Freitas,
+    Koray Kavukcuoglu, and Oriol Vinyals. 2022. [Competition-level code generation
+    with alphacode](https://doi.org/10.48550/ARXIV.2203.07814). *CoRR*, abs/2203.07814.
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li等人（2022）Yujia Li, David H. Choi, Junyoung Chung, Nate Kushman, Julian Schrittwieser,
+    Rémi Leblond, Tom Eccles, James Keeling, Felix Gimeno, Agustin Dal Lago, Thomas
+    Hubert, Peter Choy, Cyprien de Masson d’Autume, Igor Babuschkin, Xinyun Chen,
+    Po-Sen Huang, Johannes Welbl, Sven Gowal, Alexey Cherepanov, James Molloy, Daniel
+    J. Mankowitz, Esme Sutherland Robson, Pushmeet Kohli, Nando de Freitas, Koray
+    Kavukcuoglu, 和 Oriol Vinyals. 2022. [竞争级别的代码生成与alphacode](https://doi.org/10.48550/ARXIV.2203.07814).
+    *CoRR*, abs/2203.07814.
+- en: 'Madaan et al. (2023) Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan,
+    Luyu Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang,
+    Shashank Gupta, Bodhisattwa Prasad Majumder, Katherine Hermann, Sean Welleck,
+    Amir Yazdanbakhsh, and Peter Clark. 2023. [Self-refine: Iterative refinement with
+    self-feedback](http://papers.nips.cc/paper_files/paper/2023/hash/91edff07232fb1b55a505a9e9f6c0ff3-Abstract-Conference.html).
+    In *Advances in Neural Information Processing Systems 36: Annual Conference on
+    Neural Information Processing Systems 2023, NeurIPS 2023, New Orleans, LA, USA,
+    December 10 - 16, 2023*.'
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Madaan 等人（2023）Aman Madaan、Niket Tandon、Prakhar Gupta、Skyler Hallinan、Luyu
+    Gao、Sarah Wiegreffe、Uri Alon、Nouha Dziri、Shrimai Prabhumoye、Yiming Yang、Shashank
+    Gupta、Bodhisattwa Prasad Majumder、Katherine Hermann、Sean Welleck、Amir Yazdanbakhsh
+    和 Peter Clark。2023年。[Self-refine: 通过自我反馈进行迭代优化](http://papers.nips.cc/paper_files/paper/2023/hash/91edff07232fb1b55a505a9e9f6c0ff3-Abstract-Conference.html)。发表于
+    *神经信息处理系统进展 36：2023年神经信息处理系统年会 NeurIPS 2023，美国路易斯安那州新奥尔良，2023年12月10日至16日*。'
+- en: 'Muennighoff et al. (2023) Niklas Muennighoff, Qian Liu, Armel Zebaze, Qinkai
+    Zheng, Binyuan Hui, Terry Yue Zhuo, Swayam Singh, Xiangru Tang, Leandro von Werra,
+    and Shayne Longpre. 2023. [Octopack: Instruction tuning code large language models](https://doi.org/10.48550/ARXIV.2308.07124).
+    *CoRR*, abs/2308.07124.'
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Muennighoff 等人（2023）Niklas Muennighoff、Qian Liu、Armel Zebaze、Qinkai Zheng、Binyuan
+    Hui、Terry Yue Zhuo、Swayam Singh、Xiangru Tang、Leandro von Werra 和 Shayne Longpre。2023年。[Octopack:
+    指令调优大规模语言模型](https://doi.org/10.48550/ARXIV.2308.07124)。*CoRR*，abs/2308.07124。'
+- en: 'Ning et al. (2023) Xuefei Ning, Zinan Lin, Zixuan Zhou, Huazhong Yang, and
+    Yu Wang. 2023. [Skeleton-of-thought: Large language models can do parallel decoding](https://doi.org/10.48550/ARXIV.2307.15337).
+    *CoRR*, abs/2307.15337.'
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ning 等人（2023）Xuefei Ning、Zinan Lin、Zixuan Zhou、Huazhong Yang 和 Yu Wang。2023年。[Skeleton-of-thought:
+    大型语言模型可以进行并行解码](https://doi.org/10.48550/ARXIV.2307.15337)。*CoRR*，abs/2307.15337。'
+- en: OpenAI (2023) OpenAI. 2023. [GPT-4 technical report](https://doi.org/10.48550/arXiv.2303.08774).
+    *CoRR*, abs/2303.08774.
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI（2023）OpenAI。2023年。[GPT-4 技术报告](https://doi.org/10.48550/arXiv.2303.08774)。*CoRR*，abs/2303.08774。
+- en: Qian et al. (2023) Chen Qian, Xin Cong, Cheng Yang, Weize Chen, Yusheng Su,
+    Juyuan Xu, Zhiyuan Liu, and Maosong Sun. 2023. [Communicative agents for software
+    development](https://doi.org/10.48550/ARXIV.2307.07924). *CoRR*, abs/2307.07924.
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Qian 等人（2023）Chen Qian、Xin Cong、Cheng Yang、Weize Chen、Yusheng Su、Juyuan Xu、Zhiyuan
+    Liu 和 Maosong Sun。2023年。[软件开发的交流代理](https://doi.org/10.48550/ARXIV.2307.07924)。*CoRR*，abs/2307.07924。
+- en: 'Schick et al. (2023) Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu,
+    Maria Lomeli, Eric Hambro, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom.
+    2023. [Toolformer: Language models can teach themselves to use tools](http://papers.nips.cc/paper_files/paper/2023/hash/d842425e4bf79ba039352da0f658a906-Abstract-Conference.html).
+    In *Advances in Neural Information Processing Systems 36: Annual Conference on
+    Neural Information Processing Systems 2023, NeurIPS 2023, New Orleans, LA, USA,
+    December 10 - 16, 2023*.'
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Schick 等人（2023）Timo Schick、Jane Dwivedi-Yu、Roberto Dessì、Roberta Raileanu、Maria
+    Lomeli、Eric Hambro、Luke Zettlemoyer、Nicola Cancedda 和 Thomas Scialom。2023年。[Toolformer:
+    语言模型可以自学使用工具](http://papers.nips.cc/paper_files/paper/2023/hash/d842425e4bf79ba039352da0f658a906-Abstract-Conference.html)。发表于
+    *神经信息处理系统进展 36：2023年神经信息处理系统年会 NeurIPS 2023，美国路易斯安那州新奥尔良，2023年12月10日至16日*。'
+- en: 'Shaham et al. (2023) Uri Shaham, Maor Ivgi, Avia Efrat, Jonathan Berant, and
+    Omer Levy. 2023. [Zeroscrolls: A zero-shot benchmark for long text understanding](https://aclanthology.org/2023.findings-emnlp.536).
+    In *Findings of the Association for Computational Linguistics: EMNLP 2023, Singapore,
+    December 6-10, 2023*, pages 7977–7989\. Association for Computational Linguistics.'
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Shaham 等人（2023）Uri Shaham、Maor Ivgi、Avia Efrat、Jonathan Berant 和 Omer Levy。2023年。[Zeroscrolls:
+    一种零-shot长文本理解基准](https://aclanthology.org/2023.findings-emnlp.536)。发表于 *计算语言学协会的发现：2023年EMNLP会议，新加坡，2023年12月6日至10日*，第7977–7989页。计算语言学协会。'
+- en: 'Shinn et al. (2023) Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik
+    Narasimhan, and Shunyu Yao. 2023. [Reflexion: language agents with verbal reinforcement
+    learning](http://papers.nips.cc/paper_files/paper/2023/hash/1b44b878bb782e6954cd888628510e90-Abstract-Conference.html).
+    In *Advances in Neural Information Processing Systems 36: Annual Conference on
+    Neural Information Processing Systems 2023, NeurIPS 2023, New Orleans, LA, USA,
+    December 10 - 16, 2023*.'
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Shinn 等人（2023）Noah Shinn、Federico Cassano、Ashwin Gopinath、Karthik Narasimhan
+    和 Shunyu Yao。2023年。[Reflexion: 使用语言代理和口头强化学习](http://papers.nips.cc/paper_files/paper/2023/hash/1b44b878bb782e6954cd888628510e90-Abstract-Conference.html)。发表于
+    *神经信息处理系统进展 36：2023年神经信息处理系统年会 NeurIPS 2023，美国路易斯安那州新奥尔良，2023年12月10日至16日*。'
+- en: 'Touvron et al. (2023) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, Dan Bikel, Lukas Blecher, Cristian Canton-Ferrer, Moya Chen, Guillem
+    Cucurull, David Esiobu, Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller, Cynthia
+    Gao, Vedanuj Goswami, Naman Goyal, Anthony Hartshorn, Saghar Hosseini, Rui Hou,
+    Hakan Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa, Isabel Kloumann, Artem
+    Korenev, Punit Singh Koura, Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee, Diana
+    Liskovich, Yinghai Lu, Yuning Mao, Xavier Martinet, Todor Mihaylov, Pushkar Mishra,
+    Igor Molybog, Yixin Nie, Andrew Poulton, Jeremy Reizenstein, Rashi Rungta, Kalyan
+    Saladi, Alan Schelten, Ruan Silva, Eric Michael Smith, Ranjan Subramanian, Xiaoqing Ellen
+    Tan, Binh Tang, Ross Taylor, Adina Williams, Jian Xiang Kuan, Puxin Xu, Zheng
+    Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan, Melanie Kambadur, Sharan Narang,
+    Aurélien Rodriguez, Robert Stojnic, Sergey Edunov, and Thomas Scialom. 2023. [Llama
+    2: Open foundation and fine-tuned chat models](https://doi.org/10.48550/arXiv.2307.09288).
+    *CoRR*, abs/2307.09288.'
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron et al. (2023) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, Dan Bikel, Lukas Blecher, Cristian Canton-Ferrer, Moya Chen, Guillem
+    Cucurull, David Esiobu, Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller, Cynthia
+    Gao, Vedanuj Goswami, Naman Goyal, Anthony Hartshorn, Saghar Hosseini, Rui Hou,
+    Hakan Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa, Isabel Kloumann, Artem
+    Korenev, Punit Singh Koura, Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee, Diana
+    Liskovich, Yinghai Lu, Yuning Mao, Xavier Martinet, Todor Mihaylov, Pushkar Mishra,
+    Igor Molybog, Yixin Nie, Andrew Poulton, Jeremy Reizenstein, Rashi Rungta, Kalyan
+    Saladi, Alan Schelten, Ruan Silva, Eric Michael Smith, Ranjan Subramanian, Xiaoqing
+    Ellen Tan, Binh Tang, Ross Taylor, Adina Williams, Jian Xiang Kuan, Puxin Xu,
+    Zheng Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan, Melanie Kambadur, Sharan Narang,
+    Aurélien Rodriguez, Robert Stojnic, Sergey Edunov, 和 Thomas Scialom. 2023. [Llama
+    2: Open foundation and fine-tuned chat models](https://doi.org/10.48550/arXiv.2307.09288).
+    *CoRR*, abs/2307.09288。'
+- en: 'Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian
+    Ichter, Fei Xia, Ed H. Chi, Quoc V. Le, and Denny Zhou. 2022. [Chain-of-thought
+    prompting elicits reasoning in large language models](http://papers.nips.cc/paper_files/paper/2022/hash/9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html).
+    In *Advances in Neural Information Processing Systems 35: Annual Conference on
+    Neural Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA, USA,
+    November 28 - December 9, 2022*.'
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian
+    Ichter, Fei Xia, Ed H. Chi, Quoc V. Le, 和 Denny Zhou. 2022. [Chain-of-thought
+    prompting elicits reasoning in large language models](http://papers.nips.cc/paper_files/paper/2022/hash/9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html).
+    载于 *神经信息处理系统进展 35：2022年神经信息处理系统年会，NeurIPS 2022，美国路易斯安那州新奥尔良，2022年11月28日 - 12月9日*。
+- en: 'Yao et al. (2023a) Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths,
+    Yuan Cao, and Karthik Narasimhan. 2023a. [Tree of thoughts: Deliberate problem
+    solving with large language models](http://papers.nips.cc/paper_files/paper/2023/hash/271db9922b8d1f4dd7aaef84ed5ac703-Abstract-Conference.html).
+    In *Advances in Neural Information Processing Systems 36: Annual Conference on
+    Neural Information Processing Systems 2023, NeurIPS 2023, New Orleans, LA, USA,
+    December 10 - 16, 2023*.'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Yao et al. (2023a) Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths,
+    Yuan Cao, 和 Karthik Narasimhan. 2023a. [Tree of thoughts: Deliberate problem solving
+    with large language models](http://papers.nips.cc/paper_files/paper/2023/hash/271db9922b8d1f4dd7aaef84ed5ac703-Abstract-Conference.html).
+    载于 *神经信息处理系统进展 36：2023年神经信息处理系统年会，NeurIPS 2023，美国路易斯安那州新奥尔良，2023年12月10日 - 16日*。'
+- en: 'Yao et al. (2023b) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+    Karthik R. Narasimhan, and Yuan Cao. 2023b. [React: Synergizing reasoning and
+    acting in language models](https://openreview.net/pdf?id=WE_vluYUL-X). In *The
+    Eleventh International Conference on Learning Representations, ICLR 2023, Kigali,
+    Rwanda, May 1-5, 2023*. OpenReview.net.'
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Yao et al. (2023b) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+    Karthik R. Narasimhan, 和 Yuan Cao. 2023b. [React: Synergizing reasoning and acting
+    in language models](https://openreview.net/pdf?id=WE_vluYUL-X). 载于 *第十一届国际学习表示大会，ICLR
+    2023，卢旺达基加利，2023年5月1-5日*。OpenReview.net。'
+- en: 'Zhang et al. (2023) Kechi Zhang, Zhuo Li, Jia Li, Ge Li, and Zhi Jin. 2023.
+    [Self-edit: Fault-aware code editor for code generation](https://doi.org/10.18653/V1/2023.ACL-LONG.45).
+    In *Proceedings of the 61st Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers), ACL 2023, Toronto, Canada, July 9-14, 2023*,
+    pages 769–787\. Association for Computational Linguistics.'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang et al. (2023) Kechi Zhang, Zhuo Li, Jia Li, Ge Li, 和 Zhi Jin. 2023. [Self-edit:
+    Fault-aware code editor for code generation](https://doi.org/10.18653/V1/2023.ACL-LONG.45).
+    载于 *第61届计算语言学协会年会（第一卷：长篇论文），ACL 2023，加拿大多伦多，2023年7月9-14日*，第769-787页。计算语言学协会。'
+- en: 'Zhong et al. (2024) Lily Zhong, Zilong Wang, and Jingbo Shang. 2024. [LDB:
+    A large language model debugger via verifying runtime execution step-by-step](https://doi.org/10.48550/ARXIV.2402.16906).
+    *CoRR*, abs/2402.16906.'
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhong 等人（2024）Lily Zhong、Zilong Wang 和 Jingbo Shang。2024年。[LDB：通过逐步验证运行时执行来调试大语言模型](https://doi.org/10.48550/ARXIV.2402.16906)。*CoRR*，abs/2402.16906。
+- en: Zhou et al. (2023) Andy Zhou, Kai Yan, Michal Shlapentokh-Rothman, Haohan Wang,
+    and Yu-Xiong Wang. 2023. [Language agent tree search unifies reasoning acting
+    and planning in language models](https://doi.org/10.48550/ARXIV.2310.04406). *CoRR*,
+    abs/2310.04406.
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhou 等人（2023）Andy Zhou、Kai Yan、Michal Shlapentokh-Rothman、Haohan Wang 和 Yu-Xiong
+    Wang。2023年。[语言代理树搜索统一了语言模型中的推理、行动和规划](https://doi.org/10.48550/ARXIV.2310.04406)。*CoRR*，abs/2310.04406。
+- en: Appendix A Pseudocode
+  id: totrans-118
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 伪代码
+- en: Algorithm 1 Generate Code with Self-organized Agent Framework
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 使用自组织代理框架生成代码
+- en: '1:$docstrings$: Docstrings for the function, $unit\_tests$: List of unit tests,
+    $max\_depth$: Maximum depth of the agent hierarchy, $max\_iterations$: Maximum
+    number of code modification iterations2:The final generated code3:4:Initialize
+    the root Mother agent with $docstrings$ and $unit\_tests$5:6:function GenerateAgent($agent$,
+    $depth$, $subtask\_docstrings$, $subtask\_unit\_tests$)7:     if $depth-1$ = $max\_depth$ then8:         $next\_agent\leftarrow$
+    new ChildAgent9:     else10:         $next\_agent\leftarrow$ new MotherAgent11:     end if12:     Assign
+    $subtask\_docstrings$ and $unit\_tests$ to $next\_agent$13:     Generate($next\_agent$,
+    $depth+1$)14:end function15:16:function Generate($agent$, $depth$)17:     if $depth$
+    = 1 then $\triangleright$ Root Mother18:         $skeleton\leftarrow$ Generate
+    skeleton from $agent.docstrings$ and $agent.unit_{t}ests$19:         $agent.code\leftarrow
+    skeleton$20:         for each $subtask\_docstrings$, $subtask\_unit\_tests$ in
+    subtasks do21:              GenerateAgent($agent$, $depth$, $subtask\_docstrings$,
+    $subtask\_unit\_tests$)22:         end for23:     else if $depth$ = $max\_depth$ then
+    $\triangleright$ Child24:         Generate code for $agent.subtask\_docstrings$
+    and $agent.subtask\_unit\_tests$25:         $agent.code\leftarrow$ generated code26:     else$\triangleright$
+    Mother27:         Generate code for $agent.subtask\_docstrings$ and $agent.subtask\_unit\_tests$28:         $agent.code\leftarrow$
+    generated code29:         for each $subtask\_docstrings$, $subtask\_unit\_tests$
+    in subtasks do30:              GenerateAgent($agent$, $depth$, $subtask\_docstrings$,
+    $subtask\_unit\_tests$)31:         end for32:     end if33:end function34:35:function Modify($agent$,
+    $test\_result$, $upper\_agent\_observation$)36:     Generate feedback for $agent$
+    based on $test\_result$ and $upper\_agent\_observation$37:     Update $agent$’s
+    code based on feedback38:     for each $subagent$ in $agent.subagents$ do39:         Evaluate
+    $subagent.code$ using $subagent.unit\_tests$ to get $subagent\_test\_result$40:         Modify($subagent$,
+    $subagent\_test\_result$, feedback and code changes)41:     end for42:end function43:44:Start
+    code generation with Generate($root\_mother$, 1)45:46:for each iteration in $max\_iterations$ do47:     Combine
+    implementations from all agents to create $final\_implementation$48:     Evaluate
+    $final\_implementation$ using $unit\_tests$ to get $test\_result$49:     Modify
+    the code starting from $root\_mother$ with Modify($root\_mother$, $test\_result$,
+    None)50:end for51:52:return The final implementation combined from all agents'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1:$docstrings$: 函数的文档字符串，$unit\_tests$: 单元测试列表，$max\_depth$: 代理层级的最大深度，$max\_iterations$:
+    最大的代码修改迭代次数2: 生成的最终代码3:4:初始化根母代理，使用$docstrings$和$unit\_tests$5:6:函数 GenerateAgent($agent$,
+    $depth$, $subtask\_docstrings$, $subtask\_unit\_tests$)7:     如果 $depth-1$ = $max\_depth$
+    则8:         $next\_agent\leftarrow$ 新建子代理9:     否则10:         $next\_agent\leftarrow$
+    新建母代理11:     结束 如果12:     将$subtask\_docstrings$和$unit\_tests$分配给$next\_agent$13:     生成($next\_agent$,
+    $depth+1$)14:结束 函数15:16:函数 Generate($agent$, $depth$)17:     如果 $depth$ = 1 则
+    $\triangleright$ 根母代理18:         $skeleton\leftarrow$ 从$agent.docstrings$和$agent.unit_{t}ests$生成骨架19:         $agent.code\leftarrow$
+    骨架20:         对每个 $subtask\_docstrings$, $subtask\_unit\_tests$ 在子任务中做21:              生成代理($agent$,
+    $depth$, $subtask\_docstrings$, $subtask\_unit\_tests$)22:         结束 对每个23:     否则如果
+    $depth$ = $max\_depth$ 则 $\triangleright$ 子代理24:         生成代码，针对 $agent.subtask\_docstrings$
+    和 $agent.subtask\_unit\_tests$25:         $agent.code\leftarrow$ 生成的代码26:     否则
+    $\triangleright$ 母代理27:         生成代码，针对 $agent.subtask\_docstrings$ 和 $agent.subtask\_unit\_tests$28:         $agent.code\leftarrow$
+    生成的代码29:         对每个 $subtask\_docstrings$, $subtask\_unit\_tests$ 在子任务中做30:              生成代理($agent$,
+    $depth$, $subtask\_docstrings$, $subtask\_unit\_tests$)31:         结束 对每个32:     结束
+    如果33:结束 函数34:35:函数 Modify($agent$, $test\_result$, $upper\_agent\_observation$)36:     基于
+    $test\_result$ 和 $upper\_agent\_observation$ 为 $agent$ 生成反馈37:     基于反馈更新 $agent$
+    的代码38:     对每个 $subagent$ 在 $agent.subagents$ 中做39:         使用 $subagent.unit\_tests$
+    评估 $subagent.code$，得到 $subagent\_test\_result$40:         修改($subagent$, $subagent\_test\_result$,
+    反馈和代码更改)41:     结束 对每个42:结束 函数43:44:从 Generate($root\_mother$, 1) 开始代码生成45:46:对每次迭代在
+    $max\_iterations$ 中做47:     合并所有代理的实现，创建 $final\_implementation$48:     使用 $unit\_tests$
+    评估 $final\_implementation$，得到 $test\_result$49:     从 $root\_mother$ 开始修改代码，使用
+    Modify($root\_mother$, $test\_result$, None)50:结束 对每次迭代51:52:返回 由所有代理合并的最终实现'

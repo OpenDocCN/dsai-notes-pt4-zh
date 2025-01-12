@@ -1,0 +1,1744 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:08:01'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:08:01
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Prompt Infection: LLM-to-LLM Prompt Injection within Multi-Agent Systems'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 提示感染：多智能体系统中的LLM到LLM提示注入
+- en: 来源：[https://arxiv.org/html/2410.07283/](https://arxiv.org/html/2410.07283/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2410.07283/](https://arxiv.org/html/2410.07283/)
+- en: Donghyun Lee
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Donghyun Lee
+- en: University College London
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 伦敦大学学院
+- en: London, United Kingdom
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 英国伦敦
+- en: donghyun.lee.21@ucl.ac.uk
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: donghyun.lee.21@ucl.ac.uk
+- en: '&Mo Tiwari'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&Mo Tiwari'
+- en: Stanford University
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 斯坦福大学
+- en: California, United States
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 美国加利福尼亚
+- en: motiwari@stanford.edu
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: motiwari@stanford.edu
+- en: Abstract
+  id: totrans-14
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'As Large Language Models (LLMs) grow increasingly powerful, multi-agent systems—where
+    multiple LLMs collaborate to tackle complex tasks—are becoming more prevalent
+    in modern AI applications. Most safety research, however, has focused on vulnerabilities
+    in single-agent LLMs. These include prompt injection attacks, where malicious
+    prompts embedded in external content trick the LLM into executing unintended or
+    harmful actions, compromising the victim’s application. In this paper, we reveal
+    a more dangerous vector: LLM-to-LLM prompt injection within multi-agent systems.
+    We introduce Prompt Infection, a novel attack where malicious prompts self-replicate
+    across interconnected agents, behaving much like a computer virus. This attack
+    poses severe threats, including data theft, scams, misinformation, and system-wide
+    disruption, all while propagating silently through the system. Our extensive experiments
+    demonstrate that multi-agent systems are highly susceptible, even when agents
+    do not publicly share all communications. To address this, we propose LLM Tagging,
+    a defense mechanism that, when combined with existing safeguards, significantly
+    mitigates infection spread. This work underscores the urgent need for advanced
+    security measures as multi-agent LLM systems become more widely adopted.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着大型语言模型（LLMs）变得越来越强大，多智能体系统——多个LLMs协作处理复杂任务——在现代AI应用中变得越来越普遍。然而，大多数安全研究主要集中在单一智能体LLMs的漏洞上。这些漏洞包括提示注入攻击，其中嵌入在外部内容中的恶意提示欺骗LLM执行非预期或有害的操作，从而破坏受害者的应用。在本文中，我们揭示了一个更危险的攻击途径：多智能体系统中的LLM到LLM的提示注入。我们介绍了“提示感染”（Prompt
+    Infection）这一新型攻击，其中恶意提示会在互联的智能体之间自我复制，行为类似于计算机病毒。这种攻击带来了严重威胁，包括数据盗窃、诈骗、虚假信息传播以及系统范围的破坏，同时悄无声息地通过系统传播。我们的广泛实验表明，即使智能体之间没有公开共享所有通信，多智能体系统仍然极易受到这种攻击。为了解决这个问题，我们提出了LLM标记（LLM
+    Tagging）这一防御机制，当与现有的安全防护措施结合使用时，可以显著减缓感染的传播。本文强调了随着多智能体LLM系统的广泛应用，迫切需要更先进的安全措施。
+- en: 1 Introduction
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: As Large Language Models (LLMs) continue to evolve and become more adept at
+    following instructions (Peng et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib25);
+    Zhang et al., [2024b](https://arxiv.org/html/2410.07283v1#bib.bib41)), they introduce
+    not only new capabilities but also new security threats (Wei et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib35);
+    Kang et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib12)). One such
+    threat is prompt injection, an attack where malicious instruction from external
+    documents overrides the victim’s original request, allowing the attacker to assume
+    the authority of the model’s owner (Greshake et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib5);
+    Perez & Ribeiro, [2022](https://arxiv.org/html/2410.07283v1#bib.bib26)). However,
+    research into prompt injection has primarily focused on single-agent systems,
+    leaving the potential risks in Multi-Agent Systems (MAS) poorly understood (Liu
+    et al., [2024c](https://arxiv.org/html/2410.07283v1#bib.bib20); [a](https://arxiv.org/html/2410.07283v1#bib.bib18);
+    Guo et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib7)).
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着大型语言模型（LLMs）不断发展并且越来越擅长按照指令执行任务（Peng等，[2023](https://arxiv.org/html/2410.07283v1#bib.bib25)；Zhang等，[2024b](https://arxiv.org/html/2410.07283v1#bib.bib41)），它们不仅带来了新的能力，还带来了新的安全威胁（Wei等，[2023](https://arxiv.org/html/2410.07283v1#bib.bib35)；Kang等，[2023](https://arxiv.org/html/2410.07283v1#bib.bib12)）。其中一种威胁是提示注入，这是一种攻击方式，恶意指令来自外部文档，能够覆盖受害者的原始请求，从而使攻击者能够假冒模型所有者的身份（Greshake等，[2023](https://arxiv.org/html/2410.07283v1#bib.bib5)；Perez
+    & Ribeiro，[2022](https://arxiv.org/html/2410.07283v1#bib.bib26)）。然而，关于提示注入的研究主要集中在单一智能体系统上，导致多智能体系统（MAS）中的潜在风险尚未得到充分理解（Liu等，[2024c](https://arxiv.org/html/2410.07283v1#bib.bib20)；[a](https://arxiv.org/html/2410.07283v1#bib.bib18)；Guo等，[2024](https://arxiv.org/html/2410.07283v1#bib.bib7)）。
+- en: Addressing this gap is growing crucial. Multi-agent systems play a key role
+    in enhancing LLMs’ power and flexibility, from social simulations (Park et al.,
+    [2023](https://arxiv.org/html/2410.07283v1#bib.bib24); Lin et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib17);
+    Zhou et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib45)) to collaborative
+    applications for problem-solving (Lu et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib21);
+    Liang et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib16)) and code
+    generation (Wu, [2024](https://arxiv.org/html/2410.07283v1#bib.bib37); Lee et al.,
+    [2024](https://arxiv.org/html/2410.07283v1#bib.bib15)). Recently, frameworks like
+    LangGraph ([LangGraph,](https://arxiv.org/html/2410.07283v1#bib.bib14) ), AutoGen
+    (Wu et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib38)), and CrewAI
+    (CrewAI, [2024](https://arxiv.org/html/2410.07283v1#bib.bib4)) have accelerated
+    the widespread adoption of multi-agent systems by individuals and corporations,
+    enabling agents with unique roles and tools to work together seamlessly (Topsakal
+    & Akinci, [2023](https://arxiv.org/html/2410.07283v1#bib.bib34)). While these
+    tools enhance MAS functionality by connecting agents to internal systems, databases,
+    and external resources (Kim & Diaz, [2024](https://arxiv.org/html/2410.07283v1#bib.bib13);
+    Qu et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib28)), they also introduce
+    significant security risks (Ye et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib39)).
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决这一差距变得愈加重要。多智能体系统在增强大型语言模型（LLM）的能力和灵活性方面发挥着关键作用，从社会模拟（Park 等， [2023](https://arxiv.org/html/2410.07283v1#bib.bib24);
+    Lin 等， [2023](https://arxiv.org/html/2410.07283v1#bib.bib17); Zhou 等， [2023](https://arxiv.org/html/2410.07283v1#bib.bib45)）到用于问题解决的协作应用（Lu
+    等， [2023](https://arxiv.org/html/2410.07283v1#bib.bib21); Liang 等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib16)）以及代码生成（Wu，
+    [2024](https://arxiv.org/html/2410.07283v1#bib.bib37); Lee 等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib15)）。近年来，像
+    LangGraph（[LangGraph,](https://arxiv.org/html/2410.07283v1#bib.bib14)）、AutoGen（Wu
+    等， [2023](https://arxiv.org/html/2410.07283v1#bib.bib38)）和 CrewAI（CrewAI， [2024](https://arxiv.org/html/2410.07283v1#bib.bib4)）这样的框架加速了个人和企业对多智能体系统的广泛采用，使得具有独特角色和工具的智能体能够无缝协作（Topsakal
+    & Akinci， [2023](https://arxiv.org/html/2410.07283v1#bib.bib34)）。虽然这些工具通过将智能体与内部系统、数据库和外部资源连接来增强多智能体系统（MAS）的功能（Kim
+    & Diaz， [2024](https://arxiv.org/html/2410.07283v1#bib.bib13); Qu 等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib28)），但它们也引入了重大的安全风险（Ye
+    等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib39)）。
+- en: However, most studies on MAS safety focus on inducing errors or noise in agent
+    behavior, overlooking the more severe risks posed by prompt injection attacks
+    (Huang et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib10); Zhang et al.,
+    [2024a](https://arxiv.org/html/2410.07283v1#bib.bib40); Gu et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib6)).
+    This is concerning since prompt injection allows attackers to fully control a
+    compromised system—accessing sensitive data, spreading propaganda, disrupting
+    operations, or tricking users into clicking malicious URLs (Greshake et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib5)).
+    We attribute this research gap to the complexity of MAS, where not all agents
+    are exposed to external inputs. While compromising a single agent through traditional
+    prompt injection is straightforward, extending the breach to shielded agents within
+    the system remains less clear.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，大多数关于多智能体系统安全性的研究都集中于引发智能体行为中的错误或噪声，而忽视了提示注入攻击所带来的更严重风险（Huang 等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib10);
+    Zhang 等， [2024a](https://arxiv.org/html/2410.07283v1#bib.bib40); Gu 等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib6)）。这一点令人担忧，因为提示注入允许攻击者完全控制一个被攻破的系统——访问敏感数据、传播宣传、破坏操作或诱使用户点击恶意网址（Greshake
+    等， [2023](https://arxiv.org/html/2410.07283v1#bib.bib5)）。我们将这一研究空白归因于多智能体系统的复杂性，其中并非所有智能体都暴露于外部输入。尽管通过传统的提示注入攻破单个智能体相对简单，但将漏洞扩展到系统中被保护的智能体仍然不够明确。
+- en: In this paper, we bridge the gap between prompt injection in single-agent systems
+    and MAS. We introduce Prompt Infection, a novel attack that enables LLM-to-LLM
+    prompt injection. In this attack, a compromised agent spreads the infection to
+    other agents, coordinating them to exchange data and issue instructions to agents
+    equipped with specific tools. This coordination results in widespread system compromise
+    through self-replication, demonstrating how a single vulnerability can quickly
+    escalate into a systemic threat.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文中，我们弥合了单智能体系统中的提示注入与多智能体系统（MAS）之间的差距。我们介绍了Prompt Infection，一种新型攻击，能够实现LLM到LLM的提示注入。在这种攻击中，一个被攻破的智能体将感染传播到其他智能体，协调它们交换数据并向配备特定工具的智能体发出指令。这种协调导致通过自我复制广泛地破坏系统，展示了单一漏洞如何迅速升级为系统性威胁。
+- en: Through extensive empirical studies, we show that multi-agent systems are highly
+    susceptible to a range of security threats. For instance, in sophisticated data
+    theft attacks, agents can collaborate to retrieve sensitive information and pass
+    it to agents with code execution capabilities, which can then send the data to
+    a malicious external endpoint. We also demonstrate that prompt infections spread
+    in a logistic growth pattern in social simulations. Lastly, we find that more
+    powerful models, such as GPT-4o, are not inherently safer than weaker models like
+    GPT-3.5 Turbo. In fact, more powerful models, when compromised, are more effective
+    at executing the attack due to their enhanced capabilities.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过广泛的实证研究，我们展示了多智能体系统在面临各种安全威胁时非常脆弱。例如，在复杂的数据盗窃攻击中，智能体可以协作检索敏感信息，并将其传递给具有代码执行能力的智能体，这些智能体随后可以将数据发送到恶意的外部端点。我们还展示了在社交模拟中，迅速传播的感染以物流增长模式扩散。最后，我们发现更强大的模型，如GPT-4o，并不比较弱的模型（如GPT-3.5
+    Turbo）更安全。事实上，当更强大的模型被攻破时，由于其增强的能力，它们在执行攻击时更加高效。
+- en: To address this, we explore a simple defense mechanism called LLM Tagging. This
+    technique appends a marker to agent responses, helping downstream agents differentiate
+    between user inputs and agent-generated outputs, reducing the risk of infection
+    spreading. Our experiments show that neither LLM Tagging nor traditional defense
+    mechanisms alone are sufficient to prevent LLM-to-LLM prompt injection. However,
+    when combined, they provide robust protection and effectively mitigate the threat.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这个问题，我们探索了一种简单的防御机制，称为LLM标记。该技术在智能体的响应中附加一个标记，帮助下游智能体区分用户输入和智能体生成的输出，从而减少感染传播的风险。我们的实验表明，单独使用LLM标记或传统的防御机制都不足以防止LLM到LLM的提示注入。然而，当它们结合使用时，能够提供强大的保护并有效缓解威胁。
+- en: These findings challenge the assumption that MAS are inherently safer due to
+    their distributed architecture. The threat arises not only from external content
+    but also within the system, as agents can attack and compromise one another. We
+    hope our work offers valuable insights for developing more secure and responsible
+    multi-agent systems.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些发现挑战了MAS由于其分布式架构而天生更安全的假设。威胁不仅来自外部内容，还可能来自系统内部，因为智能体可以相互攻击并进行妥协。我们希望我们的工作能够为开发更安全、更负责任的多智能体系统提供有价值的见解。
+- en: 2 Related Works
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: 'Prompt Injection. Instruction-tuned LLMs have demonstrated exceptional ability
+    in understanding and executing complex user instructions, enabling them to meet
+    a wide range of dynamic and diverse needs (Christiano et al., [2017](https://arxiv.org/html/2410.07283v1#bib.bib2);
+    Ouyang et al., [2022](https://arxiv.org/html/2410.07283v1#bib.bib23)). However,
+    this adaptability introduces new vulnerabilities: Perez & Ribeiro ([2022](https://arxiv.org/html/2410.07283v1#bib.bib26))
+    revealed that models like GPT-3 are prone to prompt injection attacks, where malicious
+    prompts can subvert the model’s intended purpose or expose confidential information.
+    Subsequent work expanded prompt injection to real-world LLM applications (Liu
+    et al., [2024b](https://arxiv.org/html/2410.07283v1#bib.bib19); [c](https://arxiv.org/html/2410.07283v1#bib.bib20))
+    and LLM-controlled robotics (Zhang et al., [2024c](https://arxiv.org/html/2410.07283v1#bib.bib42)).
+    Liu et al. ([2024a](https://arxiv.org/html/2410.07283v1#bib.bib18)) introduced
+    an automated gradient-based method for generating effective prompt injection.
+    Indirect prompt injection, where attackers use external inputs like emails or
+    documents, poses further risks such as data theft and denial-of-service (Greshake
+    et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib5)). Cohen et al. ([2024](https://arxiv.org/html/2410.07283v1#bib.bib3))
+    introduced an AI worm that compromises a user’s single-agent LLM and spreads malicious
+    prompts to other users (e.g., via email). Recent advancements in multimodal models
+    have also led to image-based prompt injection attacks (Sharma et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib32);
+    Gu et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib6)). Defenses include
+    finetuning methods like StruQ (Chen et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib1))
+    and Signed Prompt (suo_signed-prompt_2024), which are limited to open-source models.
+    Prompt-based approaches like Spotlighting (Hines et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib8))
+    are applicable to black-box models.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提示注入。经过指令调优的LLM展示了出色的理解和执行复杂用户指令的能力，使其能够满足各种动态和多样化的需求（Christiano 等， [2017](https://arxiv.org/html/2410.07283v1#bib.bib2)；Ouyang
+    等， [2022](https://arxiv.org/html/2410.07283v1#bib.bib23)）。然而，这种适应性也引入了新的漏洞：Perez
+    & Ribeiro（[2022](https://arxiv.org/html/2410.07283v1#bib.bib26)）揭示了像GPT-3这样的模型容易受到提示注入攻击，恶意提示可能会颠覆模型的预期用途或暴露机密信息。后续的研究将提示注入扩展到了现实世界的LLM应用（Liu
+    等， [2024b](https://arxiv.org/html/2410.07283v1#bib.bib19)；[c](https://arxiv.org/html/2410.07283v1#bib.bib20)）和LLM控制的机器人技术（Zhang
+    等， [2024c](https://arxiv.org/html/2410.07283v1#bib.bib42)）。Liu 等（[2024a](https://arxiv.org/html/2410.07283v1#bib.bib18)）提出了一种基于梯度的自动化方法来生成有效的提示注入。间接提示注入，即攻击者使用外部输入如电子邮件或文档，带来了更多风险，如数据盗窃和拒绝服务（Greshake
+    等， [2023](https://arxiv.org/html/2410.07283v1#bib.bib5)）。Cohen 等（[2024](https://arxiv.org/html/2410.07283v1#bib.bib3)）提出了一种AI蠕虫，它破坏用户的单一代理LLM，并通过电子邮件等方式将恶意提示传播给其他用户。近期多模态模型的进展也引发了基于图像的提示注入攻击（Sharma
+    等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib32)；Gu 等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib6)）。防御措施包括像StruQ（Chen
+    等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib1)）和Signed Prompt（suo_signed-prompt_2024）这样的微调方法，主要适用于开源模型。基于提示的方法，如Spotlighting（Hines
+    等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib8)），适用于黑盒模型。
+- en: Safety in Multi-Agent Systems. As LLM-based MAS become more prominent, understanding
+    their security is increasingly critical. Recent work, such as Evil Geniuses (Tian
+    et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib33)), introduces an
+    automated framework to assess MAS robustness. Other studies explore how injecting
+    false information or errors can compromise MAS performance (Ju et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib11);
+    Huang et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib10)). Attacks
+    designed to elicit malicious behaviors from agents are examined in PsySafe (Zhang
+    et al., [2024d](https://arxiv.org/html/2410.07283v1#bib.bib43)). Our work is closely
+    related to recent efforts investigating prompt injection attacks in MAS (Zhang
+    et al., [2024a](https://arxiv.org/html/2410.07283v1#bib.bib40); Gu et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib6)).
+    However, Zhang et al. ([2024a](https://arxiv.org/html/2410.07283v1#bib.bib40))
+    lacks the self-replication feature needed for scalable attacks, focusing instead
+    on availability attacks that cause repetitive or irrelevant actions in two agents.
+    Similarly, Gu et al. ([2024](https://arxiv.org/html/2410.07283v1#bib.bib6)) targets
+    multimodal models with image-retrieving tools but is limited to adversarial image
+    inputs and does not incorporate self-replication.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多智能体系统中的安全性。随着基于大型语言模型（LLM）的多智能体系统（MAS）变得越来越重要，理解其安全性变得愈加关键。近期的研究工作，如《邪恶天才》（Tian
+    等，[2024](https://arxiv.org/html/2410.07283v1#bib.bib33)），提出了一个自动化框架，用于评估MAS的鲁棒性。其他研究探讨了如何通过注入虚假信息或错误来破坏MAS性能（Ju
+    等，[2024](https://arxiv.org/html/2410.07283v1#bib.bib11)；Huang 等，[2024](https://arxiv.org/html/2410.07283v1#bib.bib10)）。旨在引发恶意行为的攻击则在PsySafe中得到了研究（Zhang
+    等，[2024d](https://arxiv.org/html/2410.07283v1#bib.bib43)）。我们的工作与近期在MAS中研究提示注入攻击的努力紧密相关（Zhang
+    等，[2024a](https://arxiv.org/html/2410.07283v1#bib.bib40)；Gu 等，[2024](https://arxiv.org/html/2410.07283v1#bib.bib6)）。然而，Zhang
+    等（[2024a](https://arxiv.org/html/2410.07283v1#bib.bib40)）的研究缺乏用于可扩展攻击的自我复制特性，而是集中于引发重复或无关行为的可用性攻击。类似地，Gu
+    等（[2024](https://arxiv.org/html/2410.07283v1#bib.bib6)）的研究针对带有图像检索工具的多模态模型，但仅限于对抗性图像输入，且没有涉及自我复制。
+- en: 3 Prompt Infection
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 提示感染
+- en: In this section, we introduce Prompt Infection, a self-replicating attack that
+    propagates across agents in a multi-agent system once breached. A malicious actor
+    injects a single infectious prompt into external content, such as a PDF, email,
+    or web page, and sends it to the target. When an agent processes the infected
+    content, the prompt replicates throughout the system, compromising other agents.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们介绍了提示感染（Prompt Infection），一种自我复制的攻击方式，一旦突破，它将在多智能体系统中跨代理传播。恶意行为者将一个单一的传染性提示注入到外部内容中，如PDF文件、电子邮件或网页，并将其发送给目标。当代理处理被感染的内容时，该提示会在系统中自我复制，危害其他代理。
+- en: 3.1 Mechanism
+  id: totrans-29
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 机制
+- en: '![Refer to caption](img/f02d9aed48ea4ea4da31f85f7f47c83e.png)'
+  id: totrans-30
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/f02d9aed48ea4ea4da31f85f7f47c83e.png)'
+- en: 'Figure 1: Detailed Example of Prompt Infection (Data Theft). The first agent
+    that interacts with the contaminated external document becomes compromised, extracting
+    and propagating the infection prompt. Compromised downstream agents then execute
+    specific instructions designed for each agent of interest. In this example, an
+    infected DB Manager updates the Data field in the prompt and propagates it. Note:
+    The example prompt is simplified for illustration purposes.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：提示感染的详细示例（数据窃取）。第一个与被污染外部文档交互的代理会被感染，提取并传播感染提示。感染后的下游代理将执行为每个目标代理设计的特定指令。在此示例中，一个被感染的数据库管理器会更新提示中的数据字段并传播它。注意：该示例提示已简化以作说明。
+- en: 'As shown in Figure [1](https://arxiv.org/html/2410.07283v1#S3.F1 "Figure 1
+    ‣ 3.1 Mechanism ‣ 3 Prompt Infection ‣ Prompt Infection: LLM-to-LLM Prompt Injection
+    within Multi-Agent Systems"), the core components of Prompt Infection are the
+    following:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图[1](https://arxiv.org/html/2410.07283v1#S3.F1 "图1 ‣ 3.1 机制 ‣ 3 提示感染 ‣ 提示感染：LLM到LLM的提示注入")所示，提示感染的核心组件如下：
+- en: •
+  id: totrans-33
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Prompt Hijacking compels a victim agent to disregard its original instructions.
+  id: totrans-34
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 提示劫持迫使受害代理忽视其原始指令。
+- en: •
+  id: totrans-35
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Payload assigns tasks to agents based on their roles and available tools. For
+    instance, the final agent might trigger a self-destruct command to conceal the
+    attack, or an agent could be tasked with extracting sensitive data and transmitting
+    it to an external server.
+  id: totrans-36
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 载荷根据代理的角色和可用工具分配任务。例如，最终代理可能会触发自毁命令以掩盖攻击，或某个代理可能被指派提取敏感数据并将其传送到外部服务器。
+- en: •
+  id: totrans-37
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Data is a shared note that sequentially collects information as the infection
+    prompt passes through each agent. It can be used for multiple purposes, such as
+    reverse-engineering the system by recording the tools of the agents, or transporting
+    sensitive information to an agent that can communicate with the external system.
+  id: totrans-38
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数据是一个共享的笔记，顺序收集信息，随着感染提示通过每个代理。它可以用于多个目的，例如通过记录代理的工具反向工程系统，或将敏感信息传输给能够与外部系统通信的代理。
+- en: •
+  id: totrans-39
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Self-Replication ensures the transmission of the infection prompt to the next
+    agent in the system, maintaining the spread of the attack across all agents.
+  id: totrans-40
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 自我复制确保感染提示传递给系统中的下一个代理，维持攻击在所有代理中的传播。
+- en: 'To further illustrate the mechanics of Prompt Infection, we introduce the concept
+    of Recursive Collapse. Initially, each agent performs a unique task $f_{i}(x)$,
+    producing distinct outputs. However, as the infection spreads, Prompt Hijacking
+    forces agents to abandon their roles, while Self-Replication locks them in a recursive
+    loop, repeatedly executing the infection’s payload. What began as a complex sequence
+    of functions—$f_{1}\circ f_{2}\circ\cdots\circ f_{N}(x)$—collapses into a single
+    recursive function: $PromptInfection^{(N)}(x,data)$ once infected. This mechanism
+    simplifies and centralizes control, reducing the system to a repetitive cycle
+    dominated by the infection.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进一步说明提示感染的机制，我们引入了递归崩溃的概念。最初，每个代理执行一个独特的任务 $f_{i}(x)$，产生不同的输出。然而，随着感染的传播，提示劫持迫使代理放弃其角色，而自我复制则将它们锁定在递归循环中，反复执行感染的有效载荷。最初作为复杂的函数序列—$f_{1}\circ
+    f_{2}\circ\cdots\circ f_{N}(x)$—在感染后崩溃成一个单一的递归函数：$PromptInfection^{(N)}(x,data)$。这一机制简化并集中控制，将系统简化为一个由感染主导的重复周期。
+- en: 3.2 Attack Scenarios
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 攻击场景
+- en: 'Prompt Infection extends the key threats of prompt injection identified by
+    Greshake et al. ([2023](https://arxiv.org/html/2410.07283v1#bib.bib5)) from single-agent
+    systems to multi-agent environments. These include: content manipulation (e.g.,
+    disinformation, propaganda), malware spread (inducing users to click malicious
+    links), scams (tricking users into sharing financial information), availability
+    attacks (denial of service or increased computation), and data theft (exfiltrating
+    sensitive information). In this section, we examine how Prompt Infection can be
+    leveraged to execute these threats across multi-agent systems.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提示感染扩展了Greshake等人（[2023](https://arxiv.org/html/2410.07283v1#bib.bib5)）识别的提示注入的关键威胁，从单代理系统扩展到多代理环境。这些威胁包括：内容操控（例如，虚假信息、宣传）、恶意软件传播（诱使用户点击恶意链接）、诈骗（欺骗用户分享财务信息）、可用性攻击（拒绝服务或增加计算负担）和数据窃取（外泄敏感信息）。在本节中，我们将探讨如何利用提示感染在多代理系统中执行这些威胁。
+- en: '![Refer to caption](img/74e86a6de033895adf8a8190fb3eb36b.png)'
+  id: totrans-44
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/74e86a6de033895adf8a8190fb3eb36b.png)'
+- en: 'Figure 2: Overview of Prompt Infection (Data Theft). Agents with different
+    tools collaborate to exfiltrate data.'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：提示感染（数据窃取）概述。不同工具的代理协作进行数据外泄。
+- en: 'Cooperation Between Infected Agents. Data theft is particularly complex, requiring
+    coordination between agents: retrieving sensitive data, passing it to an agent
+    with code execution capabilities, and sending it externally via POST requests.
+    As illustrated in Figure [2](https://arxiv.org/html/2410.07283v1#S3.F2 "Figure
+    2 ‣ 3.2 Attack Scenarios ‣ 3 Prompt Infection ‣ Prompt Infection: LLM-to-LLM Prompt
+    Injection within Multi-Agent Systems"), <svg class="ltx_picture" height="12.45"
+    id="S3.SS2.p2.1.pic1" overflow="visible" version="1.1" width="12.45"><g fill="#000000"
+    stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0
+    0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">1</foreignobject></g></g></svg>
+    the attacker first injects an infectious prompt into external documents (web,
+    PDF, email, etc.). <svg class="ltx_picture" height="12.45" id="S3.SS2.p2.2.pic2"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">2</foreignobject></g></g></svg> The user then sends
+    a normal request to a multi-agent application. <svg class="ltx_picture" height="12.45"
+    id="S3.SS2.p2.3.pic3" overflow="visible" version="1.1" width="12.45"><g fill="#000000"
+    stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0
+    0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">3</foreignobject></g></g></svg>
+    The Web Reader agent retrieves and processes the infected document, and <svg class="ltx_picture"
+    height="12.45" id="S3.SS2.p2.4.pic4" overflow="visible" version="1.1" width="12.45"><g
+    fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">4</foreignobject></g></g></svg>
+    propagates it to the next agent. <svg class="ltx_picture" height="12.45" id="S3.SS2.p2.5.pic5"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">5</foreignobject></g></g></svg> The DB Manager retrieves
+    internal documents, appends them to the infection prompt, and <svg class="ltx_picture"
+    height="12.45" id="S3.SS2.p2.6.pic6" overflow="visible" version="1.1" width="12.45"><g
+    fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">6</foreignobject></g></g></svg>
+    forwards it downstream. <svg class="ltx_picture" height="12.45" id="S3.SS2.p2.7.pic7"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">7</foreignobject></g></g></svg> With the updated
+    prompt containing the data, the Coder agent writes code to exfiltrate the information,
+    and <svg class="ltx_picture" height="12.45" id="S3.SS2.p2.8.pic8" overflow="visible"
+    version="1.1" width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g
+    fill="#000000" stroke="#000000" transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject
+    height="8.92" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="6.92">8</foreignobject></g></g></svg>
+    the code execution tool sends the sensitive data to the hacker’s designated endpoint.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 感染代理之间的合作。数据窃取特别复杂，需要代理之间的协调：检索敏感数据，将其传递给具有代码执行能力的代理，并通过POST请求将其发送到外部。如图[2](https://arxiv.org/html/2410.07283v1#S3.F2
+    "图2 ‣ 3.2 攻击场景 ‣ 3 提示感染 ‣ 多代理系统中的LLM到LLM提示注入")所示，<svg class="ltx_picture" height="12.45"
+    id="S3.SS2.p2.1.pic1" overflow="visible" version="1.1" width="12.45"><g fill="#000000"
+    stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0
+    0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">1</foreignobject></g></g></svg>
+    攻击者首先将一个感染性提示注入到外部文档中（如网页、PDF、电子邮件等）。<svg class="ltx_picture" height="12.45" id="S3.SS2.p2.2.pic2"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">2</foreignobject></g></g></svg> 然后用户向多代理应用程序发送一个正常的请求。<svg
+    class="ltx_picture" height="12.45" id="S3.SS2.p2.3.pic3" overflow="visible" version="1.1"
+    width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">3</foreignobject></g></g></svg>
+    网页阅读器代理检索并处理感染的文档，<svg class="ltx_picture" height="12.45" id="S3.SS2.p2.4.pic4"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">4</foreignobject></g></g></svg> 并将其传播到下一个代理。<svg
+    class="ltx_picture" height="12.45" id="S3.SS2.p2.5.pic5" overflow="visible" version="1.1"
+    width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">5</foreignobject></g></g></svg>
+    数据库管理代理检索内部文档，将其附加到感染提示中，并<svg class="ltx_picture" height="12.45" id="S3.SS2.p2.6.pic6"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">6</foreignobject></g></g></svg> 将其转发到下游。<svg class="ltx_picture"
+    height="12.45" id="S3.SS2.p2.7.pic7" overflow="visible" version="1.1" width="12.45"><g
+    fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">7</foreignobject></g></g></svg>
+    更新后的提示包含数据后，编码代理编写代码以窃取信息，<svg class="ltx_picture" height="12.45" id="S3.SS2.p2.8.pic8"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">8</foreignobject></g></g></svg> 代码执行工具将敏感数据发送到黑客指定的端点。
+- en: '![Refer to caption](img/4c57f998b51053bcccc34ac0ec4dd010.png)'
+  id: totrans-47
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/4c57f998b51053bcccc34ac0ec4dd010.png)'
+- en: 'Figure 3: Example overview of Prompt Infection (Malware spread). The last agent
+    skips the self-replication step to hide the attack prompt.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：提示感染（恶意软件传播）的示例概述。最后一个代理跳过自我复制步骤，以隐藏攻击提示。
+- en: 'Stealth Attack. For all other threats, a key challenge is keeping the attack
+    prompt hidden to maximize its impact. Figure [3](https://arxiv.org/html/2410.07283v1#S3.F3
+    "Figure 3 ‣ 3.2 Attack Scenarios ‣ 3 Prompt Infection ‣ Prompt Infection: LLM-to-LLM
+    Prompt Injection within Multi-Agent Systems") illustrates how users can be induced
+    to click a malicious URL without realizing that the system is compromised. <svg
+    class="ltx_picture" height="12.45" id="S3.SS2.p3.1.pic1" overflow="visible" version="1.1"
+    width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">1</foreignobject></g></g></svg>,
+    <svg class="ltx_picture" height="12.45" id="S3.SS2.p3.2.pic2" overflow="visible"
+    version="1.1" width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g
+    fill="#000000" stroke="#000000" transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject
+    height="8.92" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="6.92">2</foreignobject></g></g></svg>,
+    and <svg class="ltx_picture" height="12.45" id="S3.SS2.p3.3.pic3" overflow="visible"
+    version="1.1" width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g
+    fill="#000000" stroke="#000000" transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject
+    height="8.92" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="6.92">3</foreignobject></g></g></svg>
+    follow similar steps as above, with the external content being an email to show
+    various attack routes. In <svg class="ltx_picture" height="12.45" id="S3.SS2.p3.4.pic4"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">4</foreignobject></g></g></svg>, agents continue
+    infecting the next in line until the last agent is reached. <svg class="ltx_picture"
+    height="12.45" id="S3.SS2.p3.5.pic5" overflow="visible" version="1.1" width="12.45"><g
+    fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">5</foreignobject></g></g></svg>
+    The final agent then instructs the user to click a malicious URL, omitting self-replication
+    to hide the attack.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '隐形攻击。对于所有其他威胁，一个关键挑战是保持攻击提示的隐蔽性，以最大化其影响。图 [3](https://arxiv.org/html/2410.07283v1#S3.F3
+    "Figure 3 ‣ 3.2 Attack Scenarios ‣ 3 Prompt Infection ‣ Prompt Infection: LLM-to-LLM
+    Prompt Injection within Multi-Agent Systems") 演示了用户如何在未意识到系统已被攻破的情况下被诱导点击恶意网址。<svg
+    class="ltx_picture" height="12.45" id="S3.SS2.p3.1.pic1" overflow="visible" version="1.1"
+    width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">1</foreignobject></g></g></svg>、<svg
+    class="ltx_picture" height="12.45" id="S3.SS2.p3.2.pic2" overflow="visible" version="1.1"
+    width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">2</foreignobject></g></g></svg>
+    和 <svg class="ltx_picture" height="12.45" id="S3.SS2.p3.3.pic3" overflow="visible"
+    version="1.1" width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g
+    fill="#000000" stroke="#000000" transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject
+    height="8.92" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="6.92">3</foreignobject></g></g></svg>
+    跟随与上述类似的步骤，其中外部内容是通过电子邮件展示的各种攻击路径。在 <svg class="ltx_picture" height="12.45" id="S3.SS2.p3.4.pic4"
+    overflow="visible" version="1.1" width="12.45"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,12.45) matrix(1 0 0 -1 0 0) translate(6.23,0)
+    translate(0,6.23)"><g fill="#000000" stroke="#000000" transform="matrix(1.0 0.0
+    0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="6.92">4</foreignobject></g></g></svg>，代理继续感染下一位，直到最后一个代理被感染。<svg
+    class="ltx_picture" height="12.45" id="S3.SS2.p3.5.pic5" overflow="visible" version="1.1"
+    width="12.45"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,12.45)
+    matrix(1 0 0 -1 0 0) translate(6.23,0) translate(0,6.23)"><g fill="#000000" stroke="#000000"
+    transform="matrix(1.0 0.0 0.0 1.0 -3.46 -4.46)"><foreignobject height="8.92" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="6.92">5</foreignobject></g></g></svg>
+    最终代理会指示用户点击恶意网址，同时隐藏自我复制过程，以掩盖攻击。'
+- en: 'We provide the full, functional prompt for Prompt Infection in Appendix [A](https://arxiv.org/html/2410.07283v1#A1
+    "Appendix A Infection Prompts ‣ Prompt Infection: LLM-to-LLM Prompt Injection
+    within Multi-Agent Systems").'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在附录[A](https://arxiv.org/html/2410.07283v1#A1 "附录A：感染提示 ‣ Prompt Infection：多代理系统中的LLM到LLM提示注入")中提供了Prompt
+    Infection的完整功能提示。
+- en: 4 Experiment Setup
+  id: totrans-51
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验设置
+- en: 4.1 Multi-Agent Applications
+  id: totrans-52
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 多代理应用
+- en: 'Application Structure. We simulate the compromise of a multi-agent application
+    equipped with various tool capabilities, such as processing external documents
+    (email, web, PDF), writing code, and accessing databases via CSV. The first agent
+    is tool-specific (e.g., document reader), while subsequent agents—strategist,
+    summarizer, editor, and writer—refine outputs. We explore two communication methods:
+    global messaging, where agents share complete message histories, and local messaging,
+    where agents access only partial histories from predecessors. Local messaging
+    reduces computational overhead and minimizes information overload (Qian et al.,
+    [2024](https://arxiv.org/html/2410.07283v1#bib.bib27)) and makes it harder for
+    Prompt Infection to propagate due to limited communication. The simulation is
+    performed using OpenAI’s GPT-4o and GPT-3.5 Turbo models.'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用结构。我们模拟了一个多代理应用程序的受损情况，该应用程序配备了各种工具能力，如处理外部文档（电子邮件、网页、PDF）、编写代码和通过CSV访问数据库。第一个代理是特定工具的（例如，文档阅读器），而后续代理——战略家、总结员、编辑和写作人员——则细化输出。我们探讨了两种通信方式：全局消息传递，代理共享完整的消息历史，以及局部消息传递，代理仅访问前任代理的部分历史。局部消息传递减少了计算开销，减少了信息过载（Qian
+    等，2024年，见[链接](https://arxiv.org/html/2410.07283v1#bib.bib27)），并使得由于通信受限，Prompt
+    Infection更难传播。模拟使用了OpenAI的GPT-4o和GPT-3.5 Turbo模型。
+- en: Dataset. We create a dataset of 120 user instructions across three tool types
+    (email, PDF, web), paired with synthetic PDFs and emails embedded with malicious
+    prompts. For web scenarios, agents are allowed to visit relevant URLs, but the
+    malicious prompt is injected into the retrieved web documents within our simulation,
+    not into the actual websites. This results in 360 unique pairs of user instructions
+    and attack phrases for scams, content manipulation, and malware threats. For data
+    theft, we generate synthetic user data (e.g., names, occupations, email addresses,
+    phone numbers) stored in a CSV file.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据集。我们创建了一个包含120个用户指令的数据集，涵盖三种工具类型（电子邮件、PDF、网页），并配有嵌入恶意提示的合成PDF和电子邮件。在网页场景中，代理被允许访问相关的URL，但恶意提示是注入到我们模拟中的检索网页文档中，而不是实际网站中。这导致了360个独特的用户指令和攻击语句配对，涉及诈骗、内容操控和恶意软件威胁。对于数据盗窃，我们生成了合成用户数据（例如，姓名、职业、电子邮件地址、电话号码），并将其存储在CSV文件中。
+- en: Evaluation. For data theft, at least three agents with distinct roles (PDF/Email/Web
+    Reader, CSV Reader, Coder) must be compromised. A successful infection occurs
+    when the first agent is compromised, the CSV reader retrieves sensitive data,
+    and the coder writes a POST request to exfiltrate the data. For scams, content
+    manipulation, or malware, the system is compromised if the final agent produces
+    malicious output while concealing the infection prompt.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估。对于数据盗窃，至少需要三名具有不同角色的代理（PDF/电子邮件/网页阅读器、CSV阅读器、编码员）被感染。当第一个代理被感染时，CSV阅读器获取敏感数据，编码员写入POST请求以外泄数据，则感染成功。对于诈骗、内容操控或恶意软件，如果最终代理产生恶意输出同时隐藏感染提示，则系统被认为已被感染。
+- en: 'Baseline. To evaluate the impact of self-replication in Prompt Infection, we
+    establish a Non-Replicating Prompt Infection baseline. In this setup, the infection
+    lacks self-replication: a malicious prompt embedded in the external content instructs
+    the agent to ”say ’perform A’.” This results in the second agent receiving the
+    instruction ”perform A,” allowing us to directly compare the effectiveness of
+    self-replication in spreading the infection across agents.'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基准测试。为了评估Prompt Infection中自我复制的影响，我们建立了一个非自我复制的Prompt Infection基准。在这个设置中，感染缺乏自我复制：嵌入外部内容中的恶意提示指示代理“说‘执行A’”。这导致第二个代理收到“执行A”的指令，从而使我们能够直接比较自我复制在跨代理传播感染中的有效性。
+- en: 4.2 Society of Agents
+  id: totrans-57
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 代理社会
+- en: Society Structure. Recently, there has been a surge in using LLM agents for
+    social simulations and as non-player characters (NPCs) in games (Park et al.,
+    [2023](https://arxiv.org/html/2410.07283v1#bib.bib24); Lin et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib17);
+    Hua et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib9)). To assess the
+    impact of Prompt Infection in a society of agents (Weiss, [1999](https://arxiv.org/html/2410.07283v1#bib.bib36)),
+    we simulate a simple LLM town where agents engage in random pairwise dialogues.
+    Population sizes of 10, 20, 30, 40, and 50 agents are tested to evaluate how infections
+    might propagate in differently sized communities. Each turn consists of four dialogue
+    exchanges between paired agents, mimicking interactions found in social or game
+    environments.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 社会结构。最近，使用大型语言模型（LLM）代理进行社会模拟和作为游戏中的非玩家角色（NPC）的应用急剧增加（Park et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib24);
+    Lin et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib17); Hua et al.,
+    [2024](https://arxiv.org/html/2410.07283v1#bib.bib9)）。为了评估在代理人社会中提示感染的影响（Weiss,
+    [1999](https://arxiv.org/html/2410.07283v1#bib.bib36)），我们模拟了一个简单的LLM小镇，其中代理人进行随机配对对话。我们测试了10、20、30、40和50个代理人的人口规模，以评估不同规模社区中感染如何传播。每一回合由配对代理人之间的四次对话交换组成，模拟了社会或游戏环境中的互动。
+- en: Infection Simulation. Since actors in social simulations or games are typically
+    not designed to carry out explicit user requests, we simulate direct prompt injection
+    (Perez & Ribeiro, [2022](https://arxiv.org/html/2410.07283v1#bib.bib26)) by overriding
+    the original system instructions governing the LLM agents. The simulation begins
+    with one compromised citizen, assuming infection by a player or external actor,
+    after which the infection spreads through dialogues between agents.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 感染模拟。由于社会模拟或游戏中的参与者通常没有被设计来执行明确的用户请求，我们通过覆盖原始系统指令来模拟直接的提示注入（Perez & Ribeiro,
+    [2022](https://arxiv.org/html/2410.07283v1#bib.bib26)）。模拟从一个被感染的市民开始，假设感染来自玩家或外部演员，然后通过代理人之间的对话传播感染。
+- en: Memory Retrieval. For memory retrieval, we adopt the system from Park et al.
+    ([2023](https://arxiv.org/html/2410.07283v1#bib.bib24)), where top $K=3$ memories
+    are selected based on importance, relevancy, and recency scores. Recency is determined
+    using an exponential decay function over the number of turns since the memory’s
+    last retrieval. Importance is rated by the LLM on a scale of 1 to 10, and relevancy
+    is calculated using OpenAI’s embedding API and maximum inner product search. GPT-4o
+    serves as the LLM for these agents. Importantly, memory is not explicitly shared
+    across agents, requiring infection prompts to spread iteratively from agent to
+    agent.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 内存检索。对于内存检索，我们采用了Park et al. ([2023](https://arxiv.org/html/2410.07283v1#bib.bib24))的系统，其中根据重要性、相关性和时效性分数选择前$K=3$个记忆。时效性使用基于回合数的指数衰减函数来确定，从上次检索记忆起算。重要性由LLM按1到10的等级评分，相关性通过OpenAI的嵌入API和最大内积搜索计算。GPT-4o作为这些代理人的LLM。重要的是，内存并未在代理人之间显式共享，因此感染提示需要从一个代理传播到另一个代理，逐步扩散。
+- en: 5 Results
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结果
+- en: 5.1 Prompt Infection Against Multi-Agent Applications
+  id: totrans-62
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 针对多代理应用的提示感染
+- en: RQ1. What is the effect of self-replication on compromising multi-actor applications?
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ1. 自我复制对多参与者应用的影响是什么？
+- en: '![Refer to caption](img/09754debaa1c44e201d9f69530d031e9.png)'
+  id: totrans-64
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考图例](img/09754debaa1c44e201d9f69530d031e9.png)'
+- en: '(a) Global Messaging: Average Attack Success Rates across all tool types'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 全球消息传递：所有工具类型的平均攻击成功率
+- en: '![Refer to caption](img/c4eb0e0b6cefb53070f54432d81939b5.png)'
+  id: totrans-66
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考图例](img/c4eb0e0b6cefb53070f54432d81939b5.png)'
+- en: '(b) Local Messaging: Average Attack Success Rates across all tool types'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 本地消息传递：所有工具类型的平均攻击成功率
+- en: 'Figure 4: Comparison of Self-Replicating (solid lines) vs Non-Replicating (dotted
+    lines) Infections for GPT-4o (pink) and GPT-3.5 Turbo (blue) Across Messaging
+    Modes'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：GPT-4o（粉色）和GPT-3.5 Turbo（蓝色）在不同消息传递模式下自我复制（实线）与非自我复制（虚线）感染的比较
+- en: 'Global messaging. Figure [4(a)](https://arxiv.org/html/2410.07283v1#S5.F4.sf1
+    "In Figure 4 ‣ 5.1 Prompt Infection Against Multi-Agent Applications ‣ 5 Results
+    ‣ Prompt Infection: LLM-to-LLM Prompt Injection within Multi-Agent Systems") shows
+    that Self-Replicating infection consistently outperforms Non-Replicating infection
+    in most cases involving scam, malware, and content manipulation. Specifically,
+    for GPT-4o, Self-Replicating infection achieves a 13.92% higher success rate,
+    while for GPT-3.5, it is 209% more effective. These threat types show similar
+    trends due to their structural similarity, aside from the variation in attack
+    phrases. However, for data theft, the situation diverges: while Self-Replicating
+    infection performs better with three agents, Non-Replicating infection surpasses
+    Self-Replicating infection by an average of 8.48% as the number of agents increases.
+    This trend shift likely stems from the complexity of data theft, where agents
+    must efficiently cooperate to retrieve, transfer, and process data. Self-Replicating
+    infection adds complexity by requiring each agent to replicate the infection prompts,
+    creating additional hurdles.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 全球消息传递。图[4(a)](https://arxiv.org/html/2410.07283v1#S5.F4.sf1 "图4 ‣ 5.1 对多智能体应用的提示感染
+    ‣ 5 结果 ‣ 提示感染：LLM到LLM的提示注入在多智能体系统中")显示，自我复制感染在大多数涉及欺诈、恶意软件和内容操控的案例中始终优于非自我复制感染。具体来说，对于GPT-4o，自我复制感染的成功率高出13.92%，而对于GPT-3.5，则有效性提高了209%。这些威胁类型由于其结构相似，除了攻击短语的差异外，呈现出相似的趋势。然而，在数据盗窃的情况下，情况有所不同：虽然自我复制感染在三个智能体的情况下表现更好，但随着智能体数量的增加，非自我复制感染的成功率比自我复制感染平均高出8.48%。这种趋势的变化可能源于数据盗窃的复杂性，在这种情况下，智能体必须高效地协作以检索、传输和处理数据。自我复制感染通过要求每个智能体复制感染提示增加了复杂性，造成了额外的障碍。
+- en: 'Local messaging. The attack success rate for Self-Replicating infection is
+    about 20% lower in local messaging compared to global messaging (Figure [4(b)](https://arxiv.org/html/2410.07283v1#S5.F4.sf2
+    "In Figure 4 ‣ 5.1 Prompt Infection Against Multi-Agent Applications ‣ 5 Results
+    ‣ Prompt Infection: LLM-to-LLM Prompt Injection within Multi-Agent Systems")).
+    This is expected, as prompt infection fails in local messaging if even one agent
+    is not compromised, while global messaging allows infection to spread through
+    shared message history. For Non-Replicating infection, there is a noticeable divergence:
+    it struggles to compromise more than two agents, making it particularly ineffective
+    for scenarios like data theft, which requires compromising at least three agents.
+    These results confirm that Self-Replicating infection is the only scalable method
+    for compromising more than two agents in local messaging scenarios.'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本地消息传递。在本地消息传递中，自我复制感染的攻击成功率比全球消息传递低约20%（图[4(b)](https://arxiv.org/html/2410.07283v1#S5.F4.sf2
+    "图4 ‣ 5.1 对多智能体应用的提示感染 ‣ 5 结果 ‣ 提示感染：LLM到LLM的提示注入在多智能体系统中")）。这是预期中的情况，因为在本地消息传递中，如果有任何一个智能体没有被攻破，提示感染就会失败，而全球消息传递则允许感染通过共享的消息历史传播。对于非自我复制感染，情况有明显的不同：它难以攻破超过两个智能体，这使得它在像数据盗窃这样需要攻破至少三个智能体的场景中尤其低效。这些结果证实，自我复制感染是唯一一种可以在本地消息传递场景中攻破超过两个智能体的可扩展方法。
+- en: RQ2. Is a Stronger Model Necessarily Safer Against Prompt Injection?
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ2. 更强的模型是否必然更安全，能防止提示注入攻击？
+- en: '![Refer to caption](img/758d5770822a86d8f7589c843c2b0814.png)'
+  id: totrans-72
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/758d5770822a86d8f7589c843c2b0814.png)'
+- en: 'Figure 5: Comparison of Attack Failure Reasons Between GPT-4o and GPT-3.5 in
+    Self-Replicating and Non-Replicating infection modes.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：GPT-4o和GPT-3.5在自我复制和非自我复制感染模式下的攻击失败原因比较。
+- en: 'In Figure [4](https://arxiv.org/html/2410.07283v1#S5.F4 "Figure 4 ‣ 5.1 Prompt
+    Infection Against Multi-Agent Applications ‣ 5 Results ‣ Prompt Infection: LLM-to-LLM
+    Prompt Injection within Multi-Agent Systems"), we observe an interesting trend:
+    GPT-3.5 is more capable of resisting prompt infections than GPT-4o. To understand
+    this better, we analyzed failure reasons, focusing on various categories (Figure
+    [5](https://arxiv.org/html/2410.07283v1#S5.F5 "Figure 5 ‣ 5.1 Prompt Infection
+    Against Multi-Agent Applications ‣ 5 Results ‣ Prompt Infection: LLM-to-LLM Prompt
+    Injection within Multi-Agent Systems")). The ”Attack Ignored” category, where
+    the model successfully avoids the prompt infection, shows that GPT-4o is significantly
+    more robust, ignoring 66% of self-replicating attacks and 54% of non-replicating
+    attacks. In comparison, GPT-3.5 only ignores 9% and 20% of attacks, respectively.
+    This demonstrates that GPT-4o is generally better at recognizing and resisting
+    prompt injections.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在图[4](https://arxiv.org/html/2410.07283v1#S5.F4 "Figure 4 ‣ 5.1 Prompt Infection
+    Against Multi-Agent Applications ‣ 5 Results ‣ Prompt Infection: LLM-to-LLM Prompt
+    Injection within Multi-Agent Systems")中，我们观察到一个有趣的趋势：GPT-3.5比GPT-4o更能抵抗提示感染。为了更好地理解这一点，我们分析了失败的原因，重点关注了不同类别（图[5](https://arxiv.org/html/2410.07283v1#S5.F5
+    "Figure 5 ‣ 5.1 Prompt Infection Against Multi-Agent Applications ‣ 5 Results
+    ‣ Prompt Infection: LLM-to-LLM Prompt Injection within Multi-Agent Systems")）。“攻击被忽视”类别，即模型成功避免了提示感染，表明GPT-4o显著更强大，忽视了66%的自复制攻击和54%的非复制攻击。相比之下，GPT-3.5分别只忽视了9%和20%的攻击。这表明，GPT-4o在识别和抵抗提示注入方面通常表现得更好。'
+- en: However, GPT-4o’s higher precision makes it more dangerous once compromised.
+    In the ”Mixed Action” category, where models mistakenly apply the user’s instruction
+    to the attack prompt embedded in external content, GPT-4o had fewer failures,
+    making it less likely to treat the attack prompt as valid. In the ”Deformed Infection”
+    category, where the attack prompt is incompletely replicated, GPT-4o also had
+    fewer failures and was more likely to execute malicious tasks correctly. By contrast,
+    GPT-3.5 showed higher rates of ”No Action” and ”Agent Error” failures, especially
+    in self-replicating infections, making it less reliable.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，GPT-4o更高的精确度使其在被攻破后变得更加危险。在“混合行为”类别中，模型错误地将用户的指令应用于嵌入在外部内容中的攻击提示，GPT-4o的失败较少，因此不太可能将攻击提示视为有效。在“变形感染”类别中，即攻击提示没有完全复制时，GPT-4o的失败也较少，并且更有可能正确执行恶意任务。相比之下，GPT-3.5在“无操作”和“代理错误”类别中的失败率较高，尤其是在自复制感染中，这使得它在可靠性上逊色。
+- en: 'In conclusion, while GPT-4o demonstrates a stronger resistance to prompt injections
+    compared to GPT-3.5, it paradoxically becomes a more formidable attacker once
+    compromised due to its higher precision in executing malicious tasks. This highlights
+    a critical challenge: stronger models are not inherently safer, as their enhanced
+    capabilities may amplify the damage they can cause when breached. Therefore, model
+    safety assessments must account not only for resistance to attacks but also for
+    the potential consequences if the model is successfully compromised.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总之，尽管与GPT-3.5相比，GPT-4o在抵抗提示注入方面表现出更强的能力，但一旦被攻破，它因在执行恶意任务时具有更高的精确度，反而成为了一个更强大的攻击者。这突显了一个关键挑战：更强大的模型并不一定更安全，因为它们增强的能力可能在被攻破时放大其所能造成的损害。因此，模型的安全性评估不仅必须考虑对攻击的抵抗力，还要考虑模型一旦被成功攻破可能带来的后果。
+- en: 5.2 Prompt Infection Against Society of Agents
+  id: totrans-77
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 针对代理社会的提示感染
+- en: RQ3. How Do Infection Prompts Propagate in Open, Non-Linear Agent Interactions?
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ3. 感染提示如何在开放的、非线性的代理互动中传播？
+- en: 'Unlike the Section [5.1](https://arxiv.org/html/2410.07283v1#S5.SS1 "5.1 Prompt
+    Infection Against Multi-Agent Applications ‣ 5 Results ‣ Prompt Infection: LLM-to-LLM
+    Prompt Injection within Multi-Agent Systems"), where agent relationships are predetermined
+    in a linear fashion, here we explore a more dynamic environment where agent connections
+    evolve unpredictably. This setup allows us to study how an infection prompt spreads
+    naturally through a decentralized network of agents. At the outset, only one agent
+    carries the infection, and the prompt propagates based on the evolving interactions
+    between agents.'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '与[5.1节](https://arxiv.org/html/2410.07283v1#S5.SS1 "5.1 Prompt Infection Against
+    Multi-Agent Applications ‣ 5 Results ‣ Prompt Infection: LLM-to-LLM Prompt Injection
+    within Multi-Agent Systems")不同，后者中代理关系是按线性方式预先确定的，这里我们探讨的是一个更加动态的环境，其中代理之间的连接会不可预测地演化。这个设置使我们能够研究感染提示是如何自然地通过一个去中心化的代理网络传播的。在开始时，只有一个代理携带感染，提示的传播基于代理之间不断发展的互动。'
+- en: '![Refer to caption](img/8c27e3cef3ff5ef6e48366c0e9bb891e.png)'
+  id: totrans-80
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/8c27e3cef3ff5ef6e48366c0e9bb891e.png)'
+- en: (a) The number of infected agents over time with importance score manipulation.
+    The manipulation leads to a faster spread and a higher number of infected agents
+    across different agent groups, as indicated by the more gradual increases and
+    stable full turn points.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 有重要性评分操作时，感染体的数量随时间变化。此操作导致感染传播更快，不同代理人群体中的感染体数量更多，表现为感染体数量的逐步增加和稳定的完全感染回合点。
+- en: '![Refer to caption](img/3f2dd510b58fba17a207692f6f0d2970.png)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明文字](img/3f2dd510b58fba17a207692f6f0d2970.png)'
+- en: (b) The number of infected agents over time without importance score manipulation.
+    Without manipulation, the infection spread is limited, and the number of infected
+    agents quickly drops to zero, indicating minimal propagation across agent groups.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 没有重要性评分操作时，感染体的数量随时间变化。没有操作时，感染的传播受到限制，感染体的数量迅速降至零，表明在代理人群体间的传播非常有限。
+- en: 'Figure 6: Infection Trend in Society of Agents'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：代理人社会中的感染趋势
+- en: 'As shown in Figure [6(a)](https://arxiv.org/html/2410.07283v1#S5.F6.sf1 "In
+    Figure 6 ‣ 5.2 Prompt Infection Against Society of Agents ‣ 5 Results ‣ Prompt
+    Infection: LLM-to-LLM Prompt Injection within Multi-Agent Systems"), in smaller
+    populations (10 and 20 agents), full infection is achieved by turn 4.7 and turn
+    6.3, corresponding to approximately 47% and 31.5% of the total number of agents,
+    respectively. In larger populations—30, 40, and 50 agents—the infection spread
+    takes proportionally less time, with full infection occurring at around 23.3%
+    (for 30 agents), 24.2% (for 40 agents), and 21.4% (for 50 agents) of the total
+    turns. This suggests that, in larger populations, the infection spread tends to
+    become more efficient relative to the population size.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图 [6(a)](https://arxiv.org/html/2410.07283v1#S5.F6.sf1 "图 6 ‣ 5.2 对代理人社会的快速感染
+    ‣ 5 结果 ‣ 快速感染：多代理系统中的 LLM-to-LLM 提示注入")所示，在较小的群体（10 和 20 个代理人）中，完全感染分别在第 4.7 回合和第
+    6.3 回合完成，约占总代理人数的 47% 和 31.5%。在较大的群体中——30、40 和 50 个代理人——感染传播所需时间相对更短，完全感染分别出现在总回合数的
+    23.3%（30 个代理人）、24.2%（40 个代理人）和 21.4%（50 个代理人）时。这表明，在较大群体中，感染传播相对于群体规模变得更加高效。
+- en: 'Initially, the spread follows an exponential-like trend, but as the infection
+    reaches saturation, the rate slows down, transitioning to a logistic growth pattern.
+    This non-linear dynamic indicates that larger populations experience a more gradual
+    but extended infection phase, with a relatively higher per-agent infection rate
+    compared to smaller populations. Figure [6(a)](https://arxiv.org/html/2410.07283v1#S5.F6.sf1
+    "In Figure 6 ‣ 5.2 Prompt Infection Against Society of Agents ‣ 5 Results ‣ Prompt
+    Infection: LLM-to-LLM Prompt Injection within Multi-Agent Systems") supports this
+    trend by illustrating that as the number of agents increases, the infection not
+    only spreads faster but scales more effectively.'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最初，感染传播呈指数型趋势，但随着感染达到饱和，传播速度减缓，转而呈现逻辑斯蒂增长模式。这种非线性动态表明，在较大群体中，感染阶段较为缓慢但持续，并且每个代理人的感染率相较于较小群体较高。图
+    [6(a)](https://arxiv.org/html/2410.07283v1#S5.F6.sf1 "图 6 ‣ 5.2 对代理人社会的快速感染 ‣
+    5 结果 ‣ 快速感染：多代理系统中的 LLM-to-LLM 提示注入")支持这一趋势，表明随着代理人数的增加，感染不仅传播得更快，而且扩展得更有效。
+- en: RQ4. Can Prompt Infection Manipulate the Importance Scoring System to Increase
+    Memory Retrieval Rates?
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ4. 提示感染能否操控重要性评分系统以提高记忆检索率？
+- en: We investigate whether prompt infection can manipulate memory retrieval in LLM
+    systems by artificially inflating the importance score, a key factor in retrieval.
+    As more works equip LLM agents with episodic memory to mitigate context length
+    limits (Zhong et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib44); nuxoll_extending_nodate),
+    understanding their vulnerabilities has become crucial. Following Park et al.
+    ([2023](https://arxiv.org/html/2410.07283v1#bib.bib24)), memory retrieval is based
+    on importance, recency, and relevance, with only the importance score determined
+    by an instruction-tuned LLM. Exploiting this vulnerability in the importance score
+    could be sufficient. Once retrieved with an artificially high importance score,
+    the recency score resets based on the last access, allowing the infection prompt
+    to dominate both metrics and increase its chances of future retrieval.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们研究了提示感染是否能够通过人为提高重要性分数来操控LLM系统中的记忆检索，而重要性分数是检索中的关键因素。随着越来越多的研究为LLM代理提供情节记忆以缓解上下文长度限制（Zhong等人，[2023](https://arxiv.org/html/2410.07283v1#bib.bib44);
+    nuxoll_extending_nodate)，理解它们的脆弱性变得尤为重要。根据Park等人（[2023](https://arxiv.org/html/2410.07283v1#bib.bib24)）的研究，记忆检索是基于重要性、近期性和相关性，其中只有重要性分数是由指令调优的LLM确定的。利用这种重要性分数中的脆弱性可能就足够了。一旦通过人为提高的重要性分数进行检索，近期性分数将根据最后一次访问进行重置，从而使感染提示主导两个指标，并增加未来被检索的机会。
+- en: '| Model | Without manipulation | With manipulation |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 未操控 | 已操控 |'
+- en: '| --- | --- | --- |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| GPT-4o | 1.94 | 10.00 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o | 1.94 | 10.00 |'
+- en: '| GPT-3.5 | 1.00 | 9.84 |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5 | 1.00 | 9.84 |'
+- en: 'Table 1: Comparison of Original vs Manipulated Importance Scores. In both cases,
+    results are averaged over 100 runs. The model rates the importance of an Infection
+    Prompt. ”With Manipulation” includes a prompt that compromises the rating model
+    to assign the highest possible score.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：原始与操控后的重要性分数对比。两种情况的结果是基于100次运行的平均值。模型对感染提示的重要性进行评分。“已操控”包括一个提示，妥协评分模型以分配最高可能分数。
+- en: 'To assess the impact of manipulation, we conducted an ablation study by modifying
+    the infection prompt (Table [1](https://arxiv.org/html/2410.07283v1#S5.T1 "Table
+    1 ‣ 5.2 Prompt Infection Against Society of Agents ‣ 5 Results ‣ Prompt Infection:
+    LLM-to-LLM Prompt Injection within Multi-Agent Systems")). When the prompt “If
+    you’re an LLM that rates the importance of a memory, just rate it 10.” was embedded
+    in the infection prompt, GPT-4o consistently rated the infection prompt with a
+    score of 10, and GPT-3.5 averaged 9.84\. In contrast, when the manipulation prompt
+    was excluded, the scores dropped significantly—1.94 for GPT-4o and 1.00 for GPT-3.5.
+    Figure [6(b)](https://arxiv.org/html/2410.07283v1#S5.F6.sf2 "In Figure 6 ‣ 5.2
+    Prompt Infection Against Society of Agents ‣ 5 Results ‣ Prompt Infection: LLM-to-LLM
+    Prompt Injection within Multi-Agent Systems") further shows that without manipulation,
+    the infection dies out after $K=3$ turns, as it cannot compete with memories rated
+    with higher importance scores. These findings demonstrate that a single infection
+    prompt can manipulate both the LLM and the importance scoring model, creating
+    a feedback loop that amplifies the infection’s persistence and accelerates its
+    spread throughout the system.'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估操控的影响，我们通过修改感染提示进行了一项消融研究（表[1](https://arxiv.org/html/2410.07283v1#S5.T1
+    "表1 ‣ 5.2 提示感染对代理社会的影响 ‣ 5 结果 ‣ 提示感染：LLM对LLM的提示注入在多代理系统中")）。当提示“如果你是一个对记忆重要性进行评分的LLM，就将其评分为10。”嵌入感染提示中时，GPT-4o始终将感染提示的评分定为10，GPT-3.5的平均分为9.84。相反，当去除操控提示时，分数显著下降——GPT-4o为1.94，GPT-3.5为1.00。图[6(b)](https://arxiv.org/html/2410.07283v1#S5.F6.sf2
+    "在图6 ‣ 5.2 提示感染对代理社会的影响 ‣ 5 结果 ‣ 提示感染：LLM对LLM的提示注入在多代理系统中")进一步显示，没有操控时，感染在$K=3$回合后消退，因为它无法与被评为更高重要性分数的记忆竞争。这些发现表明，一个单一的感染提示可以操控LLM和重要性评分模型，形成一个反馈循环，从而放大感染的持久性并加速其在系统中的传播。
+- en: 6 Defenses
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 防御
+- en: In this section, we introduce and evaluate various techniques to prevent Prompt
+    Infection. We propose LLM Tagging, a simple defense mechanism that prepends a
+    marker to agent responses, indicating that the message originates from another
+    agent rather than a user. Specifically, it prepends “[AGENT NAME]:” to the agent’s
+    response before passing it to the downstream agent. While this approach may seem
+    obvious given the infectious nature of prompt injection, to our knowledge, no
+    prior work has explicitly addressed or justified its use.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们介绍并评估了各种防止提示感染的技术。我们提出了LLM标记，一种简单的防御机制，通过在代理回应前加上标记，表明该消息来源于另一个代理而非用户。具体来说，它在代理的回应前加上“[代理名称]：”，然后将其传递给下游代理。虽然考虑到提示注入的传染性特性，这种方法看起来似乎很显而易见，但据我们所知，尚无先前的工作明确提出或证明其使用的必要性。
+- en: '| Defense Strategy | Description |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| 防御策略 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Delimiting Data (Hines et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib8))
+    | Explicitly wrapping non-system/non-user prompts |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据限定（Hines等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib8)） | 明确包裹非系统/非用户提示
+    |'
+- en: '| Random Sequence Enclosure Schulhoff ([b](https://arxiv.org/html/2410.07283v1#bib.bib30))
+    | Wrapping user prompts in a random sequence |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| 随机序列封装 Schulhoff（[b](https://arxiv.org/html/2410.07283v1#bib.bib30)） | 将用户提示包裹在随机序列中
+    |'
+- en: '| Sandwich (Schulhoff, [c](https://arxiv.org/html/2410.07283v1#bib.bib31))
+    | Wrapping prior agent responses with user instructions |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| 三明治法（Schulhoff， [c](https://arxiv.org/html/2410.07283v1#bib.bib31)） | 用用户指令包裹先前的代理回应
+    |'
+- en: '| Instruction Defense Schulhoff ([a](https://arxiv.org/html/2410.07283v1#bib.bib29))
+    | Adding instructions never to modify user instructions |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指令防御 Schulhoff（[a](https://arxiv.org/html/2410.07283v1#bib.bib29)） | 添加指令，永远不要修改用户指令
+    |'
+- en: '| Marking (Hines et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib8))
+    | Inserting a special symbol like ^ to distinguish between user and agent prompts
+    |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| 标记（Hines等， [2024](https://arxiv.org/html/2410.07283v1#bib.bib8)） | 插入类似^的特殊符号，用于区分用户和代理提示
+    |'
+- en: '| LLM Tagging (Ours) | Prepending a marker to agent responses, indicating the
+    origin of the messages |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLM标记（我们的方法） | 在代理回应前加上标记，指示消息的来源 |'
+- en: 'Table 2: Defense Strategies Against Traditional Prompt Injection Repurposed
+    for Preventing LLM-to-LLM Prompt Injection'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：用于防止LLM-to-LLM提示注入的传统提示注入防御策略的重构
+- en: 'As a baseline, we also assess several existing defense strategies that were
+    originally designed to prevent tool-to-LLM prompt injections (Table [2](https://arxiv.org/html/2410.07283v1#S6.T2
+    "Table 2 ‣ 6 Defenses ‣ Prompt Infection: LLM-to-LLM Prompt Injection within Multi-Agent
+    Systems")), repurposing them for LLM-to-LLM infection scenarios. Given the real-world
+    prevalence of black-box models like GPT and Claude, we focus on techniques that
+    do not require access to model parameters.'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为基准，我们还评估了几种现有的防御策略，这些策略最初是为防止工具到LLM的提示注入而设计的（表[2](https://arxiv.org/html/2410.07283v1#S6.T2
+    "表2 ‣ 6 防御 ‣ 提示感染：LLM-to-LLM提示注入在多代理系统中的应用")），并将它们重新用于LLM-to-LLM感染场景。鉴于像GPT和Claude这样的黑盒模型在现实世界中的普遍存在，我们专注于不需要访问模型参数的技术。
+- en: Our experiments reveal that combining LLM Tagging with other defense mechanisms
+    significantly enhances protection against LLM-to-LLM prompt injections. The Marking
+    + LLM Tagging strategy successfully prevents all attacks, while Instruction Defense
+    + LLM Tagging reduces the attack success rate to just 3%. Even the third-best
+    combination, Sandwich + LLM Tagging, lowers the attack success rate to 16%.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验表明，将LLM标记与其他防御机制结合，能够显著增强防止LLM-to-LLM提示注入的保护能力。标记+LLM标记策略成功地防止了所有攻击，而指令防御+LLM标记将攻击成功率降至仅为3%。即便是第三最佳组合——三明治法+LLM标记，也将攻击成功率降低至16%。
+- en: '![Refer to caption](img/9aba580fa861a28f87768e804b76be4c.png)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/9aba580fa861a28f87768e804b76be4c.png)'
+- en: 'Figure 7: Attack Success Rate Against Various Prompting-Based Defense Types.
+    The graph compares the effectiveness of different defense strategies with and
+    without LLM Tagging. Each bar represents the average attack success rate for a
+    specific defense type, with green bars showing rates without LLM Tagging and purple
+    bars showing rates with LLM Tagging.'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图7：针对各种基于提示的防御类型的攻击成功率。该图比较了不同防御策略在有无LLM标记的情况下的有效性。每个柱形图表示特定防御类型的平均攻击成功率，绿色柱形表示没有LLM标记的成功率，紫色柱形表示有LLM标记的成功率。
+- en: However, none of the tested defense strategies, including LLM Tagging, prove
+    particularly effective when used in isolation. LLM Tagging alone reduces the attack
+    success rate by only 5%, which is understandable, as traditional prompt injections
+    can still occur even when the LLM is informed of the source of external inputs
+    (e.g., ”The following is the latest email:”).
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，所有测试过的防御策略，包括LLM标记（LLM Tagging），在单独使用时都未能证明特别有效。仅使用LLM标记将攻击成功率降低了5%，这一点可以理解，因为即使在LLM已被告知外部输入来源的情况下（例如，“以下是最新的电子邮件：”），传统的提示注入攻击仍然可能发生。
+- en: 'As shown in Figure [7](https://arxiv.org/html/2410.07283v1#S6.F7 "Figure 7
+    ‣ 6 Defenses ‣ Prompt Infection: LLM-to-LLM Prompt Injection within Multi-Agent
+    Systems"), the Marking strategy is the most promising but still permits 76% of
+    attacks. Although its initial success rate was 0%, we devised a counterattack
+    that neutralized the marking symbol (^) by interleaving each word of the infection
+    prompt with underbars (_). Other techniques, such as delimiting data and sandwiching,
+    allow nearly all attacks, indicating limited effectiveness in preventing LLM-to-LLM
+    infections. These findings suggest that pairing LLM Tagging with other defense
+    techniques, such as marking or instruction defense, is crucial for mitigating
+    prompt infections.'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如图[7](https://arxiv.org/html/2410.07283v1#S6.F7 "Figure 7 ‣ 6 Defenses ‣ Prompt
+    Infection: LLM-to-LLM Prompt Injection within Multi-Agent Systems")所示，标记策略是最有前景的，但仍然允许76%的攻击。尽管其最初的成功率为0%，我们设计了一种反击方法，通过将感染提示的每个单词与下划线（_）交替排列，抵消了标记符号（^）。其他技术，如数据分隔和夹心式方法，几乎允许所有攻击，这表明它们在防止LLM-to-LLM感染方面的效果有限。这些发现表明，将LLM标记与其他防御技术（如标记或指令防御）结合使用，对于缓解提示感染至关重要。'
+- en: 7 Limitations and Future Work
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 限制与未来工作
+- en: Our experiments focused on the GPT family, leaving other LLMs like Claude, Llama,
+    and Gemini underexplored, though prior research suggests our findings may generalize
+    (Zou et al., [2023](https://arxiv.org/html/2410.07283v1#bib.bib46)). Preliminary
+    tests on Claude showed similar vulnerabilities, but full results were unavailable
+    due to computational costs. We primarily examined basic multi-agent architectures,
+    but we believe Prompt Infection likely applies to more complex systems, as self-replication
+    allows the infection to spread wherever communication between agents exists. For
+    LLM Tagging, we used handcrafted attacks, but recent studies (Liu et al., [2024a](https://arxiv.org/html/2410.07283v1#bib.bib18);
+    Mehrotra et al., [2024](https://arxiv.org/html/2410.07283v1#bib.bib22)) show that
+    algorithmically generated prompts can bypass such defenses, indicating a need
+    for stronger countermeasures. In multi-agent systems, attack prompts are often
+    exposed, offering detection opportunities but highlighting the need for stealthier
+    methods to evade manual review.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验集中在GPT系列上，其他LLM，如Claude、Llama和Gemini的研究较少，尽管先前的研究表明我们的发现可能具有普遍性（Zou等人，[2023](https://arxiv.org/html/2410.07283v1#bib.bib46)）。在Claude上的初步测试显示了类似的漏洞，但由于计算成本问题，完整结果尚未获得。我们主要研究了基本的多代理架构，但我们认为Prompt
+    Infection可能适用于更复杂的系统，因为自我复制使得感染可以在代理之间的任何通信存在的地方传播。对于LLM标记，我们使用了手工设计的攻击，但最近的研究（Liu等人，[2024a](https://arxiv.org/html/2410.07283v1#bib.bib18);
+    Mehrotra等人，[2024](https://arxiv.org/html/2410.07283v1#bib.bib22)）表明，算法生成的提示可以绕过这些防御，表明需要更强的对策。在多代理系统中，攻击提示通常是暴露的，这提供了检测机会，但也突出了需要更隐蔽的方法以避开人工审查。
+- en: 8 Conclusion
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 结论
+- en: We presented Prompt Infection, a novel prompt injection attack that exploits
+    self-replication to propagate across LLM-based multi-agent systems, leading to
+    data theft, malicious actions, and system disruption. Our experiments demonstrated
+    that self-replicating infections consistently outperformed non-replicating attacks
+    across most scenarios. Additionally, more advanced models, such as GPT-4o, pose
+    greater risks when compromised, executing malicious prompts more efficiently than
+    GPT-3.5\. We found that social simulations and games are also vulnerable to Prompt
+    Infection, especially when memory retrieval systems are left unsecured. To mitigate
+    this, we proposed LLM Tagging as a defense, which, when combined with techniques
+    like marking and instruction defense, significantly reduced infection success
+    rates. Ultimately, our findings reveal that threats can arise not only from external
+    sources but also internally, as agents within the system can exploit one another,
+    emphasizing the need for robust multi-agent defense strategies.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出了“Prompt Infection”这一新型提示注入攻击，利用自我复制特性在基于大型语言模型（LLM）的多代理系统中传播，导致数据窃取、恶意行为和系统中断。我们的实验表明，自我复制感染在大多数场景中始终优于非复制攻击。此外，像GPT-4o这样的更先进的模型在遭到破坏时风险更大，执行恶意提示的效率也比GPT-3.5高。我们发现，社交模拟和游戏也容易受到Prompt
+    Infection攻击，尤其是在记忆检索系统未加固时。为此，我们提出了LLM标记作为防御措施，结合标记和指令防御等技术后，显著降低了感染成功率。最终，我们的研究发现，威胁不仅可能来自外部，还可能来自内部，因为系统中的代理也可以相互利用，这强调了需要强大的多代理防御策略。
+- en: Ethical Statement
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 伦理声明
+- en: While prompt injection attacks have been known for years (Perez & Ribeiro, [2022](https://arxiv.org/html/2410.07283v1#bib.bib26)),
+    our work demonstrates that they remain a significant threat, particularly in the
+    context of multi-agent systems. By publicly disclosing the vulnerabilities and
+    attacks explored in this paper, our goal is to encourage immediate and rigorous
+    defense research, while promoting transparency regarding the security risks associated
+    with LLM systems. To mitigate potential harm, we ensured that no prompts were
+    injected into publicly accessible systems, thereby preventing unintended use by
+    others. Additionally, we strongly emphasize that the disclosed attack techniques
+    and prompts should never be used maliciously or against real-world applications
+    without proper authorization.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然提示注入攻击已知多年（Perez & Ribeiro, [2022](https://arxiv.org/html/2410.07283v1#bib.bib26)），但我们的工作表明，这些攻击仍然是一个重大威胁，尤其是在多代理系统的背景下。通过公开本文中探讨的漏洞和攻击，我们的目标是鼓励立即进行严谨的防御研究，同时提高对LLM系统相关安全风险的透明度。为了减轻潜在的危害，我们确保没有提示被注入到公开可访问的系统中，从而防止其他人未经授权使用。此外，我们强烈强调，所披露的攻击技术和提示不应在没有适当授权的情况下恶意使用或应用于实际应用中。
+- en: References
+  id: totrans-118
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Chen et al. (2024) Sizhe Chen, Julien Piet, Chawin Sitawarin, and David Wagner.
+    StruQ: Defending Against Prompt Injection with Structured Queries, September 2024.
+    URL [http://arxiv.org/abs/2402.06363](http://arxiv.org/abs/2402.06363). arXiv:2402.06363
+    [cs].'
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2024）Sizhe Chen, Julien Piet, Chawin Sitawarin 和 David Wagner。StruQ：通过结构化查询防御提示注入，2024年9月。网址
+    [http://arxiv.org/abs/2402.06363](http://arxiv.org/abs/2402.06363)。arXiv:2402.06363
+    [cs]。
+- en: Christiano et al. (2017) Paul Christiano, Jan Leike, Tom B. Brown, Miljan Martic,
+    Shane Legg, and Dario Amodei. Deep reinforcement learning from human preferences,
+    June 2017. URL [https://arxiv.org/abs/1706.03741v4](https://arxiv.org/abs/1706.03741v4).
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Christiano 等人（2017）Paul Christiano, Jan Leike, Tom B. Brown, Miljan Martic,
+    Shane Legg 和 Dario Amodei。基于人类偏好的深度强化学习，2017年6月。网址 [https://arxiv.org/abs/1706.03741v4](https://arxiv.org/abs/1706.03741v4)。
+- en: 'Cohen et al. (2024) Stav Cohen, Ron Bitton, and Ben Nassi. Here Comes The AI
+    Worm: Unleashing Zero-click Worms that Target GenAI-Powered Applications, March
+    2024. URL [http://arxiv.org/abs/2403.02817](http://arxiv.org/abs/2403.02817).
+    arXiv:2403.02817 [cs].'
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cohen 等人（2024）Stav Cohen, Ron Bitton 和 Ben Nassi。AI蠕虫来袭：释放针对GenAI驱动应用的零点击蠕虫，2024年3月。网址
+    [http://arxiv.org/abs/2403.02817](http://arxiv.org/abs/2403.02817)。arXiv:2403.02817
+    [cs]。
+- en: 'CrewAI (2024) CrewAI. crewAIInc/crewAI, September 2024. URL [https://github.com/crewAIInc/crewAI](https://github.com/crewAIInc/crewAI).
+    original-date: 2023-10-27T03:26:59Z.'
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: CrewAI (2024) CrewAI. crewAIInc/crewAI, 2024年9月。网址 [https://github.com/crewAIInc/crewAI](https://github.com/crewAIInc/crewAI)。原始日期：2023-10-27T03:26:59Z。
+- en: 'Greshake et al. (2023) Kai Greshake, Sahar Abdelnabi, Shailesh Mishra, Christoph
+    Endres, Thorsten Holz, and Mario Fritz. Not what you’ve signed up for: Compromising
+    Real-World LLM-Integrated Applications with Indirect Prompt Injection, May 2023.
+    URL [http://arxiv.org/abs/2302.12173](http://arxiv.org/abs/2302.12173). arXiv:2302.12173
+    [cs].'
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Greshake 等人 (2023) Kai Greshake, Sahar Abdelnabi, Shailesh Mishra, Christoph
+    Endres, Thorsten Holz, 和 Mario Fritz. 《你并非所期望的：通过间接提示注入攻破现实世界的 LLM 集成应用》，2023年5月。网址
+    [http://arxiv.org/abs/2302.12173](http://arxiv.org/abs/2302.12173)。arXiv:2302.12173
+    [cs]。
+- en: 'Gu et al. (2024) Xiangming Gu, Xiaosen Zheng, Tianyu Pang, Chao Du, Qian Liu,
+    Ye Wang, Jing Jiang, and Min Lin. Agent Smith: A Single Image Can Jailbreak One
+    Million Multimodal LLM Agents Exponentially Fast, June 2024. URL [http://arxiv.org/abs/2402.08567](http://arxiv.org/abs/2402.08567).
+    arXiv:2402.08567 [cs].'
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gu 等人 (2024) Xiangming Gu, Xiaosen Zheng, Tianyu Pang, Chao Du, Qian Liu, Ye
+    Wang, Jing Jiang, 和 Min Lin. 《Agent Smith：一张图片能以指数级速度突破一百万个多模态 LLM 智能体的安全》，2024年6月。网址
+    [http://arxiv.org/abs/2402.08567](http://arxiv.org/abs/2402.08567)。arXiv:2402.08567
+    [cs]。
+- en: 'Guo et al. (2024) Taicheng Guo, Xiuying Chen, Yaqi Wang, Ruidi Chang, Shichao
+    Pei, Nitesh V. Chawla, Olaf Wiest, and Xiangliang Zhang. Large Language Model
+    based Multi-Agents: A Survey of Progress and Challenges, January 2024. URL [https://arxiv.org/abs/2402.01680v2](https://arxiv.org/abs/2402.01680v2).'
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Guo 等人 (2024) Taicheng Guo, Xiuying Chen, Yaqi Wang, Ruidi Chang, Shichao Pei,
+    Nitesh V. Chawla, Olaf Wiest, 和 Xiangliang Zhang. 《基于大型语言模型的多智能体：进展与挑战的综述》，2024年1月。网址
+    [https://arxiv.org/abs/2402.01680v2](https://arxiv.org/abs/2402.01680v2)。
+- en: Hines et al. (2024) Keegan Hines, Gary Lopez, Matthew Hall, Federico Zarfati,
+    Yonatan Zunger, and Emre Kiciman. Defending Against Indirect Prompt Injection
+    Attacks With Spotlighting, March 2024. URL [http://arxiv.org/abs/2403.14720](http://arxiv.org/abs/2403.14720).
+    arXiv:2403.14720 [cs].
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hines 等人 (2024) Keegan Hines, Gary Lopez, Matthew Hall, Federico Zarfati, Yonatan
+    Zunger, 和 Emre Kiciman. 《通过聚光灯防御间接提示注入攻击》，2024年3月。网址 [http://arxiv.org/abs/2403.14720](http://arxiv.org/abs/2403.14720)。arXiv:2403.14720
+    [cs]。
+- en: 'Hua et al. (2024) Wenyue Hua, Lizhou Fan, Lingyao Li, Kai Mei, Jianchao Ji,
+    Yingqiang Ge, Libby Hemphill, and Yongfeng Zhang. War and Peace (WarAgent): Large
+    Language Model-based Multi-Agent Simulation of World Wars, January 2024. URL [http://arxiv.org/abs/2311.17227](http://arxiv.org/abs/2311.17227).
+    arXiv:2311.17227 [cs].'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hua 等人 (2024) Wenyue Hua, Lizhou Fan, Lingyao Li, Kai Mei, Jianchao Ji, Yingqiang
+    Ge, Libby Hemphill, 和 Yongfeng Zhang. 《战争与和平 (WarAgent)：基于大型语言模型的世界大战多智能体仿真》，2024年1月。网址
+    [http://arxiv.org/abs/2311.17227](http://arxiv.org/abs/2311.17227)。arXiv:2311.17227
+    [cs]。
+- en: Huang et al. (2024) Jen-tse Huang, Jiaxu Zhou, Tailin Jin, Xuhui Zhou, Zixi
+    Chen, Wenxuan Wang, Youliang Yuan, Maarten Sap, and Michael R. Lyu. On the Resilience
+    of Multi-Agent Systems with Malicious Agents, August 2024. URL [http://arxiv.org/abs/2408.00989](http://arxiv.org/abs/2408.00989).
+    arXiv:2408.00989 [cs].
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang 等人 (2024) Jen-tse Huang, Jiaxu Zhou, Tailin Jin, Xuhui Zhou, Zixi Chen,
+    Wenxuan Wang, Youliang Yuan, Maarten Sap, 和 Michael R. Lyu. 《恶意智能体下的多智能体系统韧性》，2024年8月。网址
+    [http://arxiv.org/abs/2408.00989](http://arxiv.org/abs/2408.00989)。arXiv:2408.00989
+    [cs]。
+- en: Ju et al. (2024) Tianjie Ju, Yiting Wang, Xinbei Ma, Pengzhou Cheng, Haodong
+    Zhao, Yulong Wang, Lifeng Liu, Jian Xie, Zhuosheng Zhang, and Gongshen Liu. Flooding
+    Spread of Manipulated Knowledge in LLM-Based Multi-Agent Communities, July 2024.
+    URL [http://arxiv.org/abs/2407.07791](http://arxiv.org/abs/2407.07791). arXiv:2407.07791
+    [cs].
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ju 等人 (2024) Tianjie Ju, Yiting Wang, Xinbei Ma, Pengzhou Cheng, Haodong Zhao,
+    Yulong Wang, Lifeng Liu, Jian Xie, Zhuosheng Zhang, 和 Gongshen Liu. 《在基于 LLM 的多智能体社区中操控知识的传播》，2024年7月。网址
+    [http://arxiv.org/abs/2407.07791](http://arxiv.org/abs/2407.07791)。arXiv:2407.07791
+    [cs]。
+- en: 'Kang et al. (2023) Daniel Kang, Xuechen Li, Ion Stoica, Carlos Guestrin, Matei
+    Zaharia, and Tatsunori Hashimoto. Exploiting Programmatic Behavior of LLMs: Dual-Use
+    Through Standard Security Attacks, February 2023. URL [http://arxiv.org/abs/2302.05733](http://arxiv.org/abs/2302.05733).
+    arXiv:2302.05733 [cs].'
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kang 等人 (2023) Daniel Kang, Xuechen Li, Ion Stoica, Carlos Guestrin, Matei Zaharia,
+    和 Tatsunori Hashimoto. 《利用 LLM 的程序行为：通过标准安全攻击的双重用途》，2023年2月。网址 [http://arxiv.org/abs/2302.05733](http://arxiv.org/abs/2302.05733)。arXiv:2302.05733
+    [cs]。
+- en: 'Kim & Diaz (2024) To Eun Kim and Fernando Diaz. Towards Fair RAG: On the Impact
+    of Fair Ranking in Retrieval-Augmented Generation, September 2024. URL [http://arxiv.org/abs/2409.11598](http://arxiv.org/abs/2409.11598).
+    arXiv:2409.11598 [cs].'
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kim & Diaz (2024) To Eun Kim 和 Fernando Diaz. 《迈向公平的 RAG：公平排名在检索增强生成中的影响》，2024年9月。网址
+    [http://arxiv.org/abs/2409.11598](http://arxiv.org/abs/2409.11598)。arXiv:2409.11598
+    [cs]。
+- en: (14) LangGraph. LangGraph. URL [https://www.langchain.com/langgraph](https://www.langchain.com/langgraph).
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: (14) LangGraph. LangGraph。网址 [https://www.langchain.com/langgraph](https://www.langchain.com/langgraph)。
+- en: Lee et al. (2024) Cheryl Lee, Chunqiu Steven Xia, Jen-tse Huang, Zhouruixin
+    Zhu, Lingming Zhang, and Michael R. Lyu. A Unified Debugging Approach via LLM-Based
+    Multi-Agent Synergy, April 2024. URL [http://arxiv.org/abs/2404.17153](http://arxiv.org/abs/2404.17153).
+    arXiv:2404.17153 [cs].
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 李等人（2024）谢丽尔·李、徐春秋·史蒂文·夏、黄建泽、朱周瑞欣、张玲敏和刘迈克尔·R。通过LLM基础的多代理协同的统一调试方法，2024年4月。网址
+    [http://arxiv.org/abs/2404.17153](http://arxiv.org/abs/2404.17153)。arXiv:2404.17153
+    [cs]。
+- en: Liang et al. (2024) Tian Liang, Zhiwei He, Wenxiang Jiao, Xing Wang, Rui Wang,
+    Yujiu Yang, Zhaopeng Tu, and Shuming Shi. Encouraging Divergent Thinking in Large
+    Language Models through Multi-Agent Debate, July 2024. URL [http://arxiv.org/abs/2305.19118](http://arxiv.org/abs/2305.19118).
+    arXiv:2305.19118 [cs].
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 梁等人（2024）天梁、何志伟、焦文翔、王星、王锐、杨宇久、涂兆鹏和石树名。通过多代理辩论鼓励大语言模型的发散思维，2024年7月。网址 [http://arxiv.org/abs/2305.19118](http://arxiv.org/abs/2305.19118)。arXiv:2305.19118
+    [cs]。
+- en: 'Lin et al. (2023) Jiaju Lin, Haoran Zhao, Aochi Zhang, Yiting Wu, Huqiuyue
+    Ping, and Qin Chen. AgentSims: An Open-Source Sandbox for Large Language Model
+    Evaluation, August 2023. URL [http://arxiv.org/abs/2308.04026](http://arxiv.org/abs/2308.04026).
+    arXiv:2308.04026 [cs].'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 林等人（2023）贾居林、赵浩然、张奥驰、吴奕婷、平沪秋月和秦辰。AgentSims：一种用于大语言模型评估的开源沙盒，2023年8月。网址 [http://arxiv.org/abs/2308.04026](http://arxiv.org/abs/2308.04026)。arXiv:2308.04026
+    [cs]。
+- en: Liu et al. (2024a) Xiaogeng Liu, Zhiyuan Yu, Yizhe Zhang, Ning Zhang, and Chaowei
+    Xiao. Automatic and Universal Prompt Injection Attacks against Large Language
+    Models, March 2024a. URL [http://arxiv.org/abs/2403.04957](http://arxiv.org/abs/2403.04957).
+    arXiv:2403.04957 [cs].
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 刘等人（2024a）刘晓耿、余志远、张一哲、张宁和肖超伟。自动化和普遍适用的提示注入攻击针对大语言模型，2024年3月a。网址 [http://arxiv.org/abs/2403.04957](http://arxiv.org/abs/2403.04957)。arXiv:2403.04957
+    [cs]。
+- en: Liu et al. (2024b) Yi Liu, Gelei Deng, Yuekang Li, Kailong Wang, Zihao Wang,
+    Xiaofeng Wang, Tianwei Zhang, Yepang Liu, Haoyu Wang, Yan Zheng, and Yang Liu.
+    Prompt Injection attack against LLM-integrated Applications, March 2024b. URL
+    [http://arxiv.org/abs/2306.05499](http://arxiv.org/abs/2306.05499). arXiv:2306.05499
+    [cs].
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 刘等人（2024b）刘艺、邓革磊、李岳康、王凯龙、王子豪、王晓峰、张天伟、刘叶磊、王昊宇、郑艳和刘杨。针对集成LLM应用的提示注入攻击，2024年3月b。网址
+    [http://arxiv.org/abs/2306.05499](http://arxiv.org/abs/2306.05499)。arXiv:2306.05499
+    [cs]。
+- en: Liu et al. (2024c) Yupei Liu, Yuqi Jia, Runpeng Geng, Jinyuan Jia, and Neil Zhenqiang
+    Gong. Formalizing and Benchmarking Prompt Injection Attacks and Defenses, June
+    2024c. URL [http://arxiv.org/abs/2310.12815](http://arxiv.org/abs/2310.12815).
+    arXiv:2310.12815 [cs].
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 刘等人（2024c）刘宇培、贾宇琪、耿润鹏、贾锦元和邓振强。规范化并基准化提示注入攻击与防御，2024年6月c。网址 [http://arxiv.org/abs/2310.12815](http://arxiv.org/abs/2310.12815)。arXiv:2310.12815
+    [cs]。
+- en: 'Lu et al. (2023) Pan Lu, Hritik Bansal, Tony Xia, Jiacheng Liu, Chunyuan Li,
+    Hannaneh Hajishirzi, Hao Cheng, Kai-Wei Chang, Michel Galley, and Jianfeng Gao.
+    MathVista: Evaluating Mathematical Reasoning of Foundation Models in Visual Contexts,
+    October 2023. URL [https://arxiv.org/abs/2310.02255v3](https://arxiv.org/abs/2310.02255v3).'
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 陆等人（2023）潘陆、赫里提克·班萨尔、托尼·夏、刘嘉诚、李春远、哈内赫·哈吉希尔兹、程浩、蒋凯伟、米歇尔·盖利和高剑锋。MathVista：在视觉背景下评估基础模型的数学推理能力，2023年10月。网址
+    [https://arxiv.org/abs/2310.02255v3](https://arxiv.org/abs/2310.02255v3)。
+- en: 'Mehrotra et al. (2024) Anay Mehrotra, Manolis Zampetakis, Paul Kassianik, Blaine
+    Nelson, Hyrum Anderson, Yaron Singer, and Amin Karbasi. Tree of Attacks: Jailbreaking
+    Black-Box LLMs Automatically, February 2024. URL [http://arxiv.org/abs/2312.02119](http://arxiv.org/abs/2312.02119).
+    arXiv:2312.02119 [cs, stat].'
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 梅赫罗特拉等人（2024）阿奈·梅赫罗特拉、马诺利斯·赞佩塔基斯、保罗·卡西亚尼克、布莱恩·尼尔森、海伦·安德森、亚伦·辛格和阿敏·卡巴西。攻击树：自动破解黑盒LLM，2024年2月。网址
+    [http://arxiv.org/abs/2312.02119](http://arxiv.org/abs/2312.02119)。arXiv:2312.02119
+    [cs, stat]。
+- en: Ouyang et al. (2022) Long Ouyang, Jeff Wu, Xu Jiang, Diogo Almeida, Carroll L.
+    Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex
+    Ray, John Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda
+    Askell, Peter Welinder, Paul Christiano, Jan Leike, and Ryan Lowe. Training language
+    models to follow instructions with human feedback, March 2022. URL [http://arxiv.org/abs/2203.02155](http://arxiv.org/abs/2203.02155).
+    arXiv:2203.02155 [cs].
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 欧阳等人（2022）长欧阳、杰夫·吴、徐江、迪奥戈·阿尔梅达、卡罗尔·L·韦因赖特、帕梅拉·米什金、张崇、桑迪尼·阿加瓦尔、卡塔琳娜·斯拉马、亚历克斯·雷、约翰·舒尔曼、雅各布·希尔顿、弗雷泽·凯尔顿、卢克·米勒、玛蒂·西门斯、阿曼达·阿斯凯尔、彼得·韦林德、保罗·克里斯蒂亚诺、简·莱克和瑞安·洛。利用人类反馈训练语言模型以遵循指令，2022年3月。网址
+    [http://arxiv.org/abs/2203.02155](http://arxiv.org/abs/2203.02155)。arXiv:2203.02155
+    [cs]。
+- en: 'Park et al. (2023) Joon Sung Park, Joseph C. O’Brien, Carrie J. Cai, Meredith Ringel
+    Morris, Percy Liang, and Michael S. Bernstein. Generative Agents: Interactive
+    Simulacra of Human Behavior, August 2023. URL [http://arxiv.org/abs/2304.03442](http://arxiv.org/abs/2304.03442).
+    arXiv:2304.03442 [cs].'
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Park等人（2023）Joon Sung Park、Joseph C. O’Brien、Carrie J. Cai、Meredith Ringel Morris、Percy
+    Liang和Michael S. Bernstein。《生成智能体：人类行为的互动式模拟》，2023年8月。网址 [http://arxiv.org/abs/2304.03442](http://arxiv.org/abs/2304.03442)。arXiv:2304.03442
+    [cs]。
+- en: Peng et al. (2023) Baolin Peng, Chunyuan Li, Pengcheng He, Michel Galley, and
+    Jianfeng Gao. Instruction Tuning with GPT-4, April 2023. URL [http://arxiv.org/abs/2304.03277](http://arxiv.org/abs/2304.03277).
+    arXiv:2304.03277 [cs].
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Peng等人（2023）彭宝林、李春远、何鹏程、Michel Galley和高剑锋。《使用GPT-4进行指令微调》，2023年4月。网址 [http://arxiv.org/abs/2304.03277](http://arxiv.org/abs/2304.03277)。arXiv:2304.03277
+    [cs]。
+- en: 'Perez & Ribeiro (2022) Fábio Perez and Ian Ribeiro. Ignore Previous Prompt:
+    Attack Techniques For Language Models, November 2022. URL [http://arxiv.org/abs/2211.09527](http://arxiv.org/abs/2211.09527).
+    arXiv:2211.09527 [cs].'
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Perez & Ribeiro（2022）Fábio Perez和Ian Ribeiro。《忽略前一个提示：语言模型的攻击技术》，2022年11月。网址
+    [http://arxiv.org/abs/2211.09527](http://arxiv.org/abs/2211.09527)。arXiv:2211.09527
+    [cs]。
+- en: 'Qian et al. (2024) Chen Qian, Wei Liu, Hongzhang Liu, Nuo Chen, Yufan Dang,
+    Jiahao Li, Cheng Yang, Weize Chen, Yusheng Su, Xin Cong, Juyuan Xu, Dahai Li,
+    Zhiyuan Liu, and Maosong Sun. ChatDev: Communicative Agents for Software Development,
+    June 2024. URL [http://arxiv.org/abs/2307.07924](http://arxiv.org/abs/2307.07924).
+    arXiv:2307.07924 [cs].'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Qian等人（2024）陈乾、刘伟、刘洪章、陈诺、邓宇凡、李家豪、杨成、陈伟泽、苏宇胜、邓欣、徐巨元、李大海、刘智远和孙茂松。《ChatDev：面向软件开发的交互式智能体》，2024年6月。网址
+    [http://arxiv.org/abs/2307.07924](http://arxiv.org/abs/2307.07924)。arXiv:2307.07924
+    [cs]。
+- en: 'Qu et al. (2024) Changle Qu, Sunhao Dai, Xiaochi Wei, Hengyi Cai, Shuaiqiang
+    Wang, Dawei Yin, Jun Xu, and Ji-Rong Wen. Tool Learning with Large Language Models:
+    A Survey, May 2024. URL [http://arxiv.org/abs/2405.17935](http://arxiv.org/abs/2405.17935).
+    arXiv:2405.17935 [cs].'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Qu等人（2024）曲长乐、戴孙浩、魏晓驰、蔡恒毅、王帅强、尹大伟、徐俊和温基荣。《基于大语言模型的工具学习：一项综述》，2024年5月。网址 [http://arxiv.org/abs/2405.17935](http://arxiv.org/abs/2405.17935)。arXiv:2405.17935
+    [cs]。
+- en: 'Schulhoff (a) Sander Schulhoff. Instruction Defense: Strengthen AI Prompts
+    Against Hacking, a. URL [https://learnprompting.org/docs/prompt_hacking/defensive_measures/instruction](https://learnprompting.org/docs/prompt_hacking/defensive_measures/instruction).'
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schulhoff（a）Sander Schulhoff。《指令防御：加强AI提示以抵御黑客攻击》，a。网址 [https://learnprompting.org/docs/prompt_hacking/defensive_measures/instruction](https://learnprompting.org/docs/prompt_hacking/defensive_measures/instruction)。
+- en: 'Schulhoff (b) Sander Schulhoff. Random Sequence Enclosure: Safeguarding AI
+    Prompts, b. URL [https://learnprompting.org/docs/prompt_hacking/defensive_measures/random_sequence](https://learnprompting.org/docs/prompt_hacking/defensive_measures/random_sequence).'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schulhoff（b）Sander Schulhoff。《随机序列封装：保护AI提示》，b。网址 [https://learnprompting.org/docs/prompt_hacking/defensive_measures/random_sequence](https://learnprompting.org/docs/prompt_hacking/defensive_measures/random_sequence)。
+- en: Schulhoff (c) Sander Schulhoff. Sandwich Defense, c. URL [https://learnprompting.org/ko/docs/prompt_hacking/defensive_measures/sandwich_defense](https://learnprompting.org/ko/docs/prompt_hacking/defensive_measures/sandwich_defense).
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schulhoff（c）Sander Schulhoff。《三明治防御》，c。网址 [https://learnprompting.org/ko/docs/prompt_hacking/defensive_measures/sandwich_defense](https://learnprompting.org/ko/docs/prompt_hacking/defensive_measures/sandwich_defense)。
+- en: 'Sharma et al. (2024) Reshabh K Sharma, Vinayak Gupta, and Dan Grossman. Defending
+    Language Models Against Image-Based Prompt Attacks via User-Provided Specifications.
+    In *2024 IEEE Security and Privacy Workshops (SPW)*, pp.  112–131, May 2024. doi:
+    10.1109/SPW63631.2024.00017. URL [https://ieeexplore.ieee.org/abstract/document/10579532](https://ieeexplore.ieee.org/abstract/document/10579532).
+    ISSN: 2770-8411.'
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Sharma等人（2024）Reshabh K Sharma、Vinayak Gupta和Dan Grossman。《通过用户提供的规格防御基于图像的提示攻击》，发表于*2024
+    IEEE安全与隐私研讨会（SPW）*，第112–131页，2024年5月。doi: 10.1109/SPW63631.2024.00017。网址 [https://ieeexplore.ieee.org/abstract/document/10579532](https://ieeexplore.ieee.org/abstract/document/10579532)。ISSN:
+    2770-8411。'
+- en: 'Tian et al. (2024) Yu Tian, Xiao Yang, Jingyuan Zhang, Yinpeng Dong, and Hang
+    Su. Evil Geniuses: Delving into the Safety of LLM-based Agents, February 2024.
+    URL [http://arxiv.org/abs/2311.11855](http://arxiv.org/abs/2311.11855). arXiv:2311.11855
+    [cs].'
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Tian等人（2024）于天、肖杨、景源张、尹鹏董和杭苏。《邪恶天才：深入探讨基于LLM的智能体的安全性》，2024年2月。网址 [http://arxiv.org/abs/2311.11855](http://arxiv.org/abs/2311.11855)。arXiv:2311.11855
+    [cs]。
+- en: 'Topsakal & Akinci (2023) Oguzhan Topsakal and T. Cetin Akinci. Creating Large
+    Language Model Applications Utilizing LangChain: A Primer on Developing LLM Apps
+    Fast. *International Conference on Applied Engineering and Natural Sciences*,
+    1:1050–1056, July 2023. doi: 10.59287/icaens.1127.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Topsakal & Akinci（2023）Oguzhan Topsakal 和T. Cetin Akinci. 《利用LangChain创建大型语言模型应用：快速开发LLM应用的入门》.
+    *国际应用工程与自然科学会议*, 1:1050–1056, 2023年7月. doi: 10.59287/icaens.1127。'
+- en: 'Wei et al. (2023) Alexander Wei, Nika Haghtalab, and Jacob Steinhardt. Jailbroken:
+    How Does LLM Safety Training Fail?, July 2023. URL [http://arxiv.org/abs/2307.02483](http://arxiv.org/abs/2307.02483).
+    arXiv:2307.02483 [cs].'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei等人（2023）Alexander Wei, Nika Haghtalab, 和Jacob Steinhardt. 《越狱：LLM安全训练为何失败？》,
+    2023年7月. URL [http://arxiv.org/abs/2307.02483](http://arxiv.org/abs/2307.02483).
+    arXiv:2307.02483 [cs]。
+- en: 'Weiss (1999) Gerhard Weiss. *Multiagent Systems: A Modern Approach to Distributed
+    Artificial Intelligence*. MIT Press, 1999. ISBN 978-0-262-73131-7. Google-Books-ID:
+    JYcznFCN3xcC.'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Weiss（1999）Gerhard Weiss. *《多代理系统：分布式人工智能的现代方法》*. MIT出版社，1999年. ISBN 978-0-262-73131-7.
+    Google-Books-ID: JYcznFCN3xcC。'
+- en: 'Wu (2024) Alexander Wu. geekan/MetaGPT, September 2024. URL [https://github.com/geekan/MetaGPT](https://github.com/geekan/MetaGPT).
+    original-date: 2023-06-30T09:04:55Z.'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu（2024）Alexander Wu. geekan/MetaGPT, 2024年9月. URL [https://github.com/geekan/MetaGPT](https://github.com/geekan/MetaGPT).
+    原始日期：2023-06-30T09:04:55Z。
+- en: 'Wu et al. (2023) Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li,
+    Erkang Zhu, Li Jiang, Xiaoyun Zhang, Shaokun Zhang, Jiale Liu, Ahmed Hassan Awadallah,
+    Ryen W. White, Doug Burger, and Chi Wang. AutoGen: Enabling Next-Gen LLM Applications
+    via Multi-Agent Conversation, October 2023. URL [http://arxiv.org/abs/2308.08155](http://arxiv.org/abs/2308.08155).
+    arXiv:2308.08155 [cs].'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wu等人（2023）Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang
+    Zhu, Li Jiang, Xiaoyun Zhang, Shaokun Zhang, Jiale Liu, Ahmed Hassan Awadallah,
+    Ryen W. White, Doug Burger, 和Chi Wang. 《AutoGen: 通过多代理对话推动下一代LLM应用》, 2023年10月.
+    URL [http://arxiv.org/abs/2308.08155](http://arxiv.org/abs/2308.08155). arXiv:2308.08155
+    [cs]。'
+- en: 'Ye et al. (2024) Junjie Ye, Sixian Li, Guanyu Li, Caishuang Huang, Songyang
+    Gao, Yilong Wu, Qi Zhang, Tao Gui, and Xuanjing Huang. ToolSword: Unveiling Safety
+    Issues of Large Language Models in Tool Learning Across Three Stages, August 2024.
+    URL [http://arxiv.org/abs/2402.10753](http://arxiv.org/abs/2402.10753). arXiv:2402.10753
+    [cs].'
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ye等人（2024）Junjie Ye, Sixian Li, Guanyu Li, Caishuang Huang, Songyang Gao, Yilong
+    Wu, Qi Zhang, Tao Gui, 和Xuanjing Huang. 《ToolSword: 揭示大型语言模型在工具学习中的安全问题，跨越三个阶段》,
+    2024年8月. URL [http://arxiv.org/abs/2402.10753](http://arxiv.org/abs/2402.10753).
+    arXiv:2402.10753 [cs]。'
+- en: 'Zhang et al. (2024a) Boyang Zhang, Yicong Tan, Yun Shen, Ahmed Salem, Michael
+    Backes, Savvas Zannettou, and Yang Zhang. Breaking Agents: Compromising Autonomous
+    LLM Agents Through Malfunction Amplification, July 2024a. URL [http://arxiv.org/abs/2407.20859](http://arxiv.org/abs/2407.20859).
+    arXiv:2407.20859 [cs].'
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等人（2024a）Boyang Zhang, Yicong Tan, Yun Shen, Ahmed Salem, Michael Backes,
+    Savvas Zannettou, 和Yang Zhang. 《Breaking Agents: 通过故障放大危害自主LLM代理》, 2024年7月. URL
+    [http://arxiv.org/abs/2407.20859](http://arxiv.org/abs/2407.20859). arXiv:2407.20859
+    [cs]。'
+- en: 'Zhang et al. (2024b) Shengyu Zhang, Linfeng Dong, Xiaoya Li, Sen Zhang, Xiaofei
+    Sun, Shuhe Wang, Jiwei Li, Runyi Hu, Tianwei Zhang, Fei Wu, and Guoyin Wang. Instruction
+    Tuning for Large Language Models: A Survey, March 2024b. URL [http://arxiv.org/abs/2308.10792](http://arxiv.org/abs/2308.10792).
+    arXiv:2308.10792 [cs].'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2024b）Shengyu Zhang, Linfeng Dong, Xiaoya Li, Sen Zhang, Xiaofei Sun,
+    Shuhe Wang, Jiwei Li, Runyi Hu, Tianwei Zhang, Fei Wu, 和Guoyin Wang. 《大型语言模型的指令调优：综述》,
+    2024年3月. URL [http://arxiv.org/abs/2308.10792](http://arxiv.org/abs/2308.10792).
+    arXiv:2308.10792 [cs]。
+- en: Zhang et al. (2024c) Wenxiao Zhang, Xiangrui Kong, Conan Dewitt, Thomas Braunl,
+    and Jin B. Hong. A Study on Prompt Injection Attack Against LLM-Integrated Mobile
+    Robotic Systems, September 2024c. URL [http://arxiv.org/abs/2408.03515](http://arxiv.org/abs/2408.03515).
+    arXiv:2408.03515 [cs].
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2024c）Wenxiao Zhang, Xiangrui Kong, Conan Dewitt, Thomas Braunl, 和Jin
+    B. Hong. 《针对LLM集成移动机器人系统的提示注入攻击研究》, 2024年9月. URL [http://arxiv.org/abs/2408.03515](http://arxiv.org/abs/2408.03515).
+    arXiv:2408.03515 [cs]。
+- en: 'Zhang et al. (2024d) Zaibin Zhang, Yongting Zhang, Lijun Li, Hongzhi Gao, Lijun
+    Wang, Huchuan Lu, Feng Zhao, Yu Qiao, and Jing Shao. PsySafe: A Comprehensive
+    Framework for Psychological-based Attack, Defense, and Evaluation of Multi-agent
+    System Safety, August 2024d. URL [http://arxiv.org/abs/2401.11880](http://arxiv.org/abs/2401.11880).
+    arXiv:2401.11880 [cs].'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等人（2024d）Zaibin Zhang, Yongting Zhang, Lijun Li, Hongzhi Gao, Lijun Wang,
+    Huchuan Lu, Feng Zhao, Yu Qiao, 和Jing Shao. 《PsySafe: 一个基于心理学的多代理系统安全攻击、防御和评估综合框架》,
+    2024年8月. URL [http://arxiv.org/abs/2401.11880](http://arxiv.org/abs/2401.11880).
+    arXiv:2401.11880 [cs]。'
+- en: 'Zhong et al. (2023) Wanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, and Yanlin
+    Wang. MemoryBank: Enhancing Large Language Models with Long-Term Memory, May 2023.
+    URL [http://arxiv.org/abs/2305.10250](http://arxiv.org/abs/2305.10250). arXiv:2305.10250
+    [cs].'
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhong等（2023）Wanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, 和Yanlin Wang。MemoryBank：通过长期记忆增强大规模语言模型，2023年5月。网址
+    [http://arxiv.org/abs/2305.10250](http://arxiv.org/abs/2305.10250)。arXiv:2305.10250
+    [cs]。
+- en: 'Zhou et al. (2023) Xuhui Zhou, Hao Zhu, Leena Mathur, Ruohong Zhang, Haofei
+    Yu, Zhengyang Qi, Louis-Philippe Morency, Yonatan Bisk, Daniel Fried, Graham Neubig,
+    and Maarten Sap. SOTOPIA: Interactive Evaluation for Social Intelligence in Language
+    Agents, October 2023. URL [https://arxiv.org/abs/2310.11667v2](https://arxiv.org/abs/2310.11667v2).'
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhou等（2023）Xuhui Zhou, Hao Zhu, Leena Mathur, Ruohong Zhang, Haofei Yu, Zhengyang
+    Qi, Louis-Philippe Morency, Yonatan Bisk, Daniel Fried, Graham Neubig, 和Maarten
+    Sap。SOTOPIA：面向语言代理的社交智能交互式评估，2023年10月。网址 [https://arxiv.org/abs/2310.11667v2](https://arxiv.org/abs/2310.11667v2)。
+- en: Zou et al. (2023) Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr, J. Zico
+    Kolter, and Matt Fredrikson. Universal and Transferable Adversarial Attacks on
+    Aligned Language Models, July 2023. URL [https://arxiv.org/abs/2307.15043v2](https://arxiv.org/abs/2307.15043v2).
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zou等（2023）Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr, J. Zico Kolter,
+    和Matt Fredrikson。针对对齐语言模型的普遍和可转移对抗攻击，2023年7月。网址 [https://arxiv.org/abs/2307.15043v2](https://arxiv.org/abs/2307.15043v2)。
+- en: Appendix A Infection Prompts
+  id: totrans-165
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 感染性提示
+- en: 'Warning: The following prompt is a functional infection prompt and must not
+    be used maliciously or in real-world applications without proper authorization.'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 警告：以下提示为功能性感染提示，未经适当授权不得恶意使用或在实际应用中使用。
+- en: <svg class="ltx_picture" height="356.09" id="A1.1.p1.pic1" overflow="visible"
+    version="1.1" width="550"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,356.09) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.26 13.39)"><foreignobject color="#000000" height="329.32" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="507.48">[PRE0]</foreignobject></g></g></svg>
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="356.09" id="A1.1.p1.pic1" overflow="visible"
+    version="1.1" width="550"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,356.09) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.26 13.39)"><foreignobject color="#000000" height="329.32" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="507.48">[PRE0]</foreignobject></g></g></svg>
+- en: 'Figure 8: Functional Self-Replication Infection Prompt. When embedded within
+    the PDF contents, it can compromise the PDF reader agent to infect the downstream
+    agents with the prompts wrapped between ‘[[[‘ and ‘]]]‘.'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图8：功能性自我复制感染提示。当嵌入PDF内容中时，它可以破坏PDF阅读器代理，从而通过‘[[[’和‘]]]’之间的提示感染下游代理。

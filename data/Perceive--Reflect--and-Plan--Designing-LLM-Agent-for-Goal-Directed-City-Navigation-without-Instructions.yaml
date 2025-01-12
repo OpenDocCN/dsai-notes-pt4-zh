@@ -1,0 +1,1850 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 12:20:19'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:20:19
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation
+    without Instructions'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 感知、反思与规划：设计用于目标导向城市导航的LLM代理，无需指令
+- en: 来源：[https://arxiv.org/html/2408.04168/](https://arxiv.org/html/2408.04168/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2408.04168/](https://arxiv.org/html/2408.04168/)
+- en: Qingbin Zeng¹, Qinglong Yang¹, Shunan Dong¹, Heming Du²,
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 曾庆彬¹，杨庆龙¹，董顺南¹，杜亨明²，
+- en: Liang Zheng², Fengli Xu¹, Yong Li¹,
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 郑梁²，许风利¹，李勇¹，
+- en: ¹Department of Electronic Engineering, Tsinghua University,Beijing, China
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹清华大学电子工程系，北京，中国
+- en: ²School of Computing, Australian National University, Australia
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ²澳大利亚国立大学计算机学院，澳大利亚
+- en: 'Correspondence: [fenglixu@tsinghua.edu.cn](Fengli%20Xu:fenglixu@tsinghua.edu.cn)'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通信作者：[fenglixu@tsinghua.edu.cn](Fengli%20Xu:fenglixu@tsinghua.edu.cn)
+- en: Abstract
+  id: totrans-11
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'This paper considers a scenario in city navigation: an AI agent is provided
+    with language descriptions of the goal location with respect to some well-known
+    landmarks; By only observing the scene around, including recognizing landmarks
+    and road network connections, the agent has to make decisions to navigate to the
+    goal location without instructions. This problem is very challenging, because
+    it requires agent to establish self-position and acquire spatial representation
+    of complex urban environment, where landmarks are often invisible. In the absence
+    of navigation instructions, such abilities are vital for the agent to make high-quality
+    decisions in long-range city navigation. With the emergent reasoning ability of
+    large language models (LLMs), a tempting solution is to prompt LLMs to “react”
+    on each observation and make decisions accordingly. However, this solution has
+    very poor performance that the agent often repeatedly visits same locations and
+    make short-sighted, inconsistent decisions. To address these issues, this paper
+    introduces a novel agentic workflow featured by its abilities to perceive, reflect
+    and plan. Specifically, we find LLaVA-7B can be fine-tuned to perceive the approximate
+    direction and distance of landmarks with sufficient accuracy for city navigation.
+    Moreover, reflection is achieved through a memory mechanism, where past experiences
+    are stored and can be retrieved with current perception for effective decision
+    argumentation. Planning uses reflection results to produce long-term plans, which
+    can avoid short-sighted decisions in long-range navigation. We show the designed
+    workflow significantly improves urban navigation ability of the LLM agent compared
+    with the state-of-the-art baselines. The code is available at [https://anonymous.4open.science/r/PReP-13B5](https://anonymous.4open.science/r/PReP-13B5).'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文考虑了一个城市导航场景：一个AI代理通过语言描述获得目标位置相对于一些知名地标的位置；通过仅观察周围场景，包括识别地标和道路网络连接，代理必须做出决策，导航到目标位置，而无需指令。这个问题非常具有挑战性，因为它要求代理建立自我位置并获得复杂城市环境的空间表示，其中地标往往是不可见的。在没有导航指令的情况下，这些能力对于代理在长程城市导航中做出高质量决策至关重要。随着大语言模型（LLMs）新兴的推理能力，一个诱人的解决方案是通过提示LLMs对每次观察做出“反应”并相应地做出决策。然而，这一解决方案的表现非常差，代理通常会重复访问相同的位置，并做出短视且不一致的决策。为了解决这些问题，本文提出了一种新颖的代理工作流程，其特点是能够感知、反思和规划。具体来说，我们发现LLaVA-7B可以经过微调，足够准确地感知地标的大致方向和距离，从而进行城市导航。此外，反思是通过记忆机制实现的，其中过去的经验被存储并可与当前感知一起检索，以进行有效的决策推理。规划使用反思结果生成长期计划，从而避免在长程导航中做出短视决策。我们展示了所设计的工作流程显著提高了LLM代理的城市导航能力，相较于现有的最先进基准方法。代码可通过[https://anonymous.4open.science/r/PReP-13B5](https://anonymous.4open.science/r/PReP-13B5)获取。
+- en: 'Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation
+    without Instructions'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 感知、反思与规划：设计用于目标导向城市导航的LLM代理，无需指令
+- en: 'Qingbin Zeng¹, Qinglong Yang¹, Shunan Dong¹, Heming Du², Liang Zheng², Fengli
+    Xu¹, Yong Li¹, ¹Department of Electronic Engineering, Tsinghua University,Beijing,
+    China ²School of Computing, Australian National University, Australia Correspondence:
+    [fenglixu@tsinghua.edu.cn](Fengli%20Xu:fenglixu@tsinghua.edu.cn)'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 曾庆彬¹，杨庆龙¹，董顺南¹，杜亨明²，郑梁²，许风利¹，李勇¹，¹清华大学电子工程系，北京，中国 ²澳大利亚国立大学计算机学院，澳大利亚 通信作者：[fenglixu@tsinghua.edu.cn](Fengli%20Xu:fenglixu@tsinghua.edu.cn)
+- en: 1 Introduction
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Navigation in complex and unknown urban environment is an important task for
+    artificial intelligent agents. This paper studies goal-directed agent navigation
+    in the city environment, where an agent is provided with visual street view perception
+    and textual goal location description in terms of relation to some well-known
+    landmarks, *e.g.*, “the destination is approximately 300 meters northeast from
+    the Skyscraper A”. The agent should visually identify the landmarks from street
+    view images, use them as anchors to infer the direction of and distance from the
+    goal, and plan a series of actions to navigate to the goal. The task is challenging
+    because it requires the agent to be aware of its own location and acquire spatial
+    understanding of complex urban environment, where landmarks are sometimes invisible.
+    In the absence of navigation instructions and maps, self-constructed cognitive
+    map is vital for the agent to perform well in navigation tasks.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在复杂且未知的城市环境中进行导航是人工智能代理的重要任务。本文研究了城市环境中目标导向的代理导航，其中代理提供了视觉街景感知和以一些知名地标为参照的文本目标位置描述，例如，“目的地大约在摩天大楼A的东北300米处”。代理应能从街景图像中识别地标，并以这些地标为锚点推断目标的方向和距离，进而规划一系列动作以导航到目标。此任务具有挑战性，因为它要求代理了解自身位置并获得对复杂城市环境的空间理解，而在某些情况下地标是不可见的。在没有导航指令和地图的情况下，自主构建认知地图对代理在导航任务中表现良好至关重要。
+- en: '![Refer to caption](img/ad1593585a08fcd3fa22f40740c18c86.png)'
+  id: totrans-17
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/ad1593585a08fcd3fa22f40740c18c86.png)'
+- en: 'Figure 1: An illustrative comparison of city navigation results. The proposed
+    workflow method (blue) successfully reaches the goal, and its path is close to
+    the shortest path (yellow). The React method (without workflow) fails because
+    it makes short-sighted decisions. In one scenario, the React agent hits a dead
+    end and keeps moving toward it because the goal is in that direction. In another
+    scenario, the agent moves in circles because the goal’s direction changes as it
+    moves. The React agent have no memory so it can not take detours.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：城市导航结果的示意性对比。所提出的工作流方法（蓝色）成功到达目标，且其路径接近最短路径（黄色）。React方法（无工作流）失败，因为它做出了短视的决策。在一个场景中，React代理走到了死胡同，并且继续朝着死胡同走去，因为目标就在那个方向。在另一个场景中，代理在原地打转，因为目标的方向随着它的移动而改变。React代理没有记忆，因此不能绕路。
+- en: Existing literature does not provide a ready-to-use solution to this task. A
+    few recent works Chen et al. ([2019](https://arxiv.org/html/2408.04168v3#bib.bib3)) Schumann
+    et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib16)) assume the availability
+    of step-by-step language instructions and thus are not applicable to our task.
+    Another branch of literature focus on designing reinforcement learning models Mirowski
+    et al. ([2016](https://arxiv.org/html/2408.04168v3#bib.bib14)) Zhu et al. ([2017](https://arxiv.org/html/2408.04168v3#bib.bib31))
+    Wu et al. ([2018](https://arxiv.org/html/2408.04168v3#bib.bib25)), which often
+    facing challenge of inefficient training samples and sensitivity to perturbations
+    of the environment.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现有文献没有提供现成可用的解决方案来完成此任务。一些近期的研究工作，如Chen等人（[2019](https://arxiv.org/html/2408.04168v3#bib.bib3)）和Schumann等人（[2024](https://arxiv.org/html/2408.04168v3#bib.bib16)）假设提供了逐步的语言指令，因此不适用于我们的任务。另一类文献集中于设计强化学习模型，如Mirowski等人（[2016](https://arxiv.org/html/2408.04168v3#bib.bib14)）、Zhu等人（[2017](https://arxiv.org/html/2408.04168v3#bib.bib31)）和Wu等人（[2018](https://arxiv.org/html/2408.04168v3#bib.bib25)），但这些方法通常面临训练样本效率低下和对环境扰动敏感的挑战。
+- en: 'We explore the use of large language models (LLMs) for this task. React Yao
+    et al. ([2022](https://arxiv.org/html/2408.04168v3#bib.bib27)) is a straightforward
+    baseline to ground reasoning ability of LLMs in city environment. At each step,
+    this method visually perceives the street views which is used to make an action
+    decision. This process is iteratively performed until reaching the goal or running
+    out of the navigation budget. While React has some success attempts in indoor
+    environments, it performs poorly in complex urban environments, which can be attributed
+    to two main reasons. First, because each action decision is based only on the
+    current observation, the agent may repeat actions previously taken and find itself
+    going around in circles. See Fig. [1](https://arxiv.org/html/2408.04168v3#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ Perceive, Reflect, and Plan: Designing LLM Agent
+    for Goal-Directed City Navigation without Instructions") for an example. Second,
+    React is short-sighted, focusing only on the immediate step. Without considering
+    long-term action sequences, the agent would be prone to taking more actions than
+    actually needed. To extend, the React without forming the cognitive map achieves
+    such poor navigation performance in the complex environments.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们探讨了使用大语言模型（LLMs）来完成这一任务的可能性。React（Yao等人，[2022](https://arxiv.org/html/2408.04168v3#bib.bib27)）是一个简单的基准模型，旨在将LLMs的推理能力与城市环境中的实际情况相结合。在每一步中，该方法通过视觉感知街景来做出行动决策。这个过程会反复执行，直到达到目标或耗尽导航预算。尽管React在室内环境中取得了一些成功，但在复杂的城市环境中表现不佳，这可以归因于两个主要原因。首先，由于每个行动决策仅基于当前观察，代理可能会重复之前的行动，发现自己陷入循环。请参见图[1](https://arxiv.org/html/2408.04168v3#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ Perceive, Reflect, and Plan: Designing LLM Agent
+    for Goal-Directed City Navigation without Instructions")中的示例。其次，React缺乏远见，只关注当前的步骤。没有考虑长期的行动序列，代理往往会采取更多的行动，而不是实际需要的行动。延伸来看，React在没有形成认知地图的情况下，在复杂环境中的导航性能非常差。'
+- en: This paper proposes an effective agentic workflow that improves the spatial
+    cognitive ability of LLMs thus improving the goal-directed city navigation performance.
+    We fine-tune LLaVA and find it can perceive the direction and distance of landmarks
+    with sufficient accuracy for navigation. Inspired by the theory of human cognition Sumers
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib20)), we propose a memory
+    scheme to help the agent form the cognitive map Momennejad et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib15)).
+    The historical trajectories and observations are stored and summarized to learn
+    an intrinsic spatial representation of the environment, *i.e.*, an internal city
+    map. The agent combines the historical experience and current observation to evaluate
+    current situation and infer the goal direction. To improve over short-sighted
+    actions, we resort to long-term planning. Specifically, considering the reflections
+    and current road network connection, the agent decompose the full path into several
+    sub-goals, ensuring consistent and reasonable movement to the final goal during
+    long-range navigation. These components form the ‘*Perceive*, *Reflect*, and *Plan*’
+    workflow which allows the agent to perform long-range city navigation.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了一种有效的代理工作流程，旨在提升大语言模型（LLMs）的空间认知能力，从而改善目标导向的城市导航性能。我们对LLaVA进行了微调，发现其能够以足够的准确性感知地标的方向和距离，满足导航需求。受到人类认知理论的启发，Sumers等人（[2023](https://arxiv.org/html/2408.04168v3#bib.bib20)）提出了一种记忆方案，帮助代理形成认知地图，Momennejad等人（[2023](https://arxiv.org/html/2408.04168v3#bib.bib15)）进一步发展了该理论。历史轨迹和观察数据被存储并总结，以学习环境的内在空间表示，*即*，内部城市地图。代理结合历史经验和当前观察来评估当前状况并推断目标方向。为了改进短视的行动，我们引入了长期规划。具体而言，考虑到反思和当前道路网络的连接，代理将完整路径分解为多个子目标，在长途导航中确保一致且合理的移动，直到到达最终目标。这些组件形成了“*感知*、*反思*和*规划*”的工作流程，使代理能够执行长距离的城市导航。
+- en: Our method only requires training the visual perception part with vision-language
+    pairs of landmarks. The memory and planning parts both operate with few-shot examples
+    (but also support fine-tuning). We find that fine-tuning the LLMs used in the
+    memory and planning parts significantly improves navigation performance. For example,
+    the fine-tuned LLaMA3 model achieves nearly a 13% improvement in success rate
+    compared to the base LLaMA3 model. Compared to RL methods, our approach offers
+    a more data-efficient solution. Compared with instruction-following methods, our
+    system does not rely on explicit instructions, allowing for greater autonomy in
+    navigation.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的方法仅需使用地标的视觉-语言配对训练视觉感知部分。记忆和规划部分则通过少量示例进行操作（但也支持微调）。我们发现，微调用于记忆和规划部分的LLM显著提升了导航性能。例如，微调后的LLaMA3模型与基础LLaMA3模型相比，成功率提高了近13%。与强化学习方法相比，我们的方法提供了更高的数据效率。与指令跟随方法相比，我们的系统不依赖显式指令，从而在导航中提供更大的自主性。
+- en: We collect navigation datasets reflecting CBD scenes in four cities——Beijing,
+    Shanghai, New York and Paris. They contain complex road networks with thousands
+    of road nodes and street view images. On the four datasets, the proposed workflow
+    significantly outperforms methods that could be applied (but are not specific)
+    to our task, achieving success rate of 54% on the avergae of the four city test
+    sets. We find the perception component produces accurate spatial relations to
+    support city navigation, the success rate of which is only 5% lower than navigation
+    with ground truth perception results. Besides, we show that reflection and planning
+    can help the LLM agent to form the cognitive map and further contribute to the
+    success rate and make it useful when dealing with long-range navigation tasks.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们收集了反映四个城市CBD场景的导航数据集——北京、上海、纽约和巴黎。它们包含复杂的道路网络，涵盖数千个路节点和街景图像。在这四个数据集上，提出的工作流显著优于可以应用于我们任务（但不特定）的其他方法，四个城市测试集的平均成功率为54%。我们发现，感知组件能够提供准确的空间关系，支持城市导航，其成功率仅比基于真实感知结果的导航低5%。此外，我们还展示了反思和规划如何帮助LLM代理构建认知地图，从而进一步提高成功率，并在处理长距离导航任务时发挥作用。
+- en: 2 Related Work
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Vision and language navigation (VLN) aims to enable agents to autonomously navigate
+    in visual environments based on natural language instructions Gu et al. ([2022](https://arxiv.org/html/2408.04168v3#bib.bib5))Wu
+    et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib24)). The field evolves
+    from indoor to urban settings, with expanded scope of tasks and datasets. Anderson
+    *et al.* created an early VLN dataset, while Mirowski *et al.* Mirowski et al.
+    ([2018](https://arxiv.org/html/2408.04168v3#bib.bib13)) introduce cross-modal
+    matching models that leverage attention and reinforcement learning for vision
+    and text integration. Recently, the use of LLMs has introduced new solutions in
+    in VLN Zhou et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib30))Dorbala
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib4))Zu et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib32)),
+    which achieved success with indoor environment. Other works Shah et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib17))Schumann
+    et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib16)) focusing on outdoor
+    VLN, which use strong language understanding capabilities of LLMs for navigation
+    based on ground-level instructions. In comparison, our paper proposes a LLM agentic
+    workflow for goal-directed city navigation, which requires less training cost
+    than RL methods and does not rely on language instructions like previous LLM-based
+    methods.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视觉与语言导航（VLN）旨在使代理能够根据自然语言指令在视觉环境中自主导航 Gu等人 ([2022](https://arxiv.org/html/2408.04168v3#bib.bib5))、Wu等人
+    ([2024](https://arxiv.org/html/2408.04168v3#bib.bib24))。该领域从室内场景发展到城市环境，任务和数据集的范围不断扩展。Anderson
+    *et al.* 创建了早期的VLN数据集，而Mirowski *et al.* Mirowski等人 ([2018](https://arxiv.org/html/2408.04168v3#bib.bib13))
+    引入了跨模态匹配模型，利用注意力机制和强化学习进行视觉与文本的融合。最近，LLM的应用在VLN中带来了新的解决方案 Zhou等人 ([2024](https://arxiv.org/html/2408.04168v3#bib.bib30))、Dorbala等人
+    ([2023](https://arxiv.org/html/2408.04168v3#bib.bib4))、Zu等人 ([2023](https://arxiv.org/html/2408.04168v3#bib.bib32))，并在室内环境中取得了成功。其他工作如Shah等人
+    ([2023](https://arxiv.org/html/2408.04168v3#bib.bib17))、Schumann等人 ([2024](https://arxiv.org/html/2408.04168v3#bib.bib16))
+    专注于户外VLN，利用LLM的强大语言理解能力进行基于地面指令的导航。相比之下，本文提出了一种LLM代理工作流，用于目标导向的城市导航，它的训练成本低于强化学习方法，且不像之前基于LLM的方法那样依赖语言指令。
+- en: Agentic workflows with LLMs. The exploration of agentic workflows using LLMs
+    emerges as a effective strategy for planning problems Sumers et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib20)).
+    Agentic workflows emphasize a step-by-step refinement process rather than single-step
+    output generation. Studies such as inner monologue Huang et al. ([2022](https://arxiv.org/html/2408.04168v3#bib.bib8))
+    and reflexion Shinn et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib18))
+    demonstrate the effectiveness of reflection in enhancing agentic understanding
+    and reducing errors. Meanwhile, interactive planning methods like DEPS Wang et al.
+    ([2023](https://arxiv.org/html/2408.04168v3#bib.bib22)) and RAP Hao et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib6))
+    enable more structured and conscious planning. Other workflows, including CaP Liang
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib10)), ProgPrompt Singh
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib19)), CoT Wei et al.
+    ([2022](https://arxiv.org/html/2408.04168v3#bib.bib23)) and ToT Yao et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib26)),
+    contribute to the collective understanding of how LLMs can be directed towards
+    goal-oriented tasks. These methods are mostly used for mathematical and common
+    reasoning problems, but whether LLMs can handle spatial reasoning, especially
+    in navigation problems, hasn’t been fully studied. In our work, we design an agentic
+    workflow with perception, reflection, and planning modules, exploring the spatial
+    cognitive abilities of LLMs to tackle complex urban navigation tasks.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用LLMs的代理式工作流。通过LLMs探索代理式工作流成为解决规划问题的一种有效策略 Sumers et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib20))。代理式工作流强调逐步改进的过程，而非单步输出生成。诸如内心独白 Huang
+    et al. ([2022](https://arxiv.org/html/2408.04168v3#bib.bib8)) 和反思 Shinn et al.
+    ([2024](https://arxiv.org/html/2408.04168v3#bib.bib18)) 等研究表明，反思在增强代理式理解和减少错误方面的有效性。同时，像DEPS Wang
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib22)) 和RAP Hao et al.
+    ([2023](https://arxiv.org/html/2408.04168v3#bib.bib6)) 等互动规划方法使得规划更加结构化和有意识。其他工作流，如CaP Liang
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib10))、ProgPrompt Singh
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib19))、CoT Wei et al.
+    ([2022](https://arxiv.org/html/2408.04168v3#bib.bib23)) 和ToT Yao et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib26))，为如何将LLMs引导至目标导向任务提供了集体理解。这些方法主要用于数学和常见推理问题，但LLMs是否能处理空间推理，尤其是在导航问题上的能力，尚未得到充分研究。在我们的工作中，我们设计了一个包含感知、反思和规划模块的代理式工作流，探索LLMs在处理复杂城市导航任务中的空间认知能力。
+- en: 3 Task Definition and Dataset
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 任务定义与数据集
+- en: '![Refer to caption](img/f322ffba6beddcfa5dbbdd34b41f74ac.png)'
+  id: totrans-28
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考标题](img/f322ffba6beddcfa5dbbdd34b41f74ac.png)'
+- en: 'Figure 2: Task example and dataset regions. A task example is shown in (a).
+    The instruction to the agent is the relative location of the goal w.r.t the landmarks
+    in the city environment. The agent perceives the street views and recognize the
+    landmarks. Then the agent has to infer the goal position relative to its current
+    location using its observations of landmarks and move through the urban space.
+    The road networks are from chosen CBD areas in Beijing (b), Shanghai (c), New
+    York (d) and Paris (e). Blue points represent the landmarks while red lines are
+    roads.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：任务示例和数据集区域。任务示例显示在(a)中。给代理的指令是目标相对于城市环境中地标的相对位置。代理感知街景并识别地标。然后，代理必须根据对地标的观察推断目标位置相对于其当前位置，并通过城市空间移动。道路网络来自北京（b）、上海（c）、纽约（d）和巴黎（e）的选定CBD区域。蓝色点表示地标，红色线表示道路。
+- en: 3.1 Task Definition
+  id: totrans-30
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 任务定义
+- en: 'In this study, an agent navigates in the urban environment to find the goal
+    with visual perception and textual goal description. To define the task exactly,
+    we give following definitions:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本研究中，代理在城市环境中通过视觉感知和文本目标描述来找到目标。为了准确地定义任务，我们给出以下定义：
+- en: Definition 1 (Urban Environment) The urban environment for navigation task can
+    be described as an undirected graph $G=<V,E>$. Each node $v_{i}\in V$ represents
+    an position in the road, while street views $S_{i}=\{s_{i}^{1},s_{i}^{2},...,s_{i}^{k}\}_{v_{i}}$
+    are the attached visual information for node $v_{i}$. The edge $e_{ij}\in E$ donates
+    the moving path between $v_{i}$ and $v_{j}$. Define $E_{i}$ as the collection
+    of all edges connect to the node $v_{i}$. What’s more, landmarks $LM=\{lm_{1},lm_{2},...,lm_{n}\}\in
+    V$ are defined as isolated vertex in the urban environment $G$. As the graph corresponds
+    to a real urban scene, and the relative positions of each node are fixed. We define
+    the relative position relationship of $v_{i}$ with respect to $v_{j}$ as $R(v_{i},v_{j})$.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定义1（城市环境）用于导航任务的城市环境可以描述为一个无向图$G=<V,E>$。每个节点$v_{i}\in V$代表道路上的一个位置，而街景图像$S_{i}=\{s_{i}^{1},s_{i}^{2},...,s_{i}^{k}\}_{v_{i}}$是与节点$v_{i}$相关的视觉信息。边$e_{ij}\in
+    E$表示$v_{i}$和$v_{j}$之间的移动路径。定义$E_{i}$为所有与节点$v_{i}$连接的边的集合。此外，地标$LM=\{lm_{1},lm_{2},...,lm_{n}\}\in
+    V$被定义为城市环境$G$中的孤立顶点。由于图对应于一个真实的城市场景，并且每个节点的相对位置是固定的，我们定义节点$v_{i}$相对于$v_{j}$的相对位置关系为$R(v_{i},v_{j})$。
+- en: Definition 2 (Urban Navigation Task) The urban navigation task can be formulated
+    as finding a path from the start node $v_{s}$ to the goal node $v_{g}$ in the
+    graph $G$. To be exact, given a navigation task $T=<v_{s},v_{g},D>$, the target
+    is to find a shortest path to navigate to the goal. Description $D=\{R_{1},R_{2}\}$
+    is to determine the goal, containing $R_{1}=\{R(v_{g},lm)|lm\in LM_{s}\}$ and
+    $R_{2}=\{R(lm_{i},lm_{j})|lm_{i},lm_{j}\in LM\}$, where $R_{1}$ is the relative
+    position between goal and landmarks visible in goal nodes, and $R_{2}$ is the
+    relative position among all landmarks in the environment.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定义2（城市导航任务）城市导航任务可以被表述为在图$G$中从起始节点$v_{s}$到目标节点$v_{g}$找到一条路径。更准确地说，给定一个导航任务$T=<v_{s},v_{g},D>$，目标是找到一条最短路径以导航到目标。描述$D=\{R_{1},R_{2}\}$用于确定目标，其中$R_{1}=\{R(v_{g},lm)|lm\in
+    LM_{s}\}$和$R_{2}=\{R(lm_{i},lm_{j})|lm_{i},lm_{j}\in LM\}$，其中$R_{1}$是目标节点与可见地标之间的相对位置，$R_{2}$是环境中所有地标之间的相对位置。
+- en: Definition 3 (Agent for Urban Navigation Task) At timestamp $t$ and node $v_{t}$,
+    the agent makes a decision to move to the next node $v_{t+1}=agent(T,S_{t},E_{t})$,
+    utilizing the street views and road connectivity. The agent recognize the landmarks
+    from the street views and then infer the goal direction and distance $R(v_{t},v_{g})$.
+    Utilizing the above information, the agent navigates in the city street to find
+    a path to the goal $p=[v_{s},...,v_{t},v_{t+1},...,v_{g}]$.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定义3（城市导航任务的智能体）在时间戳$t$和节点$v_{t}$时，智能体根据街景图像和道路连通性做出决策，移动到下一个节点$v_{t+1}=agent(T,S_{t},E_{t})$。智能体从街景图像中识别地标，然后推测目标的方向和距离$R(v_{t},v_{g})$。利用上述信息，智能体在城市街道中导航，找到通往目标的路径$p=[v_{s},...,v_{t},v_{t+1},...,v_{g}]$。
+- en: By studying this task, we not only seek to improve the success rate of navigation,
+    but also hope to explore the spatial cognitive abilities of LLM.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过研究这个任务，我们不仅希望提高导航的成功率，还希望探索大型语言模型（LLM）的空间认知能力。
+- en: 3.2 Dataset
+  id: totrans-36
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 数据集
+- en: 'We collect data from central business districts (CBDs) of 4 cities, with a
+    radius of a few kilometers. From this range, road network data are extracted and
+    discritized at intervals of 50 meters forming the urban environment $G$. Each
+    node of the road network is associated with the corresponding street view images.
+    The number of street view images is equal to the degree of the node. Several well-known
+    buildings are chosen as the landmarks in each area. Road network visualization
+    and a task example are shown in Fig. [2](https://arxiv.org/html/2408.04168v3#S3.F2
+    "Figure 2 ‣ 3 Task Definition and Dataset ‣ Perceive, Reflect, and Plan: Designing
+    LLM Agent for Goal-Directed City Navigation without Instructions"). More details
+    about the datasets are in Appendix [C](https://arxiv.org/html/2408.04168v3#A3
+    "Appendix C Datasets details ‣ Perceive, Reflect, and Plan: Designing LLM Agent
+    for Goal-Directed City Navigation without Instructions").'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们从四个城市的中央商务区（CBD）收集数据，范围为几公里。在这个范围内，提取道路网络数据，并以50米的间隔对其进行离散化，形成城市环境$G$。道路网络的每个节点都与相应的街景图像相关联。街景图像的数量等于该节点的度数。每个区域选择若干著名建筑作为地标。道路网络可视化和任务示例如图[2](https://arxiv.org/html/2408.04168v3#S3.F2
+    "Figure 2 ‣ 3 Task Definition and Dataset ‣ Perceive, Reflect, and Plan: Designing
+    LLM Agent for Goal-Directed City Navigation without Instructions")所示。关于数据集的更多细节请参见附录[C](https://arxiv.org/html/2408.04168v3#A3
+    "Appendix C Datasets details ‣ Perceive, Reflect, and Plan: Designing LLM Agent
+    for Goal-Directed City Navigation without Instructions")。'
+- en: 4 PReP Agentic Workflow
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 PReP 智能体工作流
+- en: '![Refer to caption](img/07faa030d25d29bcef3b7bff2204b825.png)'
+  id: totrans-39
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/07faa030d25d29bcef3b7bff2204b825.png)'
+- en: 'Figure 3: Overview of PReP workflow. It has three steps: perception, reflection,
+    and planning. Blue boxes represent LLMs or LLaVA, while gray boxes indicate variables
+    stored by natural language. Symbols are defined in section [3](https://arxiv.org/html/2408.04168v3#S3
+    "3 Task Definition and Dataset ‣ Perceive, Reflect, and Plan: Designing LLM Agent
+    for Goal-Directed City Navigation without Instructions").'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：PReP 工作流概览。它包含三个步骤：感知、反思和规划。蓝色框代表大语言模型（LLMs）或 LLaVA，而灰色框表示由自然语言存储的变量。符号在[第
+    3 节](https://arxiv.org/html/2408.04168v3#S3 "3 任务定义与数据集 ‣ 感知、反思与规划：设计无指令的目标导向城市导航
+    LLM 智能体")中定义。
+- en: 4.1 Workflow Overview
+  id: totrans-41
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 工作流概述
+- en: 'The propoesd agentic workflow is shown in the Figure [3](https://arxiv.org/html/2408.04168v3#S4.F3
+    "Figure 3 ‣ 4 PReP Agentic Workflow ‣ Perceive, Reflect, and Plan: Designing LLM
+    Agent for Goal-Directed City Navigation without Instructions"), which is consist
+    of three parts: visual perception, reflection with memory, and planning. While
+    visual perception uses LLaVA, both reflection and planning uses large language
+    models (LLMs). As described in Section [4.2](https://arxiv.org/html/2408.04168v3#S4.SS2
+    "4.2 Perception ‣ 4 PReP Agentic Workflow ‣ Perceive, Reflect, and Plan: Designing
+    LLM Agent for Goal-Directed City Navigation without Instructions"), visual perception
+    allows the agent to recognize the landmarks in the street view images and predict
+    the direction and distance of the target. Perception results are passed to the
+    reflection part, where the agent reevaluates the perception results and reflects
+    the goal location. In reflection, long-term memory is set up to summarize and
+    learn from the historical trajectory for constructing intrinsic map representations,
+    a topological map between nodes that the agent has visited. The planning module
+    is the decision core of the workflow. It generates a navigation plan by considering
+    both the goal direction after reflection and the current road connections. The
+    agent follows this plan to make the next move. Then the agent state will be updated
+    to start next iteration. These steps compose a workflow that enables the agent
+    to form cognitive map of the urban environment and perform proper navigation actions.
+    As shown in Section [5](https://arxiv.org/html/2408.04168v3#S5 "5 Experiments
+    ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation
+    without Instructions"), this workflow yields significantly higher success rates
+    compared to the ‘React’ baseline.'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所提出的智能体工作流如图[3](https://arxiv.org/html/2408.04168v3#S4.F3 "图 3 ‣ 4 PReP 智能体工作流
+    ‣ 感知、反思与规划：设计无指令的目标导向城市导航 LLM 智能体")所示，包含三个部分：视觉感知、带有记忆的反思和规划。视觉感知部分使用 LLaVA，而反思和规划部分则使用大型语言模型（LLMs）。如[第
+    4.2 节](https://arxiv.org/html/2408.04168v3#S4.SS2 "4.2 感知 ‣ 4 PReP 智能体工作流 ‣ 感知、反思与规划：设计无指令的目标导向城市导航
+    LLM 智能体")中所述，视觉感知使智能体能够识别街景图像中的地标，并预测目标的方向和距离。感知结果传递给反思部分，智能体在此重新评估感知结果并反思目标位置。在反思过程中，设置了长期记忆，以便总结并从历史轨迹中学习，从而构建内在的地图表示，即智能体曾经访问过的节点之间的拓扑地图。规划模块是工作流的决策核心。它通过考虑反思后的目标方向和当前的道路连接来生成导航计划。智能体按照此计划执行下一步动作。然后，智能体的状态将更新，以开始下一次迭代。这些步骤构成了一个工作流，使智能体能够形成城市环境的认知地图并执行恰当的导航操作。如[第
+    5 节](https://arxiv.org/html/2408.04168v3#S5 "5 实验 ‣ 感知、反思与规划：设计无指令的目标导向城市导航 LLM
+    智能体")所示，该工作流相比于“反应”基线，显著提高了成功率。
+- en: 4.2 Perception
+  id: totrans-43
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 感知
+- en: 'The first part of the workflow is to equip the agent with visual perception
+    ability. Although there are some neural network methods for processing the streetviews
+    and recognizing the landmarks Vilera et al. ([2020](https://arxiv.org/html/2408.04168v3#bib.bib21)) Boiarov
+    and Tyantov ([2019](https://arxiv.org/html/2408.04168v3#bib.bib2)), we choose
+    to fine-tune the LLaVA-7B model for our perception component. There are two reasons
+    for this: first, LLaVA is a multimodal LLM, making it easier to process both text
+    and images at the same time; second, with the extensive world knowledge in LLMs,
+    we can achieve better performance with fewer training samples.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 工作流的第一部分是为智能体配备视觉感知能力。虽然有一些神经网络方法可以处理街景并识别地标，Vilera等人（[2020](https://arxiv.org/html/2408.04168v3#bib.bib21)）Boiarov和Tyantov（[2019](https://arxiv.org/html/2408.04168v3#bib.bib2)）也曾提出过相关方法，但我们选择对LLaVA-7B模型进行微调，以便进行感知组件的开发。这样做有两个原因：首先，LLaVA是一个多模态LLM，使得它能同时处理文本和图像；其次，借助LLM中广泛的世界知识，我们可以通过较少的训练样本实现更好的性能。
+- en: 'Perceiving the landmarks. At timestamp $t$ and node $v_{t}$, the agent gets
+    the street views $S_{t}=\{s_{t}^{1},s_{t}^{2},..s_{t}^{k}\}$. The agent then detects
+    the landmarks and estimates their direction and distances $R_{lm}=\{R(lm_{i},v_{t})|lm_{i}\in
+    LM\}$ to the agent itself. We perform the task using LLaVA Liu et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib11)).
+    Zero-shot LLaVA has poor recognition accuracy because the landmarks we use are
+    probably not in its training data. We therefore fine-tunes LLaVA using the LoRA
+    method Hu et al. ([2021](https://arxiv.org/html/2408.04168v3#bib.bib7)). To do
+    so, we collect 5,000 landmark images and generate 30k Q&A conversation data. More
+    details can be seen in the Appendix [D.1](https://arxiv.org/html/2408.04168v3#A4.SS1
+    "D.1 Fine-tuning LLaVA ‣ Appendix D Additional Experimental Details ‣ Perceive,
+    Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation without
+    Instructions").'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '感知地标。在时间戳$t$和节点$v_{t}$，智能体获取街景$S_{t}=\{s_{t}^{1},s_{t}^{2},..s_{t}^{k}\}$。然后，智能体检测地标并估计它们到智能体的方向和距离$R_{lm}=\{R(lm_{i},v_{t})|lm_{i}\in
+    LM\}$。我们使用LLaVA Liu等人（[2024](https://arxiv.org/html/2408.04168v3#bib.bib11)）来执行此任务。零-shot
+    LLaVA的识别准确性较差，因为我们使用的地标可能不在其训练数据中。因此，我们使用LoRA方法Hu等人（[2021](https://arxiv.org/html/2408.04168v3#bib.bib7)）对LLaVA进行微调。为此，我们收集了5000张地标图像，并生成了30k个问答对话数据。更多细节可参见附录[D.1](https://arxiv.org/html/2408.04168v3#A4.SS1
+    "D.1 Fine-tuning LLaVA ‣ Appendix D Additional Experimental Details ‣ Perceive,
+    Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation without
+    Instructions")。'
+- en: Inferring directions to the goal. While the agent acquires the landmarks position
+    to the agent $R_{lm}$, it is necessary to infer the goal direction combining $R_{lm}$
+    and task description $T$. We can use an LLM to perform this inference. The output
+    $R_{g}^{t}=R(v_{g},v_{t})$ of is the direction and distance of the goal relative
+    to the agent. The essence of this problem is the cosine theorem, so the results
+    can be further improved using calculators.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 推断目标的方向。虽然智能体获取了地标相对于智能体的位置$R_{lm}$，但需要结合$R_{lm}$和任务描述$T$推断目标方向。我们可以使用大型语言模型（LLM）来执行此推断。输出$R_{g}^{t}=R(v_{g},v_{t})$是目标相对于智能体的方向和距离。这个问题的本质是余弦定理，因此可以使用计算器进一步提高结果的精度。
+- en: 4.3 Reflection
+  id: totrans-47
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 反思
+- en: 'Reflection is critical in our workflow, which summarizes past experience and
+    reflects on visual perception results. This step has two main components: long-term
+    memory and working memory. Long-term memory consists of episodic memory and semantic
+    memory, where episodic memory stores navigation data and semantic memory saves
+    summary of history navigation experience. Working memory serves as a data buffer
+    to process the visual perception results and retrieved memory. During the navigation
+    process, the agent must have self-position and spatial understanding of the urban
+    environment. It does not just rely on current perception but also uses historical
+    trajectories. That’s why we design the long-term memory component. Since current
+    perception can sometimes be lacking and past movements are not always accurate,
+    we design the anticipate-evaluate mechanism in working memory to make the agent
+    more robust.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反思在我们的工作流中至关重要，它总结过去的经验并反思视觉感知结果。这个步骤有两个主要组成部分：长期记忆和工作记忆。长期记忆包括情节记忆和语义记忆，其中情节记忆存储导航数据，语义记忆保存历史导航经验的总结。工作记忆则作为数据缓冲区，用于处理视觉感知结果和检索到的记忆。在导航过程中，智能体必须对城市环境有自我位置和空间理解。它不仅仅依赖于当前的感知，还利用历史轨迹。这就是我们设计长期记忆组件的原因。由于当前的感知有时可能不足，而过去的运动并不总是准确的，我们在工作记忆中设计了预测-评估机制，以增强智能体的鲁棒性。
+- en: 'Episodic memory. Episodic memory is a list of the navigation data in natural
+    language. When the agent moves from $v_{t}$ to $v_{t+1}$, this action and the
+    perception results $R_{g}^{t}$ in $v_{t}$ are processed into a sentence and stored.
+    The detail of the sentence format is in Appendix [G](https://arxiv.org/html/2408.04168v3#A7
+    "Appendix G Prompt example for different methods ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions").
+    Since the past navigation data are stored, the agent can retrieve the goal inference
+    at history location and detect whether connected nodes are visited. For example,
+    when the agent has saved navigation data in $v_{t}$ and navigated to $v_{t}^{{}^{\prime}}$,
+    it can retrieve $R_{g}^{t}$ and the status of connected nodes $E_{t^{{}^{\prime}}}$
+    to help reflection and planning.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '情景记忆。情景记忆是以自然语言记录的导航数据列表。当代理从$v_{t}$移动到$v_{t+1}$时，这个动作和在$v_{t}$的感知结果$R_{g}^{t}$会被处理成一句话并存储。句子格式的具体细节见附录[G](https://arxiv.org/html/2408.04168v3#A7
+    "Appendix G Prompt example for different methods ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")。由于过去的导航数据已被存储，代理可以检索历史位置的目标推理并检测是否已访问连接的节点。例如，当代理在$v_{t}$保存了导航数据并导航到$v_{t}^{{}^{\prime}}$时，它可以检索$R_{g}^{t}$和连接节点的状态$E_{t^{{}^{\prime}}}$，以帮助反思和规划。'
+- en: Semantic memory. While episode memory records the experiences, the agent uses
+    LLMs to summarize and learn from the episodic memory to form the semantic memory.
+    The semantic memory is a high-level cognitive function that assists the agent
+    in constructing an intrinsic representation of the navigation map. Like a human,
+    it can understand the environment based on historical experience and learn more
+    advanced navigation strategies, such as detours required to reach the destination.
+    These strategies can be retrieved to working memory and further beneficial to
+    the planning process. As the agent navigates, episodic memory and semantic memory
+    are updated accordingly.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语义记忆。情景记忆记录了经历，代理使用LLM对情景记忆进行总结并学习，从而形成语义记忆。语义记忆是一个高级认知功能，帮助代理构建导航地图的内在表示。像人类一样，它可以基于历史经验理解环境，并学习更高级的导航策略，例如到达目的地所需的绕行。这些策略可以被检索到工作记忆中，进一步有利于规划过程。随着代理的导航，情景记忆和语义记忆会相应地更新。
+- en: Working memory. Working memory receives visual perception results $R_{g}^{t}$
+    and retrieves relevant experiences from long-term memory. It has an anticipation-reevaluation
+    mechanism to solve the problem where the agent cannot detect any landmarks in
+    the street views and loses goal direction. Specifically, the agent uses historical
+    perception results $R_{g}^{t^{{}^{\prime}}}$ and moving direction to anticipate
+    the potential goal direction $R_{p}^{t}$, if any landmark can be observed, the
+    agent reevaluates whether the current inference $R_{g}^{t}$ is reasonable, and
+    synthesizes a new inference $R_{l}^{t}=LLM_{reflect}(R_{g}^{t},R_{p}^{t})$. The
+    output of working memory to the planning part are the synthesized inference $R_{l}^{t}$
+    and retrieved memory. This enables the agent to tackle complex environments regardless
+    whether landmarks are visible or not, making the agent more flexible and robust.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 工作记忆。工作记忆接收视觉感知结果$R_{g}^{t}$并从长期记忆中检索相关经验。它具有预期-重新评估机制，用来解决代理无法在街景中检测到任何地标而失去目标方向的问题。具体来说，代理使用历史感知结果$R_{g}^{t^{{}^{\prime}}}$和移动方向来预期潜在的目标方向$R_{p}^{t}$，如果能观察到任何地标，代理会重新评估当前推理$R_{g}^{t}$是否合理，并综合出新的推理$R_{l}^{t}=LLM_{reflect}(R_{g}^{t},R_{p}^{t})$。工作记忆输出给规划部分的是综合推理$R_{l}^{t}$和检索到的记忆。这使得代理能够应对复杂环境，无论是否可见地标，从而使代理更加灵活和鲁棒。
+- en: '![Refer to caption](img/803e02289f341e4ef546c5c1dbb70709.png)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/803e02289f341e4ef546c5c1dbb70709.png)'
+- en: 'Figure 4: Sample prompts and responses in the PReP workflow. In perception,
+    a vision language model locates the landmarks and estimates their distances to
+    the agent. In reflection, the agent reflects on past memory, and gives an estimate
+    of the direction of the goal. In planning, the agent uses the output from reflection
+    to update the plan. Prompts have been simplified while retaining their original
+    meaning. The full prompts are provided in Appendix [G](https://arxiv.org/html/2408.04168v3#A7
+    "Appendix G Prompt example for different methods ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions").'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：PReP工作流程中的示例提示和响应。在感知中，视觉语言模型定位地标并估算它们到代理的距离。在反思中，代理回顾过去的记忆，并估计目标的方向。在规划中，代理使用反思的输出更新计划。提示已经简化，同时保留了其原始意义。完整的提示可参见附录[G](https://arxiv.org/html/2408.04168v3#A7
+    "附录 G 不同方法的提示示例 ‣ 感知、反思和规划：为无指令的目标导向城市导航设计LLM代理")。
+- en: 4.4 Planning
+  id: totrans-54
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4 规划
+- en: Instead of reacting directly to observations, we use a planning module in our
+    workflow. It involves long-term planning and short-term decision-making. Specifically,
+    long-term planning uses reflected goal inference $R_{l}^{t}$, retrieved memory
+    $M_{t}$, and the old plan $P_{t-1}$ as input. It updates the navigation plan at
+    timestamp $t$ $P_{t}=LLM_{plan}(P_{t-1},R_{l}^{t},M_{t})$ by analysing the old
+    plan and breaking down the possible path into sub-goals. The agent firstly analyses
+    what stage does the old plan has been carried out, and then synthesizes the goal
+    inference, retrieved memory and the connection status to decide whether the plan
+    should be updated. If so, the agent updates the plan by predicting the possible
+    route to the goal, and breaking down the full route into few sub-goals like “move
+    [east] until [an intersection]”. After that, the short-term decision maker translates
+    the plan into action $\alpha_{t}=LLM_{action}(P_{t},E_{t})$ based on the road
+    connections $E_{t}$. The action $\alpha_{t}$ means a move from node $v_{t}$ to
+    node $v_{t+1}$, making the agent updates its location and explore the goal in
+    the environment.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在工作流程中使用一个规划模块，而不是直接对观察做出反应。它涉及长期规划和短期决策。具体来说，长期规划使用反射的目标推理$R_{l}^{t}$、检索的记忆$M_{t}$和旧计划$P_{t-1}$作为输入。通过分析旧计划并将可能的路径分解为子目标，它在时间戳$t$更新导航计划$P_{t}=LLM_{plan}(P_{t-1},R_{l}^{t},M_{t})$。代理首先分析旧计划已经执行到哪个阶段，然后综合目标推理、检索的记忆和连接状态，决定是否更新计划。如果是，代理通过预测到目标的可能路径并将完整路径分解为几个子目标（如“向[东]移动直到[一个交叉口]”）来更新计划。之后，短期决策者根据道路连接$E_{t}$将计划转化为行动$\alpha_{t}=LLM_{action}(P_{t},E_{t})$。行动$\alpha_{t}$意味着从节点$v_{t}$到节点$v_{t+1}$的移动，使得代理更新其位置并在环境中探索目标。
+- en: 5 Experiments
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 实验
+- en: 5.1 Experimental setup
+  id: totrans-57
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 实验设置
+- en: 'We experimentally evaluated the performance of the proposed agentic workflow
+    on the simulated urban navigation task described in section [3](https://arxiv.org/html/2408.04168v3#S3
+    "3 Task Definition and Dataset ‣ Perceive, Reflect, and Plan: Designing LLM Agent
+    for Goal-Directed City Navigation without Instructions"). We use success rate
+    (SR) and success rate weighted by path length (SPL) to measure system effectiveness
+    and efficiency, respectively Anderson et al. ([2018](https://arxiv.org/html/2408.04168v3#bib.bib1)).'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在[3](https://arxiv.org/html/2408.04168v3#S3 "3 任务定义与数据集 ‣ 感知、反思和规划：为无指令的目标导向城市导航设计LLM代理")节中描述的模拟城市导航任务上实验性地评估了所提出的代理工作流程的性能。我们使用成功率(SR)和按路径长度加权的成功率(SPL)来分别衡量系统的有效性和效率，参考了Anderson等人（[2018](https://arxiv.org/html/2408.04168v3#bib.bib1)）。
+- en: All experiments were conducted on the same four test sets in the four cities.
+    Each test set have 100 different navigation tasks with different start-goal pairs.
+    Each start-goal pair is randomly chosen, and sometimes it is in a location where
+    no landmarks are visible, making the task challenging. The minimum number of steps
+    required from the starting node to the goal follows a normal distribution with
+    $\mu$=30 steps and $\sigma$=10 steps. Because one step translates to 50 meters
+    on the map, it means the average navigation distance is 1,500 meters. We set the
+    iteration limit as 2.5 times as the minimum steps. If the agent moves more than
+    the limited steps, it is considered a failed task.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有实验都在四个城市的相同四个测试集上进行。每个测试集有100个不同的导航任务，任务的起点和终点是随机选择的，有时任务会出现在没有明显地标的地方，使任务变得具有挑战性。从起始节点到目标的最小步骤数遵循正态分布，$\mu$=30步，$\sigma$=10步。因为每一步对应地图上的50米，平均导航距离为1,500米。我们将迭代限制设置为最小步数的2.5倍。如果代理移动的步数超过限制，则视为任务失败。
+- en: '|  | Beijing | Shanghai | New York | Paris |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 北京 | 上海 | 纽约 | 巴黎 |'
+- en: '| Methods | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%)
+    |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | SR（%） | SPL（%） | SR（%） | SPL（%） | SR（%） | SPL（%） | SR（%） | SPL（%） |'
+- en: '| Random | 1 | 0.49 | 1 | 0.68 | 0 | 0 | 2 | 1.38 |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 随机 | 1 | 0.49 | 1 | 0.68 | 0 | 0 | 2 | 1.38 |'
+- en: '| RLMirowski et al. ([2018](https://arxiv.org/html/2408.04168v3#bib.bib13))
+    | 13 | 9.42 | 13 | 9.15 | 8 | 6.63 | 10 | 7.58 |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| RLMirowski等人（[2018](https://arxiv.org/html/2408.04168v3#bib.bib13)） | 13
+    | 9.42 | 13 | 9.15 | 8 | 6.63 | 10 | 7.58 |'
+- en: '| CoT | 43 | 31.47 | 28 | 19.68 | 9 | 6.68 | 11 | 7.29 |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| CoT | 43 | 31.47 | 28 | 19.68 | 9 | 6.68 | 11 | 7.29 |'
+- en: '| IM | 40 | 31.46 | 26 | 21.27 | 19 | 15.27 | 15 | 12.17 |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| IM | 40 | 31.46 | 26 | 21.27 | 19 | 15.27 | 15 | 12.17 |'
+- en: '| Progprompt | 44 | 32.75 | 24 | 18.45 | 10 | 7.45 | 21 | 16.02 |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| Progprompt | 44 | 32.75 | 24 | 18.45 | 10 | 7.45 | 21 | 16.02 |'
+- en: '| Cap | 47 | 35.86 | 23 | 17.13 | 12 | 9.11 | 17 | 12.31 |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| Cap | 47 | 35.86 | 23 | 17.13 | 12 | 9.11 | 17 | 12.31 |'
+- en: '| DEPS | 45 | 33.07 | 28 | 20.52 | 17 | 13.87 | 24 | 18.95 |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| DEPS | 45 | 33.07 | 28 | 20.52 | 17 | 13.87 | 24 | 18.95 |'
+- en: '| React | 41 | 31.28 | 25 | 17.32 | 8 | 6.07 | 11 | 7.82 |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| React | 41 | 31.28 | 25 | 17.32 | 8 | 6.07 | 11 | 7.82 |'
+- en: '| w/o Reflection | 47 | 35.02 | 27 | 20.08 | 20 | 14.45 | 18 | 13.49 |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无反思 | 47 | 35.02 | 27 | 20.08 | 20 | 14.45 | 18 | 13.49 |'
+- en: '| w/o Planning | 56 | 42.71 | 46 | 33.66 | 41 | 31.07 | 42 | 32.00 |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无计划 | 56 | 42.71 | 46 | 33.66 | 41 | 31.07 | 42 | 32.00 |'
+- en: '| PReP (ours) | 66 | 47.54 | 51 | 39.36 | 47 | 32.9 | 49 | 33.56 |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| PReP（我们的） | 66 | 47.54 | 51 | 39.36 | 47 | 32.9 | 49 | 33.56 |'
+- en: 'Table 1: Main results. We compare both LLM-free and LLM-based methods and perform
+    an ablation study to evaluate the proposed reflection and planning methods.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：主要结果。我们比较了无LLM和基于LLM的方法，并进行了消融研究，以评估所提出的反思与规划方法。
+- en: 5.2 Main Evaluation
+  id: totrans-74
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 主要评估
+- en: 'Comparison with existing methods that might give a solution. We compared PReP
+    with existing language-based methods, including Code as Policies (CaP) Liang et al.
+    ([2023](https://arxiv.org/html/2408.04168v3#bib.bib10)), ProgPrompt Singh et al.
+    ([2023](https://arxiv.org/html/2408.04168v3#bib.bib19)), Inner Monologue (IM) Huang
+    et al. ([2022](https://arxiv.org/html/2408.04168v3#bib.bib8)), Chain of Thought
+    (CoT) Wei et al. ([2022](https://arxiv.org/html/2408.04168v3#bib.bib23)), DEPS Wang
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib22)), and React Yao
+    et al. ([2022](https://arxiv.org/html/2408.04168v3#bib.bib27)). These methods
+    use well-designed prompts adapted to our urban navigation task, and we provide
+    the prompts for each method in Appendix [G](https://arxiv.org/html/2408.04168v3#A7
+    "Appendix G Prompt example for different methods ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions").
+    We also implemented two non-LLM baselines. The ‘random’ method selects a random
+    direction from the current connection each time. Reinforcement learning (RL) method
+    is modified from  Mirowski et al. ([2018](https://arxiv.org/html/2408.04168v3#bib.bib13))
+    and trained for 1 million steps in the environment to learn the policy for reaching
+    the goal. The perception module is the same for all methods. All the language-based
+    methods use GPT-4-turbo as the base model, and all the hyper-parameters of LLMs
+    are the same for a fair comparison.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '与现有方法的比较，可能会提供一个解决方案。我们将 PReP 与现有的基于语言的方法进行了比较，包括 Code as Policies (CaP) Liang
+    等人 ([2023](https://arxiv.org/html/2408.04168v3#bib.bib10))，ProgPrompt Singh 等人
+    ([2023](https://arxiv.org/html/2408.04168v3#bib.bib19))，Inner Monologue (IM) Huang
+    等人 ([2022](https://arxiv.org/html/2408.04168v3#bib.bib8))，Chain of Thought (CoT)
+    Wei 等人 ([2022](https://arxiv.org/html/2408.04168v3#bib.bib23))，DEPS Wang 等人 ([2023](https://arxiv.org/html/2408.04168v3#bib.bib22))，以及
+    React Yao 等人 ([2022](https://arxiv.org/html/2408.04168v3#bib.bib27))。这些方法使用了针对我们的城市导航任务精心设计的提示词，我们在附录
+    [G](https://arxiv.org/html/2408.04168v3#A7 "Appendix G Prompt example for different
+    methods ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City
+    Navigation without Instructions") 中提供了每种方法的提示词。我们还实现了两个非 LLM 的基准方法。“随机”方法每次从当前连接中选择一个随机方向。强化学习（RL）方法则是从
+    Mirowski 等人 ([2018](https://arxiv.org/html/2408.04168v3#bib.bib13)) 的方法修改而来，并在环境中训练了
+    100 万步，以学习到达目标的策略。所有方法的感知模块相同。所有基于语言的方法都使用 GPT-4-turbo 作为基础模型，并且为了公平比较，所有 LLM
+    的超参数都保持一致。'
+- en: 'From Table [1](https://arxiv.org/html/2408.04168v3#S5.T1 "Table 1 ‣ 5.1 Experimental
+    setup ‣ 5 Experiments ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed
+    City Navigation without Instructions"), we clearly observe that PReP yields the
+    best navigation performance compared with existing methods across all cities.
+    We have two key observations. First, the success rate of Random is nearly 0, indicating
+    the significant challenge of this task. Existing language-based methods have improved
+    performance, suggesting that LLMs possess the capability to navigate in cities
+    based on goal direction. Second, in Beijing, PReP achieves an SR of 66.68% and
+    an SPL of 48.25%, significantly surpassing competing methods, including DEPS (45%
+    SR, 33.07% SPL) and Cap (47% SR, 35.86% SPL). This pattern holds in the other
+    three cities, confirming PReP’s effectiveness.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '从表格 [1](https://arxiv.org/html/2408.04168v3#S5.T1 "Table 1 ‣ 5.1 Experimental
+    setup ‣ 5 Experiments ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed
+    City Navigation without Instructions") 中，我们清楚地观察到，PReP 在所有城市中相比现有方法具有最佳的导航表现。我们有两个关键观察结果。首先，Random
+    方法的成功率几乎为 0，表明这个任务的挑战性非常大。现有的基于语言的方法虽然有所提升，但仍然表明 LLMs 具备基于目标方向在城市中进行导航的能力。其次，在北京，PReP
+    的成功率（SR）达到 66.68%，路径长度（SPL）为 48.25%，显著超越了包括 DEPS（45% SR, 33.07% SPL）和 Cap（47%
+    SR, 35.86% SPL）在内的竞争方法。这一模式在其他三座城市中也得到了验证，进一步确认了 PReP 的有效性。'
+- en: 'Effectiveness of the proposed planning and reflection methods. We conduct ablation
+    studies to validate the effectiveness of the reflection and planning methods.
+    The perception component remains unchanged for all variants. Results are shown
+    in Table [1](https://arxiv.org/html/2408.04168v3#S5.T1 "Table 1 ‣ 5.1 Experimental
+    setup ‣ 5 Experiments ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed
+    City Navigation without Instructions"). ‘PReP’ represents the full PReP workflow,
+    which includes both planning and reflection. ‘w/o Reflection’ means the agent
+    follows a plan to find the goal, but does not reflect on memory or past inferences.
+    ‘w/o Planning’ means the agent receives reflected goal inference and retrieves
+    memory but makes decisions without forming a long-term plan. ‘React’ can also
+    refers to PReP without planning or reflection, where the agent makes decisions
+    based only on perception.'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所提议的规划和反思方法的有效性。我们通过消融实验来验证反思和规划方法的有效性。感知组件在所有变体中保持不变。结果如表[1](https://arxiv.org/html/2408.04168v3#S5.T1
+    "表1 ‣ 5.1 实验设置 ‣ 5 实验 ‣ 感知、反思与规划：设计目标导向的城市导航LLM代理，免除指令")所示。‘PReP’代表完整的PReP工作流，包含规划和反思。‘w/o
+    Reflection’表示代理遵循一个计划来寻找目标，但不对记忆或过去的推理进行反思。‘w/o Planning’表示代理接收反思后的目标推理并检索记忆，但在做决策时不形成长期计划。‘React’也可以指不包含规划或反思的PReP，其中代理仅基于感知做出决策。
+- en: '|  | Beijing | Shanghai | New York | Paris |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 北京 | 上海 | 纽约 | 巴黎 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| Methods | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%)
+    |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%) |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| LLaVA | 18 | 13.11 | 27 | 17.43 | 18 | 11.24 | 16 | 11.19 |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA | 18 | 13.11 | 27 | 17.43 | 18 | 11.24 | 16 | 11.19 |'
+- en: '| LLaVA-FT(Ours) | 66 | 47.54 | 51 | 39.36 | 47 | 32.9 | 49 | 33.56 |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-FT(我们的) | 66 | 47.54 | 51 | 39.36 | 47 | 32.9 | 49 | 33.56 |'
+- en: '| Oracle | 70 | 53.17 | 54 | 40.41 | 52 | 34.03 | 53 | 34.71 |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| Oracle | 70 | 53.17 | 54 | 40.41 | 52 | 34.03 | 53 | 34.71 |'
+- en: 'Table 2: Comparisons among variants of the perception part'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：感知部分不同变体之间的比较
+- en: '|  | Beijing | Shanghai | New York | Paris |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 北京 | 上海 | 纽约 | 巴黎 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| LLMs | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%)
+    |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLMs | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%) | SR(%) | SPL(%)
+    |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GPT3.5-turbo | 33 | 21.62 | 17 | 10.87 | 10 | 6.04 | 14 | 9.08 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT3.5-turbo | 33 | 21.62 | 17 | 10.87 | 10 | 6.04 | 14 | 9.08 |'
+- en: '| GLM_4 | 36 | 23.78 | 21 | 18.16 | 20 | 17.75 | 22 | 18.41 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLM_4 | 36 | 23.78 | 21 | 18.16 | 20 | 17.75 | 22 | 18.41 |'
+- en: '| Mistral-7B | 8 | 4.22 | 3 | 2.15 | 2 | 0.86 | 9 | 4.7 |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| Mistral-7B | 8 | 4.22 | 3 | 2.15 | 2 | 0.86 | 9 | 4.7 |'
+- en: '| LLaMA3-8B | 32 | 19.65 | 15 | 10.63 | 16 | 11.51 | 18 | 12.73 |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaMA3-8B | 32 | 19.65 | 15 | 10.63 | 16 | 11.51 | 18 | 12.73 |'
+- en: '| LLaMA3-FT | 45 | 31.3 | 36 | 22.38 | 23 | 17.95 | 27 | 18.33 |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaMA3-FT | 45 | 31.3 | 36 | 22.38 | 23 | 17.95 | 27 | 18.33 |'
+- en: '| GPT4-turbo | 66 | 47.54 | 51 | 39.36 | 47 | 32.9 | 49 | 33.56 |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT4-turbo | 66 | 47.54 | 51 | 39.36 | 47 | 32.9 | 49 | 33.56 |'
+- en: 'Table 3: Performance of PReP using different LLMs'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：使用不同LLM的PReP性能
+- en: The full system clearly performs best. For example, on the Beijing test set,
+    it achieves a success rate 25%, 19%, and 10% higher than ‘React’, ‘w/o Reflection’,
+    and ‘w/o Planning’, respectively. This indicates the necessity of having both
+    steps in our system. We also observe a larger performance drop when reflection
+    is removed compared to when planning is removed, suggesting that reflection plays
+    a critical role in cognitive map formation and navigation performance improvement.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完整的系统显然表现最佳。例如，在北京测试集上，它的成功率比‘React’、‘w/o Reflection’和‘w/o Planning’分别高出25%、19%和10%。这表明在我们的系统中同时包含这两个步骤是必要的。我们还观察到，当移除反思时性能下降的幅度大于移除规划时，表明反思在认知地图形成和导航性能提升中起着至关重要的作用。
+- en: '![Refer to caption](img/26a3b669d3f32ffdee675e2126c17e01.png)'
+  id: totrans-98
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/26a3b669d3f32ffdee675e2126c17e01.png)'
+- en: 'Figure 5: Performance of PReP across varying task difficulties'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：PReP在不同任务难度下的表现
+- en: 5.3 Further Analysis
+  id: totrans-100
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3 进一步分析
+- en: 'Benefit of fine-tuning LLaVA over zero-shot LLaVA. In Table [2](https://arxiv.org/html/2408.04168v3#S5.T2
+    "Table 2 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions"),
+    we compare fine-tuned LLaVA with zero-shot LLaVA. Zero-shot LLaVA has much poorer
+    performance: on the Shanghai test sets, its SR and SPL is 27% and 23% lower than
+    its fine-tuned version. It indicates that LLaVA does not naturally recognize landmarks
+    through street views. But interestingly, zero-shot LLaVA still has 10+% success
+    rate. This can be explained by its 19% accuracy, 6% precision, 93% recall, and
+    0.64$ IoU (See Appendix [D.1](https://arxiv.org/html/2408.04168v3#A4.SS1 "D.1
+    Fine-tuning LLaVA ‣ Appendix D Additional Experimental Details ‣ Perceive, Reflect,
+    and Plan: Designing LLM Agent for Goal-Directed City Navigation without Instructions")).
+    In fact, zero-shot LLaVA has good building detection capacity and assume that
+    most images contain landmarks, leading to a high recall. Its precision is low
+    (6%), but sometimes is fine for the agent to find the goal.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '微调LLaVA相较于零-shot LLaVA的好处。在表[2](https://arxiv.org/html/2408.04168v3#S5.T2 "Table
+    2 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan: Designing
+    LLM Agent for Goal-Directed City Navigation without Instructions")中，我们比较了微调后的LLaVA与零-shot
+    LLaVA。零-shot LLaVA的表现差得多：在上海测试集上，其SR和SPL分别比微调版本低27%和23%。这表明LLaVA并不自然地通过街景识别地标。但有趣的是，零-shot
+    LLaVA的成功率仍然超过10%。这一点可以通过其19%的准确率、6%的精确率、93%的召回率以及0.64$的IoU来解释（见附录[D.1](https://arxiv.org/html/2408.04168v3#A4.SS1
+    "D.1 Fine-tuning LLaVA ‣ Appendix D Additional Experimental Details ‣ Perceive,
+    Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation without
+    Instructions")）。事实上，零-shot LLaVA具有良好的建筑物检测能力，并假设大多数图像中都包含地标，从而导致较高的召回率。其精确率较低（6%），但有时足以让代理找到目标。'
+- en: We also compare with an oracle setting, where the perception results are replaced
+    with ground truth directions and distances measured by GPS. Compared with oracle
+    results, fine-tuned LLaVA is average 4% lower in SR and average 2.5% lower in
+    SPL, respectively. This is not a significant gap, indicating the effectiveness
+    of fine-tuning.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还与一种预设设置进行了比较，其中感知结果被GPS测量的真实方向和距离所替代。与预设结果相比，经过微调的LLaVA在SR上平均低4%，在SPL上平均低2.5%。这个差距并不显著，表明微调是有效的。
+- en: 'Comparing different LLMs. We use different LLMs to perform inference (blue
+    boxes in Fig.[4](https://arxiv.org/html/2408.04168v3#S4.F4 "Figure 4 ‣ 4.3 Reflection
+    ‣ 4 PReP Agentic Workflow ‣ Perceive, Reflect, and Plan: Designing LLM Agent for
+    Goal-Directed City Navigation without Instructions")). These models include GPT-3.5-turbo,
+    GLM-4 Zhipu ([2024](https://arxiv.org/html/2408.04168v3#bib.bib29)), Mistral-7B Jiang
+    et al. ([2023](https://arxiv.org/html/2408.04168v3#bib.bib9)), LLaMA3-8B Meta
+    ([2024](https://arxiv.org/html/2408.04168v3#bib.bib12)) and GPT-4-turbo. From
+    Table [3](https://arxiv.org/html/2408.04168v3#S5.T3 "Table 3 ‣ 5.2 Main Evaluation
+    ‣ 5 Experiments ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed
+    City Navigation without Instructions"), we observe that GPT-4-turbo significantly
+    outperforms other LLMs without fine-tuning. Moreover, we then use the question-answering
+    data generated by GPT-4-turbo to fine-tune LLaMA3 Zheng et al. ([2024](https://arxiv.org/html/2408.04168v3#bib.bib28))
+    (see Appendix [D.2](https://arxiv.org/html/2408.04168v3#A4.SS2 "D.2 Fine-tuning
+    LLaMA3-8B ‣ Appendix D Additional Experimental Details ‣ Perceive, Reflect, and
+    Plan: Designing LLM Agent for Goal-Directed City Navigation without Instructions")).
+    The fine-tuned LLaMA3 achieves performance that was second only to GPT-4-turbo
+    among all models.'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '比较不同的LLM。我们使用不同的LLM进行推理（图[4](https://arxiv.org/html/2408.04168v3#S4.F4 "Figure
+    4 ‣ 4.3 Reflection ‣ 4 PReP Agentic Workflow ‣ Perceive, Reflect, and Plan: Designing
+    LLM Agent for Goal-Directed City Navigation without Instructions")中的蓝色框）。这些模型包括GPT-3.5-turbo、GLM-4
+    Zhipu（[2024](https://arxiv.org/html/2408.04168v3#bib.bib29)）、Mistral-7B Jiang等人（[2023](https://arxiv.org/html/2408.04168v3#bib.bib9)）、LLaMA3-8B
+    Meta（[2024](https://arxiv.org/html/2408.04168v3#bib.bib12)）和GPT-4-turbo。从表[3](https://arxiv.org/html/2408.04168v3#S5.T3
+    "Table 3 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")中可以观察到，GPT-4-turbo在没有微调的情况下明显优于其他LLM。此外，我们随后使用GPT-4-turbo生成的问答数据对LLaMA3进行微调（见附录[D.2](https://arxiv.org/html/2408.04168v3#A4.SS2
+    "D.2 Fine-tuning LLaMA3-8B ‣ Appendix D Additional Experimental Details ‣ Perceive,
+    Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation without
+    Instructions")）。经过微调的LLaMA3在所有模型中仅次于GPT-4-turbo，表现位居第二。'
+- en: 'Impact of goal distance. We analyze whether the distance between the goal and
+    the starting point has an impact on success rate. In Fig. [5](https://arxiv.org/html/2408.04168v3#S5.F5
+    "Figure 5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")a,
+    we observe that the SR does not decrease a lot when the goal is as far as 2 kilometers
+    (40 - 50 steps) from the starting point. Instead, the SR remains relatively stable
+    across various distances. The possible reason is that the maximum number of iteration
+    limit increases as the distance increases, the agent may fully explore the environment
+    and find the goal more easily. It may also suggest that the task difficulty is
+    not significantly correlated with distance, but rather with the complexity of
+    the road network. Furthermore, in Fig. [5](https://arxiv.org/html/2408.04168v3#S5.F5
+    "Figure 5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")b,
+    we study how the goal distance affects the number of steps taken by PReP. Basically
+    the agent takes steps that is about 1.5 times the minimum steps to reach the goal.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '目标距离的影响。我们分析了目标与起点之间的距离是否对成功率有影响。在图[5](https://arxiv.org/html/2408.04168v3#S5.F5
+    "Figure 5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")a中，我们观察到当目标距离起点2公里（40
+    - 50步）时，成功率并没有明显下降。相反，成功率在不同距离下保持相对稳定。可能的原因是，随着距离的增加，最大迭代次数限制也增加，代理可能会充分探索环境，更容易找到目标。这也可能表明任务的难度与距离的关系并不显著，而是与道路网络的复杂性相关。此外，在图[5](https://arxiv.org/html/2408.04168v3#S5.F5
+    "Figure 5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")b中，我们研究了目标距离如何影响PReP所采取的步数。基本上，代理所采取的步数大约是达到目标所需最少步数的1.5倍。'
+- en: 'Impact of landmark visibility. When the agent performs a navigation task, some
+    nodes it passes through can observe landmarks, while others cannot. We study how
+    landmark visibility impacts its success rate. In Fig. [5](https://arxiv.org/html/2408.04168v3#S5.F5
+    "Figure 5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")c,
+    it can be observed that the success rate increases significantly with the increase
+    in the proportion of nodes along the path where landmarks are visible. When more
+    than 40% of the nodes on the path can observe landmarks, the success rate gradually
+    converges, which might suggest that such landmark visibility is adequate to support
+    the agent in accomplishing the navigation task. It is worth noting that in the
+    Beijing test set, the agent could identify landmarks in approximately 50% of all
+    nodes. In other test sets, this percentage may drop to less than 20%. This may
+    have led to a significant higher success rate on the Beijing test set compared
+    to other test sets in Fig. [5](https://arxiv.org/html/2408.04168v3#S5.F5 "Figure
+    5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan: Designing
+    LLM Agent for Goal-Directed City Navigation without Instructions")a, indicating
+    that successfully identifying landmarks from the environment is a key factor for
+    the agent to navigate to the goal.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '地标可见性的影响。当代理执行导航任务时，某些它经过的节点能够看到地标，而其他节点则不能。我们研究了地标可见性如何影响其成功率。在图[5](https://arxiv.org/html/2408.04168v3#S5.F5
+    "Figure 5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")c中，可以观察到随着路径上可见地标的节点比例增加，成功率显著提高。当路径上超过40%的节点能够看到地标时，成功率逐渐趋于平稳，这可能表明这种地标可见性足以支持代理完成导航任务。值得注意的是，在北京的测试集上，代理能够识别大约50%的节点中的地标。在其他测试集中，这一比例可能降至不到20%。这可能导致图[5](https://arxiv.org/html/2408.04168v3#S5.F5
+    "Figure 5 ‣ 5.2 Main Evaluation ‣ 5 Experiments ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")a中的成功率明显高于其他测试集，表明成功识别环境中的地标是代理导航到目标的关键因素。'
+- en: 6 Conclusion
+  id: totrans-106
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论
+- en: We propose an agentic workflow for goal-directed city navigation without step-by-step
+    language instructions or maps. The workflow includes a fine-tuned LLaVA model
+    for spatial perception, a memory module for synthesizing and reflecting perception
+    results and retrieved memory, and a planning module for navigation route planning.
+    As our approach only requires training the visual perception part, it is a more
+    data-efficient solution compared to RL methods. Owing to the well-designed reflection
+    and planning part, the agent can perform the long-term navigation task in complex
+    environment and achieves a success rate of about 54%. Further experiments show
+    that the agent performs well in 4 cities and various difficulty levels, demonstrating
+    robustness and flexibility. Our contributions not only present an effective agentic
+    workflow for using LLMs in goal-directed urban navigation, but also validate the
+    potential of LLMs for complex spatial tasks.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出了一种用于目标导向城市导航的代理工作流，不需要逐步的语言指令或地图。该工作流包括一个经过微调的LLaVA模型用于空间感知，一个内存模块用于综合和反映感知结果与检索到的记忆，以及一个规划模块用于导航路线规划。由于我们的方法只需要训练视觉感知部分，因此与强化学习方法相比，它是一种更数据高效的解决方案。由于精心设计的反思和规划部分，代理能够在复杂环境中执行长期导航任务，成功率约为54%。进一步的实验表明，代理在4个城市及不同难度级别下表现良好，展示了其鲁棒性和灵活性。我们的贡献不仅展示了使用LLM进行目标导向城市导航的有效代理工作流，还验证了LLM在复杂空间任务中的潜力。
+- en: 7 Limitations
+  id: totrans-108
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 限制
+- en: Despite the advancements and innovative approaches in our work, there are several
+    limitations to consider. A notable challenge is the dependence on powerful closed-source
+    models, such as GPT-4-turbo, for superior results. Although we fine-tuned the
+    open-source LLaMA-8B model, its performance, while better than other LLMs, does
+    not reach half that of GPT-4-turbo. This highlights a significant gap. Future
+    work should explore more effective fine-tuning strategies for open-source models
+    to enhance their capabilities, ensuring our progress in urban navigation can be
+    widely adopted and further developed. Another issue is the limited size of our
+    test set, which may cause fluctuations in the success rate. A larger and more
+    diverse test set could provide a more comprehensive evaluation of the model’s
+    performance and robustness.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管我们的工作在进展和创新方法上取得了一定成就，但仍需考虑一些局限性。一个显著的挑战是依赖于强大的闭源模型，如GPT-4-turbo，以获得更优的结果。尽管我们对开源的LLaMA-8B模型进行了微调，虽然它的性能优于其他大型语言模型，但仍未达到GPT-4-turbo的一半。这突显了一个显著的差距。未来的工作应探索更有效的开源模型微调策略，以提升其能力，确保我们在城市导航领域的进展能够被广泛采用并进一步发展。另一个问题是我们的测试集规模较小，这可能导致成功率的波动。更大且更具多样性的测试集可以提供对模型性能和鲁棒性的更全面评估。
+- en: References
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Anderson et al. (2018) Peter Anderson, Angel Chang, Devendra Singh Chaplot,
+    Alexey Dosovitskiy, Saurabh Gupta, Vladlen Koltun, Jana Kosecka, Jitendra Malik,
+    Roozbeh Mottaghi, Manolis Savva, et al. 2018. On evaluation of embodied navigation
+    agents. *arXiv preprint arXiv:1807.06757*.
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anderson 等人（2018）Peter Anderson, Angel Chang, Devendra Singh Chaplot, Alexey
+    Dosovitskiy, Saurabh Gupta, Vladlen Koltun, Jana Kosecka, Jitendra Malik, Roozbeh
+    Mottaghi, Manolis Savva 等人. 2018. 关于具身导航代理的评估。*arXiv 预印本 arXiv:1807.06757*。
+- en: Boiarov and Tyantov (2019) Andrei Boiarov and Eduard Tyantov. 2019. [Large scale
+    landmark recognition via deep metric learning](https://doi.org/10.1145/3357384.3357956).
+    In *Proceedings of the 28th ACM International Conference on Information and Knowledge
+    Management*, CIKM ’19, pages 169–178. Association for Computing Machinery.
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Boiarov 和 Tyantov（2019）Andrei Boiarov 和 Eduard Tyantov. 2019. [大规模地标识别通过深度度量学习](https://doi.org/10.1145/3357384.3357956)。发表于
+    *第28届ACM国际信息与知识管理会议论文集*，CIKM ’19，第169–178页。计算机协会。
+- en: 'Chen et al. (2019) Howard Chen, Alane Suhr, Dipendra Misra, Noah Snavely, and
+    Yoav Artzi. 2019. Touchdown: Natural language navigation and spatial reasoning
+    in visual street environments. In *Proceedings of the IEEE/CVF Conference on Computer
+    Vision and Pattern Recognition*, pages 12538–12547.'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2019）Howard Chen, Alane Suhr, Dipendra Misra, Noah Snavely 和 Yoav Artzi.
+    2019. Touchdown：自然语言导航与视觉街景环境中的空间推理。发表于 *IEEE/CVF计算机视觉与模式识别会议论文集*，第12538–12547页。
+- en: Dorbala et al. (2023) Vishnu Sashank Dorbala, James F Mullen Jr, and Dinesh
+    Manocha. 2023. Can an embodied agent find your “cat-shaped mug”? llm-based zero-shot
+    object navigation. *IEEE Robotics and Automation Letters*.
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dorbala 等人（2023）Vishnu Sashank Dorbala, James F Mullen Jr 和 Dinesh Manocha.
+    2023. 一个具身代理能找到你的“猫形杯子”吗？基于LLM的零-shot物体导航。*IEEE机器人与自动化通讯*。
+- en: 'Gu et al. (2022) Jing Gu, Eliana Stefani, Qi Wu, Jesse Thomason, and Xin Eric
+    Wang. 2022. Vision-and-language navigation: A survey of tasks, methods, and future
+    directions. *arXiv preprint arXiv:2203.12667*.'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gu 等人（2022）Jing Gu, Eliana Stefani, Qi Wu, Jesse Thomason 和 Xin Eric Wang. 2022.
+    视觉与语言导航：任务、方法和未来方向综述. *arXiv 预印本 arXiv:2203.12667*.
+- en: Hao et al. (2023) Shibo Hao, Yi Gu, Haodi Ma, Joshua Jiahua Hong, Zhen Wang,
+    Daisy Zhe Wang, and Zhiting Hu. 2023. [Reasoning with language model is planning
+    with world model](https://arxiv.org/abs/2305.14992). *Preprint*, arXiv:2305.14992.
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hao 等人（2023）Shibo Hao, Yi Gu, Haodi Ma, Joshua Jiahua Hong, Zhen Wang, Daisy
+    Zhe Wang 和 Zhiting Hu. 2023. [与语言模型推理即是与世界模型规划](https://arxiv.org/abs/2305.14992).
+    *预印本*, arXiv:2305.14992.
+- en: 'Hu et al. (2021) Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu,
+    Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. 2021. Lora: Low-rank adaptation
+    of large language models. *arXiv preprint arXiv:2106.09685*.'
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hu 等人（2021）Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi
+    Li, Shean Wang, Lu Wang 和 Weizhu Chen. 2021. Lora：大语言模型的低秩适应. *arXiv 预印本 arXiv:2106.09685*.
+- en: 'Huang et al. (2022) Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang,
+    Pete Florence, Andy Zeng, Jonathan Tompson, Igor Mordatch, Yevgen Chebotar, et al.
+    2022. Inner monologue: Embodied reasoning through planning with language models.
+    *arXiv preprint arXiv:2207.05608*.'
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang 等人（2022）Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang, Pete
+    Florence, Andy Zeng, Jonathan Tompson, Igor Mordatch, Yevgen Chebotar 等人. 2022.
+    内心独白：通过语言模型进行具身推理与规划. *arXiv 预印本 arXiv:2207.05608*.
+- en: Jiang et al. (2023) Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris
+    Bamford, Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna
+    Lengyel, Guillaume Lample, Lucile Saulnier, et al. 2023. Mistral 7b. *arXiv preprint
+    arXiv:2310.06825*.
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jiang 等人（2023）Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford,
+    Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel,
+    Guillaume Lample, Lucile Saulnier 等人. 2023. Mistral 7b. *arXiv 预印本 arXiv:2310.06825*.
+- en: 'Liang et al. (2023) Jacky Liang, Wenlong Huang, Fei Xia, Peng Xu, Karol Hausman,
+    Brian Ichter, Pete Florence, and Andy Zeng. 2023. Code as policies: Language model
+    programs for embodied control. In *2023 IEEE International Conference on Robotics
+    and Automation (ICRA)*, pages 9493–9500\. IEEE.'
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang 等人（2023）Jacky Liang, Wenlong Huang, Fei Xia, Peng Xu, Karol Hausman, Brian
+    Ichter, Pete Florence 和 Andy Zeng. 2023. 代码即策略：用于具身控制的语言模型程序. 见 *2023 IEEE 国际机器人与自动化会议（ICRA）*，第9493–9500页。IEEE.
+- en: Liu et al. (2024) Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. 2024.
+    Visual instruction tuning. *Advances in neural information processing systems*,
+    36.
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人（2024）Haotian Liu, Chunyuan Li, Qingyang Wu 和 Yong Jae Lee. 2024. 视觉指令调优.
+    *神经信息处理系统进展*, 36.
+- en: 'Meta (2024) Meta. 2024. Introducing meta llama 3: The most capable openly available
+    llm to date. [https://ai.meta.com/blog/meta-llama-3/](https://ai.meta.com/blog/meta-llama-3/).'
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Meta（2024）Meta. 2024. 介绍 Meta Llama 3：迄今为止最强大的开放可用大语言模型。[https://ai.meta.com/blog/meta-llama-3/](https://ai.meta.com/blog/meta-llama-3/).
+- en: Mirowski et al. (2018) Piotr Mirowski, Matt Grimes, Mateusz Malinowski, Karl Moritz
+    Hermann, Keith Anderson, Denis Teplyashin, Karen Simonyan, Andrew Zisserman, Raia
+    Hadsell, et al. 2018. Learning to navigate in cities without a map. *Advances
+    in neural information processing systems*, 31.
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mirowski 等人（2018）Piotr Mirowski, Matt Grimes, Mateusz Malinowski, Karl Moritz
+    Hermann, Keith Anderson, Denis Teplyashin, Karen Simonyan, Andrew Zisserman, Raia
+    Hadsell 等人. 2018. 学习在城市中如何不依赖地图进行导航. *神经信息处理系统进展*, 31.
+- en: Mirowski et al. (2016) Piotr Mirowski, Razvan Pascanu, Fabio Viola, Hubert Soyer,
+    Andrew J Ballard, Andrea Banino, Misha Denil, Ross Goroshin, Laurent Sifre, Koray
+    Kavukcuoglu, et al. 2016. Learning to navigate in complex environments. *arXiv
+    preprint arXiv:1611.03673*.
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mirowski 等人（2016）Piotr Mirowski, Razvan Pascanu, Fabio Viola, Hubert Soyer,
+    Andrew J Ballard, Andrea Banino, Misha Denil, Ross Goroshin, Laurent Sifre, Koray
+    Kavukcuoglu 等人. 2016. 学习在复杂环境中导航. *arXiv 预印本 arXiv:1611.03673*.
+- en: Momennejad et al. (2023) Ida Momennejad, Hosein Hasanbeig, Felipe Vieira, Hiteshi
+    Sharma, Robert Osazuwa Ness, Nebojsa Jojic, Hamid Palangi, and Jonathan Larson.
+    2023. [Evaluating cognitive maps and planning in large language models with cogeval](https://arxiv.org/abs/2309.15129).
+    *Preprint*, arXiv:2309.15129.
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Momennejad 等人（2023）Ida Momennejad, Hosein Hasanbeig, Felipe Vieira, Hiteshi
+    Sharma, Robert Osazuwa Ness, Nebojsa Jojic, Hamid Palangi 和 Jonathan Larson. 2023.
+    [评估大语言模型中的认知地图与规划](https://arxiv.org/abs/2309.15129). *预印本*, arXiv:2309.15129.
+- en: 'Schumann et al. (2024) Raphael Schumann, Wanrong Zhu, Weixi Feng, Tsu-Jui Fu,
+    Stefan Riezler, and William Yang Wang. 2024. Velma: Verbalization embodiment of
+    llm agents for vision and language navigation in street view. In *Proceedings
+    of the AAAI Conference on Artificial Intelligence*, volume 38, pages 18924–18933.'
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schumann 等人（2024）Raphael Schumann, Wanrong Zhu, Weixi Feng, Tsu-Jui Fu, Stefan
+    Riezler, 和 William Yang Wang。2024年。Velma：大语言模型代理的语言化体现，用于街景中的视觉与语言导航。发表于*《人工智能会议论文集》*，第38卷，第18924–18933页。
+- en: 'Shah et al. (2023) Dhruv Shah, Błażej Osiński, Sergey Levine, et al. 2023.
+    Lm-nav: Robotic navigation with large pre-trained models of language, vision,
+    and action. In *Conference on robot learning*, pages 492–504\. PMLR.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shah 等人（2023）Dhruv Shah, Błażej Osiński, Sergey Levine 等人。2023年。Lm-nav：利用大规模预训练语言、视觉与行动模型的机器人导航。发表于*《机器人学习会议》*，第492–504页。PMLR。
+- en: 'Shinn et al. (2024) Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik
+    Narasimhan, and Shunyu Yao. 2024. Reflexion: Language agents with verbal reinforcement
+    learning. *Advances in Neural Information Processing Systems*, 36.'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shinn 等人（2024）Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik Narasimhan,
+    和 Shunyu Yao。2024年。Reflexion：具有语言强化学习的语言代理。*《神经信息处理系统进展》*，第36卷。
+- en: 'Singh et al. (2023) Ishika Singh, Valts Blukis, Arsalan Mousavian, Ankit Goyal,
+    Danfei Xu, Jonathan Tremblay, Dieter Fox, Jesse Thomason, and Animesh Garg. 2023.
+    Progprompt: Generating situated robot task plans using large language models.
+    In *2023 IEEE International Conference on Robotics and Automation (ICRA)*, pages
+    11523–11530\. IEEE.'
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Singh 等人（2023）Ishika Singh, Valts Blukis, Arsalan Mousavian, Ankit Goyal, Danfei
+    Xu, Jonathan Tremblay, Dieter Fox, Jesse Thomason, 和 Animesh Garg。2023年。Progprompt：利用大语言模型生成机器人任务计划。发表于*《2023年IEEE国际机器人与自动化会议（ICRA）》*，第11523–11530页。IEEE。
+- en: Sumers et al. (2023) Theodore R Sumers, Shunyu Yao, Karthik Narasimhan, and
+    Thomas L Griffiths. 2023. Cognitive architectures for language agents. *arXiv
+    preprint arXiv:2309.02427*.
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sumers 等人（2023）Theodore R Sumers, Shunyu Yao, Karthik Narasimhan, 和 Thomas L
+    Griffiths。2023年。语言代理的认知架构。*arXiv 预印本 arXiv:2309.02427*。
+- en: Vilera et al. (2020) Reza Vilera, Reza Fuad Rachmadi, and Eko Mulyanto Yuniarno.
+    2020. [Landmark segmentation and selective feature extraction in street-view image](https://doi.org/10.1109/CENIM51130.2020.9298008).
+    In *2020 International Conference on Computer Engineering, Network, and Intelligent
+    Multimedia (CENIM)*, pages 440–444.
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Vilera 等人（2020）Reza Vilera, Reza Fuad Rachmadi, 和 Eko Mulyanto Yuniarno。2020年。[街景图像中的地标分割与选择性特征提取](https://doi.org/10.1109/CENIM51130.2020.9298008)。发表于*《2020年国际计算机工程、网络与智能多媒体会议（CENIM）》*，第440–444页。
+- en: 'Wang et al. (2023) Zihao Wang, Shaofei Cai, Guanzhou Chen, Anji Liu, Xiaojian
+    Ma, and Yitao Liang. 2023. Describe, explain, plan and select: Interactive planning
+    with large language models enables open-world multi-task agents. *arXiv preprint
+    arXiv:2302.01560*.'
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人（2023）Zihao Wang, Shaofei Cai, Guanzhou Chen, Anji Liu, Xiaojian Ma,
+    和 Yitao Liang。2023年。描述、解释、计划与选择：利用大语言模型的互动规划使开放世界的多任务代理成为可能。*arXiv 预印本 arXiv:2302.01560*。
+- en: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei
+    Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. 2022. Chain-of-thought prompting elicits
+    reasoning in large language models. *Advances in neural information processing
+    systems*, 35:24824–24837.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等人（2022）Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia,
+    Ed Chi, Quoc V Le, Denny Zhou 等人。2022年。链式思维提示促进大语言模型的推理能力。*《神经信息处理系统进展》*，第35卷，第24824–24837页。
+- en: 'Wu et al. (2024) Wansen Wu, Tao Chang, Xinmeng Li, Quanjun Yin, and Yue Hu.
+    2024. Vision-language navigation: a survey and taxonomy. *Neural Computing and
+    Applications*, 36(7):3291–3316.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu 等人（2024）Wansen Wu, Tao Chang, Xinmeng Li, Quanjun Yin, 和 Yue Hu。2024年。视觉-语言导航：综述与分类。*《神经计算与应用》*，第36卷，第7期，第3291–3316页。
+- en: Wu et al. (2018) Yi Wu, Yuxin Wu, Georgia Gkioxari, and Yuandong Tian. 2018.
+    Building generalizable agents with a realistic and rich 3d environment. *arXiv
+    preprint arXiv:1801.02209*.
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu 等人（2018）Yi Wu, Yuxin Wu, Georgia Gkioxari, 和 Yuandong Tian。2018年。构建具有现实与丰富3D环境的通用代理。*arXiv
+    预印本 arXiv:1801.02209*。
+- en: 'Yao et al. (2024) Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths,
+    Yuan Cao, and Karthik Narasimhan. 2024. Tree of thoughts: Deliberate problem solving
+    with large language models. *Advances in Neural Information Processing Systems*,
+    36.'
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao 等人（2024）Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths,
+    Yuan Cao, 和 Karthik Narasimhan。2024年。思维树：利用大语言模型进行深思熟虑的解决问题。*《神经信息处理系统进展》*，第36卷。
+- en: 'Yao et al. (2022) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+    Karthik Narasimhan, and Yuan Cao. 2022. React: Synergizing reasoning and acting
+    in language models. *arXiv preprint arXiv:2210.03629*.'
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao 等人（2022）Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik
+    Narasimhan, 和 Yuan Cao。2022年。React：在语言模型中协同推理与行动。*arXiv 预印本 arXiv:2210.03629*。
+- en: 'Zheng et al. (2024) Yaowei Zheng, Richong Zhang, Junhao Zhang, Yanhan Ye, Zheyan
+    Luo, and Yongqiang Ma. 2024. [Llamafactory: Unified efficient fine-tuning of 100+
+    language models](http://arxiv.org/abs/2403.13372). *arXiv preprint arXiv:2403.13372*.'
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zheng 等人（2024）Yaowei Zheng, Richong Zhang, Junhao Zhang, Yanhan Ye, Zheyan
+    Luo 和 Yongqiang Ma. 2024. [Llamafactory: 统一高效地微调100+个语言模型](http://arxiv.org/abs/2403.13372).
+    *arXiv预印本 arXiv:2403.13372*。'
+- en: Zhipu (2024) Zhipu. 2024. Zhipu ai devday glm-4. [https://zhipuai.cn/en/devday](https://zhipuai.cn/en/devday).
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhipu（2024）Zhipu. 2024. Zhipu ai devday glm-4. [https://zhipuai.cn/en/devday](https://zhipuai.cn/en/devday)。
+- en: 'Zhou et al. (2024) Gengze Zhou, Yicong Hong, and Qi Wu. 2024. Navgpt: Explicit
+    reasoning in vision-and-language navigation with large language models. In *Proceedings
+    of the AAAI Conference on Artificial Intelligence*, volume 38, pages 7641–7649.'
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhou 等人（2024）Gengze Zhou, Yicong Hong 和 Qi Wu. 2024. Navgpt: 使用大语言模型进行视觉与语言导航中的显式推理.
+    收录于*《人工智能学会会议论文集》*，第38卷，页码7641–7649。'
+- en: Zhu et al. (2017) Yuke Zhu, Roozbeh Mottaghi, Eric Kolve, Joseph J Lim, Abhinav
+    Gupta, Li Fei-Fei, and Ali Farhadi. 2017. Target-driven visual navigation in indoor
+    scenes using deep reinforcement learning. In *2017 IEEE international conference
+    on robotics and automation (ICRA)*, pages 3357–3364\. IEEE.
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhu 等人（2017）Yuke Zhu, Roozbeh Mottaghi, Eric Kolve, Joseph J Lim, Abhinav Gupta,
+    Li Fei-Fei 和 Ali Farhadi. 2017. 使用深度强化学习进行室内场景的目标导向视觉导航. 收录于*《2017年IEEE机器人与自动化国际会议(ICRA)》*，页码3357–3364。IEEE。
+- en: 'Zu et al. (2023) Weiqin Zu, Wenbin Song, Ruiqing Chen, Ze Guo, Fanglei Sun,
+    Zheng Tian, Wei Pan, and Jun Wang. 2023. Language and sketching: An llm-driven
+    interactive multimodal multitask robot navigation framework. *arXiv preprint arXiv:2311.08244*.'
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zu 等人（2023）Weiqin Zu, Wenbin Song, Ruiqing Chen, Ze Guo, Fanglei Sun, Zheng
+    Tian, Wei Pan 和 Jun Wang. 2023. 语言与草图：一种基于大语言模型的交互式多模态多任务机器人导航框架. *arXiv预印本 arXiv:2311.08244*。
+- en: Appendix A Ethical analysis
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 伦理分析
+- en: The data we collected is open access including *Baidu StreetViews API*, *Google
+    Streetviews API* and *Open Street Map*, without privacy issues. Our ethical analysis
+    confirms that all data was gathered in compliance with the code of ethics. We
+    ensured that no personally identifiable information was collected, maintaining
+    the anonymity and privacy of individuals. By adhering to the ethical guidelines,
+    we avoid any potential privacy concerns and support the broader scientific community’s
+    efforts to build on and verify our work.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们收集的数据是开放获取的，包括*百度街景API*、*谷歌街景API*和*开放街图*，且不存在隐私问题。我们的伦理分析确认，所有数据的收集均遵循了伦理准则。我们确保未收集任何个人可识别信息，保持了个人的匿名性和隐私。通过遵守伦理指南，我们避免了任何潜在的隐私问题，并支持更广泛的科学社区在我们的工作基础上进行拓展和验证。
+- en: Appendix B Social impacts
+  id: totrans-145
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 社会影响
+- en: Developing the LLM agent for goal-directed city navigation has many positive
+    social impacts. This technology extends beyond navigation robots, providing invaluable
+    help to the visually impaired by enhancing their mobility and independence. Easier
+    navigation in urban environments can greatly improve their quality of life and
+    help them participate more fully in society. Additionally, using this technology
+    in disaster relief can save lives by helping rescue teams navigate affected areas
+    quickly and efficiently. However, there are potential negative social impacts
+    to consider. Relying on AI for navigation might decrease human spatial awareness
+    and problem-solving skills. To maximize the positive impact and minimize negative
+    consequences, it is crucial to develop and implement this technology ethically
+    with strong safeguards in place.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发目标导向的城市导航LLM代理对社会有许多积极影响。这项技术不仅限于导航机器人，还为视力障碍者提供了宝贵的帮助，通过增强他们的行动能力和独立性，提高他们在城市环境中的导航能力，从而大大改善他们的生活质量，并帮助他们更充分地参与社会活动。此外，利用该技术进行灾难救援能够通过帮助救援队迅速高效地在受灾区域进行导航来挽救生命。然而，也需要考虑潜在的负面社会影响。依赖人工智能进行导航可能会降低人类的空间意识和解决问题的能力。为了最大化积极影响并最小化负面后果，至关重要的是要以强有力的保障措施，伦理地开发和实施这项技术。
+- en: Appendix C Datasets details
+  id: totrans-147
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录C 数据集详细信息
+- en: 'We collect data from central business districts (CBDs) of 4 cities, which have
+    a radius of a few kilometers. From this range, road network data are extracted
+    and discritized at intervals of 50 meters forming the urban environment. Each
+    node of the road network is associated with the corresponding street view images.
+    The number of street view images is equal to the degree of the node. Some features
+    of the dataset are shown in Tab.[4](https://arxiv.org/html/2408.04168v3#A3.T4
+    "Table 4 ‣ Appendix C Datasets details ‣ Perceive, Reflect, and Plan: Designing
+    LLM Agent for Goal-Directed City Navigation without Instructions"). Specifically,
+    the selected area in Beijing is the Guomao CBD area, with a radius of approximately
+    3 kilometers, which includes a total of 1,134 nodes and 2,742 street view images,
+    along with 10 landmark buildings. In Shanghai, the selected area is the Lujiazui
+    CBD area, also with the similar radius, containing a total of 1,038 nodes and
+    2,366 street view images, along with 6 landmark buildings. While in New York area
+    is with 1140 nodes and 2568 related street view images, Paris area have 1141 nodes
+    and 2480 street view images, along with 10 and 6 landmarks respectively. The landmarks
+    chosen in the dataset are well-known buildings with unique features, such as the
+    Oriental Pearl Tower in Shanghai and the Effiel Tower in Paris. Street view images
+    are obtained from Baidu Map Street View API or Google Map API, with a field of
+    view of 90° and an elevation angle of 20° for each image. The image resolution
+    is 1,024×512 pixels.'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们收集了来自 4 个城市的中央商务区（CBD）数据，这些区域的半径为几公里。根据这一范围，我们提取了道路网络数据，并以 50 米的间隔进行离散化，从而形成城市环境。每个道路网络节点都与相应的街景图像相关联。街景图像的数量等于该节点的度数。数据集的一些特征见表格
+    [4](https://arxiv.org/html/2408.04168v3#A3.T4 "Table 4 ‣ Appendix C Datasets details
+    ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation
+    without Instructions")。具体来说，北京选择的区域是国贸 CBD 区域，半径大约为 3 公里，包含 1,134 个节点和 2,742 张街景图像，以及
+    10 个地标建筑。在上海，选择的区域是陆家嘴 CBD 区域，半径相似，包含 1,038 个节点和 2,366 张街景图像，以及 6 个地标建筑。而纽约地区有
+    1,140 个节点和 2,568 张相关街景图像，巴黎地区有 1,141 个节点和 2,480 张街景图像，分别有 10 个和 6 个地标。数据集中选择的地标是一些具有独特特征的知名建筑，如上海的东方明珠塔和巴黎的埃菲尔铁塔。街景图像通过百度地图街景
+    API 或 Google Maps API 获取，每张图像的视场角为 90°，俯仰角为 20°。图像分辨率为 1,024×512 像素。'
+- en: '| City | Nodes | Images | Landmarks |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| 城市 | 节点 | 图像 | 地标 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Beijing | 1134 | 2742 | 10 |'
+  id: totrans-151
+  prefs: []
+  type: TYPE_TB
+  zh: '| 北京 | 1134 | 2742 | 10 |'
+- en: '| Shanghai | 1038 | 2366 | 6 |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| 上海 | 1038 | 2366 | 6 |'
+- en: '| New York | 1140 | 2568 | 10 |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| 纽约 | 1140 | 2568 | 10 |'
+- en: '| Paris | 1141 | 2480 | 6 |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| 巴黎 | 1141 | 2480 | 6 |'
+- en: 'Table 4: Dataset features.'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：数据集特征。
+- en: Appendix D Additional Experimental Details
+  id: totrans-156
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 D 额外实验细节
+- en: D.1 Fine-tuning LLaVA
+  id: totrans-157
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.1 微调 LLaVA
+- en: The methodology for fine-tuning LLaVA uses the LoRA (Low-Rank Adaptation) technique.
+    This approach introduces trainable low-rank matrices to simulate parameter updates,
+    enabling rapid task adaptation without significantly increasing model complexity.
+    We collected 250 images for each of the 32 landmarks from the Internet or the
+    streetviews API, totaling 8,000 images. These images were manually annotated with
+    the binary visibility and bounding box of each landmark. For those images collected
+    from API, we can easiliy calculate the distance between the the landmarks and
+    the carema using the metadata. We split the data into an 80% training set and
+    a 20% test set. Using these images, we generated dialogue data in a question-and-answer
+    format. The questions we asked are as following step by step, aiming to form a
+    pattern of CoT to improve its understanding and reasoning ability.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 微调 LLaVA 的方法使用了 LoRA（低秩适配）技术。该方法引入了可训练的低秩矩阵，以模拟参数更新，从而实现快速任务适配，而不会显著增加模型复杂性。我们从互联网或街景
+    API 收集了每个地标的 250 张图像，共计 8,000 张。这些图像经过人工标注，标注内容包括每个地标的可见性（二元标记）和边界框。对于通过 API 收集的图像，我们可以通过元数据轻松计算地标与摄像头之间的距离。我们将数据分为
+    80% 的训练集和 20% 的测试集。利用这些图像，我们生成了问答格式的对话数据。我们提出的问题如下，逐步形成一种 CoT 模式，以提高其理解和推理能力。
+- en: '1.'
+  id: totrans-159
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: '"Is the $landmark_{i}$ visible in the image?"'
+  id: totrans-160
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"图像中是否可见 $landmark_{i}$？"'
+- en: '2.'
+  id: totrans-161
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: '"The $landmark_{i}$ is visible in the image, what’s the bounding box of it
+    in the image?"'
+  id: totrans-162
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '"在图像中，$landmark_{i}$ 是否可见？它在图像中的边界框是什么？"'
+- en: '3.'
+  id: totrans-163
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: '"The $landmark_{i}$ is visible in the image and its bounding box is $(x_{min},y_{min},x_{max},y_{max})$,
+    how far is it actually away from the camera?"'
+  id: totrans-164
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: “$landmark_{i}$在图像中是可见的，它的边界框是$(x_{min},y_{min},x_{max},y_{max})$，它实际上距离相机有多远？”
+- en: We generated about 30k turn dialogues to fine-tune the llava-v1.5-7b. The fine-tuning
+    process was carried out on one NVIDIA GeForce RTX A100 GPU and took about 3 hours.
+    The scripts to fine-tuning is modified from the official repository ¹¹1[https://github.com/haotian-liu/LLaVA](https://github.com/haotian-liu/LLaVA)
+    with the default parameters.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们生成了大约30k的对话轮次来微调llava-v1.5-7b。微调过程在一台NVIDIA GeForce RTX A100 GPU上进行，花费了大约3小时。微调脚本是从官方仓库¹¹1[https://github.com/haotian-liu/LLaVA](https://github.com/haotian-liu/LLaVA)修改而来，使用的是默认参数。
+- en: 'The outcome of this fine-tuning process is a model that demonstrates remarkable
+    accuracy in landmark recognition and segmentation (see Table [5](https://arxiv.org/html/2408.04168v3#A4.T5
+    "Table 5 ‣ D.1 Fine-tuning LLaVA ‣ Appendix D Additional Experimental Details
+    ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation
+    without Instructions")). While the distance estimation is not very accurate, the
+    rough estimation results are still effective in subsequent navigation steps (see
+    Fig [6](https://arxiv.org/html/2408.04168v3#A4.F6 "Figure 6 ‣ D.1 Fine-tuning
+    LLaVA ‣ Appendix D Additional Experimental Details ‣ Perceive, Reflect, and Plan:
+    Designing LLM Agent for Goal-Directed City Navigation without Instructions")).
+    The fine-tuned LLaVA model is essential for the agent to perceive the environment
+    and obtain goal information.'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个微调过程的结果是一个在地标识别和分割方面表现出显著准确性的模型（见表[5](https://arxiv.org/html/2408.04168v3#A4.T5
+    "表 5 ‣ D.1 微调LLaVA ‣ 附录D 额外实验细节 ‣ 感知、反思和计划：设计用于无指令目标导向城市导航的LLM代理")）。虽然距离估计的准确性不是很高，但粗略的估计结果仍然在后续的导航步骤中有效（见图[6](https://arxiv.org/html/2408.04168v3#A4.F6
+    "图 6 ‣ D.1 微调LLaVA ‣ 附录D 额外实验细节 ‣ 感知、反思和计划：设计用于无指令目标导向城市导航的LLM代理")）。微调后的LLaVA模型对于代理感知环境和获取目标信息至关重要。
+- en: '|  | Accuracy | Precision | Recall | F1-Score | IoU |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 准确率 | 精确度 | 召回率 | F1-Score | IoU |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| LLaVA-base | 0.1873 | 0.0576 | 0.9347 | 0.1072 | 0.6432 |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-base | 0.1873 | 0.0576 | 0.9347 | 0.1072 | 0.6432 |'
+- en: '| LLaVA-FT | 0.9980 | 0.9868 | 0.9695 | 0.9779 | 0.9152 |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-FT | 0.9980 | 0.9868 | 0.9695 | 0.9779 | 0.9152 |'
+- en: 'Table 5: The ability to recognize and segment landmark in the street view images.'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表5：识别和分割街景图像中地标的能力。
+- en: '![Refer to caption](img/3f676a413ffc2c6b513e20d5fcf80205.png)'
+  id: totrans-172
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/3f676a413ffc2c6b513e20d5fcf80205.png)'
+- en: 'Figure 6: The distance estimation results of fine-tuned LLaVA.'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：微调后的LLaVA距离估计结果。
+- en: D.2 Fine-tuning LLaMA3-8B
+  id: totrans-174
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.2 微调LLaMA3-8B
+- en: We are trying to transfer knowledge from a much large model (GPT-4-turbo) to
+    a small model (LLaMA3-8B). The method involves using data generated during navigation
+    with GPT-4-turbo to fine-tune LLaMA-8B. We filter the successful samples from
+    all the saved data and process them into the ShareGPT format. To avoid data breaches,
+    we use data generated in Beijing to fine-tune LLaMA, which is then tested in Shanghai,
+    and vice versa. The situation of New York and Paris is similar. We generated about
+    20k dialogue turns for each city dataset and fine-tuned LLaMA-8B using the LoRA
+    method with one NVIDIA GeForce RTX A100 GPU. This process took about 30 minutes
+    using the LLaMA-Factory tool ²²2[https://github.com/hiyouga/LLaMA-Factory/](https://github.com/hiyouga/LLaMA-Factory/).
+    All parameters in the fine-tuning process were set to default.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们正在尝试将来自一个更大模型（GPT-4-turbo）的知识转移到一个小模型（LLaMA3-8B）。该方法包括使用GPT-4-turbo在导航过程中生成的数据来微调LLaMA-8B。我们从所有保存的数据中筛选出成功的样本，并将其处理成ShareGPT格式。为了避免数据泄露，我们使用在北京生成的数据来微调LLaMA，然后在上海进行测试，反之亦然。纽约和巴黎的情况类似。我们为每个城市数据集生成了大约20k个对话轮次，并使用LoRA方法在一台NVIDIA
+    GeForce RTX A100 GPU上微调LLaMA-8B。使用LLaMA-Factory工具²²2[https://github.com/hiyouga/LLaMA-Factory/](https://github.com/hiyouga/LLaMA-Factory/)进行此过程大约花费了30分钟。微调过程中的所有参数都设置为默认值。
+- en: The results are shown in Table 4 in main content. We see that while LLaMA3-8B
+    performs similarly to GPT-3.5-turbo in our task, it outperforms other LLMs (except
+    GPT-4-turbo) after fine-tuning. Although there is still a gap compared to GPT-4-turbo,
+    increasing the amount of fine-tuning data may improve its performance.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果显示在主内容中的表4。我们看到，尽管LLaMA3-8B在我们的任务中与GPT-3.5-turbo表现相似，但经过微调后，它在性能上超过了其他LLM（除GPT-4-turbo外）。尽管与GPT-4-turbo相比仍有差距，但增加微调数据量可能会提高其性能。
+- en: Appendix E Computational cost
+  id: totrans-177
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录E 计算成本
+- en: The primary training cost is LLaVA fine-tuning, which requires one NVIDIA GeForce
+    RTX A100 GPU with 80G memory for approximately 3 hours with 30k conversation data.
+    Each request-response cycle of the fine-tuned LLaVA on the same GPU takes 6 to
+    8 seconds, while calling the LLM API takes 2 to 5 seconds (varies among different
+    models). Each iteration for an agent step takes about 12 seconds. In future we
+    will work to optimize the inference process.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主要的训练成本是LLaVA的微调，这需要一块80G显存的NVIDIA GeForce RTX A100 GPU，约3小时可处理30k对话数据。微调后的LLaVA在同一GPU上每次请求-响应周期需要6到8秒，而调用LLM
+    API需要2到5秒（不同模型之间有所差异）。每次代理步骤的迭代大约需要12秒。未来我们将致力于优化推理过程。
+- en: '![Refer to caption](img/283cbcda74d2a4f3288f917682f0ea8c.png)'
+  id: totrans-179
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/283cbcda74d2a4f3288f917682f0ea8c.png)'
+- en: 'Figure 7: Case study. Here we choose three typical reasoning process in the
+    whole navigation task where the arrows show the direction of travel of the agent.
+    The agent makes a long-term plan at location (1) so that it can move consistently
+    without moving back. At location (2), the agent cannot perceive landmarks in the
+    street views and infer goal direction, but it can reflect history memory and anticipate
+    the goal position. At location (3) the agent summarize its moving trajectory and
+    find itself moving in the deviate direction, thus returning to the right route.'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图7：案例研究。这里我们选择了导航任务中的三个典型推理过程，箭头表示代理的行进方向。代理在位置（1）制定长期规划，以便能够持续移动而不返回。到达位置（2）时，代理无法在街景中感知到地标并推断目标方向，但它可以反思历史记忆并预测目标位置。到达位置（3）时，代理总结自己的移动轨迹并发现自己走偏了方向，从而返回正确的路线。
+- en: Appendix F Case Study
+  id: totrans-181
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录F 案例研究
+- en: 'We conduct a case study to illustrate the role of reflection and planning (see
+    Fig. [7](https://arxiv.org/html/2408.04168v3#A5.F7 "Figure 7 ‣ Appendix E Computational
+    cost ‣ Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City
+    Navigation without Instructions")). In this case, the PReP agent deviates from
+    the shortest path in the beginning but still successfully reaches the goal. Initially,
+    the agent infers that the goal was located to the east. However, as there was
+    no direct path to due east, the agent planned a detour: it first heads northeast
+    and then turns towards either east or southeast. The agent continuously makes
+    inferences of the goal location each time it observes a landmark along its route.
+    When the agent cannot perceive landmarks in the street views and lose the goal
+    direction, it can reflect on history memory including the moving trajectory and
+    goal inference, and then anticipate the goal direction from current position.
+    When the agent moves in the deviate direction, it can reflect its trajectory and
+    re-plan the right route.'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们通过一个案例研究来说明反思和规划的作用（参见图[7](https://arxiv.org/html/2408.04168v3#A5.F7 "Figure
+    7 ‣ Appendix E Computational cost ‣ Perceive, Reflect, and Plan: Designing LLM
+    Agent for Goal-Directed City Navigation without Instructions")）。在这个案例中，PReP代理最初偏离了最短路径，但最终仍成功到达目标。最初，代理推断目标位于东边。然而，由于没有直接通往正东的路径，代理规划了一条绕行路线：它首先朝东北方向前进，然后转向东或东南方向。每次代理沿途观察到地标时，都会持续推断目标位置。当代理在街景中无法感知到地标并失去目标方向时，它可以反思历史记忆，包括移动轨迹和目标推断，然后根据当前位置预测目标方向。当代理偏离了原定路线时，它可以反思自己的轨迹并重新规划正确的路线。'
+- en: Appendix G Prompt example for different methods
+  id: totrans-183
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录G 不同方法的提示示例
+- en: G.1 Prompt of Full PReP
+  id: totrans-184
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.1 完整PReP的提示
+- en: Perception  Q:  Is the Beijing_Zhoxin_Building visible in the image?    A:  Yes. Its voc bounding box is the (0.58984, 0.46680, 0.63672, 0.72461) of the image.    Q:  The Beijing_Zhoxin_Building is visible in the image and its voc bounding box is (0.58984, 0.46680, 0.63672, 0.72461). How far is that place away from the camera?    A:  The Beijing_Zhoxin_Building is about 1600 meters away from the camera.    Reflection  Q:Here is your memory list in time sequence.  1. You were at (14, 14). You could move to [’Northeast’, ’North’, ’West’, ’South’] from there. You chose to move to Northeast. You then arrived at (15, 15).  2. You were at (15, 15). You could move to [’East’, ’Northwest’, ’Southwest’] from there. You chose to move to East. You then arrived at (16, 15).  3. You were at (16, 15). You could move to [’West’, ’East’] from there. You chose to move to East. You then arrived at (17, 15).  4. You were at (17, 15). You could move to [’West’, ’East’] from there. You chose to move to East. You then arrived at (18, 15).  5. You were at (18, 15). You could move to [’Northeast’, ’West’] from there. You chose to move to Northeast. You then arrived at (19, 16).  6. You were at (19, 16). You could move to [’Northeast’, ’Southwest’] from there. You chose to move to Northeast. You then arrived at (20, 17).  7. You were at (20, 17). You could move to [’Northeast’, ’Southwest’] from there. You chose to move to Northeast. You then arrived at (21, 18).  8. You were at (21, 18). You could move to [’Northeast’, ’Southwest’] from there. You chose to move to Northeast. You then arrived at (22, 19).  9. You were at (22, 19). You could move to [’South’, ’East’, ’Southwest’, ’North’] from there. You chose to move to South. You then arrived at (22, 18).  10. You were at (22, 18). You could move to [’North’, ’South’] from there. You chose to move to South. You then arrived at (22, 17).  Summarize all your memory, what can you learn from it?    A:  In the past 10 steps, you primarily moved in a northeastern direction, transitioning from (14, 14) to (22, 19), and then shifted to a southern direction, moving from (22, 19) to (22, 17). Your journey involved navigating through options that often included moving east or northeast, with a recent change to north-south movement.    Q:  You are now at (22, 17). The first time you inferred the goal was at (54, -26). The second time you inferred the goal was at (58, -25). The third time you inferred the goal was at (19, -24). Now you infer that the goal is in South 22 steps. According to all your inferences, what are the goal coordinates most likely to be? What is the corresponding goal direction from current position?    A:  "Thought_Q1": "To determine the most likely goal coordinates, consider the reasonable inferences and ignore the outlier. The first inference is (54, -26), the second is (58, -25), and the third is significantly different at (19, -24). Ignoring the third inference, I calculate the average of the first two coordinates: ((54 + 58)/2, (-26 -25)/2) = (56, -25.5), which simplifies to (56, -26) as coordinates are typically integers. Additionally, the current position is (22, 17), and the latest inference suggests a southern shift. Thus, moving 22 steps south from (22, 17) gives new coordinates (22, -5). This inference is also an outlier when compared to the other two reasonable estimations. Therefore, the most probable goal coordinates considering the first two inferences are (56, -26)."  "Answer_Q1": "The goal coordinates are most likely to be (56, -26)."  "Thought_Q2": "To determine the direction of the goal (56, -26) from the current position (22, 17), note the change in x and y coordinates. The x-coordinate changes from 22 to 56, an increase of 34, and the y-coordinate changes from 17 to -26, a decrease of 43. This indicates the goal is to the east and south of the current position, specifically more towards the south. Thus, the goal is southeast of the current position, but more towards the south."  "Answer_Q2": "The goal (56, -26) is in Southeast (more towards south) from current position (22, 17)."    Planning  Q:  You are now at (22, 17). Your current connection includes [’North’, ’South’]. North is at (22, 18), Visited. South is at (22, 16), Unvisited. The goal coordinates are most likely to be (56, -26). The goal (56, -26) is in Southeast (more towards south) from current position (22, 17). In the past 10 steps, you primarily moved in a northeastern direction, transitioning from (14, 14) to (22, 19), and then shifted to a southern direction, moving from (22, 19) to (22, 17). Your journey involved navigating through options that often included moving east or northeast, with a recent change to north-south movement. The plan is [’1. Move South to head directly towards the goal while exploring unvisited areas.’, ’2. Continue moving South if the path allows, to make progress directly towards the goal.’, ’3. Switch to East after making significant southward progress to address the eastward component of the goal location.’]. Which step of the plan are you currently implementing? According to all information above, should the plan be updated?. If yes, show the new plan. According to your plan and current connection, choose one in [’North’, ’South’] as your next action.    A:  "current_state": "Step 1"  "yes_or_no": "No"  "action_reason": "Currently at an unvisited south connection, which aligns with the plan to move directly towards the goal’s more southern location."  "action": "South"
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '感知 Q: 这张图片中能看到北京卓信大厦吗？ A: 是的。它的VOC边界框是图像的(0.58984, 0.46680, 0.63672, 0.72461)。
+    Q: 北京卓信大厦在图像中可见，其VOC边界框是(0.58984, 0.46680, 0.63672, 0.72461)。那么这个地方离相机有多远？ A:
+    北京卓信大厦距离相机大约1600米。 反思 Q: 以下是您的记忆列表，按时间顺序排列。 1. 你在(14, 14)位置。你可以从那里移动到[‘东北’, ‘北’,
+    ‘西’, ‘南’]。你选择了向东北移动。然后你到达了(15, 15)。 2. 你在(15, 15)位置。你可以从那里移动到[‘东’, ‘西北’, ‘西南’]。你选择了向东移动。然后你到达了(16,
+    15)。 3. 你在(16, 15)位置。你可以从那里移动到[‘西’, ‘东’]。你选择了向东移动。然后你到达了(17, 15)。 4. 你在(17, 15)位置。你可以从那里移动到[‘西’,
+    ‘东’]。你选择了向东移动。然后你到达了(18, 15)。 5. 你在(18, 15)位置。你可以从那里移动到[‘东北’, ‘西’]。你选择了向东北移动。然后你到达了(19,
+    16)。 6. 你在(19, 16)位置。你可以从那里移动到[‘东北’, ‘西南’]。你选择了向东北移动。然后你到达了(20, 17)。 7. 你在(20,
+    17)位置。你可以从那里移动到[‘东北’, ‘西南’]。你选择了向东北移动。然后你到达了(21, 18)。 8. 你在(21, 18)位置。你可以从那里移动到[‘东北’,
+    ‘西南’]。你选择了向东北移动。然后你到达了(22, 19)。 9. 你在(22, 19)位置。你可以从那里移动到[‘南’, ‘东’, ‘西南’, ‘北’]。你选择了向南移动。然后你到达了(22,
+    18)。 10. 你在(22, 18)位置。你可以从那里移动到[‘北’, ‘南’]。你选择了向南移动。然后你到达了(22, 17)。 总结一下你所有的记忆，你能从中学到什么？
+    A: 在过去的10步中，你主要朝东北方向移动，从(14, 14)移动到(22, 19)，然后转向南方，从(22, 19)移动到(22, 17)。你的旅程涉及了经常包括向东或东北移动的选项，并且最近发生了向南北方向的变化。
+    Q: 你现在在(22, 17)位置。第一次推测目标在(54, -26)位置。第二次推测目标在(58, -25)位置。第三次推测目标在(19, -24)位置。现在你推测目标在南方22步。根据你所有的推测，目标的坐标最可能是什么？从当前位置到目标的方向是什么？
+    A: “思考_Q1”: “为了确定最可能的目标坐标，考虑合理的推测并忽略异常值。第一次推测是(54, -26)，第二次推测是(58, -25)，第三次推测显著不同，位于(19,
+    -24)。忽略第三次推测，我计算前两次坐标的平均值：((54 + 58)/2, (-26 -25)/2) = (56, -25.5)，简化为(56, -26)，因为坐标通常为整数。此外，当前位置是(22,
+    17)，最新的推测建议向南移动。因此，从(22, 17)向南移动22步得到新的坐标(22, -5)。这个推测与前两个合理估算相比也是异常值。因此，考虑前两次推测，最可能的目标坐标是(56,
+    -26)。” “回答_Q1”: “目标坐标最可能是(56, -26)。” “思考_Q2”: “为了确定从当前位置(22, 17)到目标(56, -26)的方向，注意x和y坐标的变化。x坐标从22变化到56，增加了34，y坐标从17变化到-26，减少了43。这表明目标在当前位置的东南方向，但更偏向南方。因此，目标在当前位置的东南方向，更多地偏向南方。”
+    “回答_Q2”: “目标(56, -26)位于当前位置(22, 17)的东南方向（更多偏向南方）。” 计划 Q: 你现在在(22, 17)位置。你当前的连接包括[‘北’,
+    ‘南’]。北方在(22, 18)，已访问。南方在(22, 16)，未访问。目标坐标最可能是(56, -26)。目标(56, -26)位于当前位置(22, 17)的东南方向（更多偏向南方）。在过去的10步中，你主要朝东北方向移动，从(14,
+    14)移动到(22, 19)，然后转向南方，从(22, 19)移动到(22, 17)。你的旅程涉及了经常包括向东或东北移动的选项，并且最近发生了向南北方向的变化。计划是[‘1.
+    向南移动，直接朝目标更南的位置前进，同时探索未访问的区域。’, ‘2. 如果路径允许，继续向南移动，直接朝目标前进。’, ‘3. 在朝南方取得显著进展后，切换到向东，以应对目标位置的东向分量。’]。你当前正在执行计划的哪一步？根据上述所有信息，计划是否需要更新？如果是，展示新的计划。根据你的计划和当前连接，选择[‘北’,
+    ‘南’]中的一个作为你的下一步动作。 A: “当前状态”: “步骤1” “是否需要更新”: “否” “动作理由”: “目前在未访问的南方连接，符合计划中朝目标更南位置前进。”
+    “动作”: “南”'
+- en: G.2 Prompt of plain PReP
+  id: totrans-186
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.2 普通PReP提示
+- en: Q:  You are now at (22, 17). Your current connection includes [’North’, ’South’]. North is at (22, 18), Visited. South is at (22, 16), Unvisited. Now you infer that the goal is in South 22 steps.  According to all information above, choose one in [’North’, ’South’] as your next action.    A:  "action_reason": "Currently at an unvisited south connection, you should explore the unvisited area."  "action": "South"
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Q: 你现在在(22, 17)的位置。你当前的连接包括[’北’，’南’]。北边在(22, 18)，已访问。南边在(22, 16)，未访问。现在你推测目标位于南方22步远。根据上述所有信息，选择[’北’，’南’]中的一个作为你的下一步行动。
+    A: "action_reason": "当前在未访问的南方连接处，你应该探索未访问的区域。" "action": "南"'
+- en: G.3 Prompt of PReP without Reflection
+  id: totrans-188
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.3 没有反思的PReP提示
+- en: Q:  You are now at (22, 17). Your current connection includes [’North’, ’South’]. North is at (22, 18), Visited. South is at (22, 16), Unvisited. Now you infer that the goal is in South 22 steps. The last plan is [’1. Move South to head directly towards the goal while exploring unvisited areas.’, ’2. Continue moving South if the path allows, to make progress directly towards the goal.’, ’3. Switch to East after making significant southward progress to address the eastward component of the goal location.’].  Which step of the plan are you currently implementing? According to all information above, should the plan be updated?. If yes, show the new plan. According to your plan and current connection, choose one in [’North’, ’South’] as your next action.    A:  "current_state": "Step 1"  "yes_or_no": "No"  "action_reason": "Currently at an unvisited south connection, which aligns with the plan to move directly towards the goal’s more southern location."  "action": "South"
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Q: 你现在在(22, 17)的位置。你当前的连接包括[’北’，’南’]。北边在(22, 18)，已访问。南边在(22, 16)，未访问。现在你推测目标位于南方22步远。上一个计划是[’1.
+    向南移动，直接朝目标方向前进，同时探索未访问的区域。’, ’2. 如果路径允许，继续向南移动，直接向目标方向前进。’, ’3. 在向南大幅进展后，转向东，以应对目标位置的东向部分。’]。你目前正在执行计划的哪一步？根据上述所有信息，计划是否需要更新？如果是，请显示新的计划。根据你的计划和当前的连接，选择[’北’，’南’]中的一个作为你的下一步行动。
+    A: "current_state": "第1步" "yes_or_no": "否" "action_reason": "当前在未访问的南方连接处，这与计划中的直接朝目标更南方位置移动一致。"
+    "action": "南"'
+- en: G.4 Prompt of PReP without Planning
+  id: totrans-190
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.4 没有计划的PReP提示
+- en: Q:  You are now at (22, 17). Your current connection includes [’North’, ’South’]. North is at (22, 18), Visited. South is at (22, 16), Unvisited. The goal coordinates are most likely to be (56, -26).The goal (56, -26) is in Southeast (more towards south) from current position (22, 17). In the past 10 steps, you primarily moved in a northeastern direction, transitioning from (14, 14) to (22, 19), and then shifted to a southern direction, moving from (22, 19) to (22, 17). Your journey involved navigating through options that often included moving east or northeast, with a recent change to north-south movement.  According to all information above, choose one in [’North’, ’South’] as your next action.    A:  "action_reason": "Currently at an unvisited south connection, you should explore the unvisited area."  "action": "South"
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Q: 你现在在(22, 17)的位置。你当前的连接包括[’北’，’南’]。北边在(22, 18)，已访问。南边在(22, 16)，未访问。目标坐标最有可能是(56,
+    -26)。目标(56, -26)位于当前的位置(22, 17)的东南方向（更偏南）。在过去的10步中，你主要朝东北方向移动，从(14, 14)到(22, 19)，然后转向南方，从(22,
+    19)到(22, 17)。你的旅程涉及穿越包括向东或东北方向移动的选项，并最近转变为南北方向的移动。根据上述所有信息，选择[’北’，’南’]中的一个作为你的下一步行动。
+    A: "action_reason": "当前在一个未访问的南方连接处，你应该探索未访问的区域。" "action": "南"'
+- en: G.5 Prompt of CoT
+  id: totrans-192
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.5 CoT提示
+- en: Q:  You are now at (0, 0). Your current connection includes [’Northeast’, ’Southwest’]. Northeast is at (1, 1), Unvisited. Southwest is at (-1, -1), Unvisited. Now you infer that the goal is in South 51 steps, East 51 steps. According to all information above, choose one in [’Northeast’, ’Southwest’] as your next action.    A:  "Thinking": "Starting at (0, 0), the inferred goal is located 51 steps South and 51 steps East, which suggests a general Southeast direction. The available movements are ’Northeast’ and ’Southwest’. Moving ’Northeast’ to (1, 1) takes us further from the goal directionally, as it increases both North and East coordinates. Conversely, moving ’Southwest’ to (-1, -1) also moves away from the goal in terms of latitude but brings us closer longitudinally. Given that both options initially seem counterproductive, the lesser of two deviations would be ’Southwest’, because it at least aligns with the southern component of our goal’s direction."  "action": "Southwest"
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问：你现在位于(0, 0)。你当前的连接包括[’东北’，’西南’]。东北位于(1, 1)，未访问。西南位于(-1, -1)，未访问。现在你推断目标位于南方51步，东向51步。根据上述所有信息，从[’东北’，’西南’]中选择一个作为你的下一步行动。答：
+    "思考"：“从(0, 0)开始，推断目标位于南方51步，东向51步，这表明大致的方向是东南。可用的移动方向为’东北’和’西南’。向’东北’移动到(1, 1)会使我们远离目标方向，因为它增加了北方和东方的坐标。相反，向’西南’移动到(-1,
+    -1)虽然在纬度上远离目标，但在经度上更接近。由于这两种选择最初看起来都不太有利，较小的偏差选择是’西南’，因为它至少与目标的南向部分对齐。” "动作"：“西南”
+- en: G.6 Prompt of InnerMonologue
+  id: totrans-194
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.6 内部独白提示
+- en: Q:  Scene:  You are now at (0, -27). Your current connection includes [’Southeast’, ’Southwest’, ’Northeast’, ’North’]. Southeast is at (1, -28), Unvisited. Southwest is at (-1, -28), Unvisited. Northeast is at (1, -26), Unvisited. North is at (0, -26), Visited. Now you infer that the goal is in South 14 steps.  Planner:  Head towards (0, -48) by moving in the general direction of South when possible.  Accoding to all information above, should the plan be updated?. If yes, show the new plan. According to your plan and current connection, choose one in [’Southeast’, ’Southwest’, ’Northeast’, ’North’] as your next action.    A:  "Robot Thought": "Continue moving South to reach the goal at (0, -48)."  "Successful Action": "False"  "yes_or_no": "yes"  "new_plan": "Head towards (0, -48) by moving in the general direction of South when possible. Since South is not directly available, choose Southwest as the closest direction to South."  "action": "Southwest"
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问：场景：你现在位于(0, -27)。你当前的连接包括[’东南’，’西南’，’东北’，’北’]。东南位于(1, -28)，未访问。西南位于(-1, -28)，未访问。东北位于(1,
+    -26)，未访问。北位于(0, -26)，已访问。现在你推断目标位于南方14步远。计划者：尽可能朝南方向移动，前往(0, -48)。根据上述所有信息，计划是否需要更新？如果需要，请展示新的计划。根据你的计划和当前连接，从[’东南’，’西南’，’东北’，’北’]中选择一个作为你的下一步行动。答：
+    "机器人思考"：“继续向南移动，达到目标位置(0, -48)。” "成功动作"：“False” "是或否"：“是” "新计划"：“尽可能朝南方向移动，前往(0,
+    -48)。由于南方方向不可直接前往，选择西南方向作为最接近南方的方向。” "动作"：“西南”
+- en: G.7 Prompt of ProgPrompt
+  id: totrans-196
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.7 ProgPrompt 提示
+- en: Q:  You are now at (25, 4). Your current connection includes [’West’, ’East’]. West is at (24, 4), Visited. East is at (26, 4), Unvisited. Now you infer that the goal is in Southeast 23 steps. The plan is:  def search_goal():      # 1: Move North because you can’t directly move East\n      walk(’North’)      # 2: If you are at an intersection, you should move East because the goal is in the East  assert(’at intersection’)  else: walk(’North’)      walk(’East’)      # 3: If you are at an intersection again, you should move South because you first move Northwhich deviates      # from the goal in y-coordinate      assert(’at intersection’)  else: walk(’East’)      walk(’South’)  According to all information above, should the plan be updated?. If yes, show the new plan. According to your plan and current connection, choose one in [’West’, ’East’] as your next action.    A:  "yes_or_no": "yes"  "new_plan":  "def search_goal():      # Since the goal is inferred to be at (45, -41) and the current connection includes ’Southwest’, ’East’.      # ’Southwest’ has been visited and does not lead closer to the goal direction. ’East’ moves closer in the x-      # coordinate and is unvisited. Choose ’East’ for exploration as it aligns better with the goal’s direction and      # is unvisited.  walk(’East’)"  "action": "East"
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Q: 你现在位于(25, 4)。你当前的连接包括[’西’, ’东’]。西位于(24, 4)，已访问。东位于(26, 4)，未访问。现在你推断目标位于东南方向23步。计划如下：  '
+- en: G.8 Prompt of CaP
+  id: totrans-198
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: G.8 CaP提示
+- en: Q:  You are now at (12, 4). Your current connection includes [’Southwest’, ’East’]. Southwest is at (11, 3), Visited. East is at (13, 4), Unvisited. Now you infer that the goal is in East 22 steps. The plan is:  def search_goal():      # step 1: Move North until an intersection because you can’t directly move East      while not get_to(’intersection’):  walk(’North’)      # step 2: If you are at an intersection, you should move East because the goal is in the East      if get_to(’intersection’):  assert can_go(’East’), walk(’North)  walk(’East’)      # step 3: If you are at an intersection again, you should move South because you first move North which      # deviates from the goal in y-coordinate      if get_to(’intersection’):  assert can_go(’South’), walk(’East’)  walk(’South’)  According to all information above, should the plan be updated?. If yes, show the new plan. According to your plan and current connection, choose one in [’Southwest’, ’East’] as your next action.    A:  "yes_or_no": "yes"  "new_plan":  "def explore_unknown():      # step 1: Choose a direction from the current connections that leads to an unvisited location      if can_go(\’East\’):  walk(\’East\’)      elif can_go(\’Northeast\’):  walk(\’Northeast\’)      elif can_go(\’Southeast\’):  walk(\’Southeast\’)      elif can_go(\’Southwest\’):  walk(\’Southwest\’)"  "action": "walk(\’East\’)"
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Q: 你现在位于(12, 4)。你当前的连接包括[’西南’, ’东’]。西南位于(11, 3)，已访问。东位于(13, 4)，未访问。现在你推断目标位于东边22步远。计划如下：  '
+- en: G.9 Prompt of DEPS
+  id: totrans-200
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'G.9 DEPS提示  '
+- en: Q:  You are now at (18, -8). Your current connection includes [’Southeast’, ’Northwest’]. Southeast is at (19, -9), Visited. Northwest is at (17, -7), Visited.  Planner:[’1. From the current location, move to the nearest unvisited area by choosing a different direction;’, ’2. Continue moving in this new direction as long as unvisited areas are available and it brings you closer to the goal;’, ’3. If the goal is not found and no further paths in the new direction are available, reassess the position and plan further steps based on the remaining unvisited areas.’]  According to all information above, should the plan be updated? If yes, show the new plan. According to your plan and current connection, choose one in [’Southeast’, ’Northwest’] as your next action.    A:  "Descriptor": "I failed on step 1 ’From the current location, move to the nearest unvisited area by choosing a different direction’. I’m now at (18, -8)."  "Explainer": "It’s because both available directions, Southeast and Northwest, lead to previously visited locations. I need to choose a new direction to find unvisited areas."  "yes_or_no": "yes"  "new_plan": ["1. From the current location, move to the nearest unvisited area by choosing a direction not previously available; 2. Continue moving in this new direction as long as unvisited areas are available and it brings you closer to the goal; 3. If the goal is not found and no further paths in the new direction are available, reassess the position and plan further steps based on the remaining unvisited areas."]  "action": "Northwest"
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL

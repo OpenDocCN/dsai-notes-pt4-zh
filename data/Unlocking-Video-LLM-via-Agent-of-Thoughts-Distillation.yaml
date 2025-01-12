@@ -1,0 +1,2181 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 11:52:20'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 11:52:20
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Unlocking Video-LLM via Agent-of-Thoughts Distillation
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 解锁视频-大型语言模型（Video-LLM）通过思想代理蒸馏
+- en: 来源：[https://arxiv.org/html/2412.01694/](https://arxiv.org/html/2412.01694/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2412.01694/](https://arxiv.org/html/2412.01694/)
+- en: Yudi Shi^(1,2), Shangzhe Di^(1,2), Qirui Chen^(1,2), Weidi Xie^(1,†)
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 施宇迪^(1,2), 狄尚哲^(1,2), 陈启睿^(1,2), 谢威迪^(1,†)
+- en: ¹School of Artificial Intelligence, Shanghai Jiao Tong University, China
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹人工智能学院，上海交通大学，中国
+- en: ²Coop. Medianet Innovation Center, Shanghai Jiao Tong University, China
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ²中共. Medianet创新中心，上海交通大学，中国
+- en: '[https://zhengrongz.github.io/AoTD/](https://zhengrongz.github.io/AoTD/)'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[https://zhengrongz.github.io/AoTD/](https://zhengrongz.github.io/AoTD/)'
+- en: Abstract
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: This paper tackles the problem of video question answering (VideoQA), a task
+    that often requires multi-step reasoning and a profound understanding of spatial-temporal
+    dynamics. While large video-language models perform well on benchmarks, they often
+    lack explainability and spatial-temporal grounding. In this paper, we propose
+    Agent-of-Thoughts Distillation (AoTD), a method that enhances models by incorporating
+    automatically generated Chain-of-Thoughts (CoTs) into the instruction-tuning process.
+    Specifically, we leverage an agent-based system to decompose complex questions
+    into sub-tasks, and address them with specialized vision models, the intermediate
+    results are then treated as reasoning chains. We also introduce a verification
+    mechanism using a large language model (LLM) to ensure the reliability of generated
+    CoTs. Extensive experiments demonstrate that AoTD improves the performance on
+    multiple-choice and open-ended benchmarks.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文解决了视频问答（VideoQA）问题，这是一个通常需要多步推理和深刻理解时空动态的任务。尽管大规模的视频-语言模型在基准测试中表现良好，但它们通常缺乏可解释性和时空基础。在本文中，我们提出了思想代理蒸馏（AoTD）方法，通过将自动生成的思维链（CoTs）整合到指令调优过程中，来增强模型。具体而言，我们利用基于代理的系统将复杂问题分解为子任务，并通过专业的视觉模型来解决这些子任务，然后将中间结果作为推理链处理。我们还引入了一个使用大型语言模型（LLM）来验证生成的思维链可靠性的机制。广泛的实验表明，AoTD在多选题和开放性基准测试上都提高了性能。
+- en: '^†^† $\dagger$: Corresponding author.![Refer to caption](img/c3c9ddfe7b3e19ba68240a95cc71d1f7.png)'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '^†^† $\dagger$: 通讯作者。![参见图例](img/c3c9ddfe7b3e19ba68240a95cc71d1f7.png)'
+- en: 'Figure 1: Our method, AoTD, distills multi-step reasoning and spatial-temporal
+    understanding into a single generative video-language model. When addressing complex
+    VideoQA tasks, the model trained with AoTD (as shown in (b)) enables to generate
+    a step-by-step reasoning to get the correct answer. In contrast, previous models
+    trained solely on question-answer pairs (as in (a)) generate only a final answer,
+    often without intermediate reasoning, which can lead to incorrect conclusions.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：我们的方法，AoTD，将多步推理和时空理解蒸馏为一个单一的生成视频-语言模型。在解决复杂的视频问答任务时，采用AoTD训练的模型（如图(b)所示）能够生成一步步的推理过程来得出正确答案。相比之下，仅基于问答对进行训练的先前模型（如图(a)所示）只生成最终答案，通常缺少中间推理，这可能导致错误的结论。
+- en: 1 Introduction
+  id: totrans-14
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Video Question Answering (VideoQA) refers to a critical task that offers a natural
+    interface for human-machine interaction through language [[47](https://arxiv.org/html/2412.01694v1#bib.bib47),
+    [41](https://arxiv.org/html/2412.01694v1#bib.bib41), [42](https://arxiv.org/html/2412.01694v1#bib.bib42),
+    [33](https://arxiv.org/html/2412.01694v1#bib.bib33)]. This synergy of visual content
+    and language enhances the accessibility of AI systems for the general public,
+    allowing users to query complex visual content with everyday language. By encompassing
+    tasks such as action recognition, object detection, and scene understanding, VideoQA
+    serves as a comprehensive benchmark for evaluating AI’s ability to interpret videos,
+    addressing the fundamental questions of ‘who’, ‘what’, ‘when’, and ‘where’ that
+    are crucial to understand daily life activities, pushing the boundaries of what
+    AI systems can interpret from dynamic visual content.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视频问答（VideoQA）是一个关键任务，它通过语言为人机交互提供了自然的接口[[47](https://arxiv.org/html/2412.01694v1#bib.bib47),
+    [41](https://arxiv.org/html/2412.01694v1#bib.bib41), [42](https://arxiv.org/html/2412.01694v1#bib.bib42),
+    [33](https://arxiv.org/html/2412.01694v1#bib.bib33)]。视觉内容与语言的结合提升了AI系统对普通大众的可访问性，使用户能够用日常语言查询复杂的视觉内容。通过涵盖动作识别、物体检测和场景理解等任务，VideoQA作为评估AI解释视频能力的综合基准，解决了“谁”、“什么”、“何时”和“在哪里”等基本问题，这些问题对于理解日常生活活动至关重要，推动了AI系统从动态视觉内容中解释能力的边界。
+- en: Recent literature has primarily explored two avenues in VideoQA. The first involves
+    training large video language models (Video-LLMs) through direct instruction-tuning,
+    using videos paired solely with corresponding questions and answers [[1](https://arxiv.org/html/2412.01694v1#bib.bib1),
+    [22](https://arxiv.org/html/2412.01694v1#bib.bib22), [24](https://arxiv.org/html/2412.01694v1#bib.bib24),
+    [51](https://arxiv.org/html/2412.01694v1#bib.bib51)]. While these models excel
+    on public benchmarks, they often lack explainability and struggle with spatial-temporal
+    grounding. This limitation hinders their ability to provide clear reasoning, which
+    is essential for real-world applications where transparency and interpretability
+    are critical [[29](https://arxiv.org/html/2412.01694v1#bib.bib29)].
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的文献主要探索了视频问答（VideoQA）中的两条途径。第一条途径是通过直接指令调优训练大型视频语言模型（Video-LLMs），使用仅与对应问题和答案配对的视频[[1](https://arxiv.org/html/2412.01694v1#bib.bib1),
+    [22](https://arxiv.org/html/2412.01694v1#bib.bib22), [24](https://arxiv.org/html/2412.01694v1#bib.bib24),
+    [51](https://arxiv.org/html/2412.01694v1#bib.bib51)]。虽然这些模型在公共基准测试中表现出色，但它们通常缺乏可解释性，并且在时空定位方面存在困难。这一限制阻碍了它们提供清晰推理的能力，而清晰推理对于现实应用至关重要，尤其是在透明性和可解释性至关重要的情况下[[29](https://arxiv.org/html/2412.01694v1#bib.bib29)]。
+- en: Conversely, an emerging approach utilizes agent-based systems that decompose
+    complex questions into manageable sub-tasks, each addressed by specialized tools [[37](https://arxiv.org/html/2412.01694v1#bib.bib37),
+    [15](https://arxiv.org/html/2412.01694v1#bib.bib15), [17](https://arxiv.org/html/2412.01694v1#bib.bib17)].
+    The results are then aggregated to form a coherent answer. Theoretically, such
+    approach naturally offers greater interpretability, as the reasoning process is
+    divided into explainable steps that can be independently assessed. However, our
+    experiments indicate that current video understanding tools are not strong enough
+    for building reliable agent-based systems. In addition, the high memory demands
+    and time-consuming nature of these systems present significant challenges for
+    their practical use.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，一种新兴方法利用基于代理的系统，将复杂问题分解为可管理的子任务，每个子任务由专门的工具处理[[37](https://arxiv.org/html/2412.01694v1#bib.bib37),
+    [15](https://arxiv.org/html/2412.01694v1#bib.bib15), [17](https://arxiv.org/html/2412.01694v1#bib.bib17)]。然后将结果汇总形成一致的答案。理论上，这种方法自然提供了更高的可解释性，因为推理过程被分解为可解释的步骤，可以独立评估。然而，我们的实验表明，当前的视频理解工具在构建可靠的基于代理的系统方面还不够强大。此外，这些系统对内存的高要求和耗时的特性为它们的实际应用带来了重大挑战。
+- en: In this paper, we aim to leverage the advantage of both research lines, enhancing
+    Video-LLM by integrating Chain-of-Thoughts (CoTs) into instruction-tuning, with
+    the CoTs being constructed from the outputs of specialized agent models, capturing
+    the step-by-step reasoning procedure, as illustrated in Figure [1](https://arxiv.org/html/2412.01694v1#S0.F1
+    "Figure 1 ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation").
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们旨在利用两种研究路线的优势，通过将**思维链**（Chain-of-Thoughts, CoTs）集成到指令调优中，来增强视频大语言模型（Video-LLM），其中思维链由专门的代理模型的输出构建，捕捉逐步推理过程，如图[1](https://arxiv.org/html/2412.01694v1#S0.F1
+    "Figure 1 ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation")所示。
+- en: In specific, we start by systematically evaluating the off-the-shelf models
+    tailored for atomic video understanding tasks, such as action recognition [[40](https://arxiv.org/html/2412.01694v1#bib.bib40),
+    [38](https://arxiv.org/html/2412.01694v1#bib.bib38)] and language grounding [[23](https://arxiv.org/html/2412.01694v1#bib.bib23)],
+    using well-annotated datasets. This comprehensive evaluation allows us to pinpoint
+    the most effective tools for each sub-task, thus laying a robust foundation for
+    constructing reliable chains. Moreover, this process also provides a critical
+    assessment of the broader capabilities of visual models across general and complex
+    scenes, offering valuable insights for future research within the community.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体而言，我们首先通过使用经过充分注释的数据集，系统地评估专门用于原子视频理解任务的现成模型，如动作识别[[40](https://arxiv.org/html/2412.01694v1#bib.bib40),
+    [38](https://arxiv.org/html/2412.01694v1#bib.bib38)]和语言定位[[23](https://arxiv.org/html/2412.01694v1#bib.bib23)]。这一全面的评估使我们能够找出每个子任务最有效的工具，从而为构建可靠的链条奠定了坚实的基础。此外，这一过程还对视觉模型在一般场景和复杂场景中的广泛能力进行了重要评估，为未来社区内的研究提供了宝贵的见解。
+- en: In addition, we introduce a verification mechanism using a large language model
+    (LLM), designed to assess if the generated CoTs adhere to a clear, step-by-step
+    reasoning process and incorporate essential information for answering the queries
+    effectively. This mechanism filters out low-quality or logically inconsistent
+    reasoning paths. The remaining CoTs that pass this verification are then distilled
+    into large generative video-language models, significantly enhancing both their
+    performance and interpretability, ultimately leading to the development of more
+    robust, accurate, and interpretable VideoQA systems.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们引入了一种使用大语言模型（LLM）的验证机制，旨在评估生成的推理链是否遵循清晰的逐步推理过程，并包含回答查询所需的关键信息。该机制过滤掉低质量或逻辑不一致的推理路径。通过验证的推理链将被提炼到大型生成视频语言模型中，显著提高其性能和可解释性，最终促进了更强大、更准确且更具可解释性的视频问答系统的开发。
+- en: 'In summary, our contributions are three-fold: (i) we propose a novel approach
+    for enhancing Video-LLMs by distilling high-quality CoTs into their instruction-tuning
+    process. These CoTs capture step-by-step reasoning paths, improving both the model’s
+    performance and its interpretability; (ii) to automatically construct the CoTs
+    for any dataset, we employ an agent-based system to decompose complex VideoQA
+    questions into simpler sub-tasks, leveraging off-the-shelf vision models to handle
+    each sub-task. The intermediate outputs from these models can therefore be collected
+    as CoTs for addressing the corresponding visual question; (iii) through extensive
+    experiments, we demonstrate that our distilled model outperforms existing methods
+    across both multiple-choice and open-ended VideoQA benchmarks, enabling to deliver
+    not only accurate answers but also comprehensive reasoning explanations.'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，我们的贡献有三方面：(i) 我们提出了一种新颖的方法，通过将高质量的推理链（CoTs）提炼到视频语言模型（Video-LLMs）的指令调优过程中，从而增强视频语言模型的性能。这些推理链捕捉了逐步推理路径，提升了模型的性能和可解释性；(ii)
+    为了自动构建任何数据集的推理链，我们采用基于代理的系统将复杂的视频问答（VideoQA）问题分解为更简单的子任务，利用现成的视觉模型来处理每个子任务。因此，这些模型的中间输出可以作为推理链，用于解决相应的视觉问题；(iii)
+    通过大量实验，我们展示了我们的提炼模型在多项选择和开放式视频问答基准上均优于现有方法，不仅能够提供准确的答案，还能提供全面的推理解释。
+- en: '![Refer to caption](img/1ab2b366a326da3dcfa85b0432c41677.png)'
+  id: totrans-22
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/1ab2b366a326da3dcfa85b0432c41677.png)'
+- en: 'Figure 2: Overview on Agent-of-Thoughts Distillation (AoTD). Step 1: Selecting
+    best-performing agents for each sub-task to construct an agent-based system. Step
+    2: Decomposing question into executable program and leveraging chosen models to
+    solve it sequentially to generate execution trace. Step 3: The execution trace
+    is converted and filtered by LLM to produce high quality natural language CoTs.
+    Step 4: Distilling CoTs into Video-LLM with two forms of prompt, allowing it achieve
+    a balance between concise answers and comprehensive rationales. The final model
+    is Video-LLM-AoTD.'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：思维代理推理链提炼（AoTD）概述。步骤1：为每个子任务选择表现最佳的代理，构建基于代理的系统。步骤2：将问题分解为可执行程序，并利用选定的模型按顺序解决它，生成执行痕迹。步骤3：执行痕迹通过大语言模型（LLM）转换和过滤，产生高质量的自然语言推理链。步骤4：将推理链提炼到视频语言模型中，使用两种提示形式，使其在简洁答案和全面推理之间实现平衡。最终模型是Video-LLM-AoTD。
+- en: 2 Related Work
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Video-language models (Video-LLMs). Most existing Video-LLMs are composed of
+    a pre-trained visual encoder (like CLIP [[34](https://arxiv.org/html/2412.01694v1#bib.bib34)]
+    or SigLIP [[50](https://arxiv.org/html/2412.01694v1#bib.bib50)]) to encode video
+    frames into a sequence of visual features, an adapter to transfer the visual features
+    to tokens that can be understood by the language model, and a pretrained LLM to
+    output the final response. Recent works such as VideoLLaMA2 [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)],
+    LLaVA-NeXT-Video [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)] and VideoChat2 [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)],
+    with their excellent architecture design and reasonable instruction-tuning data
+    collection, have achieved a new level of zero-shot results in VideoQA task. However,
+    current end-to-end models still lack interpretability for questions, as well as
+    the ability to think and visually process complex problems in multiple steps,
+    which is an important part for embodied learning and autonomous driving.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视频语言模型（Video-LLMs）。目前大多数现有的视频语言模型（Video-LLMs）由一个预训练的视觉编码器（如CLIP [[34](https://arxiv.org/html/2412.01694v1#bib.bib34)]
+    或 SigLIP [[50](https://arxiv.org/html/2412.01694v1#bib.bib50)]）组成，用来将视频帧编码为一系列视觉特征，一个适配器将视觉特征转换为语言模型可以理解的符号，最后由预训练的LLM输出最终响应。近期的研究如VideoLLaMA2
+    [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)]、LLaVA-NeXT-Video [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]和VideoChat2
+    [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)]，凭借其卓越的架构设计和合理的指令调优数据收集，在视频问答任务中达到了新的零-shot结果。然而，当前的端到端模型仍然缺乏对问题的可解释性，以及在多步骤中思考和视觉处理复杂问题的能力，这对于体现性学习和自动驾驶等领域是至关重要的。
+- en: Visual Programming and Agents. With the progress of LLMs, some recent works [[15](https://arxiv.org/html/2412.01694v1#bib.bib15),
+    [37](https://arxiv.org/html/2412.01694v1#bib.bib37), [5](https://arxiv.org/html/2412.01694v1#bib.bib5),
+    [43](https://arxiv.org/html/2412.01694v1#bib.bib43)] begin to try to use LLM as
+    planner to solve the complex reasoning task in real scenarios. They attempt to
+    decompose the question into some easier sub-questions, and use different specialist
+    models as agents to solve these sub-questions, and finally gather them to get
+    the answer of the raw question. MoReVQA [[27](https://arxiv.org/html/2412.01694v1#bib.bib27)]
+    proposes a multi-stage system, getting a strong zero-shot VideoQA ability while
+    is able to create interpretable intermediate outputs. VURF [[25](https://arxiv.org/html/2412.01694v1#bib.bib25)]
+    proposes a self-refinement method to resolve the LLM hallucinations to get a more
+    concise program based on the context cues. These models demonstrate a strong ability
+    to obtain trustworthy answers based on the intermediate evidence they get, but
+    they lag far behind the end-to-end model in terms of inference speed, and often
+    require some in-context examples to assist them in solving problems, which brings
+    a lot of trouble to the use of these agent-based models.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视觉编程与智能体。随着大语言模型（LLMs）的进展，一些近期的研究[[15](https://arxiv.org/html/2412.01694v1#bib.bib15)、[37](https://arxiv.org/html/2412.01694v1#bib.bib37)、[5](https://arxiv.org/html/2412.01694v1#bib.bib5)、[43](https://arxiv.org/html/2412.01694v1#bib.bib43)]开始尝试使用LLM作为规划器，解决现实场景中的复杂推理任务。它们试图将问题分解成一些更简单的子问题，并使用不同的专业模型作为智能体来解决这些子问题，最后将它们汇总得到原始问题的答案。MoReVQA
+    [[27](https://arxiv.org/html/2412.01694v1#bib.bib27)]提出了一个多阶段系统，获得了强大的零-shot视频问答能力，同时能够生成可解释的中间输出。VURF
+    [[25](https://arxiv.org/html/2412.01694v1#bib.bib25)]提出了一种自我优化方法，通过上下文线索来解决LLM的幻觉问题，从而获得更简洁的程序。这些模型展示了基于中间证据获得可信答案的强大能力，但在推理速度上远远落后于端到端模型，并且常常需要一些上下文示例来帮助解决问题，这给这些基于智能体的模型的使用带来了很大困扰。
+- en: Visual Chain-of-Thoughts (CoTs). The potential of Chain-of-Thought (CoT) reasoning [[39](https://arxiv.org/html/2412.01694v1#bib.bib39),
+    [44](https://arxiv.org/html/2412.01694v1#bib.bib44)] extends from NLP to the visual
+    domain, highlighting a growing interest in applying this approach across various
+    fields. Numerous studies have incorporated CoTs into visual understanding tasks [[53](https://arxiv.org/html/2412.01694v1#bib.bib53),
+    [30](https://arxiv.org/html/2412.01694v1#bib.bib30), [36](https://arxiv.org/html/2412.01694v1#bib.bib36),
+    [11](https://arxiv.org/html/2412.01694v1#bib.bib11)], utilizing powerful Multi-Modal
+    Large Language Models (MLLMs) for generating CoTs or adopting tool-based architectures
+    for sequential problem-solving. However, these methods encounter several limitations,
+    such as errors in CoT generation by MLLMs and high time and memory costs for tool-based
+    systems.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视觉链式思维（CoTs）。链式思维（CoT）推理的潜力[[39](https://arxiv.org/html/2412.01694v1#bib.bib39),
+    [44](https://arxiv.org/html/2412.01694v1#bib.bib44)]从自然语言处理（NLP）扩展到视觉领域，突显出在多个领域应用这一方法的日益兴趣。许多研究已将CoTs融入视觉理解任务中[[53](https://arxiv.org/html/2412.01694v1#bib.bib53),
+    [30](https://arxiv.org/html/2412.01694v1#bib.bib30), [36](https://arxiv.org/html/2412.01694v1#bib.bib36),
+    [11](https://arxiv.org/html/2412.01694v1#bib.bib11)]，利用强大的多模态大语言模型（MLLMs）生成CoTs，或采用基于工具的架构进行顺序问题解决。然而，这些方法面临一些限制，如MLLMs在CoT生成中的错误和基于工具的系统在时间和内存上的高成本。
+- en: Recent innovations, for example, Visual Program Distillation (VPD) [[16](https://arxiv.org/html/2412.01694v1#bib.bib16)]
+    and Fact [[10](https://arxiv.org/html/2412.01694v1#bib.bib10)] attempt to address
+    these issues by maintaining the accuracy and diversity of CoTs, while leveraging
+    MLLMs to generate them directly. These approaches decompose complex tasks into
+    code programs, call upon expert models to handle sub-tasks, and utilize the resulting
+    CoTs as training data to fine-tune visual-language models. This process significantly
+    improves the models’ ability to generate detailed rationales. Despite the progress
+    in image understanding, there remains a notable oversight in video domains, where
+    reasoning chains can be particularly effective due to the complex spatial-temporal
+    dynamics of video understanding tasks. This is the focus of our paper.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的创新，例如，视觉程序蒸馏（VPD）[[16](https://arxiv.org/html/2412.01694v1#bib.bib16)]和Fact
+    [[10](https://arxiv.org/html/2412.01694v1#bib.bib10)]，试图通过保持CoTs的准确性和多样性来解决这些问题，同时利用MLLMs直接生成CoTs。这些方法将复杂任务分解为代码程序，调用专家模型处理子任务，并利用生成的CoTs作为训练数据来微调视觉语言模型。这个过程显著提高了模型生成详细推理的能力。尽管在图像理解方面取得了一定进展，但在视频领域仍存在明显的忽视，因为在视频理解任务中，推理链式尤其有效，原因在于视频理解任务中的复杂时空动态。这正是我们论文的研究重点。
+- en: Concurrent Work. In the recent literature, we notice two work that share similar
+    idea with ours, specifically, Video-STaR [[54](https://arxiv.org/html/2412.01694v1#bib.bib54)]
+    construct CoTs using videos and existing labels for instruction-tuning, yet they
+    do not develop an agent-based system. Meanwhile, MotionEpic [[8](https://arxiv.org/html/2412.01694v1#bib.bib8)]
+    introduces a Video-of-Thought reasoning framework that integrates video spatial-temporal
+    scene graphs, marking a significant stride towards more nuanced video reasoning.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相关工作。在近期的文献中，我们注意到有两项工作与我们的想法相似，特别是，Video-STaR [[54](https://arxiv.org/html/2412.01694v1#bib.bib54)]利用视频和现有标签进行指令微调以构建CoTs，但他们并未开发基于代理的系统。同时，MotionEpic
+    [[8](https://arxiv.org/html/2412.01694v1#bib.bib8)]提出了一个思维视频推理框架，集成了视频时空场景图，标志着朝着更精细的视频推理迈出了重要步伐。
+- en: 3 Agent-of-Thoughts Distillation
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 思维体的蒸馏
+- en: In this paper, we propose a novel approach, termed Agent-of-Thoughts Distillation
+    (AoTD), to enhance the Video-LLMs by training them with multi-step Chain-of-Thoughts.
+    Specifically, we start by developing an agent-based video understanding system,
+    to generate multi-step reasoning chains that address complex video questions.
+    These reasoning chains are then distilled into one Video-LLM through instruction-tuning.
+    By combining the strengths of agent-based systems and large generative models,
+    our proposed AoTD enables to build more reliable and interpretable VideoQA systems.
+    Figure [2](https://arxiv.org/html/2412.01694v1#S1.F2 "Figure 2 ‣ 1 Introduction
+    ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation") illustrates the entire
+    process of our method.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了一种新的方法，称为思维链蒸馏（AoTD），通过多步思维链训练来增强视频大语言模型（Video-LLMs）。具体而言，我们首先开发了一个基于代理的视频理解系统，用于生成解决复杂视频问题的多步推理链。这些推理链随后通过指令调优蒸馏为一个视频大语言模型。通过结合基于代理的系统和大型生成模型的优势，我们提出的AoTD能够构建更可靠、可解释的视频问答系统。图[2](https://arxiv.org/html/2412.01694v1#S1.F2
+    "图 2 ‣ 1 引言 ‣ 通过思维链蒸馏解锁视频大语言模型")展示了我们方法的整个过程。
+- en: '![Refer to caption](img/0fbf2f841cd491a00eb192130c8decf4.png)'
+  id: totrans-32
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/0fbf2f841cd491a00eb192130c8decf4.png)'
+- en: 'Figure 3: Program execution process in an agent-based system. We uniformly
+    sample 32 frames from the video, and to ensure scale consistency, the frame ids
+    of key frames are normalized into these 32 frames. The blue boxes represent the
+    program execution steps, the red boxes denote the ground truth for each step.
+    The combination of red and yellow boxes represents one example process of evaluating
+    Object detection model candidates.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：基于代理的系统中的程序执行过程。我们从视频中均匀地抽取了32帧，并为了确保尺度一致性，将关键帧的帧ID归一化到这32帧中。蓝色框表示程序执行步骤，红色框表示每个步骤的真实值。红色和黄色框的结合表示评估目标检测模型候选项的一个过程示例。
+- en: 3.1 Problem Formulation
+  id: totrans-34
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 问题公式化
+- en: 'Given a video clip with $t$ frames, $\mathcal{V}=\{x_{1},\dots,x_{t}\}$, and
+    a set of $n$ questions $\mathcal{Q}=\{q_{1},q_{2},...,q_{n}\}$, our goal is to
+    train a Video-LLM capable of producing both concise answers and comprehensive
+    rationales. Depending on the suffix prompt $p_{s}$, the model can generate different
+    types of outputs. The process can be formulated as:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定一个包含$t$帧的视频片段，$\mathcal{V}=\{x_{1},\dots,x_{t}\}$，以及一组$n$个问题$\mathcal{Q}=\{q_{1},q_{2},...,q_{n}\}$，我们的目标是训练一个能够生成简洁答案和全面推理的Video-LLM。根据后缀提示$p_{s}$，模型可以生成不同类型的输出。这个过程可以公式化为：
+- en: '|  | $\displaystyle\{a_{i},\mathcal{S}_{i}\}=\Phi(\mathcal{V},q_{i},p_{s}),\text{%
+    \hskip 3.0pt}\mathcal{S}_{i}=\{\emptyset\}\text{ or }\{s_{i,1},\dots,s_{i,k}\}$
+    |  |'
+  id: totrans-36
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\{a_{i},\mathcal{S}_{i}\}=\Phi(\mathcal{V},q_{i},p_{s}),\text{%
+    \hskip 3.0pt}\mathcal{S}_{i}=\{\emptyset\}\text{ 或 } \{s_{i,1},\dots,s_{i,k}\}$
+    |  |'
+- en: where $q_{i}$ denotes the $i$-th question, $a_{i}$ is the answer in free-form
+    text, and $\mathcal{S}_{i}$ represents the rationale, consisting of the reasoning
+    process. If the prompt specifies to only generate the answer, $\mathcal{S}_{i}=\{\emptyset\}$.
+    Otherwise, if the prompt requires the generation of rationales, $\mathcal{S}_{i}=\{s_{i,1},\dots,s_{i,k}\}$,
+    where each $s_{i,j}$ corresponds to a reasoning step.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$q_{i}$表示第$i$个问题，$a_{i}$是自由文本形式的答案，$\mathcal{S}_{i}$表示推理过程。如果提示词仅指定生成答案，$\mathcal{S}_{i}=\{\emptyset\}$。否则，如果提示词要求生成推理过程，$\mathcal{S}_{i}=\{s_{i,1},\dots,s_{i,k}\}$，其中每个$s_{i,j}$对应一个推理步骤。
+- en: Discussion. Unlike existing models that are instruction-tuned on VideoQA datasets
+    using simple question-answer pairs, which bypass the intermediate thought process,
+    our approach emphasizes the importance of training with Chain-of-Thoughts (CoTs).
+    In the following section, we outline the process for generating high-quality CoTs
+    from existing VideoQA datasets.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 讨论。与现有的通过简单问答对在VideoQA数据集上进行指令调优的模型不同，我们的方法强调了使用思维链（CoTs）进行训练的重要性。在接下来的部分中，我们概述了如何从现有的VideoQA数据集中生成高质量的思维链。
+- en: 3.2 CoT Construction with Agent-based System
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 基于代理的系统中的思维链构建
+- en: Recent work, such as STAR [[41](https://arxiv.org/html/2412.01694v1#bib.bib41)],
+    has introduced the idea of employing executable symbolic programs, to directly
+    decompose questions into sub-tasks. When combined with scene graphs that contain
+    comprehensive video information from key frames—such as object locations, interactions,
+    and actions—these programs facilitate the generation of concise Chain-of-Thoughts
+    (CoTs) through direct execution of symbolic operations. However, datasets of this
+    nature are limited in scale, we therefore propose to first build an agent-based
+    system, capable of breaking down complex questions into simpler sub-tasks, and
+    the intermediate outputs from this system can then be employed to construct CoTs
+    for any existing VideoQA dataset.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的研究工作，如STAR [[41](https://arxiv.org/html/2412.01694v1#bib.bib41)]，提出了使用可执行符号程序的概念，直接将问题分解为子任务。当与包含关键帧的全面视频信息的场景图相结合时——例如物体位置、交互和动作——这些程序通过直接执行符号操作，促进了简洁的思维链（CoTs）的生成。然而，这类数据集的规模有限，因此我们建议首先构建一个基于智能体的系统，能够将复杂问题分解为更简单的子任务，之后可以利用该系统的中间输出构建任何现有视频问答数据集的CoTs。
+- en: '| Sub-task | Model name | Metric | Number (%) |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '| Sub-task | Model name | Metric | Number (%) |'
+- en: '| question decomposition | CodeQwen1.5-Chat (7B) [[2](https://arxiv.org/html/2412.01694v1#bib.bib2)]
+    |  | 52.7 |'
+  id: totrans-42
+  prefs: []
+  type: TYPE_TB
+  zh: '| question decomposition | CodeQwen1.5-Chat (7B) [[2](https://arxiv.org/html/2412.01694v1#bib.bib2)]
+    |  | 52.7 |'
+- en: '| GPT-3.5-Turbo [[31](https://arxiv.org/html/2412.01694v1#bib.bib31)] | Acc
+    | 73.1 |'
+  id: totrans-43
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-Turbo [[31](https://arxiv.org/html/2412.01694v1#bib.bib31)] | Acc
+    | 73.1 |'
+- en: '| DeepSeek-Coder-Instruct (6.7B) [[6](https://arxiv.org/html/2412.01694v1#bib.bib6)]
+    |  | 85.7 |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '| DeepSeek-Coder-Instruct (6.7B) [[6](https://arxiv.org/html/2412.01694v1#bib.bib6)]
+    |  | 85.7 |'
+- en: '| object detection | OWL-ViT v1 [[26](https://arxiv.org/html/2412.01694v1#bib.bib26)]
+    |  | 47.3 |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| object detection | OWL-ViT v1 [[26](https://arxiv.org/html/2412.01694v1#bib.bib26)]
+    |  | 47.3 |'
+- en: '| GLIP [[20](https://arxiv.org/html/2412.01694v1#bib.bib20)] | IoU | 58.9 |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| GLIP [[20](https://arxiv.org/html/2412.01694v1#bib.bib20)] | IoU | 58.9 |'
+- en: '| OWL-ViT v2 [[28](https://arxiv.org/html/2412.01694v1#bib.bib28)] |  | 63.0
+    |'
+  id: totrans-47
+  prefs: []
+  type: TYPE_TB
+  zh: '| OWL-ViT v2 [[28](https://arxiv.org/html/2412.01694v1#bib.bib28)] |  | 63.0
+    |'
+- en: '| temporal grounding | LITA (13B) [[18](https://arxiv.org/html/2412.01694v1#bib.bib18)]
+    |  | 11.7 / 20.2 |'
+  id: totrans-48
+  prefs: []
+  type: TYPE_TB
+  zh: '| temporal grounding | LITA (13B) [[18](https://arxiv.org/html/2412.01694v1#bib.bib18)]
+    |  | 11.7 / 20.2 |'
+- en: '| TimeChat (7B) [[35](https://arxiv.org/html/2412.01694v1#bib.bib35)] | IoU
+    / Recall | 13.9 / 23.1 |'
+  id: totrans-49
+  prefs: []
+  type: TYPE_TB
+  zh: '| TimeChat (7B) [[35](https://arxiv.org/html/2412.01694v1#bib.bib35)] | IoU
+    / Recall | 13.9 / 23.1 |'
+- en: '| UniVTG [[23](https://arxiv.org/html/2412.01694v1#bib.bib23)] |  | 24.7 /
+    35.3 |'
+  id: totrans-50
+  prefs: []
+  type: TYPE_TB
+  zh: '| UniVTG [[23](https://arxiv.org/html/2412.01694v1#bib.bib23)] |  | 24.7 /
+    35.3 |'
+- en: '| action recognition | InternVideo2 (1B) [[38](https://arxiv.org/html/2412.01694v1#bib.bib38)]
+    |  | 7.6 |'
+  id: totrans-51
+  prefs: []
+  type: TYPE_TB
+  zh: '| action recognition | InternVideo2 (1B) [[38](https://arxiv.org/html/2412.01694v1#bib.bib38)]
+    |  | 7.6 |'
+- en: '| Open-VCLIP [[40](https://arxiv.org/html/2412.01694v1#bib.bib40)] | Top1-Acc
+    | 8.9 |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '| Open-VCLIP [[40](https://arxiv.org/html/2412.01694v1#bib.bib40)] | Top1-Acc
+    | 8.9 |'
+- en: '| LLaVA-NeXT-Video-DPO (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    |  | 18.2 |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video-DPO (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    |  | 18.2 |'
+- en: '| question answering | LLaMA-VID (7B) [[21](https://arxiv.org/html/2412.01694v1#bib.bib21)]
+    |  | 43.5 |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| question answering | LLaMA-VID (7B) [[21](https://arxiv.org/html/2412.01694v1#bib.bib21)]
+    |  | 43.5 |'
+- en: '| SeViLA [[46](https://arxiv.org/html/2412.01694v1#bib.bib46)] | Acc | 46.5
+    |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| SeViLA [[46](https://arxiv.org/html/2412.01694v1#bib.bib46)] | Acc | 46.5
+    |'
+- en: '| LLaVA-NeXT-Video-DPO (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    |  | 53.4 |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video-DPO (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    |  | 53.4 |'
+- en: 'Table 1: Sub-tasks definition and evaluation results. We choose 3 model candidates
+    for each sub-task and evaluate them in STAR training set with the corresponding
+    metrics. Models with best performance are placed at the bottom of each column.'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：子任务定义和评估结果。我们为每个子任务选择了3个模型候选，并使用相应的度量标准在STAR训练集上进行评估。表现最好的模型被放置在每列的底部。
+- en: Agent-based VideoQA. Assuming we are given a video input ($\mathcal{V}$), questions ($\mathcal{Q}$),
+    and a set of visual models ($\mathcal{M}=\{\phi_{\text{act}},\phi_{\text{det}},\ldots,\phi_{\text{qa}}\}$),
+    an LLM-based agent core ($\pi(\cdot)$) processes the question along with the documentation
+    of the visual models ($\mathcal{T}$), which includes variables and functionalities.
+    The agent subsequently decomposes the question into sub-tasks formatted as Python
+    code, and resolves them by invoking the appropriate visual models through function
+    calls. It is important to note that the visual models can be arranged in various
+    orders depending on the specific question, ensuring flexibility in problem-solving.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于代理的视频问答（VideoQA）。假设我们给定了一个视频输入 ($\mathcal{V}$)、问题 ($\mathcal{Q}$)和一组视觉模型 ($\mathcal{M}=\{\phi_{\text{act}},\phi_{\text{det}},\ldots,\phi_{\text{qa}}\}$)，一个基于大型语言模型（LLM）的代理核心 ($\pi(\cdot)$)会处理问题，并结合视觉模型的文档 ($\mathcal{T}$)，其中包含变量和功能。随后，代理将问题分解为以Python代码格式表示的子任务，并通过函数调用来解决这些子任务。需要注意的是，视觉模型可以根据具体问题的需求以不同的顺序排列，从而确保在解决问题时具有灵活性。
+- en: 'Specifically, as illustrated by the example in Figure [3](https://arxiv.org/html/2412.01694v1#S3.F3
+    "Figure 3 ‣ 3 Agent-of-Thoughts Distillation ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation"), the question is first decomposed into a series of sub-tasks, including
+    temporal grounding, object detection, and question answering. The corresponding
+    specialized models are then executed sequentially to address these sub-tasks,
+    ultimately yielding the final answer $y_{i}$:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体来说，如图 [3](https://arxiv.org/html/2412.01694v1#S3.F3 "图 3 ‣ 3 思维代理蒸馏 ‣ 通过思维代理蒸馏解锁视频-LLM")所示，问题首先被分解成一系列子任务，包括时间基础、物体检测和问题回答。然后，相应的专业模型会按顺序执行，以解决这些子任务，最终得出最终答案
+    $y_{i}$：
+- en: '|  | $\displaystyle\{\phi_{\text{ground}},\phi_{\text{det}},\phi_{\text{qa}}\}:=\pi(%
+    q_{i},\mathcal{T}),$ |  |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\{\phi_{\text{ground}},\phi_{\text{det}},\phi_{\text{qa}}\}:=\pi(%
+    q_{i},\mathcal{T}),$ |  |'
+- en: '|  | $\displaystyle y_{i}=\phi_{\text{ground}}(\mathcal{V})\rightarrow\phi_{\text{%
+    det}}(\mathcal{V})\rightarrow\phi_{\text{qa}}(\mathcal{V})$ |  |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle y_{i}=\phi_{\text{ground}}(\mathcal{V})\rightarrow\phi_{\text{%
+    det}}(\mathcal{V})\rightarrow\phi_{\text{qa}}(\mathcal{V})$ |  |'
+- en: CoT Construction. To ensure the correctness of outputs at all the intermediate
+    steps, we leverage the training set from STAR for hyperparameter tuning, enabling
+    us to identify the most effective model for each sub-task within the agent-based
+    system. By following the provided programs, we evaluate the performance of the
+    corresponding vision models on tasks such as object detection and action recognition.
+    Given the availability of complete reasoning chains, we independently assess each
+    sub-task using ground truth data for all preceding steps.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 思维链构建（CoT）。为了确保所有中间步骤输出的正确性，我们利用STAR的训练集进行超参数调优，从而使我们能够为代理系统中的每个子任务识别最有效的模型。通过遵循提供的程序，我们评估相应视觉模型在物体检测和动作识别等任务上的表现。鉴于完整推理链的可用性，我们使用所有先前步骤的真实数据独立评估每个子任务。
+- en: As shown in Table [1](https://arxiv.org/html/2412.01694v1#S3.T1 "Table 1 ‣ 3.2
+    CoT Construction with Agent-based System ‣ 3 Agent-of-Thoughts Distillation ‣
+    Unlocking Video-LLM via Agent-of-Thoughts Distillation"), we present the evaluation
+    results for the various sub-tasks. Specifically, for question decomposition, we
+    compare several code LLMs, with DeepSeek-Coder-Instruct achieving the highest
+    performance, outperforming even GPT-3.5-Turbo. In object detection, OWL-ViT v2
+    records the highest Intersection over Union (IoU) score, showcasing its superior
+    open-vocabulary detection capability. The results for temporal grounding indicate
+    that while UniVTG leads in performance, there remains a need for further advancements
+    in this area. In action recognition, our evaluations show that generative models
+    outperformed discriminative models, likely due to the fine-grained action list
+    provided by the STAR dataset. However, the performance of both model types reveals
+    significant room for improvement. Finally, in the one-hop question answering sub-task,
+    all models perform admirably, with LLaVA-NeXT-Video-DPO standing out as a top
+    performer, consistent with its strong results on other benchmarks.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如表格 [1](https://arxiv.org/html/2412.01694v1#S3.T1 "Table 1 ‣ 3.2 CoT Construction
+    with Agent-based System ‣ 3 Agent-of-Thoughts Distillation ‣ Unlocking Video-LLM
+    via Agent-of-Thoughts Distillation") 所示，我们展示了各个子任务的评估结果。具体来说，在问题分解方面，我们比较了几种代码
+    LLM，其中 DeepSeek-Coder-Instruct 的表现最佳，甚至超过了 GPT-3.5-Turbo。在物体检测方面，OWL-ViT v2 记录了最高的交并比（IoU）分数，展示了其出色的开放词汇检测能力。时间定位的结果表明，尽管
+    UniVTG 在性能上领先，但该领域仍需进一步发展。在动作识别方面，我们的评估显示生成模型优于判别模型，这可能是由于 STAR 数据集提供的细粒度动作列表。然而，两个模型类型的表现都显示出显著的改进空间。最后，在单跳问答子任务中，所有模型表现出色，其中
+    LLaVA-NeXT-Video-DPO 脱颖而出，作为顶级表现者，其在其他基准上的强劲表现得到了验证。
+- en: With these high-performing models, we implement the agent-based approach on
+    VideoQA datasets that consist solely of QA pairs. During the execution of the
+    programs, we record all intermediate outputs to construct the CoTs. Since the
+    outputs from these vision models vary in format—such as bounding boxes and free-form
+    text—we employ another LLM to translate the execution trace into natural language
+    for better use in the distillation process. Detailed examples are provided in
+    Appendix [C](https://arxiv.org/html/2412.01694v1#A3 "Appendix C More Results ‣
+    Unlocking Video-LLM via Agent-of-Thoughts Distillation").
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用这些高性能模型，我们在仅包含问答对的 VideoQA 数据集上实现了基于代理的方法。在程序执行过程中，我们记录所有中间输出以构建 CoT（思维链）。由于这些视觉模型的输出格式各异——例如边界框和自由形式文本——我们使用另一个大型语言模型（LLM）将执行痕迹转换为自然语言，以便更好地在蒸馏过程中使用。详细示例请参见附录
+    [C](https://arxiv.org/html/2412.01694v1#A3 "Appendix C More Results ‣ Unlocking
+    Video-LLM via Agent-of-Thoughts Distillation")。
+- en: 3.3 CoT Verification
+  id: totrans-65
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 CoT 验证
+- en: 'To refine the quality of reasoning chains for VideoQA samples, we implement
+    a two-step verification: (i) we filter execution traces to retain only those,
+    where the program can reach correct output. For multiple-choice datasets, the
+    output must match the correct answer exactly, while for open-ended datasets, we
+    prompt the LLM to verify correctness, accounting for format differences; (ii)
+    we prompt the LLM to evaluate the logical coherence and usefulness of the reasoning
+    chains in solving the problem. The model assesses whether the CoTs follow a clear,
+    step-by-step reasoning process and provides a binary evaluation (‘Yes’ or ‘No’)
+    to indicate their quality (detailed prompts are included in Appendix [D](https://arxiv.org/html/2412.01694v1#A4
+    "Appendix D Prompts ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation")).
+    This two-step approach ensures that only high-quality CoTs are retained for further
+    distillation.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了提升 VideoQA 样本推理链的质量，我们实施了两步验证：（i）我们过滤执行痕迹，仅保留那些程序能够产生正确输出的痕迹。对于多选数据集，输出必须与正确答案完全匹配；而对于开放式数据集，我们提示
+    LLM 验证正确性，并考虑格式差异；（ii）我们提示 LLM 评估推理链在解决问题时的逻辑一致性和实用性。模型评估 CoT 是否遵循清晰的逐步推理过程，并提供二元评估（‘是’或‘否’）来表示其质量（详细提示请参见附录
+    [D](https://arxiv.org/html/2412.01694v1#A4 "Appendix D Prompts ‣ Unlocking Video-LLM
+    via Agent-of-Thoughts Distillation")）。这种两步验证方法确保只有高质量的 CoT 被保留下来，供进一步蒸馏使用。
+- en: In Table [2](https://arxiv.org/html/2412.01694v1#S3.T2 "Table 2 ‣ 3.3 CoT Verification
+    ‣ 3 Agent-of-Thoughts Distillation ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation"), we provide the statistics for the remaining generated CoTs for
+    different datasets. We primarily select compositional QA datasets, as these require
+    the model to process spatial-temporal information from different events comprehensively.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在表[2](https://arxiv.org/html/2412.01694v1#S3.T2 "表2 ‣ 3.3 CoT验证 ‣ 3 思维代理蒸馏 ‣
+    通过思维代理蒸馏解锁视频-LLM")中，我们提供了不同数据集生成的剩余CoTs的统计信息。我们主要选择组合型QA数据集，因为这些数据集要求模型全面处理来自不同事件的空间-时间信息。
+- en: '| Dataset | Description | # Labels | # CoTs |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据集 | 描述 | 标签数量 | CoTs数量 |'
+- en: '| AGQA | Compositional | 25.0K | 5.4K |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| AGQA | 组合型 | 25.0K | 5.4K |'
+- en: '| ANetQA | Compositional | 25.0K | 3.6K |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| ANetQA | 组合型 | 25.0K | 3.6K |'
+- en: '| STAR | Compositional | 45.7K | 11.2K |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| STAR | 组合型 | 45.7K | 11.2K |'
+- en: '| NExT-QA | Temporal & Causal | 34.1K | 12.1K |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| NExT-QA | 时间与因果 | 34.1K | 12.1K |'
+- en: '| CLEVRER | Spatial & Temporal | 21.0K | - |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| CLEVRER | 空间与时间 | 21.0K | - |'
+- en: '| EgoQA | Ego-centric | 7.8K | - |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| EgoQA | 以自我为中心 | 7.8K | - |'
+- en: '| Total |  | 158.6K | 32.3K |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总计 |  | 158.6K | 32.3K |'
+- en: 'Table 2: Dataset statistics. The column “# Labels” indicates the number of
+    VideoQA pairs, which include the video, query, possible answers (multiple-choice),
+    and the correct answer. “# CoTs” refers to the number of CoTs generated using
+    our agent-based system for each dataset.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：数据集统计。列“标签数量”表示视频问答对的数量，其中包括视频、问题、可能的答案（多选）以及正确答案。“CoTs数量”指的是每个数据集通过我们的基于代理的系统生成的CoT数量。
+- en: '![Refer to caption](img/fbb8a65053654234583f2fe15daabb7d.png)'
+  id: totrans-77
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/fbb8a65053654234583f2fe15daabb7d.png)'
+- en: 'Figure 4: Visualization of rationales. LLaVA-NeXT-Video-AoTD can output rationales
+    containing both spatial-temporal grounding of key information and step-by-step
+    thinking process to solve the question.'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：推理可视化。LLaVA-NeXT-Video-AoTD可以输出包含关键内容的空间-时间基础和逐步思维过程的推理，以解决问题。
+- en: 3.4 Step-by-step Distillation
+  id: totrans-79
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 步骤性蒸馏
+- en: In this section, we describe the process of distilling the generated CoTs into
+    a Video-LLM. This distillation enhances the model’s ability for spatial-temporal
+    video understanding and multi-step reasoning, thereby improving its performance
+    on complex VideoQA tasks.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们描述了将生成的CoTs蒸馏到Video-LLM中的过程。此蒸馏过程增强了模型在空间-时间视频理解和多步骤推理方面的能力，从而提高了其在复杂视频问答任务中的表现。
+- en: 'In specific, using the generated CoTs, we can build the dataset $D=\{(\mathcal{V}_{j},q_{j},\hat{y}_{j},c_{j},p_{s})\}_{j=1}^{N}$,
+    where $N$ is the total number of samples in the distilling dataset, $\mathcal{V}_{j}$
+    is the video input, $q_{j}$ is the question, $\hat{y}_{j}$ is the ground-truth
+    answer, $c_{j}$ is the generated CoT, $p_{s}$ is the task-specific suffix prompt,
+    to distinguish different tasks, for example, for multiple-choice VQA, the prompt
+    can be: “Answer with the option’s letter from the given choices directly and only
+    give the best option”, and for open-ended VQA, the prompt can be: “Answer in one
+    word or phrase”. Please refer to detailed prompts in Appendix [D](https://arxiv.org/html/2412.01694v1#A4
+    "Appendix D Prompts ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation").'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体来说，使用生成的CoTs，我们可以构建数据集$D=\{(\mathcal{V}_{j},q_{j},\hat{y}_{j},c_{j},p_{s})\}_{j=1}^{N}$，其中$N$是蒸馏数据集中的样本总数，$\mathcal{V}_{j}$是视频输入，$q_{j}$是问题，$\hat{y}_{j}$是真实答案，$c_{j}$是生成的CoT，$p_{s}$是任务特定的后缀提示符，用于区分不同的任务。例如，对于多选VQA，提示符可以是：“直接回答给定选项中的字母，并只给出最佳选项”；对于开放式VQA，提示符可以是：“用一个单词或短语回答”。请参阅附录[D](https://arxiv.org/html/2412.01694v1#A4
+    "附录D 提示符 ‣ 通过思维代理蒸馏解锁视频-LLM")中的详细提示符。
+- en: 'At distillation stage, we minimize the cross-entropy loss of predicting both
+    the answer and the CoTs, we replace the suffix prompt $p_{s}$ with “Explain the
+    rationale to answer the question”, to indicate whether we want a question answer
+    or a rationale to explain the thinking steps. Following [[10](https://arxiv.org/html/2412.01694v1#bib.bib10)]
+    and [[16](https://arxiv.org/html/2412.01694v1#bib.bib16)], our optimization objective
+    is:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在蒸馏阶段，我们最小化预测答案和CoTs的交叉熵损失，我们将后缀提示符$p_{s}$替换为“解释思路以回答问题”，以指示我们是需要问题答案还是需要解释思维步骤的理由。参考[[10](https://arxiv.org/html/2412.01694v1#bib.bib10)]和[[16](https://arxiv.org/html/2412.01694v1#bib.bib16)]，我们的优化目标是：
+- en: '|  | $\displaystyle\mathcal{L}$ | $\displaystyle=\mathcal{L}_{\text{label}}+\lambda\mathcal{L}_{\text{rationale}}$
+    |  |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\mathcal{L}$ | $\displaystyle=\mathcal{L}_{\text{label}}+\lambda\mathcal{L}_{\text{rationale}}$
+    |  |'
+- en: '|  |  | $\displaystyle=\sum_{j=1}^{N}\ell(\Phi(\mathcal{V}_{j},q_{j},p_{s}),\hat{y}_{j}%
+    )+\lambda\ell(\Phi(\mathcal{V}_{j},q_{j},p_{s}),c_{j})$ |  |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | $\displaystyle=\sum_{j=1}^{N}\ell(\Phi(\mathcal{V}_{j},q_{j},p_{s}),\hat{y}_{j}%
+    )+\lambda\ell(\Phi(\mathcal{V}_{j},q_{j},p_{s}),c_{j})$ |  |'
+- en: Here, we set $\lambda$ to 1 to ensure the importance of answer and rationale
+    are equally considered. Notice that, not all the QA pairs can generate qualified
+    CoT. In that case, the $\mathcal{L}_{\text{rationale}}$ will be set to 0.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们将$\lambda$设置为1，以确保回答和推理的重要性被平等考虑。请注意，并非所有的QA对都能生成合格的CoT。在这种情况下，$\mathcal{L}_{\text{rationale}}$将设置为0。
+- en: '| Dataset | Size | Type | Train | Eval |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据集 | 大小 | 类型 | 训练 | 评估 |'
+- en: '| train | eval |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 训练 | 评估 |'
+- en: '| MC-VQA |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| MC-VQA |'
+- en: '| STAR [[41](https://arxiv.org/html/2412.01694v1#bib.bib41)] | 45.7K | 7.1K
+    | Compositional | ✓ | ✓ |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| STAR [[41](https://arxiv.org/html/2412.01694v1#bib.bib41)] | 45.7K | 7.1K
+    | 组合型 | ✓ | ✓ |'
+- en: '| NExT-QA [[42](https://arxiv.org/html/2412.01694v1#bib.bib42)] | 34.1K | 5.0K
+    | Temporal & Causal | ✓ | ✓ |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| NExT-QA [[42](https://arxiv.org/html/2412.01694v1#bib.bib42)] | 34.1K | 5.0K
+    | 时序与因果 | ✓ | ✓ |'
+- en: '| CLEVRER [[45](https://arxiv.org/html/2412.01694v1#bib.bib45)] | 21.0K | -
+    | Spatial-temporal | ✓ | ✗ |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| CLEVRER [[45](https://arxiv.org/html/2412.01694v1#bib.bib45)] | 21.0K | -
+    | 时空型 | ✓ | ✗ |'
+- en: '| Perception-Test [[33](https://arxiv.org/html/2412.01694v1#bib.bib33)] | -
+    | 11.5K | General | ✗ | ✓ |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| Perception-Test [[33](https://arxiv.org/html/2412.01694v1#bib.bib33)] | -
+    | 11.5K | 通用 | ✗ | ✓ |'
+- en: '| MVBench [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)] | - | 2.0K
+    | General | ✗ | ✓ |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| MVBench [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)] | - | 2.0K
+    | 通用 | ✗ | ✓ |'
+- en: '| VideoMME [[9](https://arxiv.org/html/2412.01694v1#bib.bib9)] | - | 2.7K |
+    General | ✗ | ✓ |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| VideoMME [[9](https://arxiv.org/html/2412.01694v1#bib.bib9)] | - | 2.7K |
+    通用 | ✗ | ✓ |'
+- en: '| OE-VQA |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| OE-VQA |'
+- en: '| AGQA [[14](https://arxiv.org/html/2412.01694v1#bib.bib14)] | 25.0K | 2.0K
+    | Compositional | ✓ | ✓ |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| AGQA [[14](https://arxiv.org/html/2412.01694v1#bib.bib14)] | 25.0K | 2.0K
+    | 组合型 | ✓ | ✓ |'
+- en: '| ANetQA [[48](https://arxiv.org/html/2412.01694v1#bib.bib48)] | 25.0K | 2.0K
+    | Compositional | ✓ | ✓ |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| ANetQA [[48](https://arxiv.org/html/2412.01694v1#bib.bib48)] | 25.0K | 2.0K
+    | 组合型 | ✓ | ✓ |'
+- en: '| EgoQA [[13](https://arxiv.org/html/2412.01694v1#bib.bib13)] | 7.8K | - |
+    Ego-centric | ✓ | ✗ |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| EgoQA [[13](https://arxiv.org/html/2412.01694v1#bib.bib13)] | 7.8K | - |
+    自我中心 | ✓ | ✗ |'
+- en: '| Activitynet-QA [[47](https://arxiv.org/html/2412.01694v1#bib.bib47)] | -
+    | 8.0K | General | ✗ | ✓ |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| Activitynet-QA [[47](https://arxiv.org/html/2412.01694v1#bib.bib47)] | -
+    | 8.0K | 通用 | ✗ | ✓ |'
+- en: '| Video-ChatGPT [[24](https://arxiv.org/html/2412.01694v1#bib.bib24)] | - |
+    3.0K | General | ✗ | ✓ |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| Video-ChatGPT [[24](https://arxiv.org/html/2412.01694v1#bib.bib24)] | - |
+    3.0K | 通用 | ✗ | ✓ |'
+- en: 'Table 3: Training and evaluation datasets statics.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：训练与评估数据集统计信息。
+- en: '| Model | MVBench | VideoMME | STAR | NExT-QA | Perception-Test |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | MVBench | VideoMME | STAR | NExT-QA | Perception-Test |'
+- en: '| (Acc.) | (Acc.) | (Acc.) | (Acc.) | (Acc.) |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| (准确率) | (准确率) | (准确率) | (准确率) | (准确率) |'
+- en: '| Proprietary Models |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| 专有模型 |'
+- en: '| Gemini 1.5 Pro [[12](https://arxiv.org/html/2412.01694v1#bib.bib12)] | -
+    | 75.0 | - | - | - |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| Gemini 1.5 Pro [[12](https://arxiv.org/html/2412.01694v1#bib.bib12)] | -
+    | 75.0 | - | - | - |'
+- en: '| GPT4-V [[32](https://arxiv.org/html/2412.01694v1#bib.bib32)] | 43.7 | 59.9
+    | - | - | - |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT4-V [[32](https://arxiv.org/html/2412.01694v1#bib.bib32)] | 43.7 | 59.9
+    | - | - | - |'
+- en: '| Open-source Models |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| 开源模型 |'
+- en: '| LLaMA-VID (7B) [[21](https://arxiv.org/html/2412.01694v1#bib.bib21)] | 41.9
+    | 25.9 | - | - | 44.6 |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaMA-VID (7B) [[21](https://arxiv.org/html/2412.01694v1#bib.bib21)] | 41.9
+    | 25.9 | - | - | 44.6 |'
+- en: '| Video-LLaVA (7B) [[22](https://arxiv.org/html/2412.01694v1#bib.bib22)] |
+    41.0 | 39.9 | - | - | 44.3 |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| Video-LLaVA (7B) [[22](https://arxiv.org/html/2412.01694v1#bib.bib22)] |
+    41.0 | 39.9 | - | - | 44.3 |'
+- en: '| VideoChat2 (7B) [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)] | 51.1
+    | 33.7 | 59.0^* | 68.6^* | 47.3 |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| VideoChat2 (7B) [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)] | 51.1
+    | 33.7 | 59.0^* | 68.6^* | 47.3 |'
+- en: '| VideoLLaMA2 (7B) [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)] | 53.4
+    | 45.1 | 58.5^* | 62.3^* | 49.6 |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| VideoLLaMA2 (7B) [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)] | 53.4
+    | 45.1 | 58.5^* | 62.3^* | 49.6 |'
+- en: '| LLaVA-NeXT-Video (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    | 46.5^* | 41.0^* | 52.4^* | 61.6^* | 47.5^* |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    | 46.5^* | 41.0^* | 52.4^* | 61.6^* | 47.5^* |'
+- en: '| LLaVA-NeXT-Video-Instruct (7B) | 53.4 | 43.2 | 72.2 | 77.1 | 50.3 |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video-Instruct (7B) | 53.4 | 43.2 | 72.2 | 77.1 | 50.3 |'
+- en: '| LLaVA-NeXT-Video-AoTD (7B) | 55.6 | 45.0 | 74.3 | 77.6 | 50.6 |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video-AoTD (7B) | 55.6 | 45.0 | 74.3 | 77.6 | 50.6 |'
+- en: 'Table 4: Comparison with Video-LLMs on MC-VQA benchmarks. LLaVA-NeXT-Video-AoTD
+    outperforms all other baselines the and the version without CoT distillation.
+    * means results reproduced by ourseleves. Results without signs are retrieved
+    from [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)].'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：与 Video-LLMs 在 MC-VQA 基准上的比较。LLaVA-NeXT-Video-AoTD 超越了所有其他基线模型及其没有 CoT 蒸馏的版本。*
+    表示结果由我们自己复现。没有标记的结果来自 [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)]。
+- en: 4 Experiments
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验
+- en: In this section, we present the experimental setup (Sec. [4.1](https://arxiv.org/html/2412.01694v1#S4.SS1
+    "4.1 Experimental Setup ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation")) and results on various VideoQA benchmarks (Sec. [4.2](https://arxiv.org/html/2412.01694v1#S4.SS2
+    "4.2 Quantitative Results ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation")). Extensive ablation studies have also been conducted to further
+    examine the contributions of our approach in Sec. [4.3](https://arxiv.org/html/2412.01694v1#S4.SS3
+    "4.3 Ablation Study ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation"), and an evaluation on the quality of rationales generated by the
+    distilled model is made in Sec. [4.4](https://arxiv.org/html/2412.01694v1#S4.SS4
+    "4.4 Evaluation on Rationales ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation").
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了实验设置（第[4.1](https://arxiv.org/html/2412.01694v1#S4.SS1 "4.1 实验设置 ‣
+    4 实验 ‣ 通过思想代理蒸馏解锁视频-LLM")节）以及在各种视频问答基准上的结果（第[4.2](https://arxiv.org/html/2412.01694v1#S4.SS2
+    "4.2 定量结果 ‣ 4 实验 ‣ 通过思想代理蒸馏解锁视频-LLM")节）。我们还进行了广泛的消融研究，以进一步检查我们方法的贡献，详见第[4.3](https://arxiv.org/html/2412.01694v1#S4.SS3
+    "4.3 消融研究 ‣ 4 实验 ‣ 通过思想代理蒸馏解锁视频-LLM")节，并在第[4.4](https://arxiv.org/html/2412.01694v1#S4.SS4
+    "4.4 合理性评估 ‣ 4 实验 ‣ 通过思想代理蒸馏解锁视频-LLM")节对蒸馏模型生成的推理过程质量进行了评估。
+- en: 4.1 Experimental Setup
+  id: totrans-118
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 实验设置
+- en: Base model. We use LLaVA-NeXT-Video (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    (LNV for short) as base Video-LLM, which has shown remarkable performance on image-centric
+    tasks, for example image question answering [[49](https://arxiv.org/html/2412.01694v1#bib.bib49)].
+    We present comparison on naive instruction-tuning with video question answering
+    dataset or with additional CoT distillation. For CoT conversion and verification,
+    we prompt LLaMA-3.1-8B with the manually-designed instruction and some in-context
+    examples. Detailed prompts are provided in Appendix [D](https://arxiv.org/html/2412.01694v1#A4
+    "Appendix D Prompts ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation").
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基础模型。我们使用LLaVA-NeXT-Video (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]（简称LNV）作为基础视频LLM，该模型在图像相关任务中展现了显著的表现，例如图像问答[[49](https://arxiv.org/html/2412.01694v1#bib.bib49)]。我们展示了在视频问答数据集上进行简单指令微调与额外CoT蒸馏的比较。对于CoT转换与验证，我们使用手动设计的指令和一些上下文示例来提示LLaMA-3.1-8B。详细的提示请参见附录[D](https://arxiv.org/html/2412.01694v1#A4
+    "附录D 提示 ‣ 通过思想代理蒸馏解锁视频-LLM")。
+- en: Instruction tuning. We utilize both multiple-choice and open-ended QA data,
+    along with the generated CoTs, to fine-tune the base video question answering
+    model, as summarised in Table [2](https://arxiv.org/html/2412.01694v1#S3.T2 "Table
+    2 ‣ 3.3 CoT Verification ‣ 3 Agent-of-Thoughts Distillation ‣ Unlocking Video-LLM
+    via Agent-of-Thoughts Distillation"). The resulting distilled model is named LLaVA-NeXT-Video-AoTD
+    (LNV-AoTD for short). Additionally, as baseline, we also train another version
+    of the model using only the basic QA data, which we refer to as LLaVA-NeXT-Video-Instruct
+    (LNV-Instruct for short).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 指令微调。我们利用多项选择和开放式问答数据，并结合生成的CoT，来微调基础的视频问答模型，具体总结见表[2](https://arxiv.org/html/2412.01694v1#S3.T2
+    "表2 ‣ 3.3 CoT验证 ‣ 3 思想代理蒸馏 ‣ 通过思想代理蒸馏解锁视频-LLM")。最终得到的蒸馏模型命名为LLaVA-NeXT-Video-AoTD（简称LNV-AoTD）。此外，作为基线，我们还使用仅包含基本问答数据的另一版本进行训练，称之为LLaVA-NeXT-Video-Instruct（简称LNV-Instruct）。
+- en: Evaluation benchmarks. We conduct extensive evaluations on Multiple-Choice Video
+    QA (MC-VQA) and Open-Ended Video QA (OE-VQA). We report the top-1 accuracy for
+    all MC benchmarks, which means the proportion of the output equal to the answer.
+    We report a GPT-assessed Acc. and Score with the help of GPT-3.5-turbo-0613 for
+    all OE benchmarks. For each question, GPT delivers a binary decision indicating
+    whether the output is correct or incorrect, along with a similarity score reflecting
+    the degree of alignment between the output and the correct answer. The term ‘Acc.’
+    refers to the percentage of correct outputs, while ‘Score’ represents the average
+    similarity scores. For the evaluation on AGQA and ANetQA, due to the large volume
+    of test set, we test on a subset of samples. We evenly select the benchmark in-domain
+    and out-of-domain for testing to ensure a comprehensive and reasonable evaluation
+    of the model capability. Detailed statistics for evaluation benchmarks are shown
+    in Table [3](https://arxiv.org/html/2412.01694v1#S3.T3 "Table 3 ‣ 3.4 Step-by-step
+    Distillation ‣ 3 Agent-of-Thoughts Distillation ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation").
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估基准。我们对多项选择视频问答（MC-VQA）和开放式视频问答（OE-VQA）进行了广泛评估。对于所有MC基准，我们报告了Top-1准确率，即输出与答案相等的比例。对于所有OE基准，我们报告了GPT评估的准确率和得分，借助GPT-3.5-turbo-0613进行评估。对于每个问题，GPT会给出一个二元决策，表示输出是正确还是错误，并附上一个相似度得分，反映输出与正确答案之间的一致性程度。术语“Acc.”指的是正确输出的百分比，而“Score”表示平均相似度得分。对于AGQA和ANetQA的评估，由于测试集较大，我们在一个子集样本上进行测试。我们均衡选择基准的领域内样本和领域外样本进行测试，以确保对模型能力的全面和合理评估。评估基准的详细统计信息见表[3](https://arxiv.org/html/2412.01694v1#S3.T3
+    "Table 3 ‣ 3.4 Step-by-step Distillation ‣ 3 Agent-of-Thoughts Distillation ‣
+    Unlocking Video-LLM via Agent-of-Thoughts Distillation")。
+- en: 4.2 Quantitative Results
+  id: totrans-122
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 定量结果
+- en: 'We divide the comparison into two parts: the first focuses on comparing the
+    distilled model with other baselines, while the second examines the difference
+    between the instruct version and the AoTD version. Note that, the latter part
+    will be mainly compared and discussed, to demonstrate the model’s improvement
+    relative to its previous performance, as well as establishing the transferability
+    of the method across different models.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将比较分为两部分：第一部分侧重于将精炼后的模型与其他基线模型进行比较，第二部分则考察指令版本与AoTD版本之间的差异。需要注意的是，后者将作为主要的比较和讨论对象，以展示模型相较于之前表现的改进，并且证明该方法在不同模型之间的可迁移性。
+- en: 'MC-VQA performance. As shown in Table [4](https://arxiv.org/html/2412.01694v1#S3.T4
+    "Table 4 ‣ 3.4 Step-by-step Distillation ‣ 3 Agent-of-Thoughts Distillation ‣
+    Unlocking Video-LLM via Agent-of-Thoughts Distillation"), our LLaVA-NeXT-Video-AoTD
+    achieves superior performance across all benchmarks. Several key observations
+    can be made: (i) comparing to the base model, even a simple instruction-tuning
+    on certain VideoQA datasets significantly enhances the model’s question-answering
+    performance. This improvement is notable, as the base model was primarily trained
+    on static images and struggled with video understanding; (ii) our model, instruction-tuned
+    with CoT distillation, demonstrates further performance enhancements across all
+    benchmarks, particularly on the compositional VideoQA benchmark (STAR) and comprehensive
+    benchmarks (VideoMME, MVBench). This suggests that our AoTD method effectively
+    improves the model’s ability to address complex problems and interpret spatial-temporal
+    scenes; (iii) the distilled model consistently outperforms all other baselines
+    across almost all benchmarks, even when compared to more powerful models. This
+    finding shows that our method effectively bridges performance gaps created by
+    varying model components.'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MC-VQA性能。如表[4](https://arxiv.org/html/2412.01694v1#S3.T4 "Table 4 ‣ 3.4 Step-by-step
+    Distillation ‣ 3 Agent-of-Thoughts Distillation ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation")所示，我们的LLaVA-NeXT-Video-AoTD在所有基准测试中都表现优异。可以得出几个关键观察结果：(i) 与基础模型相比，即便是对某些VideoQA数据集进行简单的指令调优，也显著提高了模型的问答性能。这个改进非常明显，因为基础模型主要在静态图像上训练，并且在视频理解上存在困难；(ii)
+    我们的模型通过CoT蒸馏进行指令调优，在所有基准测试中进一步提升了性能，特别是在组合型VideoQA基准（STAR）和综合性基准（VideoMME、MVBench）上。这表明我们的AoTD方法有效提升了模型解决复杂问题和解读时空场景的能力；(iii)
+    精炼后的模型在几乎所有基准测试中都持续超越其他基线模型，即使与更强大的模型相比，这一发现表明我们的方法有效弥合了由不同模型组件造成的性能差距。
+- en: '| Model | ANetQA | AGQA | Video-ChatGPT (Score) | ActivityNet |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | ANetQA | AGQA | Video-ChatGPT（得分） | ActivityNet |'
+- en: '| (Acc./Score) | (Acc./Score) | Corr. | Deta. | Cont. | Temp. | Cons. | (Acc./Score)
+    |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| (准确率/得分) | (准确率/得分) | 相关性 | 差异 | 连贯性 | 温度 | 一致性 | (准确率/得分) |'
+- en: '| Proprietary Models |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| 专有模型 |'
+- en: '| Gemini 1.5 Pro [[12](https://arxiv.org/html/2412.01694v1#bib.bib12)] | -
+    | - | - | - | - | - | - | 56.7/- |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| Gemini 1.5 Pro [[12](https://arxiv.org/html/2412.01694v1#bib.bib12)] | -
+    | - | - | - | - | - | - | 56.7/- |'
+- en: '| GPT4-V [[32](https://arxiv.org/html/2412.01694v1#bib.bib32)] | - | - | 4.09
+    | 3.88 | 4.37 | 3.94 | 4.02 | 59.5/- |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT4-V [[32](https://arxiv.org/html/2412.01694v1#bib.bib32)] | - | - | 4.09
+    | 3.88 | 4.37 | 3.94 | 4.02 | 59.5/- |'
+- en: '| Open-Source Models |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| 开源模型 |'
+- en: '| VideoLLaMA (7B) [[51](https://arxiv.org/html/2412.01694v1#bib.bib51)] | -
+    | - | 1.96 | 2.18 | 2.16 | 1.82 | 1.79 | 12.4/1.1 |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| VideoLLaMA (7B) [[51](https://arxiv.org/html/2412.01694v1#bib.bib51)] | -
+    | - | 1.96 | 2.18 | 2.16 | 1.82 | 1.79 | 12.4/1.1 |'
+- en: '| Video-ChatGPT (7B) [[24](https://arxiv.org/html/2412.01694v1#bib.bib24)]
+    | - | - | 2.50 | 2.57 | 2.69 | 2.16 | 2.20 | 35.2/2.7 |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| Video-ChatGPT (7B) [[24](https://arxiv.org/html/2412.01694v1#bib.bib24)]
+    | - | - | 2.50 | 2.57 | 2.69 | 2.16 | 2.20 | 35.2/2.7 |'
+- en: '| LLaMA-VID (7B) [[21](https://arxiv.org/html/2412.01694v1#bib.bib21)] | -
+    | - | 2.96 | 3.00 | 3.53 | 2.46 | 2.51 | 47.4/3.3 |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaMA-VID (7B) [[21](https://arxiv.org/html/2412.01694v1#bib.bib21)] | -
+    | - | 2.96 | 3.00 | 3.53 | 2.46 | 2.51 | 47.4/3.3 |'
+- en: '| Video-LLaVA (7B) [[22](https://arxiv.org/html/2412.01694v1#bib.bib22)] |
+    - | - | 2.87 | 2.94 | 3.44 | 2.45 | 2.51 | 45.3/3.3 |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| Video-LLaVA (7B) [[22](https://arxiv.org/html/2412.01694v1#bib.bib22)] |
+    - | - | 2.87 | 2.94 | 3.44 | 2.45 | 2.51 | 45.3/3.3 |'
+- en: '| VideoChat2 (7B) [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)] | -
+    | - | 3.02 | 2.88 | 3.51 | 2.66 | 2.81 | 49.1/3.3 |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| VideoChat2 (7B) [[19](https://arxiv.org/html/2412.01694v1#bib.bib19)] | -
+    | - | 3.02 | 2.88 | 3.51 | 2.66 | 2.81 | 49.1/3.3 |'
+- en: '| VideoLLaMA2 (7B) [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)] | -
+    | - | 3.09 | 3.09 | 3.68 | 2.63 | 3.25 | 49.9/3.3 |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| VideoLLaMA2 (7B) [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)] | -
+    | - | 3.09 | 3.09 | 3.68 | 2.63 | 3.25 | 49.9/3.3 |'
+- en: '| LLaVA-NeXT-Video (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    | 46.4/3.3^* | 27.4/2.2^* | 3.26^* | 3.22^* | 3.77^* | 2.47^* | 2.99^* | 54.3/3.2^*
+    |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video (7B) [[52](https://arxiv.org/html/2412.01694v1#bib.bib52)]
+    | 46.4/3.3^* | 27.4/2.2^* | 3.26^* | 3.22^* | 3.77^* | 2.47^* | 2.99^* | 54.3/3.2^*
+    |'
+- en: '| LLaVA-NeXT-Video-Instruct (7B) | 47.1/3.1 | 59.3/3.4 | 2.96 | 2.81 | 3.35
+    | 2.42 | 2.82 | 50.0/3.3 |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video-Instruct (7B) | 47.1/3.1 | 59.3/3.4 | 2.96 | 2.81 | 3.35
+    | 2.42 | 2.82 | 50.0/3.3 |'
+- en: '| LLaVA-NeXT-Video-AoTD (7B) | 53.9/3.4 | 60.9/3.6 | 3.11 | 3.00 | 3.60 | 2.41
+    | 2.91 | 53.2/3.4 |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLaVA-NeXT-Video-AoTD (7B) | 53.9/3.4 | 60.9/3.6 | 3.11 | 3.00 | 3.60 | 2.41
+    | 2.91 | 53.2/3.4 |'
+- en: 'Table 5: Comparison with Video-LLMs on OE-VQA benchmarks. LLaVA-NeXT-Video-AoTD
+    improves performance in all open-ended benchmarks compared with the Instruct version.
+    * means results reproduced by ourseleves. Results without signs are retrieved
+    from [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)].'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：与 Video-LLMs 在 OE-VQA 基准测试上的比较。与 Instruct 版本相比，LLaVA-NeXT-Video-AoTD 在所有开放式基准测试中都提高了性能。*表示结果由我们自己复现。没有标记的结果来自
+    [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)]。
+- en: OE-VQA performance. As shown in Table [5](https://arxiv.org/html/2412.01694v1#S4.T5
+    "Table 5 ‣ 4.2 Quantitative Results ‣ 4 Experiments ‣ Unlocking Video-LLM via
+    Agent-of-Thoughts Distillation"), LLaVA-NeXT-Video-AoTD outperforms the Instruct
+    variant across all open-ended VideoQA benchmarks. Notably, it achieves a greater
+    percentage increase compared to the MC-VQA benchmarks, suggesting that CoT distillation
+    may be more effective for open-ended generation than for multiple-choice selection.
+    While the distilled model scores higher than most models listed in the table,
+    it does not surpass LLaVA-NeXT-Video on certain benchmarks. We conjecture this
+    is due to the model’s extensive training on images, that can also benefit the
+    question answering without requiring complex reasonings, as also suggested by
+    the findings in VideoLLaMA2 [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)].
+    Additionally, the inherent challenges of evaluating open-ended VQA may influence
+    the results. Assessments conducted by GPT can be biased or inaccurate, and the
+    metrics we employ primarily indicate general trends rather than providing absolute
+    accuracy.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: OE-VQA 性能。如表 [5](https://arxiv.org/html/2412.01694v1#S4.T5 "Table 5 ‣ 4.2 Quantitative
+    Results ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation")
+    所示，LLaVA-NeXT-Video-AoTD 在所有开放式 VideoQA 基准测试中均优于 Instruct 变种。值得注意的是，与 MC-VQA 基准测试相比，它的提升幅度更大，表明
+    CoT 蒸馏对于开放式生成任务可能比多选题选择更有效。尽管蒸馏模型在表中列出的多数模型中得分较高，但在某些基准测试中，它并未超过 LLaVA-NeXT-Video。我们推测，这是因为该模型在图像上的大量训练同样能够帮助回答问题，而无需复杂的推理，这一点也得到了
+    VideoLLaMA2 [[4](https://arxiv.org/html/2412.01694v1#bib.bib4)] 的发现支持。此外，评估开放式
+    VQA 本身的固有挑战可能会影响结果。GPT 进行的评估可能存在偏差或不准确，而我们采用的度量指标主要指示了总体趋势，而非提供绝对准确性。
+- en: 4.3 Ablation Study
+  id: totrans-142
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 消融研究
+- en: Analysis on CoT filtering. To prove the effectiveness of our filtering mechanism,
+    we trained an alternative model without CoT filtering while maintaining all other
+    settings, i.e., using 36.3K verified CoTs for distillation. As shown in Table [6](https://arxiv.org/html/2412.01694v1#S4.T6
+    "Table 6 ‣ 4.3 Ablation Study ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation"), the model’s performance declines significantly on both the Multiple-Choice
+    VQA and Open-Ended VQA benchmarks when the CoT filtering mechanism is not utilized.
+    This confirms that employing large language models (LLMs) to filter CoTs is crucial
+    for enhancing data quality.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CoT过滤分析。为了证明我们过滤机制的有效性，我们训练了一个不使用CoT过滤的替代模型，同时保持所有其他设置不变，即使用36.3K经过验证的CoT进行蒸馏。如表[6](https://arxiv.org/html/2412.01694v1#S4.T6
+    "Table 6 ‣ 4.3 Ablation Study ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation")所示，当未使用CoT过滤机制时，模型在多项选择VQA和开放式VQA基准上的表现显著下降。这确认了使用大型语言模型（LLM）来过滤CoT对于提高数据质量至关重要。
+- en: Analysis on model transferability. As AoTD is a distillation method that leverages
+    Chain-of-Thoughts (CoTs), it can theoretically be applied to any Video-LLMs. To
+    assess the transferability of our method, we conduct experiments on another very
+    recent model, LLaVA-OneVision (7B) [[3](https://arxiv.org/html/2412.01694v1#bib.bib3)].
+    As shown in Table [6](https://arxiv.org/html/2412.01694v1#S4.T6 "Table 6 ‣ 4.3
+    Ablation Study ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts Distillation"),
+    our method also demonstrates significant improvements on the benchmarks, showing
+    the transferability and robustness of the approach. Due to the rapid advancements
+    in the computer vision field, evaluating all models and benchmarks is prohibitively
+    infeasible. Thus, we focus on assessing a single model against selected benchmarks
+    to provide a representative evaluation.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型迁移性分析。由于AoTD是一种利用链式思维（CoTs）的蒸馏方法，它理论上可以应用于任何视频LLM。为了评估我们方法的迁移性，我们对另一种最近的模型——LLaVA-OneVision（7B）[[3](https://arxiv.org/html/2412.01694v1#bib.bib3)]进行了实验。如表[6](https://arxiv.org/html/2412.01694v1#S4.T6
+    "Table 6 ‣ 4.3 Ablation Study ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation")所示，我们的方法在基准测试上也表现出显著的改进，展示了该方法的迁移性和鲁棒性。由于计算机视觉领域的快速发展，评估所有模型和基准是不可行的。因此，我们专注于针对选定的基准评估单一模型，以提供具有代表性的评估。
+- en: '| Model | Filtering | MVBench | STAR | AGQA |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 过滤 | MVBench | STAR | AGQA |'
+- en: '| (Acc.) | (Acc.) | (Acc. / Score) |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| (准确率) | (准确率) | (准确率/得分) |'
+- en: '| LNV-AoTD | ✗ | 53.7 | 73.3 | 59.5/3.5 |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| LNV-AoTD | ✗ | 53.7 | 73.3 | 59.5/3.5 |'
+- en: '| LNV-AoTD | ✓ | 55.6 | 74.3 | 60.9/3.6 |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| LNV-AoTD | ✓ | 55.6 | 74.3 | 60.9/3.6 |'
+- en: '| Onevision | - | 58.0 | 65.9 | 39.0/3.0 |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| Onevision | - | 58.0 | 65.9 | 39.0/3.0 |'
+- en: '| Onevision-Instruct | - | 59.2 | 75.8 | 65.6/3.7 |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| Onevision-Instruct | - | 59.2 | 75.8 | 65.6/3.7 |'
+- en: '| Onevision-AoTD | ✓ | 60.5 | 76.6 | 65.7/3.7 |'
+  id: totrans-151
+  prefs: []
+  type: TYPE_TB
+  zh: '| Onevision-AoTD | ✓ | 60.5 | 76.6 | 65.7/3.7 |'
+- en: 'Table 6: Ablation results of CoT filtering and transferability.'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表6：CoT过滤和迁移性消融结果。
+- en: 4.4 Evaluation on Rationales
+  id: totrans-153
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4 推理过程评估
+- en: To verify whether the model has effectively learned multi-step reasoning through
+    CoTs distillation, we analyze the rationales generated by the model. Specifically,
+    we extract and evaluate the temporal and spatial information embedded within these
+    rationales. This approach extends beyond merely assessing the correctness of the
+    final answer, which could be influenced by biases or other external factors. By
+    examining the reasoning process in detail, it enables a more accurate understanding
+    of the model’s ability to perceive and reason about spatial and temporal relationships.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证模型是否通过CoT蒸馏有效学习了多步骤推理，我们分析了模型生成的推理过程。具体来说，我们提取并评估了这些推理过程中的时间和空间信息。这种方法不仅仅是评估最终答案的正确性，因为答案可能会受到偏见或其他外部因素的影响。通过详细检查推理过程，它能够更准确地理解模型在感知和推理空间与时间关系方面的能力。
+- en: Evaluation protocols. We randomly select 200 samples from the STAR validation
+    set and run inference on them using the suffix prompt, recording the generated
+    rationales. From these rationales, we extract the predicted temporal windows and
+    bounding boxes, comparing them to the ground truth. For the spatial part, we calculate
+    the IoU between the predicted and ground truth bounding boxes. For the temporal
+    part, we compute IoU and Recall, leveraging the frame-level annotations provided
+    in the dataset.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估协议。我们从 STAR 验证集随机选择 200 个样本，并使用后缀提示对其进行推理，记录生成的推理过程。从这些推理中，我们提取预测的时间窗口和边界框，并将其与真实值进行比较。对于空间部分，我们计算预测的边界框与真实边界框之间的
+    IoU。对于时间部分，我们计算 IoU 和召回率，利用数据集中提供的帧级注释。
+- en: Evaluation results. Table [7](https://arxiv.org/html/2412.01694v1#S4.T7 "Table
+    7 ‣ 4.4 Evaluation on Rationales ‣ 4 Experiments ‣ Unlocking Video-LLM via Agent-of-Thoughts
+    Distillation") presents the evaluation results. For comparison, we also test UniVTG
+    for temporal reasoning and OWL-ViT v2 for spatial reasoning. The results show
+    that LNV-Instruct struggles to generate valid rationales, even when using the
+    suffix prompt. In contrast, LNV-AoTD demonstrates comparable performance to specialized
+    models in both spatial and temporal reasoning, indicating that the model successfully
+    acquired these abilities through the distillation process.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估结果。表格 [7](https://arxiv.org/html/2412.01694v1#S4.T7 "表格 7 ‣ 4.4 关于推理的评估 ‣
+    4 实验 ‣ 通过思维代理蒸馏解锁视频-LLM") 展示了评估结果。为了比较，我们还测试了 UniVTG 的时间推理和 OWL-ViT v2 的空间推理。结果表明，LNV-Instruct
+    在生成有效推理时遇到困难，即使使用了后缀提示。相比之下，LNV-AoTD 在空间和时间推理方面表现出与专门模型相当的性能，表明该模型通过蒸馏过程成功获得了这些能力。
+- en: '| Model | Temporal Grounding | Spatial Grounding |'
+  id: totrans-157
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 时间基础 | 空间基础 |'
+- en: '| IoU (%) | Recall (%) | IoU (%) |'
+  id: totrans-158
+  prefs: []
+  type: TYPE_TB
+  zh: '| IoU (%) | 召回率 (%) | IoU (%) |'
+- en: '| UniVTG | 22.8 | 31.0 | - |'
+  id: totrans-159
+  prefs: []
+  type: TYPE_TB
+  zh: '| UniVTG | 22.8 | 31.0 | - |'
+- en: '| OWL-ViT v2 | - | - | 64.7 |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| OWL-ViT v2 | - | - | 64.7 |'
+- en: '| LNV-Instruct | ✗ | ✗ | ✗ |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| LNV-Instruct | ✗ | ✗ | ✗ |'
+- en: '| LNV-AoTD | 21.7 | 34.0 | 45.2 |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| LNV-AoTD | 21.7 | 34.0 | 45.2 |'
+- en: 'Table 7: Temporal and spatial abilities evaluation results.'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 7：时间和空间能力评估结果。
+- en: 5 Conclusion
+  id: totrans-164
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结论
+- en: We present Agent-of-Thoughts Distillation (AoTD), that aims to distill multi-step
+    reasoning and spatial-temporal understanding into a large video-language model
+    (Video-LLM). Our method introduces an agent-based system that automates the generation
+    of Chain-of-Thoughts (CoTs) from various VideoQA datasets, by breaking down complex
+    questions into manageable sub-tasks that can be addressed by specialized vision
+    models. Extensive experiments validate that the distilled model significantly
+    enhances performance on both MC-VQA and OE-VQA benchmarks, underscoring the effectiveness
+    of our approach. We believe AoTD represents a promising future direction for advancing
+    the reasoning abilities in Video-LLMs.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出了思维代理蒸馏（AoTD），旨在将多步推理和时空理解蒸馏到大型视频语言模型（Video-LLM）中。我们的方法引入了一个基于代理的系统，通过将复杂问题分解为可以由专门的视觉模型处理的可管理子任务，自动生成来自多个
+    VideoQA 数据集的思维链（CoTs）。大量实验验证了蒸馏模型在 MC-VQA 和 OE-VQA 基准测试中的显著性能提升，强调了我们方法的有效性。我们相信
+    AoTD 代表了推动视频-LLM 推理能力发展的一个有前景的方向。
+- en: References
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Alayrac et al. [2022] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine
+    Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katherine Millican,
+    Malcolm Reynolds, et al. Flamingo: a visual language model for few-shot learning.
+    In *Advances in Neural Information Processing Systems*, 2022.'
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Alayrac 等人 [2022] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine
+    Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katherine Millican,
+    Malcolm Reynolds 等人。Flamingo: 一种视觉语言模型，用于少样本学习。发表于 *神经信息处理系统进展*，2022。'
+- en: Bai et al. [2023] Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong
+    Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, Binyuan Hui, Luo Ji, Mei Li, Junyang
+    Lin, Runji Lin, Dayiheng Liu, Gao Liu, Chengqiang Lu, Keming Lu, Jianxin Ma, Rui
+    Men, Xingzhang Ren, Xuancheng Ren, Chuanqi Tan, Sinan Tan, Jianhong Tu, Peng Wang,
+    Shijie Wang, Wei Wang, Shengguang Wu, Benfeng Xu, Jin Xu, An Yang, Hao Yang, Jian
+    Yang, Shusheng Yang, Yang Yao, Bowen Yu, Hongyi Yuan, Zheng Yuan, Jianwei Zhang,
+    Xingxuan Zhang, Yichang Zhang, Zhenru Zhang, Chang Zhou, Jingren Zhou, Xiaohuan
+    Zhou, and Tianhang Zhu. Qwen technical report. *arXiv preprint arXiv:2309.16609*,
+    2023.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bai 等人 [2023] Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong
+    Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, Binyuan Hui, Luo Ji, Mei Li, Junyang
+    Lin, Runji Lin, Dayiheng Liu, Gao Liu, Chengqiang Lu, Keming Lu, Jianxin Ma, Rui
+    Men, Xingzhang Ren, Xuancheng Ren, Chuanqi Tan, Sinan Tan, Jianhong Tu, Peng Wang,
+    Shijie Wang, Wei Wang, Shengguang Wu, Benfeng Xu, Jin Xu, An Yang, Hao Yang, Jian
+    Yang, Shusheng Yang, Yang Yao, Bowen Yu, Hongyi Yuan, Zheng Yuan, Jianwei Zhang,
+    Xingxuan Zhang, Yichang Zhang, Zhenru Zhang, Chang Zhou, Jingren Zhou, Xiaohuan
+    Zhou 和 Tianhang Zhu。Qwen 技术报告。*arXiv 预印本 arXiv:2309.16609*，2023。
+- en: 'Bo et al. [2024] Li Bo, Zhang Yuanhan, Guo Dong, Zhang Renrui, Li Feng, Zhang
+    Hao, Zhang Kaichen, Li Yanwei, Liu Ziwei, and Li Chunyuan. Llava-onevision: Easy
+    visual task transfer. *arXiv preprint arXiv:2408.03326*, 2024.'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bo 等人 [2024] Li Bo, Zhang Yuanhan, Guo Dong, Zhang Renrui, Li Feng, Zhang Hao,
+    Zhang Kaichen, Li Yanwei, Liu Ziwei 和 Li Chunyuan。Llava-onevision：轻松视觉任务迁移。*arXiv
+    预印本 arXiv:2408.03326*，2024。
+- en: 'Cheng et al. [2024] Zesen Cheng, Sicong Leng, Hang Zhang, Yifei Xin, Xin Li,
+    Guanzheng Chen, Yongxin Zhu, Wenqi Zhang, Ziyang Luo, Deli Zhao, and Lidong Bing.
+    Videollama 2: Advancing spatial-temporal modeling and audio understanding in video-llms.
+    *arXiv preprint arXiv:2406.07476*, 2024.'
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cheng 等人 [2024] Zesen Cheng, Sicong Leng, Hang Zhang, Yifei Xin, Xin Li, Guanzheng
+    Chen, Yongxin Zhu, Wenqi Zhang, Ziyang Luo, Deli Zhao 和 Lidong Bing。Videollama
+    2：推动视频 LLM 中的时空建模和音频理解。*arXiv 预印本 arXiv:2406.07476*，2024。
+- en: Choudhury et al. [2023] Rohan Choudhury, Koichiro Niinuma, Kris M. Kitani, and
+    Laszlo A. Jeni. Zero-shot video question answering with procedural programs. *arXiv
+    preprint arXiv:2312.00937*, 2023.
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Choudhury 等人 [2023] Rohan Choudhury, Koichiro Niinuma, Kris M. Kitani 和 Laszlo
+    A. Jeni。零-shot 视频问答与程序性程序。*arXiv 预印本 arXiv:2312.00937*，2023。
+- en: 'Daya et al. [2024] Guo Daya, Zhu Qihao, Yang Dejian, Dong Zhenda Xie, Kai,
+    Zhang Wentao, Chen Guanting, Bi Xiao, Y. Wu, Y.K. Li, Luo Fuli, and Liang Yingfei,
+    Xiongand Wenfeng. Deepseek-coder: When the large language model meets programming
+    – the rise of code intelligence. *arXiv preprint arXiv:2401.14196*, 2024.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Daya 等人 [2024] Guo Daya, Zhu Qihao, Yang Dejian, Dong Zhenda Xie, Kai, Zhang
+    Wentao, Chen Guanting, Bi Xiao, Y. Wu, Y.K. Li, Luo Fuli 和 Liang Yingfei, Xiongand
+    Wenfeng。Deepseek-coder：当大语言模型遇上编程——代码智能的崛起。*arXiv 预印本 arXiv:2401.14196*，2024。
+- en: 'Fan et al. [2024] Yue Fan, Xiaojian Ma, Rujie Wu, Yuntao Du, Jiaqi Li, Zhi
+    Gao, and Qing Li. Videoagent: A memory-augmented multimodal agent for video understanding.
+    *arXiv preprint arXiv:2403.11481*, 2024.'
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fan 等人 [2024] Yue Fan, Xiaojian Ma, Rujie Wu, Yuntao Du, Jiaqi Li, Zhi Gao 和
+    Qing Li。Videoagent：用于视频理解的记忆增强多模态智能体。*arXiv 预印本 arXiv:2403.11481*，2024。
+- en: 'Fei et al. [2024] Hao Fei, Shengqiong Wu, Wei Ji, Hanwang Zhang, Meishan Zhang,
+    Mong-Li Lee, and Wynne Hsu. Video-of-thought: Step-by-step video reasoning from
+    perception to cognition. In *Proceedings of the International Conference on Machine
+    Learning*, 2024.'
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fei 等人 [2024] Hao Fei, Shengqiong Wu, Wei Ji, Hanwang Zhang, Meishan Zhang,
+    Mong-Li Lee 和 Wynne Hsu。Video-of-thought：从感知到认知的逐步视频推理。在 *国际机器学习会议论文集*，2024。
+- en: 'Fu et al. [2024] Chaoyou Fu, Yuhan Dai, Yondong Luo, Lei Li, Shuhuai Ren, Renrui
+    Zhang, Zihan Wang, Chenyu Zhou, Yunhang Shen, Mengdan Zhang, et al. Video-mme:
+    The first-ever comprehensive evaluation benchmark of multi-modal llms in video
+    analysis. *arXiv preprint arXiv:2405.21075*, 2024.'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fu 等人 [2024] Chaoyou Fu, Yuhan Dai, Yondong Luo, Lei Li, Shuhuai Ren, Renrui
+    Zhang, Zihan Wang, Chenyu Zhou, Yunhang Shen, Mengdan Zhang 等人。Video-mme：史上首个视频分析多模态
+    LLM 的综合评估基准。*arXiv 预印本 arXiv:2405.21075*，2024。
+- en: 'Gao et al. [2024a] Minghe Gao, Shuang Chen, Liang Pang, Yuan Yao, Jisheng Dang,
+    Wenqiao Zhang, Juncheng Li, Siliang Tang, Yueting Zhuang, and Tat-Seng Chua. Fact:
+    Teaching mllms with faithful, concise and transferable rationales. In *ACM Multimedia*,
+    2024a.'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gao 等人 [2024a] Minghe Gao, Shuang Chen, Liang Pang, Yuan Yao, Jisheng Dang,
+    Wenqiao Zhang, Juncheng Li, Siliang Tang, Yueting Zhuang 和 Tat-Seng Chua。Fact：用真实、简洁和可转移的推理教学
+    mllms。在 *ACM Multimedia*，2024a。
+- en: 'Gao et al. [2024b] Timin Gao, Peixian Chen, Mengdan Zhang, Chaoyou Fu, Yunhang
+    Shen, Yan Zhang, Shengchuan Zhang, Xiawu Zheng, Xing Sun, Liujuan Cao, et al.
+    Cantor: Inspiring multimodal chain-of-thought of mllm. In *ACM Multimedia*, 2024b.'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gao 等人 [2024b] Timin Gao, Peixian Chen, Mengdan Zhang, Chaoyou Fu, Yunhang Shen,
+    Yan Zhang, Shengchuan Zhang, Xiawu Zheng, Xing Sun, Liujuan Cao 等人。Cantor：激发多模态推理链的
+    mllm。在 *ACM Multimedia*，2024b。
+- en: 'Google [2024] Gemini Team Google. Gemini 1.5: Unlocking multimodal understanding
+    across millions of tokens of context. *arXiv preprint arXiv:2403.05530*, 2024.'
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Google [2024] Gemini 团队 Google。Gemini 1.5：解锁跨越数百万令牌上下文的多模态理解。*arXiv 预印本 arXiv:2403.05530*，2024年。
+- en: 'Grauman et al. [2022] Kristen Grauman, Andrew Westbury, Eugene Byrne, Zachary
+    Chavis, Antonino Furnari, Rohit Girdhar, Jackson Hamburger, Hao Jiang, Miao Liu,
+    Xingyu Liu, et al. Ego4d: Around the world in 3,000 hours of egocentric video.
+    In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition*,
+    2022.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Grauman 等人 [2022] Kristen Grauman、Andrew Westbury、Eugene Byrne、Zachary Chavis、Antonino
+    Furnari、Rohit Girdhar、Jackson Hamburger、Hao Jiang、Miao Liu、Xingyu Liu 等人。Ego4d：在3,000小时的自我中心视频中环游世界。发表于
+    *IEEE计算机视觉与模式识别大会论文集*，2022年。
+- en: 'Grunde-McLaughlin et al. [2021] Madeleine Grunde-McLaughlin, Ranjay Krishna,
+    and Maneesh Agrawala. Agqa: A benchmark for compositional spatio-temporal reasoning.
+    In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition*,
+    2021.'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Grunde-McLaughlin 等人 [2021] Madeleine Grunde-McLaughlin、Ranjay Krishna 和 Maneesh
+    Agrawala。Agqa：一个用于组合性时空推理的基准。发表于 *IEEE计算机视觉与模式识别大会论文集*，2021年。
+- en: 'Gupta and Kembhavi [2023] Tanmay Gupta and Aniruddha Kembhavi. Visual programming:
+    Compositional visual reasoning without training. In *Proceedings of the IEEE Conference
+    on Computer Vision and Pattern Recognition*, 2023.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gupta 和 Kembhavi [2023] Tanmay Gupta 和 Aniruddha Kembhavi。视觉编程：无需训练的组合视觉推理。发表于
+    *IEEE计算机视觉与模式识别大会论文集*，2023年。
+- en: 'Hu et al. [2024a] Yushi Hu, Otilia Stretcu, Chun-Ta Lu, Krishnamurthy Viswanathan,
+    Kenji Hata, Enming Luo, Ranjay Krishna, and Ariel Fuxman. Visual program distillation:
+    Distilling tools and programmatic reasoning into vision-language models. In *Proceedings
+    of the IEEE Conference on Computer Vision and Pattern Recognition*, 2024a.'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hu 等人 [2024a] Yushi Hu、Otilia Stretcu、Chun-Ta Lu、Krishnamurthy Viswanathan、Kenji
+    Hata、Enming Luo、Ranjay Krishna 和 Ariel Fuxman。视觉程序蒸馏：将工具和程序化推理蒸馏到视觉-语言模型中。发表于
+    *IEEE计算机视觉与模式识别大会论文集*，2024年。
+- en: 'Hu et al. [2024b] Ziniu Hu, Ahmet Iscen, Chen Sun, Kai-Wei Chang, Yizhou Sun,
+    David Ross, Cordelia Schmid, and Alireza Fathi. Avis: Autonomous visual information
+    seeking with large language model agent. In *Advances in Neural Information Processing
+    Systems*, 2024b.'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hu 等人 [2024b] Ziniu Hu、Ahmet Iscen、Chen Sun、Kai-Wei Chang、Yizhou Sun、David Ross、Cordelia
+    Schmid 和 Alireza Fathi。Avis：使用大型语言模型代理进行自主视觉信息搜索。发表于 *神经信息处理系统进展*，2024年。
+- en: 'Huang et al. [2024] De-An Huang, Shijia Liao, Subhashree Radhakrishnan, Hongxu
+    Yin, Pavlo Molchanov, Zhiding Yu, and Jan Kautz. Lita: Language instructed temporal-localization
+    assistant. In *Proceedings of the European Conference on Computer Vision*, 2024.'
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang 等人 [2024] De-An Huang、Shijia Liao、Subhashree Radhakrishnan、Hongxu Yin、Pavlo
+    Molchanov、Zhiding Yu 和 Jan Kautz。Lita：语言指令的时间定位助手。发表于 *欧洲计算机视觉大会论文集*，2024年。
+- en: 'Li et al. [2024a] Kunchang Li, Yali Wang, Yinan He, Yizhuo Li, Yi Wang, Yi
+    Liu, Zun Wang, Jilan Xu, Guo Chen, Ping Luo, et al. Mvbench: A comprehensive multi-modal
+    video understanding benchmark. In *Proceedings of the IEEE Conference on Computer
+    Vision and Pattern Recognition*, 2024a.'
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人 [2024a] Kunchang Li、Yali Wang、Yinan He、Yizhuo Li、Yi Wang、Yi Liu、Zun Wang、Jilan
+    Xu、Guo Chen、Ping Luo 等人。Mvbench：一个综合性的多模态视频理解基准。发表于 *IEEE计算机视觉与模式识别大会论文集*，2024年。
+- en: Li* et al. [2022] Liunian Harold Li*, Pengchuan Zhang*, Haotian Zhang*, Jianwei
+    Yang, Chunyuan Li, Yiwu Zhong, Lijuan Wang, Lu Yuan, Lei Zhang, Jenq-Neng Hwang,
+    Kai-Wei Chang, and Jianfeng Gao. Grounded language-image pre-training. In *Proceedings
+    of the IEEE Conference on Computer Vision and Pattern Recognition*, 2022.
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li* 等人 [2022] Liunian Harold Li*、Pengchuan Zhang*、Haotian Zhang*、Jianwei Yang、Chunyuan
+    Li、Yiwu Zhong、Lijuan Wang、Lu Yuan、Lei Zhang、Jenq-Neng Hwang、Kai-Wei Chang 和 Jianfeng
+    Gao。基于语境的语言-图像预训练。发表于 *IEEE计算机视觉与模式识别大会论文集*，2022年。
+- en: 'Li et al. [2024b] Yanwei Li, Chengyao Wang, and Jiaya Jia. Llama-vid: An image
+    is worth 2 tokens in large language models. In *Proceedings of the European Conference
+    on Computer Vision*, 2024b.'
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人 [2024b] Yanwei Li、Chengyao Wang 和 Jiaya Jia。Llama-vid：在大型语言模型中，图像值2个令牌。发表于
+    *欧洲计算机视觉大会论文集*，2024年。
+- en: 'Lin et al. [2024] Bin Lin, Bin Zhu, Yang Ye, Munan Ning, Peng Jin, and Li Yuan.
+    Video-llava: Learning united visual representation by alignment before projection.
+    In *Proceedings of the Conference on Empirical Methods in Natural Language Processinng*,
+    2024.'
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lin 等人 [2024] Bin Lin、Bin Zhu、Yang Ye、Munan Ning、Peng Jin 和 Li Yuan。Video-llava：通过投影前的对齐学习统一的视觉表示。发表于
+    *自然语言处理实证方法会议论文集*，2024年。
+- en: 'Lin et al. [2023] Kevin Qinghong Lin, Pengchuan Zhang, Joya Chen, Shraman Pramanick,
+    Difei Gao, Alex Jinpeng Wang, Rui Yan, and Mike Zheng Shou. Univtg: Towards unified
+    video-language temporal grounding. In *Proceedings of the International Conference
+    on Computer Vision*, 2023.'
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lin 等人 [2023] Kevin Qinghong Lin, Pengchuan Zhang, Joya Chen, Shraman Pramanick,
+    Difei Gao, Alex Jinpeng Wang, Rui Yan 和 Mike Zheng Shou。Univtg：迈向统一的视频-语言时间定位。发表于
+    *国际计算机视觉会议论文集*，2023年。
+- en: 'Maaz et al. [2024] Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Shahbaz
+    Khan. Video-chatgpt: Towards detailed video understanding via large vision and
+    language models. In *Association for Computational Linguistics*, 2024.'
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Maaz 等人 [2024] Muhammad Maaz, Hanoona Rasheed, Salman Khan 和 Fahad Shahbaz Khan。Video-chatgpt：通过大型视觉和语言模型实现详细的视频理解。发表于
+    *计算语言学协会*，2024年。
+- en: 'Mahmood et al. [2024] Ahmad Mahmood, Ashmal Vayani, Muzammal Naseer, Salman
+    Khan, and Fahad Khan. Vurf: A general-purpose reasoning and self-refinement framework
+    for video understanding. *arXiv preprint arXiv:2403.14743*, 2024.'
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mahmood 等人 [2024] Ahmad Mahmood, Ashmal Vayani, Muzammal Naseer, Salman Khan
+    和 Fahad Khan。Vurf：一种用于视频理解的通用推理与自我优化框架。*arXiv预印本 arXiv:2403.14743*，2024年。
+- en: Matthias et al. [2022] Minderer Matthias, Gritsenko Alexey, Stone Austin, Neumann
+    Maxim, Weissenborn Dirk, Dosovitskiy Alexey, Mahendran Aravindh, Arnab Anurag,
+    Dehghani Mostafa, Shen Zhuoran, Wang Xiao, Zhai Xiaohua, Kipf Thomas, and Houlsby
+    Neil. Simple open-vocabulary object detection with vision transformers. In *Proceedings
+    of the European Conference on Computer Vision*, 2022.
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Matthias 等人 [2022] Minderer Matthias, Gritsenko Alexey, Stone Austin, Neumann
+    Maxim, Weissenborn Dirk, Dosovitskiy Alexey, Mahendran Aravindh, Arnab Anurag,
+    Dehghani Mostafa, Shen Zhuoran, Wang Xiao, Zhai Xiaohua, Kipf Thomas 和 Houlsby
+    Neil。使用视觉变换器进行简单的开放词汇物体检测。发表于 *欧洲计算机视觉会议论文集*，2022年。
+- en: 'Min et al. [2024] Juhong Min, Shyamal Buch, Arsha Nagrani, Minsu Cho, and Cordelia
+    Schmid. Morevqa: Exploring modular reasoning models for video question answering.
+    In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition*,
+    2024.'
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Min 等人 [2024] Juhong Min, Shyamal Buch, Arsha Nagrani, Minsu Cho 和 Cordelia
+    Schmid。Morevqa：探索用于视频问答的模块化推理模型。发表于 *IEEE计算机视觉与模式识别会议论文集*，2024年。
+- en: Minderer et al. [2024] Matthias Minderer, Alexey Gritsenko, and Neil Houlsby.
+    Scaling open-vocabulary object detection. In *Advances in Neural Information Processing
+    Systems*, 2024.
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Minderer 等人 [2024] Matthias Minderer, Alexey Gritsenko 和 Neil Houlsby。扩展开放词汇物体检测。发表于
+    *神经信息处理系统进展*，2024年。
+- en: 'Mitra et al. [2023] Arindam Mitra, Luciano Del Corro, Shweti Mahajan, Andres
+    Codas, Clarisse Simoes, Sahaj Agarwal, Xuxi Chen, Anastasia Razdaibiedina, Erik
+    Jones, Kriti Aggarwal, et al. Orca 2: Teaching small language models how to reason.
+    *arXiv preprint arXiv:2311.11045*, 2023.'
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mitra 等人 [2023] Arindam Mitra, Luciano Del Corro, Shweti Mahajan, Andres Codas,
+    Clarisse Simoes, Sahaj Agarwal, Xuxi Chen, Anastasia Razdaibiedina, Erik Jones,
+    Kriti Aggarwal 等人。Orca 2：教小型语言模型如何推理。*arXiv预印本 arXiv:2311.11045*，2023年。
+- en: Mitra et al. [2024] Chancharik Mitra, Brandon Huang, Trevor Darrell, and Roei
+    Herzig. Compositional chain-of-thought prompting for large multimodal models.
+    In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition*,
+    2024.
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mitra 等人 [2024] Chancharik Mitra, Brandon Huang, Trevor Darrell 和 Roei Herzig。大型多模态模型的组合性思维链提示。发表于
+    *IEEE计算机视觉与模式识别会议论文集*，2024年。
+- en: OpenAI [2023a] OpenAI. Gpt-3.5-turbo system card. [https://platform.openai.com/docs/models/gpt-3-5-turbo](https://platform.openai.com/docs/models/gpt-3-5-turbo),
+    2023a.
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI [2023a] OpenAI。Gpt-3.5-turbo系统卡。[https://platform.openai.com/docs/models/gpt-3-5-turbo](https://platform.openai.com/docs/models/gpt-3-5-turbo)，2023a年。
+- en: OpenAI [2023b] OpenAI. Gpt-4v(ision) system card. [https://openai.com/research/gpt-4v-system-card](https://openai.com/research/gpt-4v-system-card),
+    2023b.
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI [2023b] OpenAI。Gpt-4v(ision)系统卡。[https://openai.com/research/gpt-4v-system-card](https://openai.com/research/gpt-4v-system-card)，2023b年。
+- en: 'Pătrăucean et al. [2023] Viorica Pătrăucean, Lucas Smaira, Ankush Gupta, Adrià Recasens
+    Continente, Larisa Markeeva, Dylan Banarse, Skanda Koppula, Joseph Heyward, Mateusz
+    Malinowski, Yi Yang, Carl Doersch, Tatiana Matejovicova, Yury Sulsky, Antoine
+    Miech, Alex Frechette, Hanna Klimczak, Raphael Koster, Junlin Zhang, Stephanie
+    Winkler, Yusuf Aytar, Simon Osindero, Dima Damen, Andrew Zisserman, and João Carreira.
+    Perception test: A diagnostic benchmark for multimodal video models. In *Advances
+    in Neural Information Processing Systems*, 2023.'
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pătrăucean 等人 [2023] Viorica Pătrăucean, Lucas Smaira, Ankush Gupta, Adrià Recasens
+    Continente, Larisa Markeeva, Dylan Banarse, Skanda Koppula, Joseph Heyward, Mateusz
+    Malinowski, Yi Yang, Carl Doersch, Tatiana Matejovicova, Yury Sulsky, Antoine
+    Miech, Alex Frechette, Hanna Klimczak, Raphael Koster, Junlin Zhang, Stephanie
+    Winkler, Yusuf Aytar, Simon Osindero, Dima Damen, Andrew Zisserman 和 João Carreira。感知测试：多模态视频模型的诊断基准。发表于
+    *神经信息处理系统进展*，2023年。
+- en: Radford et al. [2021] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh,
+    Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack
+    Clark, et al. Learning transferable visual models from natural language supervision.
+    In *Proceedings of the International Conference on Machine Learning*, 2021.
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Radford 等人 [2021] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh,
+    Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack
+    Clark 等人. 从自然语言监督学习可迁移的视觉模型。载于 *国际机器学习会议论文集*，2021。
+- en: 'Ren et al. [2024] Shuhuai Ren, Linli Yao, Shicheng Li, Xu Sun, and Lu Hou.
+    Timechat: A time-sensitive multimodal large language model for long video understanding.
+    In *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition*,
+    2024.'
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ren 等人 [2024] Shuhuai Ren, Linli Yao, Shicheng Li, Xu Sun 和 Lu Hou. Timechat：一种时间敏感的多模态大语言模型，用于长视频理解。载于
+    *IEEE计算机视觉与模式识别会议论文集*，2024。
+- en: 'Shao et al. [2024] Hao Shao, Shengju Qian, Han Xiao, Guanglu Song, Zhuofan
+    Zong, Letian Wang, Yu Liu, and Hongsheng Li. Visual cot: Advancing multi-modal
+    language models with a comprehensive dataset and benchmark for chain-of-thought
+    reasoning. In *Advances in Neural Information Processing Systems*, 2024.'
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shao 等人 [2024] Hao Shao, Shengju Qian, Han Xiao, Guanglu Song, Zhuofan Zong,
+    Letian Wang, Yu Liu 和 Hongsheng Li. 视觉COT：通过综合数据集和基准测试推动多模态语言模型的发展，以进行思维链推理。载于
+    *神经信息处理系统进展*，2024。
+- en: 'Surís et al. [2023] Dídac Surís, Sachit Menon, and Carl Vondrick. Vipergpt:
+    Visual inference via python execution for reasoning. In *Proceedings of the International
+    Conference on Computer Vision*, 2023.'
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Surís 等人 [2023] Dídac Surís, Sachit Menon 和 Carl Vondrick. Vipergpt：通过Python执行进行视觉推理。载于
+    *国际计算机视觉会议论文集*，2023。
+- en: 'Wang et al. [2024] Yi Wang, Kunchang Li, Xinhao Li, Jiashuo Yu, Yinan He, Chenting
+    Wang, Guo Chen, Baoqi Pei, Rongkun Zheng, Jilan Xu, Zun Wang, et al. Internvideo2:
+    Scaling video foundation models for multimodal video understanding. In *Proceedings
+    of the European Conference on Computer Vision*, 2024.'
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人 [2024] Yi Wang, Kunchang Li, Xinhao Li, Jiashuo Yu, Yinan He, Chenting
+    Wang, Guo Chen, Baoqi Pei, Rongkun Zheng, Jilan Xu, Zun Wang 等人. Internvideo2：扩展视频基础模型以实现多模态视频理解。载于
+    *欧洲计算机视觉会议论文集*，2024。
+- en: Wei et al. [2022] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei
+    Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting elicits
+    reasoning in large language models. In *Advances in Neural Information Processing
+    Systems*, 2022.
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等人 [2022] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia,
+    Ed Chi, Quoc V Le, Denny Zhou 等人. 思维链提示引发大规模语言模型的推理。载于 *神经信息处理系统进展*，2022。
+- en: 'Weng et al. [2023] Zejia Weng, Xitong Yang, Ang Li, Zuxuan Wu, and Yu-Gang
+    Jiang. Open-vclip: Transforming clip to an open-vocabulary video model via interpolated
+    weight optimization. In *Proceedings of the International Conference on Machine
+    Learning*, 2023.'
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Weng 等人 [2023] Zejia Weng, Xitong Yang, Ang Li, Zuxuan Wu 和 Yu-Gang Jiang. Open-vclip：通过插值权重优化将CLIP转换为开放词汇的视频模型。载于
+    *国际机器学习会议论文集*，2023。
+- en: 'Wu et al. [2021] Bo Wu, Shoubin Yu, Zhenfang Chen, Joshua B Tenenbaum, and
+    Chuang Gan. Star: A benchmark for situated reasoning in real-world videos. In
+    *Advances in Neural Information Processing Systems*, 2021.'
+  id: totrans-207
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wu 等人 [2021] Bo Wu, Shoubin Yu, Zhenfang Chen, Joshua B Tenenbaum 和 Chuang
+    Gan. Star: 一种用于现实世界视频中的情境推理基准测试。载于 *神经信息处理系统进展*，2021。'
+- en: 'Xiao et al. [2021] Junbin Xiao, Xindi Shang, Angela Yao, and Tat-Seng Chua.
+    Next-qa: Next phase of question-answering to explaining temporal actions. In *Proceedings
+    of the IEEE Conference on Computer Vision and Pattern Recognition*, 2021.'
+  id: totrans-208
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xiao 等人 [2021] Junbin Xiao, Xindi Shang, Angela Yao 和 Tat-Seng Chua. Next-qa：下一阶段的问答系统，用于解释时间性动作。载于
+    *IEEE计算机视觉与模式识别会议论文集*，2021。
+- en: 'Yang et al. [2024] Zongxin Yang, Guikun Chen, Xiaodi Li, Wenguan Wang, and
+    Yi Yang. Doraemongpt: Toward understanding dynamic scenes with large language
+    models (exemplified as a video agent). In *Proceedings of the International Conference
+    on Machine Learning*, 2024.'
+  id: totrans-209
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yang 等人 [2024] Zongxin Yang, Guikun Chen, Xiaodi Li, Wenguan Wang 和 Yi Yang.
+    Doraemongpt：通过大规模语言模型理解动态场景（以视频代理为例）。载于 *国际机器学习会议论文集*，2024。
+- en: 'Yao et al. [2024] Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths,
+    Yuan Cao, and Karthik Narasimhan. Tree of thoughts: Deliberate problem solving
+    with large language models. In *Advances in Neural Information Processing Systems*,
+    2024.'
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao 等人 [2024] Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths,
+    Yuan Cao 和 Karthik Narasimhan. 思维树：使用大规模语言模型进行深思熟虑的问题解决。载于 *神经信息处理系统进展*，2024。
+- en: 'Yi et al. [2020] Kexin Yi, Chuang Gan, Yunzhu Li, Pushmeet Kohli, Jiajun Wu,
+    Antonio Torralba, and Joshua B. Tenenbaum. CLEVRER: collision events for video
+    representation and reasoning. In *Proceedings of the International Conference
+    on Learning Representations*, 2020.'
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '易等人 [2020] 易可欣, 甘创, 李云珠, 科利·普什米特, 吴家俊, 安东尼奥·托雷尔巴, 乔舒亚·B·特南鲍姆. CLEVRER: 用于视频表示和推理的碰撞事件.
+    载于 *国际学习表示会议论文集*，2020。'
+- en: Yu et al. [2023a] Shoubin Yu, Jaemin Cho, Prateek Yadav, and Mohit Bansal. Self-chained
+    image-language model for video localization and question answering. In *Advances
+    in Neural Information Processing Systems*, 2023a.
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 于等人 [2023a] 赵书斌, 曹在民, 普拉特克·亚达夫, 莫希特·班萨尔. 自链式图像-语言模型用于视频定位与问答. 载于 *神经信息处理系统进展*，2023a。
+- en: 'Yu et al. [2019] Zhou Yu, Dejing Xu, Jun Yu, Ting Yu, Zhou Zhao, Yueting Zhuang,
+    and Dacheng Tao. Activitynet-qa: A dataset for understanding complex web videos
+    via question answering. In *Proceedings of the AAAI Conference on Artificial Intelligence*,
+    2019.'
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '于等人 [2019] 于周, 许德静, 于军, 于婷, 赵周, 庄宇婷, 陶大成. Activitynet-qa: 一个通过问答理解复杂网页视频的数据集.
+    载于 *AAAI人工智能会议论文集*，2019。'
+- en: 'Yu et al. [2023b] Zhou Yu, Lixiang Zheng, Zhou Zhao, Fei Wu, Jianping Fan,
+    Kui Ren, and Jun Yu. Anetqa: A large-scale benchmark for fine-grained compositional
+    reasoning over untrimmed videos. In *Proceedings of the IEEE Conference on Computer
+    Vision and Pattern Recognition*, 2023b.'
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '于等人 [2023b] 于周, 郑立祥, 赵周, 吴飞, 范建平, 任奎, 于军. Anetqa: 一个用于非裁剪视频的细粒度组合推理的大规模基准.
+    载于 *IEEE计算机视觉与模式识别会议论文集*，2023b。'
+- en: 'Yue et al. [2024] Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu,
+    Ge Zhang, Samuel Stevens, Dongfu Jiang, Weiming Ren, Yuxuan Sun, et al. Mmmu:
+    A massive multi-discipline multimodal understanding and reasoning benchmark for
+    expert agi. In *Proceedings of the IEEE Conference on Computer Vision and Pattern
+    Recognition*, 2024.'
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '岳等人 [2024] 岳翔, 倪元生, 张凯, 郑天宇, 刘若琪, 张革, 塞缪尔·史蒂文斯, 姜东富, 任伟明, 孙宇轩 等人. Mmmu: 一项面向专家级AGI的大规模多学科多模态理解与推理基准.
+    载于 *IEEE计算机视觉与模式识别会议论文集*，2024。'
+- en: Zhai et al. [2023] Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, and Lucas
+    Beyer. Sigmoid loss for language image pre-training. In *Proceedings of the International
+    Conference on Computer Vision*, 2023.
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 翟等人 [2023] 翟晓华, 巴希尔·穆斯塔法, 亚历山大·科列斯尼科夫, 卢卡斯·贝耶. 用于语言图像预训练的Sigmoid损失. 载于 *国际计算机视觉会议论文集*，2023。
+- en: 'Zhang et al. [2023a] Hang Zhang, Xin Li, and Lidong Bing. Video-llama: An instruction-tuned
+    audio-visual language model for video understanding. In *Proceedings of the Conference
+    on Empirical Methods in Natural Language Processinng*, 2023a.'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '张等人 [2023a] 张航, 李鑫, 宾立东. Video-llama: 一种用于视频理解的指令调优视听语言模型. 载于 *自然语言处理经验方法会议论文集*，2023a。'
+- en: 'Zhang et al. [2024] Yuanhan Zhang, Bo Li, haotian Liu, Yong jae Lee, Liangke
+    Gui, Di Fu, Jiashi Feng, Ziwei Liu, and Chunyuan Li. Llava-next: A strong zero-shot
+    video understanding model. [https://llava-vl.github.io/blog/2024-04-30-llava-next-video/](https://llava-vl.github.io/blog/2024-04-30-llava-next-video/),
+    2024.'
+  id: totrans-218
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '张等人 [2024] 张远涵, 李波, 刘昊天, 李永材, 龚亮科, 傅迪, 冯佳实, 刘子维, 李春远. Llava-next: 一种强大的零-shot视频理解模型.
+    [https://llava-vl.github.io/blog/2024-04-30-llava-next-video/](https://llava-vl.github.io/blog/2024-04-30-llava-next-video/)，2024。'
+- en: Zhang et al. [2023b] Zhuosheng Zhang, Aston Zhang, Mu Li, Hai Zhao, George Karypis,
+    and Alex Smola. Multimodal chain-of-thought reasoning in language models. *arXiv
+    preprint arXiv:2302.00923*, 2023b.
+  id: totrans-219
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 张等人 [2023b] 张卓生, 张阿斯顿, 李牧, 赵海, 乔治·卡里皮斯, 亚历克斯·斯莫拉. 语言模型中的多模态思维链推理. *arXiv预印本arXiv:2302.00923*，2023b。
+- en: 'Zohar et al. [2024] Orr Zohar, Xiaohan Wang, Yonatan Bitton, Idan Szpektor,
+    and Serena Yeung-Levy. Video-star: Self-training enables video instruction tuning
+    with any supervision. *arXiv preprint arXiv:2407.06189*, 2024.'
+  id: totrans-220
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zohar等人 [2024] 奥尔·佐哈尔, 王晓寒, 约拿坦·比顿, 伊丹·斯佩克托, 赛琳娜·杨-李维. Video-star: 自我训练使得视频指令调优在任何监督下都能实现.
+    *arXiv预印本arXiv:2407.06189*，2024。'
+- en: Unlocking Video-LLM via Agent-of-Thoughts Distillation
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过思维代理蒸馏解锁Video-LLM
+- en: Appendix
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 附录
+- en: Appendix A Limitation
+  id: totrans-223
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 限制
+- en: 'Despite the advancements mentioned in the paper, several limitations remain
+    and we leave them as future work: (i) similar to prior approaches [[16](https://arxiv.org/html/2412.01694v1#bib.bib16),
+    [10](https://arxiv.org/html/2412.01694v1#bib.bib10), [7](https://arxiv.org/html/2412.01694v1#bib.bib7)],
+    the effectiveness of our agent-based system is contingent upon the progress of
+    the underlying visual model components. Enhancing its ability to generalize across
+    diverse datasets is essential for broader applicability; (ii) while our primary
+    focus has been on compositional VideoQA tasks [[41](https://arxiv.org/html/2412.01694v1#bib.bib41)],
+    and we have demonstrated improvements across a series of benchmarks, achieving
+    holistic enhancements will require further exploration into creating a more balanced
+    distribution of training data; (iii) furthermore, our agent-based framework has
+    the potential to address additional video-related tasks, such as video captioning
+    and referring segmentation. We aim to expand our methodology to these domains,
+    which could yield even more robust and versatile applications in the future.'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管本文提到了一些进展，但仍然存在若干局限性，我们将其留作未来的研究方向：（i）与之前的方法类似[[16](https://arxiv.org/html/2412.01694v1#bib.bib16),
+    [10](https://arxiv.org/html/2412.01694v1#bib.bib10), [7](https://arxiv.org/html/2412.01694v1#bib.bib7)]，我们的基于代理的系统效果依赖于基础视觉模型组件的进展。提升其在不同数据集上的泛化能力对广泛应用至关重要；（ii）尽管我们的主要关注点是组成性视频问答任务[[41](https://arxiv.org/html/2412.01694v1#bib.bib41)]，并且我们已经在一系列基准测试中展示了改进，但要实现全面的提升，还需要进一步探索如何创建更加平衡的训练数据分布；（iii）此外，我们的基于代理的框架有潜力解决其他视频相关任务，如视频字幕生成和指代分割。我们计划将我们的方法扩展到这些领域，未来可能会产生更强大和多样化的应用。
+- en: Appendix B Experimental Details
+  id: totrans-225
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 实验细节
+- en: B.1 Training Details
+  id: totrans-226
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.1 训练细节
+- en: For all models, their projection layers and language model are fine-tuned and
+    visual encoder is frozen. We use a cosine learning rate schedule, with warm up
+    ratio 0.03 and learning rate 4e-5\. For both Instruct and AoTD setting, we fine-tune
+    the model with batch size 48 and totally 1 epoch. We believe that longer training
+    will get a better performance on in-domain benchmarks but maybe a destroy on out-of-domain
+    benchmarks.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于所有模型，它们的投影层和语言模型会进行微调，而视觉编码器保持冻结。我们使用余弦学习率调度，热身比例为0.03，学习率为4e-5。对于Instruct和AoTD设置，我们使用批量大小为48并进行1轮训练。我们认为，较长的训练可能在领域内基准测试上取得更好的表现，但可能会在领域外基准测试中造成性能下降。
+- en: B.2 Specialized Models Evaluation Details
+  id: totrans-228
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.2 专用模型评估细节
+- en: In this section we will show the details about each sub-task’s evaluation from
+    data preparation to evaluation metric.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们将展示每个子任务从数据准备到评估指标的详细信息。
+- en: Question decomposition. Since there may be multiple valid ways to decompose
+    the same problem, we evaluate only the accuracy of the final output in this sub-task.
+    Specifically, the model takes the query and instruction as input and generates
+    an executable program. We replace all intermediate outputs within the program
+    and focus on whether the final output matches the correct answer. If the decomposition
+    is correct, the final output must align with the answer. Any programs that cannot
+    be executed or that lead to an incorrect answer are considered failures.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题分解。由于可能有多种有效方式来分解同一个问题，因此我们仅评估该子任务中最终输出的准确性。具体而言，模型将查询和指令作为输入，生成可执行程序。我们替换程序中的所有中间输出，重点检查最终输出是否与正确答案匹配。如果分解正确，最终输出必须与答案一致。任何无法执行或导致错误答案的程序都被视为失败。
+- en: Object detection. To evaluate the performance of detection models, we sample
+    frames with scene graph annotations from the input video clip and provide them,
+    along with the text query, as input to the model. The model then outputs a series
+    of bounding boxes that exceed a confidence threshold. We select the bounding box
+    with the highest confidence as the final output and calculate the IoU to assess
+    accuracy.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 物体检测。为了评估检测模型的性能，我们从输入视频片段中采样带有场景图注释的帧，并将它们与文本查询一起作为输入提供给模型。模型随后输出一系列超出置信度阈值的边界框。我们选择置信度最高的边界框作为最终输出，并计算IoU以评估准确性。
+- en: Temporal grounding. Since scene graphs provide both the start and end frame
+    IDs, as well as key frame IDs for each event, we use IoU and Recall as metrics
+    to capture different aspects of model performance. The model takes the video clip
+    and text query as input and outputs the predicted start and end frame IDs. We
+    calculate IoU based on the alignment between the predicted and annotated start
+    and end frame IDs, and we compute Recall using the key frame ID annotations to
+    evaluate how well the model captures important frames.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 时间基础。由于场景图提供了每个事件的开始和结束帧ID，以及关键帧ID，我们使用IoU和召回率（Recall）作为度量，捕捉模型性能的不同方面。模型将视频片段和文本查询作为输入，输出预测的开始和结束帧ID。我们根据预测的开始和结束帧ID与标注的对齐情况计算IoU，并使用关键帧ID的标注计算召回率，评估模型捕捉重要帧的能力。
+- en: Action recognition. For discriminative models, we provide the video clip and
+    a list of action labels as input to complete a classification task. For generative
+    models, we provide the video clip along with an instruction prompt, asking the
+    model to generate five actions most relevant to the video, ranked by likelihood.
+    We then use the top-ranked output from each model to calculate the Top-1 accuracy
+    for both approaches.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动作识别。对于判别性模型，我们提供视频片段和一组动作标签作为输入，以完成分类任务。对于生成性模型，我们提供视频片段以及一个指令提示，要求模型生成五个与视频最相关的动作，并按可能性排序。然后，我们使用每个模型的排名最高输出，计算两种方法的Top-1准确率。
+- en: Question answering. The evaluation of question answering follows a similar approach
+    to previous methods. The model takes the video clip and question as input and
+    returns an answer, from which we directly calculate the accuracy. The key difference
+    between this sub-task and a standard QA task is that the answers are based on
+    a series of information collected by preceding agents, allowing for a more accurate
+    assessment of the model’s pure question-answering ability.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问答。问答的评估方法与以前的方法类似。模型将视频片段和问题作为输入，并返回一个答案，从中我们直接计算准确率。这个子任务与标准QA任务的主要区别在于，答案基于前置代理收集的一系列信息，从而更准确地评估模型的纯问答能力。
+- en: Appendix C More Results
+  id: totrans-235
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录C 更多结果
+- en: Here, we introduce some examples to show the process from query to Chain-of-Thought
+    using our agent-based system. We can find that our system is able to decompose
+    complex questions into easier sub-tasks and the final CoT retains step-by-step
+    problem-solving ideas and spatial-temporal information representing video understanding
+    ability.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们介绍一些示例，展示从查询到推理链（Chain-of-Thought，CoT）过程，使用我们基于代理的系统。我们发现，系统能够将复杂问题分解为更简单的子任务，最终的CoT保留了逐步解决问题的思路和表示视频理解能力的时空信息。
+- en: '![Refer to caption](img/a945ed01853fc0619a0cd59ff6745370.png)'
+  id: totrans-237
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/a945ed01853fc0619a0cd59ff6745370.png)'
+- en: 'Figure 5: Example form NExT-QA [[42](https://arxiv.org/html/2412.01694v1#bib.bib42)]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：来自NExT-QA的示例[[42](https://arxiv.org/html/2412.01694v1#bib.bib42)]
+- en: '![Refer to caption](img/faff690badf0e1d5d052c946ce30eb1f.png)'
+  id: totrans-239
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/faff690badf0e1d5d052c946ce30eb1f.png)'
+- en: 'Figure 6: Example form ANetQA [[48](https://arxiv.org/html/2412.01694v1#bib.bib48)]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：来自ANetQA的示例[[48](https://arxiv.org/html/2412.01694v1#bib.bib48)]
+- en: Appendix D Prompts
+  id: totrans-241
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录D 提示
+- en: In this section we present the prompts used in our agent-based system for generating
+    programs, converting execution traces and filtering CoTs.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了在我们的基于代理的系统中用于生成程序、转换执行跟踪和筛选推理链的提示。
+- en: D.1 Prompt for Program Generation
+  id: totrans-243
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.1 程序生成的提示
+- en: For each video and query, we call a code LLM to decompose the query to a Python
+    program under the guidance of the prompt below. We modify the ViperGPT [[37](https://arxiv.org/html/2412.01694v1#bib.bib37)]
+    prompt to adapt to the visual agents we use.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个视频和查询，我们调用一个代码LLM来根据下面的提示，将查询分解为Python程序。我们修改了ViperGPT [[37](https://arxiv.org/html/2412.01694v1#bib.bib37)]
+    的提示，以适应我们使用的视觉代理。
+- en: '[⬇](data:text/plain;base64,ZGVmIFF1ZXJ5X09ianMoY2xpcCwgcXVlcnkpOgogICAgIiIiCiAgICBRdWVyeSB0aGUgb2JqZWN0cyB0aGF0IGFwcGVhciBpbiB2aWRlbyBjbGlwIGFuZCBtYXRjaCB0aGUgcXVlcnkgZGVzY3JpcHRpb25zLgogICAgUGFyYW1ldGVycwogICAgLS0tLS0tLQogICAgY2xpcDoKICAgICAgICBhIGxpc3Qgb2YgdmlkZW8gZnJhbWVzLgogICAgcXVlcnk6CiAgICAgICAgRGVzY3JpcHRpb24gb2YgdGhlIHRhcmdldCBvYmplY3QuCiAgICBSZXR1cm5zCiAgICAtLS0tLS0tCiAgICBhIGxpc3Qgb2YgYm91bmRpbmcgYm94ZXMgb2YgdGhlIG9iamVjdHMgdGhhdCBtYXRjaCB0aGUgcXVlcnkuCiAgICBFeGFtcGxlcwogICAgLS0tLS0tLQogICAgI3JldHVybiB3aGl0ZV9vYmpzCiAgICBkZWYgZXhlY3V0ZV9jb21tYW5kKHZpZGVvX2NsaXApOgogICAgICAgIHdoaXRlX29ianMgPSBRdWVyeV9PYmpzKHZpZGVvX2NsaXAsICJ3aGl0ZSBvYmplY3QiKQogICAgICAgIHJldHVybiB3aGl0ZV9vYmpzCiAgICAiIiIKCmRlZiBRdWVyeV9BY3Rpb25zKGNsaXAsIG9iaj1Ob25lKToKICAgICIiIgogICAgRmluZCB0aGUgYWN0aW9ucyBoYXBwZW5lZCBpbiB0aGUgdmlkZW8gY2xpcCwgaWYgb2JqIGlzIG5vdCBOb25lLCBxdWVyeSB0aGUgYWN0aW9ucyByZWxhdGVkIHRvIGl0LgogICAgUGFyYW1ldGVycwogICAgLS0tLS0tLQogICAgY2xpcDoKICAgICAgICBhIGxpc3Qgb2YgdGhlIHZpZGVvIGZyYW1lcy4KICAgIG9iajoKICAgICAgICBvYmplY3QgY2xhc3Mgd2hpY2ggaXMgdXNlZCB0byBxdWVyeSB0aGUgYWN0aW9ucyByZWxhdGVkIHRvIGl0LgogICAgUmV0dXJucwogICAgLS0tLS0tLQogICAgYSBsaXN0IG9mIGFjdGlvbnMgY2xhc3NlcyBoYXBwZW5lZCBpbiB0aGUgdmlkZW8gY2xpcC4KICAgIEV4YW1wbGVzCiAgICAtLS0tLS0tCiAgICAjcmV0dXJuIGFjdGlvbnMKICAgIGRlZiBleGVjdXRlX2NvbW1hbmQodmlkZW9fY2xpcCwgcXVlcnksIHBvc3NpYmxlX2Fuc3dlcnMpOgogICAgICAgIGFjdGlvbnMgPSBRdWVyeV9BY3Rpb25zKHZpZGVvX2NsaXApCiAgICAgICAgcmV0dXJuIGFjdGlvbnMKICAgICIiIgoKZGVmIEZpbHRlcl9mcmFtZXNfd2l0aF9hY3QoY2xpcCwgYWN0aW9uKToKICAgICIiIgogICAgZmlsdGVyIGEgbmV3IHZpZGVvIGNsaXAgY29udGFpbmluZyB0aGUgdGltZSBwZXJpb2QgaW4gd2hpY2ggdGhlIHRhcmdldCBhY3Rpb24gb2NjdXJyZWQKICAgIFBhcmFtZXRlcnMKICAgIC0tLS0tLS0KICAgIGNsaXA6CiAgICAgICAgYSBsaXN0IG9mIHZpZGVvIGZyYW1lcy4KICAgIGFjdGlvbjoKICAgICAgICB0aGUgdGFyZ2V0IGFjdGlvbiB3aGljaCBpcyB1c2VkIHRvIGZpbHRlciBmcmFtZXMuCiAgICBSZXR1cm5zCiAgICAtLS0tLS0tCiAgICBhIG5ldyB2aWRlbyBjbGlwIG9udGFpbmluZyB0aGUgdGltZSBwZXJpb2QgaW4gd2hpY2ggdGhlIHRhcmdldCBhY3Rpb24gb2NjdXJyZWQuCiAgICBFeGFtcGxlcwogICAgLS0tLS0tLQogICAgI3JldHVybiBqdW1wX2NsaXAKICAgIGRlZiBleGVjdXRlX2NvbW1hbmQodmlkZW9fY2xpcCwgcXVlcnksIHBvc3NpYmxlX2Fuc3dlcnMpOgogICAgICAgIGp1bXBfY2xpcCA9IEZpbHRlcl9mcmFtZXNfd2l0aF9hY3QodmlkZW9fY2xpcCwgInBlcnNvbiBpcyBqdW1waW5nIikKICAgICAgICByZXR1cm4ganVtcF9jbGlwCiAgICAiIiIKCmRlZiBGaWx0ZXJfZnJhbWVzX3dpdGhfb2JqKGNsaXAsIG9iaik6CiAgICAiIiIKICAgIGZpbHRlciBhIG5ldyB2aWRlbyBjbGlwIHRoYXQgdGhlIHRhcmdldCBvYmplY3Qgb2NjdXJlZC4KICAgIFBhcmFtZXRlcnMKICAgIC0tLS0tLS0KICAgIGNsaXA6CiAgICAgICAgYSBsaXN0IG9mIHZpZGVvIGZyYW1lcy4KICAgIG9iajoKICAgICAgICBjbGFzcyBvciBkZXNjcmlwdGlvbiBhYm91dCB0aGUgdGFyZ2V0IG9iamVjdC4KICAgIFJldHVybnMKICAgIC0tLS0tLS0KICAgIGEgbmV3IHZpZGVvIGNsaXAgdGhhdCB0aGUgdGFyZ2V0IG9iamVjdCBvY2N1cmVkIGluIGl0LgogICAgRXhhbXBsZXMKICAgIC0tLS0tLS0KICAgICNyZXR1cm4gc2hvZV9jbGlwCiAgICBkZWYgZXhlY3V0ZV9jb21tYW5kKHZpZGVvX2NsaXAsIHF1ZXJ5LCBwb3NzaWJsZV9hbnN3ZXJzKToKICAgICAgICBzaG9lX2NsaXAgPSBGaWx0ZXJfZnJhbWVzX3dpdGhfb2JqKHZpZGVvX2NsaXAsICJzaG9lIikKICAgICAgICByZXR1cm4gc2hvZV9jbGlwCiAgICAiIiIKCmRlZiB0cmltKGNsaXAsIHN0YXJ0PU5vbmUsIGVuZD1Ob25lKToKICAgICIiIgogICAgUmV0dXJucyBhIG5ldyB2aWRlbyBjbGlwIGNvbnRhaW5pbmcgYSB0cmltbWVkIHZlcnNpb24gb2YgdGhlIG9yaWdpbmFsIHZpZGVvIGF0IHRoZSBbc3RhcnQsIGVuZF0gY2xpcC4KICAgIFBhcmFtZXRlcnMKICAgIC0tLS0tLS0tLS0KICAgIGNsaXA6CiAgICAgICAgYSBsaXN0IG9mIHZpZGVvIGZyYW1lcy4KICAgIHN0YXJ0IDogVW5pb25baW50LCBOb25lXQogICAgICAgIEFuIGludCBkZXNjcmliaW5nIHRoZSBzdGFydGluZyBmcmFtZSBpbiB0aGlzIHZpZGVvIGNsaXAgd2l0aCByZXNwZWN0IHRvIHRoZSBvcmlnaW5hbCB2aWRlby4KICAgIGVuZCA6IFVuaW9uW2ludCwgTm9uZV0KICAgICAgICBBbiBpbnQgZGVzY3JpYmluZyB0aGUgZW5kaW5nIGZyYW1lIGluIHRoaXMgdmlkZW8gY2xpcCB3aXRoIHJlc3BlY3QgdG8gdGhlIG9yaWdpbmFsIHZpZGVvLgogICAgCiAgICBSZXR1cm5zCiAgICAtLS0tLS0tCiAgICBhIG5ldyB2aWRlbyBjbGlwIHdpdGggc3RhcnQgYW5kIGVuZC4KICAgICIiIgpkZWYgRmluZChjbGlwLCBvYmopOgogICAgIiIiCiAgICBmaW5kIGFsbCBib3VuZGluZyBib3hlcyBhcm91bmQgYSBjZXJ0YWluIG9iamVjdCBpbiB0aGUgdmlkZW8gY2xpcCwKICAgIGFuZCBjb2xsYXRlcyB0aGVtIGludG8gYSBjb2xsZWN0aW9uIG9mIGZyYW1lcy4KICAgIFBhcmFtZXRlcnMKICAgIC0tLS0tLS0tLS0KICAgIGNsaXA6CiAgICAgICAgYSBsaXN0IG9mIHZpZGVvIGZyYW1lcy4KICAgIG9iajoKICAgICAgICB0aGUgb2JqZWN0IHRvIGxvb2sgZm9yLgogICAgUmV0dXJucwogICAgLS0tLS0tLQogICAgYSBuZXcgdmlkZW8gY2xpcCBjb21wb3NlZCBvZiBjcm9wcyBvZiB0aGUgb2JqZWN0LgogICAgRXhhbXBsZXMKICAgIC0tLS0tLS0tCiAgICAjIFJldHVybiB0aGUgc2hvZV9jbGlwCiAgICBkZWYgZXhlY3V0ZV9jb21tYW5kKHZpZGVvX2NsaXAsIHF1ZXJ5LCBwb3NzaWJsZV9hbnN3ZXJzKToKICAgICAgICBzaG9lX2NsaXAgPSBGaW5kKHZpZGVvX2NsaXAsICJzaG9lIikKICAgICAgICByZXR1cm4gc2hvZV9jbGlwCiAgICAiIiIKCmRlZiBzZWxlY3RfYW5zd2VyKHF1ZXJ5LCBpbmZvLCBwb3NzaWJsZV9hbnN3ZXJzKToKICAgICIiIgogICAgVXNlcyBhIGxhbmd1YWdlIG1vZGVsIHRvIGNob29zZSB0aGUgb3B0aW9uIHRoYXQgYmVzdCBhbnN3ZXJzIHRoZSBxdWVzdGlvbiBnaXZlbiB0aGUgaW5wdXQgaW5mb3JtYXRpb24uCiAgICBQYXJhbWV0ZXJzCiAgICAtLS0tLS0tLS0tCiAgICBxdWVyeToKICAgICAgICB0aGUgaW5wdXQgcXVlc3Rpb24uCiAgICBpbmZvOgogICAgICAgIEFueSB1c2VmdWwgaW5mb3JtYXRpb24gdG8gYW5zd2VyIHRoZSBxdWVzdGlvbi4KICAgIHBvc3NpYmxlX2Fuc3dlcnM6CiAgICAgICAgYSBsaXN0IG9mIHBvc3NpYmxlIGFuc3dlcnMgdG8gdGhlIHF1ZXN0aW9uLgogICAgUmV0dXJucwogICAgLS0tLS0tLQogICAgb25lIGFuc3dlciBjaG9zZW4gZnJvbSB0aGUgcG9zc2libGUgYW5zd2Vycy4KICAgIEV4YW1wbGVzCiAgICAtLS0tLS0tLQogICAgIyBSZXR1cm4gdGhlIGFuc3dlcgogICAgZGVmIGV4ZWN1dGVfY29tbWFuZCh2aWRlb19jbGlwLCBxdWVyeSwgcG9zc2libGVfYW5zd2Vycyk6CiAgICAgICAgY2xpcF9zdW1tYXJ5ID0gVmlkZW9fc3VtbWFyeSh2aWRlb19jbGlwKQogICAgICAgIGluZm8gPSB7CiAgICAgICAgICAgICJzdW1tYXJ5IG9mIHRoZSB0YXJnZXQgdmlkZW8iOiBjbGlwX3N1bW1hcnkKICAgICAgICB9CiAgICAgICAgYW5zd2VyID0gc2VsZWN0X2Fuc3dlcihxdWVyeSwgaW5mbywgcG9zc2libGVfYW5zd2VycykKICAgICAgICByZXR1cm4gYW5zd2VyCiAgICAiIiIKZGVmIGV4aXN0KGNsaXAsIHF1ZXJ5KToKICAgICIiIgogICAganVkZ2Ugd2hldGhlciBhIG9iamVjdCBleGlzdHMgaW4gdGhlIHZpZGVvLgogICAgUGFyYW1ldGVycwogICAgLS0tLS0tLS0tLQogICAgY2xpcDoKICAgICAgICBhIGxpc3Qgb2YgdmlkZW8gZnJhbWVzLgogICAgcXVlcnk6CiAgICAgICAgcXVlcnkgdG8gdGhlIG9iamVjdCBjbGFzcy4KICAgIFJldHVybnMKICAgIC0tLS0tLS0KICAgIFJldHVybiBUcnVlIGlmIHRoZSBvYmplY3Qgc3BlY2lmaWVkIGJ5IHF1ZXJ5IGlzIGZvdW5kIGluIHRoZSB2aWRlbywgYW5kIEZhbHNlIG90aGVyd2lzZS4KICAgIEV4YW1wbGVzCiAgICAtLS0tLS0tLQogICAgIyBSZXR1cm4gdGhlIGZsYWcKICAgIGRlZiBleGVjdXRlX2NvbW1hbmQodmlkZW9fY2xpcCwgcXVlcnksIHBvc3NpYmxlX2Fuc3dlcnMpOgogICAgICAgIGZsYWcgPSBleGlzdCh2aWRlb19jbGlwLCAic2hvZSIpCiAgICAgICAgcmV0dXJuIGZsYWcKICAgICIiIgpkZWYgVmlkZW9fc3VtbWFyeShjbGlwLCBxdWVyeSk6CiAgICAiIiIKICAgIGdpdmUgYSBicmllZiBzdW1tYXJ5IG9mIHRoZSB2aWRlbyBjbGlwIHJlbGF0ZWQgdG8gdGhlIHF1ZXJ5LgogICAgUGFyYW1ldGVycwogICAgLS0tLS0tLS0tLQogICAgY2xpcDoKICAgICAgICBhIGxpc3Qgb2YgdmlkZW8gZnJhbWVzLgogICAgcXVlcnk6CiAgICAgICAgYSBxdWVzdGlvbiBhYm91dCB0aGUgdmlkZW8uCiAgICBSZXR1cm5zCiAgICAtLS0tLS0tCiAgICByZXR1cm4gYSBicmllZiBzdW1tYXJ5IG9mIHRoZSB2aWRlbyBjbGlwLgogICAgRXhhbXBsZXMKICAgIC0tLS0tLS0tCiAgICAjIFJldHVybiB0aGUgY2xpcF9zdW1tYXJ5CiAgICBkZWYgZXhlY3V0ZV9jb21tYW5kKHZpZGVvX2NsaXAsIHF1ZXJ5LCBwb3NzaWJsZV9hbnN3ZXJzKToKICAgICAgICBjbGlwX3N1bW1hcnkgPSBWaWRlb19zdW1tYXJ5KHZpZGVvX2NsaXAsIHF1ZXJ5KQogICAgICAgIHJldHVybiBjbGlwX3N1bW1hcnkKICAgICIiIgpXcml0ZSBhIGZ1bmN0aW9uIHVzaW5nIFB5dGhvbiBhbmQgdGhlIGZ1bmN0aW9ucyAoYWJvdmUpIHRoYXQgY291bGQgYmUgZXhlY3V0ZWQgdG8gcHJvdmlkZSBhbiBhbnN3ZXIgdG8gdGhlIHF1ZXJ5LiAKCkNvbnNpZGVyIHRoZSBmb2xsb3dpbmcgZ3VpZGVsaW5lczoKLSBVc2UgYmFzZSBQeXRob24gKGNvbXBhcmlzb24sIHNvcnRpbmcpIGZvciBiYXNpYyBsb2dpY2FsIG9wZXJhdGlvbnMsIHN0YXJ0L2VuZCwgbWF0aCwgZXRjLgotIE9iamVjdHMgd2l0aCBtdXRpcGxlIG5hbWVzIGxpa2UgInBob25lL2NhbWVyYSIsICJjdXAvZ2xhc3MvYm90dGxlIiB3aXRoIHNsYXNoLCBpbnB1dCB0aGVtIGFzIGEgd2hvbGUgb2JqZWN0IG5hbWUuCi0gSnVzdCB1c2UgdGhlIGNsYXNzIGFuZCBmdW5jdGlvbiBhcHBlYXIgYWJvdmUgZXhjZXB0IGZvciBzb21lIGJhc2UgcHl0aG9uIG9wZXJhdGlvbnMuCi0gT25seSBhbnN3ZXIgd2l0aCBhIGZ1bmN0aW9uIHN0YXJ0aW5nIGRlZiBleGVjdXRlX2NvbW1hbmQsIGRvIG5vdCBhbnN3ZXIgYW55IGV4dHJhIHdvcmRzIGFuZCBzeW1ib2xzIGJlZm9yZSBhbmQgYWZ0ZXIgdGhlIGZ1bmN0aW9uLgotIE5vIHRleHQgdGhhdCBpcyBub3QgcmVsYXRlZCB0byBmdW5jdGlvbiBjYW4gYXBwZWFyLgotIHRoZSBhbnN3ZXIgb25seSBiZWdpbnMgd2l0aCAiZGVmIGV4ZWN1dGVfY29tbWFuZCIgYW5kIGVuZHMgd2l0aCAicmV0dXJuIGFuc3dlciIuCgpIZXJlIGFyZSBzb21lIGV4YW1wbGVzIG9mIHRoZSBmdW5jdGlvbiB5b3Ugc2hvdWxkIHdyaXRlOgotLS0tLS0tCnF1ZXN0aW9uOiBXaGF0IGVsc2UgaXMgdGhlIHBlcnNvbiBhYmxlIHRvIGRvIHdpdGggdGhlIGRvb3I/CnBvc3NpYmxlIGFuc3dlcnM6IFsiSG9sZCB0aGUgZG9vci4iLCAiUHV0IGRvd24gdGhlIGRvb3IuIiwgIkNsb3NlIHRoZSBkb29yLiIsICJPcGVuIHRoZSBkb29yLiJdCmRlZiBleGVjdXRlX2NvbW1hbmQodmlkZW9fY2xpcCwgcXVlcnksIHBvc3NpYmxlX2Fuc3dlcnMpOgogICAgZG9vcl9jbGlwID0gRmlsdGVyX2ZyYW1lc193aXRoX29iaih2aWRlb19jbGlwLCAiZG9vciIpCiAgICBwZXJzb25fY2xpcCA9IEZpbmQoZG9vcl9jbGlwLCAicGVyc29uIikKICAgIGNsaXBfc3VtbWFyeSA9IFZpZGVvX3N1bW1hcnkocGVyc29uX2NsaXAsIHF1ZXJ5KQogICAgZG9vcl9hY3Rpb25zID0gUXVlcnlfQWN0aW9ucyhwZXJzb25fY2xpcCwgImRvb3IiLCBwb3NzaWJsZV9hbnN3ZXJzPXBvc3NpYmxlX2Fuc3dlcnMpCiAgICBkb29yX2FjdGlvbnMgPSAKICAgIGluZm8gPSB7CiAgICAgICAgImFjdGlvbnMgdGhlIHBlcnNvbiBhYmxlIHRvIGRvIHdpdGggdGhlIGRvb3IgZWxzZSI6IGRvb3JfYWN0aW9ucywKICAgICAgICAic3VtbWFyeSBvZiB0aGUgdGFyZ2V0IHZpZGVvIjogY2xpcF9zdW1tYXJ5CiAgICB9CiAgICBhbnN3ZXIgPSBzZWxlY3RfYW5zd2VyKHF1ZXJ5LCBpbmZvLCBwb3NzaWJsZV9hbnN3ZXJzKQogICAgcmV0dXJuIGFuc3dlcgotLS0tLS0tClF1ZXJ5OiBJTlNFUlRfUVVFUllfSEVSRQpwb3NzaWJsZSBhbnN3ZXJzOiBJTlNFUlRfUE9TU0lCTEVfQU5TV0VSU19IRVJF)1def  Query_Objs(clip,  query):2  """3  Query  the  objects  that  appear  in  video  clip  and  match  the  query  descriptions.4  Parameters5  -------6  clip:7  a  list  of  video  frames.8  query:9  Description  of  the  target  object.10  Returns11  -------12  a  list  of  bounding  boxes  of  the  objects  that  match  the  query.13  Examples14  -------15  #return  white_objs16  def  execute_command(video_clip):17  white_objs  =  Query_Objs(video_clip,  "white  object")18  return  white_objs19  """2021def  Query_Actions(clip,  obj=None):22  """23  Find  the  actions  happened  in  the  video  clip,  if  obj  is  not  None,  query  the  actions  related  to  it.24  Parameters25  -------26  clip:27  a  list  of  the  video  frames.28  obj:29  object  class  which  is  used  to  query  the  actions  related  to  it.30  Returns31  -------32  a  list  of  actions  classes  happened  in  the  video  clip.33  Examples34  -------35  #return  actions36  def  execute_command(video_clip,  query,  possible_answers):37  actions  =  Query_Actions(video_clip)38  return  actions39  """4041def  Filter_frames_with_act(clip,  action):42  """43  filter  a  new  video  clip  containing  the  time  period  in  which  the  target  action  occurred44  Parameters45  -------46  clip:47  a  list  of  video  frames.48  action:49  the  target  action  which  is  used  to  filter  frames.50  Returns51  -------52  a  new  video  clip  ontaining  the  time  period  in  which  the  target  action  occurred.53  Examples54  -------55  #return  jump_clip56  def  execute_command(video_clip,  query,  possible_answers):57  jump_clip  =  Filter_frames_with_act(video_clip,  "person  is  jumping")58  return  jump_clip59  """6061def  Filter_frames_with_obj(clip,  obj):62  """63  filter  a  new  video  clip  that  the  target  object  occured.64  Parameters65  -------66  clip:67  a  list  of  video  frames.68  obj:69  class  or  description  about  the  target  object.70  Returns71  -------72  a  new  video  clip  that  the  target  object  occured  in  it.73  Examples74  -------75  #return  shoe_clip76  def  execute_command(video_clip,  query,  possible_answers):77  shoe_clip  =  Filter_frames_with_obj(video_clip,  "shoe")78  return  shoe_clip79  """8081def  trim(clip,  start=None,  end=None):82  """83  Returns  a  new  video  clip  containing  a  trimmed  version  of  the  original  video  at  the  [start,  end]  clip.84  Parameters85  ----------86  clip:87  a  list  of  video  frames.88  start  :  Union[int,  None]89  An  int  describing  the  starting  frame  in  this  video  clip  with  respect  to  the  original  video.90  end  :  Union[int,  None]91  An  int  describing  the  ending  frame  in  this  video  clip  with  respect  to  the  original  video.9293  Returns94  -------95  a  new  video  clip  with  start  and  end.96  """97def  Find(clip,  obj):98  """99  find  all  bounding  boxes  around  a  certain  object  in  the  video  clip,100  and  collates  them  into  a  collection  of  frames.101  Parameters102  ----------103  clip:104  a  list  of  video  frames.105  obj:106  the  object  to  look  for.107  Returns108  -------109  a  new  video  clip  composed  of  crops  of  the  object.110  Examples111  --------112  #  Return  the  shoe_clip113  def  execute_command(video_clip,  query,  possible_answers):114  shoe_clip  =  Find(video_clip,  "shoe")115  return  shoe_clip116  """117118def  select_answer(query,  info,  possible_answers):119  """120  Uses  a  language  model  to  choose  the  option  that  best  answers  the  question  given  the  input  information.121  Parameters122  ----------123  query:124  the  input  question.125  info:126  Any  useful  information  to  answer  the  question.127  possible_answers:128  a  list  of  possible  answers  to  the  question.129  Returns130  -------131  one  answer  chosen  from  the  possible  answers.132  Examples133  --------134  #  Return  the  answer135  def  execute_command(video_clip,  query,  possible_answers):136  clip_summary  =  Video_summary(video_clip)137  info  =  {138  "summary  of  the  target  video":  clip_summary139  }140  answer  =  select_answer(query,  info,  possible_answers)141  return  answer142  """143def  exist(clip,  query):144  """145  judge  whether  a  object  exists  in  the  video.146  Parameters147  ----------148  clip:149  a  list  of  video  frames.150  query:151  query  to  the  object  class.152  Returns153  -------154  Return  True  if  the  object  specified  by  query  is  found  in  the  video,  and  False  otherwise.155  Examples156  --------157  #  Return  the  flag158  def  execute_command(video_clip,  query,  possible_answers):159  flag  =  exist(video_clip,  "shoe")160  return  flag161  """162def  Video_summary(clip,  query):163  """164  give  a  brief  summary  of  the  video  clip  related  to  the  query.165  Parameters166  ----------167  clip:168  a  list  of  video  frames.169  query:170  a  question  about  the  video.171  Returns172  -------173  return  a  brief  summary  of  the  video  clip.174  Examples175  --------176  #  Return  the  clip_summary177  def  execute_command(video_clip,  query,  possible_answers):178  clip_summary  =  Video_summary(video_clip,  query)179  return  clip_summary180  """181Write  a  function  using  Python  and  the  functions  (above)  that  could  be  executed  to  provide  an  answer  to  the  query.182183Consider  the  following  guidelines:184-  Use  base  Python  (comparison,  sorting)  for  basic  logical  operations,  start/end,  math,  etc.185-  Objects  with  mutiple  names  like  "phone/camera",  "cup/glass/bottle"  with  slash,  input  them  as  a  whole  object  name.186-  Just  use  the  class  and  function  appear  above  except  for  some  base  python  operations.187-  Only  answer  with  a  function  starting  def  execute_command,  do  not  answer  any  extra  words  and  symbols  before  and  after  the  function.188-  No  text  that  is  not  related  to  function  can  appear.189-  the  answer  only  begins  with  "def  execute_command"  and  ends  with  "return  answer".190191Here  are  some  examples  of  the  function  you  should  write:192-------193question:  What  else  is  the  person  able  to  do  with  the  door?194possible  answers:  ["Hold  the  door.",  "Put  down  the  door.",  "Close  the  door.",  "Open  the  door."]195def  execute_command(video_clip,  query,  possible_answers):196  door_clip  =  Filter_frames_with_obj(video_clip,  "door")197  person_clip  =  Find(door_clip,  "person")198  clip_summary  =  Video_summary(person_clip,  query)199  door_actions  =  Query_Actions(person_clip,  "door",  possible_answers=possible_answers)200  door_actions  =201  info  =  {202  "actions  the  person  able  to  do  with  the  door  else":  door_actions,203  "summary  of  the  target  video":  clip_summary204  }205  answer  =  select_answer(query,  info,  possible_answers)206  return  answer207-------208Query:  INSERT_QUERY_HERE209possible  answers:  INSERT_POSSIBLE_ANSWERS_HERE'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,ZGVmIFF1ZXJ5X09ianMoY2xpcCwgcXVlcnkpOgogICAgIiIiCiAgICBRdWVyeSB0aGUgb2JqZWN0cyB0aGF0IGFwcGVhciBpbiB2aWRlbyBjbGlwIGFuZCBtYXRjaCB0aGUgcXVlcnkgZGVzY3JpcHRpb25zLgogICAgUGFyYW1ldGVycwogICAgLS0tLS0tLQogICAgY2xpcDoKICAgICAgICBhIGxpc3Qgb2YgdmlkZW8gZnJhbWVzLgogICAgcXVlcnk6CiAgICAgICAgRGVzY3JpcHRpb24gb2YgdGhlIHRhcmdldCBvYmplY3QuCiAgICBSZXR1cm5zCiAgICAtLS0tLS0tCiAgICBhIGxpc3Qgb2YgYm91bmRpbmcgYm94ZXMgb2YgdGhlIG9iamVjdHMgdGhhdCBtYXRjaCB0aGUgcXVlcnkuCiAgICBFeGFtcGxlcwogICAgLS0tLS0tLQogICAgI3JldHVybiB3aGl0ZV9vYmpzCiAgICBkZWYgZXhlY3V0ZV9jb21tYW5kKHZpZGVvX2NsaXApOgogICAgICAgIHdoaXRlX29ianMgPSBRdWVyeV9PYmpzKHZpZGVvX2NsaXAsICJ3aGl0ZSBvYmplY3QiKQogICAgICAgIHJldHVybiB3aGl0ZV9vYmpzCiAgICAiIiIKCmRlZiBRdWVyeV9BY3Rpb25zKGNsaXAsIG9iaj1Ob25lKToKICAgICIiIgogICAgRmluZCB0aGUgYWN0aW9ucyBoYXBwZW5lZCBpbiB0aGUgdmlkZW8gY2xpcCwgaWYgb2JqIGlzIG5vdCBOb25lLCBxdWVyeSB0aGUgYWN0aW9ucyByZWxhdGVkIHRvIGl0LgogICAgUGFyYW1ldGVycwogICAgLS0tLS0tLQogICAgY2xpcDoKICAgICAgICBhIGxpc3Qgb2YgdGhlIHZpZGVvIGZyYW1lcy4KICAgIG9iajoKICAgICAgICBvYmplY3QgY2xhc3Mgd2hpY2ggaXMgdXNlZCB0byBxdWVyeSB0aGUgYWN0aW9ucyByZWxhdGVkIHRvIGl0LgogICAgUmV0dXJucwogICAgLS0tLS0tLQogICAgYSBsaXN0IG9mIGFjdGlvbnMgY2xhc3NlcyBoYXBwZW5lZCBpbiB0aGUgdmlkZW8gY2xpcC4KICAgIEV4YW1wbGVzCiAgICAtLS0tLS0tCiAgICAjcmV0dXJuIGFjdGlvbnMKICAgIGRlZiBleGVjdXRlX2NvbW1hbmQodmlkZW9fY2xpcCwgcXVlcnksIHBvc3NpYmxlX2Fuc3dlcnMpOgogICAgICAgIGFjdGlvbnMgPSBRdWVyeV9BY3Rpb25zKHZpZGVvX2NsaXApCiAgICAgICAgcmV0dXJuIGFjdGlvbnMKICAgICIiIgoKZGVmIEZpbHRlcl9mcmFtZXNfd2l0aF9hY3QoY2xpcCwgYWN0aW9uKToKICAgICIiIgogICAgZmlsdGVyIGEgbmV3IHZpZGVvIGNsaXAgY29udGFpbmluZG10aGUgdGltZSBwZXJpb2QgaW4gd2hpY2ggdGhlIHRhcmdldCBhY3Rpb24gb2NjdXJyZWQKICAgIFBhcmFtZXRlcnMKICAgIC0tLS0tLS0KICAgIGNsaXA6CiAgICAgICAgYSBsaXN0IG9mIHZpZGVvIGZyYW1lcy4KICAgIGFjdGlvbjoKICAgICAgICB0aGUgdGFyZ2V0IGFjdGlvbiB3aGljaCBpcyB1c2VkIHRvIGZpbHRlciBmcmFtZXMuCiAgICBSZXR1bnM...'
+- en: D.2 Prompt for Execution Trace Conversion
+  id: totrans-246
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.2 执行跟踪转换的提示
+- en: 'After getting the execution trace by running the program step by step, we use
+    a LLM to convert the trace into a natural language CoT. The LLM takes query, execution
+    trace, possible answers (in MC-VQA) and execution trace as input. The instruction
+    prompt is as follow:'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在通过逐步运行程序获得执行跟踪后，我们使用大语言模型（LLM）将跟踪转换为自然语言的CoT（Chain-of-Thought）。LLM的输入包括查询、执行跟踪、可能的答案（在MC-VQA中）和执行跟踪。指令提示如下：
+- en: '[⬇](data:text/plain;base64,R2l2ZW4gYSB2aWRlbyBhbmQgYSBxdWVzdGlvbiwgSSB3cm90ZSB0aGUgZnVuY3Rpb24gZXhlY3V0ZV9jb21tYW5kIHVzaW5nIFB5dGhvbiwgYW5kIHRoZSBvdGhlciBmdW5jdGlvbnMgYWJvdmUgdGhhdCBjb3VsZCBiZSBleGVjdXRlZCB0byBwcm92aWRlIGFuIGFuc3dlciB0byB0aGUgcXVlcnkuCkFzIHNob3duIGluIHRoZSBjb2RlLCB0aGUgY29kZSB3aWxsIHByaW50IGV4ZWN1dGlvbiB0cmFjZXMuCkkgbmVlZCB5b3UgdG8gcmV3cml0ZSB0aGUgZXhlY3V0aW9uIHRyYWNlIGludG8gYSBuYXR1cmFsIGxhbmd1YWdlIHJhdGlvbmFsZSB0aGF0IGxlYWRzIHRvIHRoZSBhbnN3ZXIuCgpDb25zaWRlciB0aGUgZm9sbG93aW5nIGd1aWRlbGluZXM6Ci0gVXNlIGFsbCB0aGUgYm91bmRpbmcgYm94IGluZm9ybWF0aW9uIGluIHRoZSByYXRpb25hbGUsIGRvIG5vdCB1c2Ugd29yZHMgbGlrZSAic28gb24iIHRvIG9taXQgdGhlIGJvdW5kaW5nIGJveCwganVzdCB3cml0ZSBhbGwgb2YgdGhlbSBpbnRvIHRoZSByYXRpb25hbGUuCi0gUmVmZXJlbmNpbmcgdGhlIGV4ZWN1dGlvbiB0cmFjZSwgd3JpdGUgYSByZWFzb25pbmcgY2hhaW4gdGhhdCBsZWFkcyB0byB0aGUgbW9zdCBjb21tb24gaHVtYW4gYW5zd2VyLiBOb3RpY2UgdGhhdCB0aGUgb3V0cHV0IHNob3VsZCBiZSB0aGUgc2FtZSBhcyB0aGUgaHVtYW4gYW5zd2VyLCBub3QgbmVjZXNzYXJpbHkgdGhlIHByb2dyYW0gb3V0cHV0LgotIElmIHNvbWUgcGFydCBvZiB0aGUgcmF0aW9uYWxlIGxhY2tzIGxvZ2ljLCBhZGQgcmVhc29uYWJsZSBjb250ZW50IHRvIG1ha2UgaXQgbG9naWNhbC4KCgpIZXJlIGFyZSBzb21lIGV4YW1wbGVzIG9mIHRoZSByYW50aW9uYWxlIHlvdSBzaG91bGQgd3JpdGU6Ci0tLS0tClF1ZXN0aW9uOiBXaGF0IGRpZCB0aGUgcGVyc29uIGRvIHdpdGggdGhlIHRhYmxlPwpkZWYgZXhlY3V0ZV9jb21tYW5kKHZpZGVvX2NsaXAsIHF1ZXJ5LCBwb3NzaWJsZV9hbnN3ZXJzLCB0aW1lX3dhaXRfYmV0d2Vlbl9saW5lcywgc3ludGF4KToKICAgIHRhYmxlX2NsaXAgPSBGaWx0ZXJfZnJhbWVzX3dpdGhfYWN0KHZpZGVvX2NsaXAsICdwZXJzb24gaW50ZXJhY3Rpbmcgd2l0aCB0YWJsZScpCiAgICBwZXJzb25fY2xpcCA9IEZpbmQodGFibGVfY2xpcCwgJ3BlcnNvbicpCiAgICB0YWJsZV9iYm94ZXMgPSBGaW5kKHRhYmxlX2NsaXAsICd0YWJsZScpCiAgICBjbGlwX3N1bW1hcnkgPSBWaWRlb19zdW1tYXJ5KHBlcnNvbl9jbGlwKQogICAgcGVyc29uX2FjdGlvbiA9IFF1ZXJ5X0FjdGlvbnMocGVyc29uX2NsaXAsICd0YWJsZScsIHBvc3NpYmxlX2Fuc3dlcnM9cG9zc2libGVfYW5zd2VycykKICAgIGluZm8gPSB7J2FjdGlvbnMgdGhlIHBlcnNvbiBkbyB3aXRoIHRoZSB0YWJsZSc6IHBlcnNvbl9hY3Rpb24sICdzdW1tYXJ5IG9mIHRoZSB0YXJnZXQgdmlkZW8nOiBjbGlwX3N1bW1hcnl9CiAgICBhbnN3ZXIgPSBzZWxlY3RfYW5zd2VyKHF1ZXJ5LCBpbmZvLCBwb3NzaWJsZV9hbnN3ZXJzKQogICAgcmV0dXJuIGFuc3dlcgpFeGVjdXRpb24gdHJhY2U6CmNhbGwgRmlsdGVyX2ZyYW1lc193aXRoX2FjdApmaWx0ZXIgYWN0aW9uIHBlcnNvbiBpbnRlcmFjdGluZyB3aXRoIHRhYmxlCmZpbmQgYWN0aW9uIGZyb20gZnJhbWUgMiB0byBmcmFtZSAxMQpjYWxsIGZ1bmN0aW9uIEZpbmQKZmluZGluZyBwZXJzb24KZmluZCBwZXJzb24gYXQgWzEzOSwgMTQxLCAyMjksIDM0Ml0gaW4gZnJhbWUgMgpmaW5kIHBlcnNvbiBhdCBbMTUxLCAxMjMsIDI0MiwgMzQ5XSBpbiBmcmFtZSAzCmZpbmQgcGVyc29uIGF0IFsxNTMsIDEyMSwgMjQyLCAyNzRdIGluIGZyYW1lIDQKZmluZCBwZXJzb24gYXQgWzE1OCwgMTIzLCAyNTUsIDI2MV0gaW4gZnJhbWUgNQpmaW5kIHBlcnNvbiBhdCBbMTYzLCAxMjQsIDI3MCwgMjYyXSBpbiBmcmFtZSA2CmZpbmQgcGVyc29uIGF0IFsxNTMsIDEyMSwgMjQyLCAzNTFdIGluIGZyYW1lIDcKZmluZCBwZXJzb24gYXQgWzk1LCAxMTMsIDE5NiwgMzE2XSBpbiBmcmFtZSA4CmZpbmQgcGVyc29uIGF0IFs4MywgMTEzLCAxOTYsIDI4NV0gaW4gZnJhbWUgOQpmaW5kIHBlcnNvbiBhdCBbMTEyLCAxMTYsIDIwMSwgMzMyXSBpbiBmcmFtZSAxMApjYWxsIGZ1bmN0aW9uIEZpbmQKZmluZGluZyB0YWJsZQpmaW5kIHRhYmxlIGF0IFsxODMsIDE0MCwgMjY5LCAyNTddIGluIGZyYW1lIDIKZmluZCB0YWJsZSBhdCBbMTk0LCAxMzEsIDI2OSwgMjU1XSBpbiBmcmFtZSAzCmZpbmQgdGFibGUgYXQgWzIyNywgMTI5LCAyNjksIDI1Ml0gaW4gZnJhbWUgNApmaW5kIHRhYmxlIGF0IFsyMjYsIDE2NSwgMjY5LCAyNThdIGluIGZyYW1lIDUKZmluZCB0YWJsZSBhdCBbMjMzLCAxNzAsIDI3MCwgMjU5XSBpbiBmcmFtZSA2CmZpbmQgdGFibGUgYXQgWzIxNywgMTI5LCAyNjksIDI1Nl0gaW4gZnJhbWUgNwpmaW5kIHRhYmxlIGF0IFsyMTcsIDEyMiwgMjcwLCAyNTRdIGluIGZyYW1lIDgKZmluZCB0YWJsZSBhdCBbMjIxLCAxMjMsIDI2OSwgMjU2XSBpbiBmcmFtZSA5CmZpbmQgdGFibGUgYXQgWzIyNSwgMTI1LCAyNzAsIDI2M10gaW4gZnJhbWUgMTAKY2FsbCBmdW5jdGlvbiBWaWRlb19zdW1tYXJ5CnN1bW1hcnkgcmVzdWx0OiBUaGUgdmlkZW8gc2hvd3MgYSBtYW4gaW4gYSBraXRjaGVuLCBiZW5kaW5nIG92ZXIgYW5kIGhvbGRpbmcgYW4gb3JhbmdlIG9iamVjdCwgc3Vycm91bmRlZCBieSB2YXJpb3VzIGtpdGNoZW4gaXRlbXMgYW5kIGZ1cm5pdHVyZSwgd2l0aCBhIGZvY3VzIG9uIGhpcyBhY3Rpb25zIGFuZCB0aGUgZG9tZXN0aWMgc2V0dGluZy4KY2FsbCBmdW5jdGlvbiBRdWVyeV9BY3Rpb25zClF1ZXJ5IHRhYmxlCkFuc3dlcjogdGlkaWVkIHVwLgpjYWxsIGZ1bmN0aW9uIHNlbGVjdF9hbnN3ZXIKdGhlIGluZm9ybWF0aW9uIHVzZWQ6IC0gYWN0aW9ucyB0aGUgcGVyc29uIGRvIHdpdGggdGhlIHRhYmxlOiB0aWRpZWQgdXAuCi0gc3VtbWFyeSBvZiB0aGUgdGFyZ2V0IHZpZGVvOiBUaGUgdmlkZW8gc2hvd3MgYSBtYW4gaW4gYSBraXRjaGVuLCBiZW5kaW5nIG92ZXIgYW5kIGhvbGRpbmcgYW4gb3JhbmdlIG9iamVjdCwgc3Vycm91bmRlZCBieSB2YXJpb3VzIGtpdGNoZW4gaXRlbXMgYW5kIGZ1cm5pdHVyZSwgd2l0aCBhIGZvY3VzIG9uIGhpcyBhY3Rpb25zIGFuZCB0aGUgZG9tZXN0aWMgc2V0dGluZy4KcHJvZ3JhbSBvdXRwdXQ6IFRpZGllZCB1cC4KUmF0aW9uYWxlOgpUbyBzb2x2ZSB0aGlzIHF1ZXN0aW9uLCB3ZSBmaXJzdCBoYXZlIHRvIGZpbmQgd2hlbiBkaWQgdGhlIHBlcnNvbiBpbnRlcmFjdCB3aXRoIHRoZSB0YWJsZS4KRnJvbSB0aGUgdmlkZW8sIHdlIGNhbiBzZWUgdGhhdCB0aGUgcGVyc29uIGlzIGludGVyYWN0aW5nIHdpdGggdGhlIHRhYmxlIGZyb20gZnJhbWUgMiB0byBmcmFtZSAxMS4KSW4gdGhpcyB0aW1lIHBlcmlvZCwgd2UgY2FuIGZpbmQgcGVyc29uIGF0IFsxMzksIDE0MSwgMjI5LCAzNDJdIGluIGZyYW1lIDIsIFsxNTEsIDEyMywgMjQyLCAzNDldIGluIGZyYW1lIDMsIFsxNTMsIDEyMSwgMjQyLCAyNzRdIGluIGZyYW1lIDQgYW5kIHNvIG9uLgpUYWJsZSBjYW4gYWxzbyBiZSBmb3VuZCBhdCBbMTgzLCAxNDAsIDI2OSwgMjU3XSBpbiBmcmFtZSAyLCBbMTk0LCAxMzEsIDI2OSwgMjU1XSBpbiBmcmFtZSAzLCBbMjI3LCAxMjksIDI2OSwgMjUyXSBpbiBmcmFtZSA0IGFuZCBzbyBvbi4KQnkgYW5hbHl6aW5nIHRoZSBwZXJzb24gYW5kIHRhYmxlIGJvdW5kaW5nIGJveCByZWdpb24sIHdlIGNhbiBzZWUgdGhhdCB0aGUgcGVyc29uIGlzIGhvbGRpbmcgYW4gb3JhbmdlIG9iamVjdCB0byBjbGVhbiB0aGUgdGFibGUgaW4gdGhlIGtpcmNoZW4gZW52aXJvbm1lbnQuClNvIHRoZSBhbnN3ZXIgc2hvdWxkIGJlIHRpZGllZCB1cC4KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCk5vdywgbG9vayB0aGUgcXVlc3Rpb24sIHByb2dyYW0gYW5kIGV4ZWN1dGlvbiB0cmFjZSwgcGxlYXNlIHRyYW5zZmVyIHRoZXNlIGluZm9ybWF0aW9uIHRvIGEgcmFudGlvbmFsZS4KUXVlc3Rpb246IElOU0VSVF9RVUVTVElPTl9IRVJFCklOU0VSVF9QUk9HUkFNX0hFUkUKRXhlY3V0aW9uIHRyYWNlOgpJTlNFUlRfRVhFQ1VUSU9OX1RSQUNFX0hFUkUKUmF0aW9uYWxlOg==)1Given  a  video  and  a  question,  I  wrote  the  function  execute_command  using  Python,  and  the  other  functions  above  that  could  be  executed  to  provide  an  answer  to  the  query.2As  shown  in  the  code,  the  code  will  print  execution  traces.3I  need  you  to  rewrite  the  execution  trace  into  a  natural  language  rationale  that  leads  to  the  answer.45Consider  the  following  guidelines:6-  Use  all  the  bounding  box  information  in  the  rationale,  do  not  use  words  like  "so  on"  to  omit  the  bounding  box,  just  write  all  of  them  into  the  rationale.7-  Referencing  the  execution  trace,  write  a  reasoning  chain  that  leads  to  the  most  common  human  answer.  Notice  that  the  output  should  be  the  same  as  the  human  answer,  not  necessarily  the  program  output.8-  If  some  part  of  the  rationale  lacks  logic,  add  reasonable  content  to  make  it  logical.91011Here  are  some  examples  of  the  rantionale  you  should  write:12-----13Question:  What  did  the  person  do  with  the  table?14def  execute_command(video_clip,  query,  possible_answers,  time_wait_between_lines,  syntax):15  table_clip  =  Filter_frames_with_act(video_clip,  ’person  interacting  with  table’)16  person_clip  =  Find(table_clip,  ’person’)17  table_bboxes  =  Find(table_clip,  ’table’)18  clip_summary  =  Video_summary(person_clip)19  person_action  =  Query_Actions(person_clip,  ’table’,  possible_answers=possible_answers)20  info  =  {’actions  the  person  do  with  the  table’:  person_action,  ’summary  of  the  target  video’:  clip_summary}21  answer  =  select_answer(query,  info,  possible_answers)22  return  answer23Execution  trace:24call  Filter_frames_with_act25filter  action  person  interacting  with  table26find  action  from  frame  2  to  frame  1127call  function  Find28finding  person29find  person  at  [139,  141,  229,  342]  in  frame  230find  person  at  [151,  123,  242,  349]  in  frame  331find  person  at  [153,  121,  242,  274]  in  frame  432find  person  at  [158,  123,  255,  261]  in  frame  533find  person  at  [163,  124,  270,  262]  in  frame  634find  person  at  [153,  121,  242,  351]  in  frame  735find  person  at  [95,  113,  196,  316]  in  frame  836find  person  at  [83,  113,  196,  285]  in  frame  937find  person  at  [112,  116,  201,  332]  in  frame  1038call  function  Find39finding  table40find  table  at  [183,  140,  269,  257]  in  frame  241find  table  at  [194,  131,  269,  255]  in  frame  342find  table  at  [227,  129,  269,  252]  in  frame  443find  table  at  [226,  165,  269,  258]  in  frame  544find  table  at  [233,  170,  270,  259]  in  frame  645find  table  at  [217,  129,  269,  256]  in  frame  746find  table  at  [217,  122,  270,  254]  in  frame  847find  table  at  [221,  123,  269,  256]  in  frame  948find  table  at  [225,  125,  270,  263]  in  frame  1049call  function  Video_summary50summary  result:  The  video  shows  a  man  in  a  kitchen,  bending  over  and  holding  an  orange  object,  surrounded  by  various  kitchen  items  and  furniture,  with  a  focus  on  his  actions  and  the  domestic  setting.51call  function  Query_Actions52Query  table53Answer:  tidied  up.54call  function  select_answer55the  information  used:  -  actions  the  person  do  with  the  table:  tidied  up.56-  summary  of  the  target  video:  The  video  shows  a  man  in  a  kitchen,  bending  over  and  holding  an  orange  object,  surrounded  by  various  kitchen  items  and  furniture,  with  a  focus  on  his  actions  and  the  domestic  setting.57program  output:  Tidied  up.58Rationale:59To  solve  this  question,  we  first  have  to  find  when  did  the  person  interact  with  the  table.60From  the  video,  we  can  see  that  the  person  is  interacting  with  the  table  from  frame  2  to  frame  11.61In  this  time  period,  we  can  find  person  at  [139,  141,  229,  342]  in  frame  2,  [151,  123,  242,  349]  in  frame  3,  [153,  121,  242,  274]  in  frame  4  and  so  on.62Table  can  also  be  found  at  [183,  140,  269,  257]  in  frame  2,  [194,  131,  269,  255]  in  frame  3,  [227,  129,  269,  252]  in  frame  4  and  so  on.63By  analyzing  the  person  and  table  bounding  box  region,  we  can  see  that  the  person  is  holding  an  orange  object  to  clean  the  table  in  the  kirchen  environment.64So  the  answer  should  be  tidied  up.65------------------------------------------------66Now,  look  the  question,  program  and  execution  trace,  please  transfer  these  information  to  a  rantionale.67Question:  INSERT_QUESTION_HERE68INSERT_PROGRAM_HERE69Execution  trace:70INSERT_EXECUTION_TRACE_HERE71Rationale:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,R2l2ZW4gYSB2aWRlbyBhbmQgYSBxdWVzdGlvbiwgSSB3cm90ZSB0aGUgZnVuY3Rpb24gZXhlY3V0ZV9jb21tYW5kIHVzaW5nIFB5dGhvbiwgYW5kIHRoZSBvdGhlciBmdW5jdGlvbnMgYWJvdmUgdGhhdCBjb3VsZCBiZSBleGVjdXRlZCB0byBwcm92aWRlIGFuIGFuc3dlciB0byB0aGUgcXVlcnkuCkFzIHNob3duIGluIHRoZSBjb2RlLCB0aGUgY29kZSB3aWxsIHByaW50IGV4ZWN1dGlvbiB0cmFjZXMuCkkgbmVlZCB5b3UgdG8gcmV3cml0ZSB0aGUgZXhlY3V0aW9uIHRyYWNlIGludG8gYSBuYXR1cmFsIGxhbmd1YWdlIHJhdGlvbmFsZSB0aGF0IGxlYWRzIHRvIHRoZSBhbnN3ZXIuCgpDb25zaWRlciB0aGUgZm9sbG93aW5nIGd1aWRlbGluZXM6Ci0gVXNlIGFsbCB0aGUgYm91bmRpbmcgYm94IGluZm9ybWF0aW9uIGluIHRoZSByYXRpb25hbGUsIGRvIG5vdCB1c2Ugd29yZHMgbGlrZSAic28gb24iIHRvIG9taXQgdGhlIGJvdW5kaW5nIGJveCwganVzdCB3cml0ZSBhbGwgb2YgdGhlbSBpbnRvIHRoZSByYXRpb25hbGUuCi0gUmVmZXJlbmNpbmcgdGhlIGV4ZWN1dGlvbiB0cmFjZSwgd3JpdGUgYSByZWFzb25pbmcgY2hhaW4gdGhhdCBsZWFkcyB0byB0aGUgbW9zdCBjb21tb24gaHVtYW4gYW5zd2VyLiBOb3RpY2UgdGhhdCB0aGUgb3V0cHV0IHNob3VsZCBiZSB0aGUgc2FtZSBhcyB0aGUgaHVtYW4gYW5zd2VyLCBub3QgbmVjZXNzYXJpbHkgdGhlIHByb2dyYW0gb3V0cHV0LgotIElmIHNvbWUgcGFydCBvZiB0aGUgcmF0aW9uYWxlIGxhY2tzIGxvZ2ljLCBhZGQgcmVhc29uYWJsZSBjb250ZW50IHRvIG1ha2UgaXQgbG9naWNhbC4KCgpIZXJlIGFyZSBzb21lIGV4YW1wbGVzIG9mIHRoZSByYW50aW9uYWxlIHlvdSBzaG91bGQgd3JpdGU6Ci0tLS0tClF1ZXN0aW9uOiBXaGF0IGRpZCB0aGUgcGVyc29uIGRvIHdpdGggdGhlIHRhYmxlPwpkZWYgZXhlY3V0ZV9jb21tYW5kKHZpZGVvX2NsaXAsIHF1ZXJ5LCBwb3NzaWJsZV9hbnN3ZXJzLCB0aW1lX3dhaXRfYmV0d2Vlbl9saW5lcywgc3ludGF4KToKICAgIHRhYmxlX2NsaXAgPSBGaWx0ZXJfZnJhbWVzX3dpdGhfYWN0KHZpZGVvX2NsaXAsICdwZXJzb24gaW50ZXJhY3Rpbmcgd2l0aCB0YWJsZScpCiAgICBwZXJzb25fY2xpcCA9IEZpbmQodGFibGVfY2xpcCwgJ3BlcnNvbicpCiAgICB0YWJsZV9iYm94ZXMgPSBGaW5kKHRhYmxlX2NsaXAsICd0YWJsZScpCiAgICBjbGlwX3N1bW1hcnkgPSBWaWRlb19zdW1tYXJ5KHBlcnNvbl9jbGlwKQogICAgcGVyc29uX2FjdGlvbiA9IFF1ZXJ5X0FjdGlvbnMocGVyc29uX2NsaXAsICd0YWJsZScsIHBvc3NpYmxlX2Fuc3dlcnM9cG9zc2libGVfYW5zd2VycykKICAgIGluZm8gPSB7J2FjdGlvbnMgdGhlIHBlcnNvbiBkbyB3aXRoIHRoZSB0YWJsZSc6IHBlcnNvbl9hY3Rpb24sICdzdW1tYXJ5IG9mIHRoZSB0YXJnZXQgdmlkZW8nOiBjbGlwX3N1bW1hcnl9CiAgICBhbnN3ZXIgPSBzZWxlY3RfYW5zd2VyKHF1ZXJ5LCBpbmZvLCBwb3NzaWJsZV9hbnN3ZXJzKQogICAgcmV0dXJuIGFuc3dlcgpFeGVjdXRpb24gdHJhY2U6CmNhbGwgRmlsdGVyX2ZyYW1lc193aXRoX2FjdApmaWx0ZXIgYWN0aW9uIHBlcnNvbiBpbnRlcmFjdGluZyB3aXRoIHRhYmxlCmZpbmQgYWN0aW9uIGZyb20gZnJhbWUgMiB0byBmcmFtZSAxMQpjYWxsIGZ1bmN0aW9uIEZpbmQKZmluZGluZyBwZXJzb24KZmluZCBwZXJzb24gYXQgWzEzOSwgMTQxLCAyMjksIDM0Ml0gaW4gZnJhbWUgMgpmaW5kIHBlcnNvbiBhdCBbMTUxLCAxMjMsIDI0MiwgMzQ5XSBpbiBmcmFtZSAzCmZpbmQgcGVyc29uIGF0IFsxNTMsIDEyMSwgMjQyLCAyNzRdIGluIGZyYW1lIDQKZmluZCBwZXJzb24gYXQgWzEyOCwgMTE5LCAyMjgsIDI1N10gaW4gZnJhbWUgNQpmaW5kIHBlcnNvbiBhdCBbMTI3LCAxMTksIDIyOCwgMjU1XSBpbiBmcmFtZSA2CmZpbmQgcGVyc29uIGF0IFsxMjksIDEyMiwgMjMwLCAyNTRdIGluIGZyYW1lIDgKZmluZCBwZXJzb24gYXQgWzE5MiwyMTAsMjY0LCAyNTZdIGluIGZyYW1lIDEwCi0gY2FsbCBmdW5jdGlvbiBFbGVjdHVhdGlvbiB0cmFjZQpRZXN0aW9uOiA3Z2F1cnMgYSBtaW5nIGluIHRoZSBraXRjaGVuLCBiZW5kaW5nIG92ZXIgYW5kIGhvbGRpbmcgYW4gb3JhbmdlIG9iamVjdCwgYXJvdW5kZWQgYnkgaW5mb3JtYXRpdmVraXRjaGVuIHRhYmxlLg==)'
+- en: D.3 Prompt for CoT Filtering
+  id: totrans-249
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.3 CoT 过滤提示
+- en: 'In order to obtain high quality distillation data, we continue using LLM to
+    filter CoTs. We prompt the LLM to select those CoTs that are truly helpful for
+    solving questions and reflect the step-by-step thinking process. The prompt is
+    as follows:'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了获得高质量的蒸馏数据，我们继续使用大语言模型（LLM）来过滤CoT。我们提示LLM选择那些对解决问题真正有帮助，并且反映出一步一步思考过程的CoT。提示如下：
+- en: '[⬇](data:text/plain;base64,SSB3aWxsIGdpdmUgeW91IGEgcXVlc3Rpb24gYW5kIGEgcmF0aW9uYWxlIHRvIHNvbHZlIHRoZSBxdWVzdGlvbiwgeW91IG5lZWQgdG8ganVkZ2Ugd2hldGhlciB0aGUgcmF0aW9uYWxlIGlzIHRoaW5raW5nIHN0ZXAgYnkgc3RlcCBhbmQgaGVscGZ1bCB0byBzb2x2ZSB0aGUgcXVlc3Rpb24uCklmIHllcywgcmV0dXJuIFRydWUsIElmIG5vdCwgcmV0dXJuIEZhbHNlLiBubyBuZWVkIHRvIGV4cGxhaW4uCkhlcmUgaXMgdGhlIHF1ZXN0aW9uIGFuZCByYXRpb25hbGU6ClF1ZXN0aW9uOiBJTlNFUlRfUVVFU1RJT05fSEVSRQpSYXRpb25hbGU6IElOU0VSVF9SQVRJT05BTEVfSEVSRQ==)1I  will  give  you  a  question  and  a  rationale  to  solve  the  question,  you  need  to  judge  whether  the  rationale  is  thinking  step  by  step  and  helpful  to  solve  the  question.2If  yes,  return  True,  If  not,  return  False.  no  need  to  explain.3Here  is  the  question  and  rationale:4Question:  INSERT_QUESTION_HERE5Rationale:  INSERT_RATIONALE_HERE'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,SSB3aWxsIGdpdmUgeW91IGEgcXVlc3Rpb24gYW5kIGEgcmF0aW9uYWxlIHRvIHNvbHZlIHRoZSBxdWVzdGlvbiwgeW91IG5lZWQgdG8ganVkZ2Ugd2hldGhlciB0aGUgcmF0aW9uYWxlIGlzIHRoaW5raW5nIHN0ZXAgYnkgc3RlcCBhbmQaIGhlbHBmdWwgdG8gc29sdmUgdGhlIHF1ZXN0aW9uLiBBZmlybXkgZXMsIHJldHVybiBUcnVlLCBJZiBub3QsIHJldHVybiBGYWxzZS4gbm8gbmVlZCB0byBleHBsYWluLiBIZXJlIGlzIHRoZSBxdWVzdGlvbiBhbmQgaW5lY2F0aW9uYWw6ClF1ZXN0aW9uOiBJTlNFUlRfUVVFU1RJT05fSEVSRQpSYXRpb25hbGU6IElOU0VSVF9SQVRJT05BTEVfSEVSRQ==)1我会给你一个问题和一个解决问题的理由，你需要判断这个理由是否是一步一步思考的，并且对解决问题有帮助。如果是，返回True；如果不是，返回False。不需要解释。这里是问题和理由：问题：INSERT_QUESTION_HERE理由：INSERT_RATIONALE_HERE'
+- en: D.4 Prompt for Inference
+  id: totrans-252
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.4 推理提示
+- en: '<svg class="ltx_picture" height="56.43" id="A4.SS4.p1.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,56.43) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 12.99 12.99)"><foreignobject color="#000000" height="30.44" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="574.02">Question: question content
+    Answer in one word or phrase. / Explain the rationale to answer the question.</foreignobject></g></g></svg><svg
+    class="ltx_picture" height="154.51" id="A4.SS4.p2.pic1" overflow="visible" version="1.1"
+    width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,154.51)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    12.99 12.99)"><foreignobject color="#000000" height="128.53" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="574.02">Question: question content
+    Options: (A) option content (B) option content (C) option content (D) option content
+    Answer with the option’s letter from the given choices directly and only give
+    the best option. / Explain the rationale to answer the question.</foreignobject></g></g></svg>'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="56.43" id="A4.SS4.p1.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,56.43) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 12.99 12.99)"><foreignobject color="#000000" height="30.44" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="574.02">问题：问题内容 请用一个词或短语回答。/ 解释回答问题的理由。</foreignobject></g></g></svg><svg
+    class="ltx_picture" height="154.51" id="A4.SS4.p2.pic1" overflow="visible" version="1.1"
+    width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,154.51)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    12.99 12.99)"><foreignobject color="#000000" height="128.53" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="574.02">问题：问题内容 选项：（A）选项内容 （B）选项内容
+    （C）选项内容 （D）选项内容 直接回答最佳选项的字母，并仅给出最佳选项。/ 解释回答问题的理由。</foreignobject></g></g></svg>

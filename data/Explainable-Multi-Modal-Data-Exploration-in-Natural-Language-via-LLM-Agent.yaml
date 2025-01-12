@@ -1,0 +1,2174 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 11:43:28'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 11:43:28
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Explainable Multi-Modal Data Exploration in Natural Language via LLM Agent
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 通过LLM代理进行自然语言的可解释多模态数据探索
+- en: 来源：[https://arxiv.org/html/2412.18428/](https://arxiv.org/html/2412.18428/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2412.18428/](https://arxiv.org/html/2412.18428/)
+- en: Farhad Nooralahzadeh [noor@zhaw.ch](mailto:noor@zhaw.ch) Zurich University of
+    Applied SciencesSwitzerland ,  Yi Zhang [zhay@zhaw.ch](mailto:zhay@zhaw.ch) Zurich
+    University of Applied SciencesSwitzerland ,  Jonathan Fürst [fues@zhaw.ch](mailto:fues@zhaw.ch)
+    Zurich University of Applied SciencesSwitzerland  and  Kurt Stockinger [stog@zhaw.ch](mailto:stog@zhaw.ch)
+    Zurich University of Applied SciencesSwitzerland
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Farhad Nooralahzadeh [noor@zhaw.ch](mailto:noor@zhaw.ch) 苏黎世应用科技大学 瑞士,  Yi Zhang
+    [zhay@zhaw.ch](mailto:zhay@zhaw.ch) 苏黎世应用科技大学 瑞士,  Jonathan Fürst [fues@zhaw.ch](mailto:fues@zhaw.ch)
+    苏黎世应用科技大学 瑞士 以及 Kurt Stockinger [stog@zhaw.ch](mailto:stog@zhaw.ch) 苏黎世应用科技大学
+    瑞士
+- en: Abstract.
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要。
+- en: International enterprises, organizations, or hospitals collect large amounts
+    of multi-modal data stored in databases, text documents, images, and videos. While
+    there has been recent progress in the separate fields of multi-modal data exploration
+    as well as in database systems that automatically translate natural language questions
+    to database query languages, the research challenge of querying database systems
+    combined with other unstructured modalities such as images in natural language
+    is widely unexplored.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 国际企业、组织或医院收集大量的多模态数据，这些数据存储在数据库、文本文档、图像和视频中。尽管在多模态数据探索的各个领域以及将自然语言问题自动转换为数据库查询语言的数据库系统方面，最近取得了一些进展，但将数据库系统与其他非结构化模态（如图像）结合在一起进行自然语言查询的研究挑战仍然广泛未被探索。
+- en: 'In this paper, we propose XMODE ¹¹1The source code, data, and/or other artifacts
+    have been made available at [https://github.com/yizhang-unifr/XMODE](https://github.com/yizhang-unifr/XMODE).
+    - a system that enables explainable, multi-modal data exploration in natural language.
+    Our approach is based on the following research contributions: (1) Our system
+    is inspired by a real-world use case that enables users to explore multi-modal
+    information systems. (2) XMODE leverages a LLM-based agentic AI framework to decompose
+    a natural language question into subtasks such as text-to-SQL generation and image
+    analysis. (3) Experimental results on multi-modal datasets over relational data
+    and images demonstrate that our system outperforms state-of-the-art multi-modal
+    exploration systems, excelling not only in accuracy but also in various performance
+    metrics such as query latency, API costs, planning efficiency, and explanation
+    quality, thanks to the more effective utilization of the reasoning capabilities
+    of LLMs.'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了XMODE¹¹1源代码、数据和/或其他相关资源已在[https://github.com/yizhang-unifr/XMODE](https://github.com/yizhang-unifr/XMODE)发布。-
+    这是一个支持用自然语言进行可解释的多模态数据探索的系统。我们的方法基于以下研究贡献：（1）我们的系统受一个现实世界用例的启发，允许用户探索多模态信息系统。（2）XMODE利用基于LLM的代理AI框架将自然语言问题分解为子任务，例如文本到SQL生成和图像分析。（3）在关系数据和图像上的多模态数据集的实验结果表明，我们的系统在精度上不仅超过了当前最先进的多模态探索系统，还在查询延迟、API成本、计划效率和解释质量等多项性能指标上表现优异，得益于更有效地利用LLM的推理能力。
+- en: 1\. Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1\. 引言
+- en: Consider a hospital in the near future in which doctors, nurses, and data scientists
+    naturally access digital patient data. This data includes electronic health records
+    (EHR), usually stored in relational databases ([sivasubramaniamsm3,](https://arxiv.org/html/2412.18428v1#bib.bib19)
+    ), but also multimedia data such as medical images from CT scans or X-rays and
+    the corresponding reports written by medical experts (unstructured data). Each
+    participant seeks to interactively query all these datasets in natural language.
+    Different participants also have different skill sets and exploration goals. Additionally,
+    given the application domain, each user wants to understand exactly how the system
+    evaluates their queries. A system that supports such a scenario would unlock a
+    plethora of applications, from this medical example to queries over shared scientific
+    databases (also containing structured data, text, images, and videos), queries
+    over public datasets, and more. However, building such a system presents significant
+    research challenges in understanding user intent, which often relies on complex
+    queries, querying multimedia databases, and ensuring explainability.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设想一个不久的将来，医院中的医生、护士和数据科学家可以自然地访问数字化病人数据。这些数据包括电子健康记录（EHR），通常存储在关系数据库中 ([sivasubramaniamsm3,](https://arxiv.org/html/2412.18428v1#bib.bib19)
+    ），还包括如 CT 扫描或 X 光片的医学影像和医疗专家撰写的相应报告（非结构化数据）。每个参与者都希望以自然语言互动查询这些数据集。不同的参与者具有不同的技能和探索目标。此外，鉴于应用领域，每个用户都希望准确了解系统如何评估他们的查询。支持这种场景的系统将解锁大量应用，从这个医学示例到对共享科学数据库（也包含结构化数据、文本、图像和视频）的查询、公共数据集的查询等。然而，构建这样的系统面临着在理解用户意图方面的重大研究挑战，这通常依赖于复杂的查询、查询多媒体数据库以及确保可解释性。
+- en: '![Refer to caption](img/c5d7e1e086dd8218ebe7dc0d1d093dc2.png)'
+  id: totrans-12
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/c5d7e1e086dd8218ebe7dc0d1d093dc2.png)'
+- en: (a) Medical Data Exploration
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 医疗数据探索
+- en: '![Refer to caption](img/2ca223d598a1d5bd21fd2242c152a9e6.png)'
+  id: totrans-14
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/2ca223d598a1d5bd21fd2242c152a9e6.png)'
+- en: (b) Art Work Data Exploration
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 艺术作品数据探索
+- en: Figure 1\. Example workflows of multi-modal data exploration in natural language
+    over heterogeneous data sources. A complex natural language question is decomposed
+    into sub-questions to better enable answer explainability. Each sub-question is
+    designated to a particular task (such as text-to-SQL translation or image analysis).
+    These tasks may be expanded to utilize various tools and machine learning models
+    to address specific downstream requirements necessary for answering a user’s natural
+    language question.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1\. 自然语言在异构数据源中的多模态数据探索示例工作流。一个复杂的自然语言问题被分解成多个子问题，以更好地支持答案的可解释性。每个子问题都被指定到一个特定的任务（例如文本到
+    SQL 翻译或图像分析）。这些任务可以扩展为利用各种工具和机器学习模型，以解决回答用户自然语言问题所需的特定下游需求。
+- en: 'To understand these challenges, a concrete scenario of multi-modal exploration
+    involving a relational database, text documents, and images is outlined here..
+    Assume that a user asks the following question in natural language: Show me the
+    progression of cancer lesions over the last 12 months of patients with lung cancer
+    who are smokers. (see the upper part of Figure [1](https://arxiv.org/html/2412.18428v1#S1.F1
+    "Figure 1 ‣ 1\. Introduction ‣ Explainable Multi-Modal Data Exploration in Natural
+    Language via LLM Agent") b). This seemingly straightforward query encapsulates
+    several fundamental challenges in multifaceted data exploration. First, it requires
+    the decomposition of a natural language query into semantically precise sub-queries,
+    each targeting diverse data modalities while preserving the original intent. Critical
+    to this process is optimizing the workflow sequence - determining which queries
+    should be executed first to minimize computational overhead and maximize efficiency.
+    For instance, filtering patients through structured database queries before retrieving
+    and analyzing medical images significantly reduces the computational burden compared
+    to analyzing all available images first. In our example in Figure 1, natural language
+    $NL1$ is a text-to-SQL task to query the relational database for the name and
+    age of patients diagnosed with lung cancer. The result is then used for $NL2$
+    - an image analysis task - looking for cancer lesions in those patients’ images.
+    Finally, $NL3$ - a visualization task - shows the cancer progression for each
+    patient. This workflow sequence is deliberately optimized: starting with structured
+    data filtering before proceeding to more computationally intensive image analysis
+    tasks. The complexity compounds when considering the temporal aspect of disease
+    progression, which necessitates careful alignment of data across different modalities
+    and timestamps. Furthermore, in healthcare settings, result verification and transparency
+    are paramount. Users must be able to trace back any conclusions to the source
+    data, understand how intermediate results were derived, and verify the accuracy
+    of each analytical step. This necessitates a workflow where users can validate
+    intermediate results before proceeding to subsequent analysis stages, with the
+    ability to refine queries if the results don’t align with their clinical expectations.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了理解这些挑战，这里概述了一个涉及关系数据库、文本文件和图像的多模态探索的具体场景。假设一个用户用自然语言提出以下问题：展示吸烟的肺癌患者在过去12个月中的癌症病灶进展。（参见图[1](https://arxiv.org/html/2412.18428v1#S1.F1
+    "Figure 1 ‣ 1\. Introduction ‣ Explainable Multi-Modal Data Exploration in Natural
+    Language via LLM Agent") b）的上半部分）。这个看似简单的查询包含了多面数据探索中的几个基本挑战。首先，它需要将自然语言查询分解成语义准确的子查询，每个子查询针对不同的数据模态，同时保持原始意图。在这个过程中，优化工作流顺序至关重要——确定哪些查询应首先执行，以最小化计算开销并最大化效率。例如，在检索和分析医学图像之前，通过结构化数据库查询筛选患者，相比直接分析所有可用图像，能够显著减少计算负担。在图1的示例中，自然语言$NL1$是一个文本到SQL的任务，用于查询已诊断为肺癌患者的姓名和年龄。结果随后用于$NL2$——一个图像分析任务——查找这些患者图像中的癌症病灶。最后，$NL3$——一个可视化任务——展示每个患者的癌症进展。这一工作流顺序是经过故意优化的：先进行结构化数据筛选，再进行计算量更大的图像分析任务。当考虑到疾病进展的时间因素时，复杂性进一步增加，这要求在不同模态和时间戳之间仔细对齐数据。此外，在医疗环境中，结果验证和透明度至关重要。用户必须能够追溯任何结论的来源数据，理解中间结果是如何得出的，并验证每个分析步骤的准确性。这就需要一个工作流，允许用户在进行后续分析阶段之前验证中间结果，并在结果与临床预期不符时有能力细化查询。
+- en: Now imagine a museum or art gallery in the near future, where curators, researchers,
+    and data scientists can naturally access and explore digital art collections.
+    This data includes structured information about paintings, such as artist, title,
+    medium, and subject matter, which is typically stored in a relational database.
+    The collection also includes unstructured data, such as the full text of art critiques
+    and descriptions, as well as digital images of the artworks. Similar to the previous
+    use case for medical data exploration, also the use case for artwork exploration
+    is multi-modal and requires analysis of heterogeneous data (e.g. tabular and image)
+    as shown in Figure [1](https://arxiv.org/html/2412.18428v1#S1.F1 "Figure 1 ‣ 1\.
+    Introduction ‣ Explainable Multi-Modal Data Exploration in Natural Language via
+    LLM Agent")(b).
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，想象一下未来不久的博物馆或艺术画廊，在那里，策展人、研究人员和数据科学家可以自然地访问和探索数字艺术收藏。这些数据包括关于画作的结构化信息，例如艺术家、标题、媒介和主题，这些通常存储在关系数据库中。该收藏还包括非结构化数据，如艺术评论和描述的全文，以及艺术作品的数字图像。与前面提到的医学数据探索用例类似，艺术作品探索用例也是多模态的，且需要分析异构数据（例如表格数据和图像），如图[1](https://arxiv.org/html/2412.18428v1#S1.F1
+    "Figure 1 ‣ 1\. Introduction ‣ Explainable Multi-Modal Data Exploration in Natural
+    Language via LLM Agent")(b)所示。
+- en: 'The goal of our paper is to support such multi-modal data exploration scenarios
+    in natural language by designing and implementing a system to address the following
+    challenges:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文的目标是通过设计和实现一个系统，支持自然语言中的多模态数据探索场景，以解决以下挑战：
+- en: •
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Heterogeneous data exploration: How can we design a system that accurately
+    interprets user queries in natural language for exploring heterogeneous data sources
+    with high accuracy?'
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 异构数据探索：我们如何设计一个系统，准确解释用户的自然语言查询，以高精度探索异构数据源？
+- en: •
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Orchestrating multiple expert models and tools for data exploration: How can
+    we automatically break down a user question into sub-questions that can later
+    be organized into a workflow plan? How do we delegate these tasks to the appropriate
+    expert models from the available toolbox, considering dependencies and the potential
+    for parallel execution?'
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 协调多个专家模型和工具进行数据探索：我们如何自动地将用户问题分解为子问题，并将这些子问题组织成工作流计划？我们如何根据依赖关系和并行执行的可能性，将这些任务委派给来自可用工具箱的合适专家模型？
+- en: •
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Explainability: How can we design a system that facilitates multi-modal exploration,
+    allowing end users to trace conclusions back to their source data, comprehend
+    how intermediate results were generated, and identify situations where questions
+    remain unanswered due to missing data?'
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 可解释性：我们如何设计一个系统，促进多模态探索，使最终用户能够追溯结论的源数据，理解中间结果是如何生成的，并识别因数据缺失而导致问题无法回答的情况？
+- en: Existing works on multi-modal data exploration in natural language follow mainly
+    two paradigms (1) multiple modalities are embedded in a single query language,
+    e.g., NeuralSQL ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    ) embeds visual QA functions directly in SQL; (2) agentic workflows, in which
+    different tools (e.g., relational database operators, vision model) are intelligently
+    combined to answer a user-question such as Caesura ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)
+    ).
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现有的自然语言多模态数据探索工作主要遵循两种范式：(1) 多模态嵌入到单一查询语言中，例如，NeuralSQL ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1))
+    将视觉问答功能直接嵌入SQL中；(2) 代理工作流，其中不同的工具（如关系数据库操作符、视觉模型）被智能地结合，以回答用户问题，例如Caesura ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20))。
+- en: 'In this paper, we propose XMODE - a multi-modal data exploration system that
+    uses an Large language Model based agentic framework to tackle these challenges.
+    The basic idea is to first decompose a complex natural language question into
+    simpler sub-questions. Each question is then translated into a workflow of specific
+    tasks. By applying smart planning, our approach can reason about which task in
+    the workflow fails and thus re-plan that specific task rather than restarting
+    the complete workflow. The advantage of our approach compared to similar systems
+    such as Caesura ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)
+    ) is that it enables parallel task execution through the construction of a directed
+    acyclic task graph and requires a lower number of tokens from prompt engineering
+    resulting in more efficient query execution times and API calling costs. The main
+    contributions of our paper are as follows:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了XMODE——一种多模态数据探索系统，采用基于大型语言模型的代理框架来应对这些挑战。基本思路是先将复杂的自然语言问题分解为更简单的子问题。然后，每个问题被转换为特定任务的工作流。通过应用智能规划，我们的方法能够推理出工作流中哪个任务失败，从而重新规划该特定任务，而不是重启整个工作流。与类似的系统（如Caesura）相比，我们方法的优势在于，它通过构建有向无环任务图来实现任务并行执行，并且需要较少的提示工程令牌，从而提高了查询执行时间和API调用成本的效率。本文的主要贡献如下：
+- en: •
+  id: totrans-28
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Higher accuracy: XMODE is based on an agentic AI framework that shows higher
+    accuracy for exploring multi-modal data than traditional work due to the smart
+    orchestration of different tasks of the data exploration pipeline.'
+  id: totrans-29
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 更高的准确性：XMODE基于代理AI框架，凭借对数据探索管道中不同任务的智能协调，表现出比传统方法更高的多模态数据探索准确性。
+- en: •
+  id: totrans-30
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Improved performance: XMODE demonstrates performance improvements compared
+    to state-of-the-art through parallelism, reasoning and smart re-planning.'
+  id: totrans-31
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 性能提升：XMODE通过并行性、推理和智能重新规划，展示了与现有技术相比的性能改进。
+- en: •
+  id: totrans-32
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Better explainability: XMODE enhances explainability by enabling a user to
+    inspect the decisions and reasoning at each step that led to the final output,
+    tracing back through the results of all previous steps.'
+  id: totrans-33
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 更好的可解释性：XMODE通过让用户检查每个步骤的决策和推理过程，增强了可解释性，可以追溯到所有前置步骤的结果，直至最终输出。
+- en: •
+  id: totrans-34
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Generalizablilty: XMODE is designed and evaluated in a zero-shot setting, demonstrating
+    its ability to perform complex tasks without relying on In-Context Learning (ICL),
+    thereby improving both adaptability and accessibility.'
+  id: totrans-35
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 泛化能力：XMODE在零-shot设置下进行设计和评估，展示了其无需依赖上下文学习（ICL）即可执行复杂任务的能力，从而提升了适应性和可访问性。
+- en: 2\. Related Work
+  id: totrans-36
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2\. 相关工作
+- en: Text-to-SQL systems.
+  id: totrans-37
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 文本到SQL系统。
+- en: The research field of text-to-SQL systems has seen tremendous progress over
+    the last few years ([Floratou2024,](https://arxiv.org/html/2412.18428v1#bib.bib5)
+    ; [pourreza2024din,](https://arxiv.org/html/2412.18428v1#bib.bib18) ) due to advances
+    in large language models. Original success can be attributed to rather simplistic
+    datasets consisting of databases with only several tables as in Spider ([yu2018spider,](https://arxiv.org/html/2412.18428v1#bib.bib24)
+    ). Especially the introduction of new benchmarks such as ScienceBenchmark ([zhang2023sciencebenchmark,](https://arxiv.org/html/2412.18428v1#bib.bib27)
+    ) or BIRD ([li2024can,](https://arxiv.org/html/2412.18428v1#bib.bib13) ) has further
+    pushed these limits of these systems. Most of the research efforts have been restricted
+    to querying databases in English apart from a few exceptions such as Statbot.Swiss
+    ([noor2024,](https://arxiv.org/html/2412.18428v1#bib.bib17) ).
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，得益于大型语言模型的进步，文本到SQL系统的研究领域取得了巨大进展（[Floratou2024,](https://arxiv.org/html/2412.18428v1#bib.bib5)；[pourreza2024din,](https://arxiv.org/html/2412.18428v1#bib.bib18)）。最初的成功可归因于相对简单的数据集，这些数据集仅包含几个表的数据库，例如Spider（[yu2018spider,](https://arxiv.org/html/2412.18428v1#bib.bib24)）。特别是引入了新的基准，如ScienceBenchmark（[zhang2023sciencebenchmark,](https://arxiv.org/html/2412.18428v1#bib.bib27)）或BIRD（[li2024can,](https://arxiv.org/html/2412.18428v1#bib.bib13)），进一步推动了这些系统的极限。大多数研究努力一直局限于用英语查询数据库，少数例外如Statbot.Swiss（[noor2024,](https://arxiv.org/html/2412.18428v1#bib.bib17)）。
+- en: Explainability.
+  id: totrans-39
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 可解释性。
+- en: Explainability aims to provide a deeper understanding of how machine learning
+    models make predictions by illuminating the decision-making processes within these
+    models. It strives to offer transparency, enabling stakeholders to comprehend,
+    trust, and effectively manage the outcomes produced by these models ([lundberg2017unified,](https://arxiv.org/html/2412.18428v1#bib.bib16)
+    ; [kim2018interpretability,](https://arxiv.org/html/2412.18428v1#bib.bib10) ).
+    Although there has been recent progress in artificial intelligence in general,
+    for the task of data exploration in natural language, explainability is an open
+    issue. Recently, in the multi-agent collaboration framework ([wang2023towards,](https://arxiv.org/html/2412.18428v1#bib.bib23)
+    ), explainability has been designed to mimic human-like top-down reasoning by
+    utilizing the extensive knowledge of Large Language Models (LLMs). For the task
+    of text-to-SQL, explainability is basically an unexplored research topic with
+    the exception of back-translating automatically generated SQL statements to natural
+    language ([bandyopadhyay2020natural,](https://arxiv.org/html/2412.18428v1#bib.bib2)
+    ; [von2022improving,](https://arxiv.org/html/2412.18428v1#bib.bib22) ; [zhang2023sciencebenchmark,](https://arxiv.org/html/2412.18428v1#bib.bib27)
+    ). However, back translation is often not enough to fully explain how a system
+    comes up with an answer and how to interpret the results.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可解释性旨在通过阐明机器学习模型的决策过程，提供对这些模型如何做出预测的更深入理解。它努力提供透明度，使利益相关者能够理解、信任并有效管理这些模型产生的结果（[lundberg2017unified,](https://arxiv.org/html/2412.18428v1#bib.bib16)
+    ; [kim2018interpretability,](https://arxiv.org/html/2412.18428v1#bib.bib10) ）。尽管人工智能领域最近取得了一些进展，但在自然语言数据探索任务中，可解释性仍然是一个未解的问题。最近，在多代理协作框架中（[wang2023towards,](https://arxiv.org/html/2412.18428v1#bib.bib23)
+    ），可解释性已经被设计用来模仿人类式的自上而下推理，通过利用大语言模型（LLMs）广泛的知识。对于文本到SQL的任务，可解释性基本上是一个未被深入研究的课题，除了自动生成SQL语句并将其反向翻译为自然语言的研究（[bandyopadhyay2020natural,](https://arxiv.org/html/2412.18428v1#bib.bib2)
+    ; [von2022improving,](https://arxiv.org/html/2412.18428v1#bib.bib22) ; [zhang2023sciencebenchmark,](https://arxiv.org/html/2412.18428v1#bib.bib27)
+    ）之外。然而，反向翻译通常不足以完全解释一个系统如何得出答案，以及如何解释结果。
+- en: Multi-modal systems.
+  id: totrans-41
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 多模态系统。
+- en: Video Database Management Systems (VDBMSs) support efficient and complex queries
+    over video data, but are often restricted to videos only (e.g., ([zhang2023equi,](https://arxiv.org/html/2412.18428v1#bib.bib25)
+    ; [DBLP:journals/pvldb/KangBZ19,](https://arxiv.org/html/2412.18428v1#bib.bib7)
+    ; [DBLP:conf/deem/KakkarCCXVDPBS023,](https://arxiv.org/html/2412.18428v1#bib.bib4)
+    )). ThalamusDB ([jo2024,](https://arxiv.org/html/2412.18428v1#bib.bib6) ) enables
+    queries over multi-modal data but requires SQL as input, with explicit identification
+    of the predicates that should be applied to an attribute corresponding to video
+    or audio data. Similarly, MindsDB²²2https://docs.mindsdb.com and VIVA ([DBLP:conf/cidr/KangRBKZ22,](https://arxiv.org/html/2412.18428v1#bib.bib8)
+    ) require that users write SQL and manually combine data from relational tables
+    and models. Vision-language models provide textual descriptions of video data ([zhang2024vision,](https://arxiv.org/html/2412.18428v1#bib.bib26)
+    ), but are not designed to support precise, structured queries.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视频数据库管理系统（VDBMSs）支持对视频数据进行高效且复杂的查询，但通常仅限于视频数据（例如，([zhang2023equi,](https://arxiv.org/html/2412.18428v1#bib.bib25)
+    ; [DBLP:journals/pvldb/KangBZ19,](https://arxiv.org/html/2412.18428v1#bib.bib7)
+    ; [DBLP:conf/deem/KakkarCCXVDPBS023,](https://arxiv.org/html/2412.18428v1#bib.bib4)
+    )）。ThalamusDB ([jo2024,](https://arxiv.org/html/2412.18428v1#bib.bib6) ) 支持多模态数据的查询，但需要使用SQL作为输入，并明确标识应应用于与视频或音频数据相关的属性的谓词。同样，MindsDB²²2https://docs.mindsdb.com
+    和 VIVA ([DBLP:conf/cidr/KangRBKZ22,](https://arxiv.org/html/2412.18428v1#bib.bib8)
+    )要求用户编写SQL，并手动将来自关系表和模型的数据进行组合。视觉语言模型提供视频数据的文本描述（[zhang2024vision,](https://arxiv.org/html/2412.18428v1#bib.bib26)），但并非专门设计来支持精确的结构化查询。
+- en: Most closely related to our approach are CAESURA ([urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)
+    ), which supports natural language queries over multi-modal data lakes, and PALIMPZEST
+    ([liu2024declarative,](https://arxiv.org/html/2412.18428v1#bib.bib15) ), which
+    enables optimizing AI workload. The key distinction of our system, XMODE, is its
+    focus on efficiently orchestrating various model calls and their dependencies.
+    This approach not only improves latency and cost but also enhances accuracy by
+    minimizing interference from the outputs of intermediate function calls.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与我们的方法最相关的是CAESURA（[urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)），它支持对多模态数据湖的自然语言查询，以及PALIMPZEST（[liu2024declarative,](https://arxiv.org/html/2412.18428v1#bib.bib15)），它可以优化AI工作负载。我们系统XMODE的关键区别在于它专注于高效协调各种模型调用及其依赖关系。这种方法不仅提高了延迟和成本效率，还通过最小化中间函数调用输出的干扰，提升了准确性。
+- en: Moreover, the related systems enable multi-modal queries across structured and
+    unstructured data with a focus on query planning. However, these systems do not
+    address enhancing the accuracy and explainability of the underlying model for
+    natural language data exploration tasks. Explainability and answer justification
+    are crucial in domains like medical data science, where medical device regulations
+    mandate systems to provide detailed explanations of how specific results are obtained,
+    ensuring that no potentially fatal medical treatment is recommended.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，相关系统支持跨结构化和非结构化数据的多模态查询，并侧重于查询规划。然而，这些系统没有解决如何增强底层模型在自然语言数据探索任务中的准确性和可解释性的问题。在医学数据科学等领域，可解释性和答案合理性至关重要，因为医疗设备法规要求系统提供详细的解释，说明特定结果是如何得出的，以确保不会推荐可能致命的医疗治疗。
+- en: '![Refer to caption](img/9f492ce48538d932e33f486400e98312.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/9f492ce48538d932e33f486400e98312.png)'
+- en: Figure 2\. XMODE system architecture.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2\. XMODE系统架构。
+- en: 3\. System Design
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3\. 系统设计
+- en: We now describe the design of our system called XMODE, which enables explainable
+    multi-modal data exploration in natural language.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在描述我们的系统设计，称为XMODE，它使得多模态数据探索可以通过自然语言进行解释。
+- en: 3.1\. System Architecture of XMODE
+  id: totrans-49
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1\. XMODE系统架构
+- en: '![Refer to caption](img/40f30ca11596dfdba8e2c9c6e9d28dc7.png)'
+  id: totrans-50
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/40f30ca11596dfdba8e2c9c6e9d28dc7.png)'
+- en: Figure 3\. XMODE system architecture in ArtWork  ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)
+    ) with an example of processing a multi-modal query. The query is automatically
+    decomposed into various components such as text2SQL, and image analysis which
+    can be inspected by the user for explainability.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3\. XMODE系统架构在ArtWork中的应用（[urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)），展示了处理多模态查询的示例。查询被自动分解成多个组件，例如text2SQL和图像分析，用户可以检查这些组件以确保可解释性。
+- en: '![Refer to caption](img/68f020d417e303039f59ab7b0a0ac52f.png)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/68f020d417e303039f59ab7b0a0ac52f.png)'
+- en: Figure 4\. XMODE system architecture in EHRXQA  ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    ) with an example of processing a multi-modal query. The query is automatically
+    decomposed into various components which can be inspected by the user for explainability.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4\. XMODE系统架构在EHRXQA中的应用（[bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)），展示了处理多模态查询的示例。查询被自动分解成多个组件，用户可以检查这些组件以确保可解释性。
+- en: 'The architecture of our system, XMODE, is illustrated in Figures [2](https://arxiv.org/html/2412.18428v1#S2.F2
+    "Figure 2 ‣ Multi-modal systems. ‣ 2\. Related Work ‣ Explainable Multi-Modal
+    Data Exploration in Natural Language via LLM Agent"). We describe the five primary
+    components of XMODE using an example query applied to artwork data, which includes
+    relational tables and images: Plot the number of paintings that depict war for
+    each century. The system’s operation is depicted in Figure  [3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "Figure 3 ‣ 3.1\. System Architecture of XMODE ‣ 3\. System Design ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent").'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们系统XMODE的架构如图[2](https://arxiv.org/html/2412.18428v1#S2.F2 "Figure 2 ‣ Multi-modal
+    systems. ‣ 2\. Related Work ‣ Explainable Multi-Modal Data Exploration in Natural
+    Language via LLM Agent")所示。我们通过一个应用于艺术品数据的示例查询来描述XMODE的五个主要组件，该查询涉及关系表格和图像：绘制每个世纪描绘战争的画作数量。系统的操作如图[3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "Figure 3 ‣ 3.1\. System Architecture of XMODE ‣ 3\. System Design ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")所示。
+- en: 'XMODE is an agentic system  ([kapoor2024ai,](https://arxiv.org/html/2412.18428v1#bib.bib9)
+    ) driven by a llm-based dynamic planner pattern  ([kim2023llm,](https://arxiv.org/html/2412.18428v1#bib.bib11)
+    ) equipped with a comprehensive toolkit containing all the necessary models to
+    decompose a user’s question, such as a multi-modal natural language question,
+    into a workflow (i.e., a graph of sub-questions). The workflow is represented
+    as a Directed Acyclic Graph (DAG), of which each node corresponds to a simple
+    sub-question with a specific tool assigned by the planner. The planner determines
+    sub-tasks that can be executed in parallel and it manages their dependencies.
+    XMODE is designed to be adaptable and to allow for dynamic debugging and plan
+    modification (re-planning) if necessary, e.g., in case of failures during a text-to-SQL
+    sub-task. As it shown in Figure [1](https://arxiv.org/html/2412.18428v1#S1.F1
+    "Figure 1 ‣ 1\. Introduction ‣ Explainable Multi-Modal Data Exploration in Natural
+    Language via LLM Agent"), the design of XMODE incorporates multiple components:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: XMODE是一个代理系统（[kapoor2024ai,](https://arxiv.org/html/2412.18428v1#bib.bib9)），由基于LLM的动态规划模式驱动（[kim2023llm,](https://arxiv.org/html/2412.18428v1#bib.bib11)），配备了一个包含所有必要模型的全面工具包，用于将用户的问题（例如多模态自然语言问题）分解成工作流（即子问题的图）。工作流表示为一个有向无环图（DAG），其中每个节点对应一个简单的子问题，且由规划器分配了特定的工具。规划器确定可以并行执行的子任务，并管理它们之间的依赖关系。XMODE设计上具有适应性，能够在必要时进行动态调试和计划修改（重新规划），例如在执行text-to-SQL子任务时发生失败的情况下。正如图[1](https://arxiv.org/html/2412.18428v1#S1.F1
+    "Figure 1 ‣ 1\. Introduction ‣ Explainable Multi-Modal Data Exploration in Natural
+    Language via LLM Agent")所示，XMODE的设计包含了多个组件：
+- en: (1)
+  id: totrans-56
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (1)
+- en: Planning & Expert Model Allocation. The system analyzes the user question, then
+    constructs a sequence of tasks to be executed considering their dependency. It
+    determines the required expert models from an available toolkit for each task,
+    as well as their input arguments and their inter-dependencies to synthesize them
+    as a workflow. To do so, it employs the power of reasoning capability of LLMs.
+    The output of this stage is a workflow in the form of a DAG that formalizes task
+    dependencies. As we can see in Figure [3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "Figure 3 ‣ 3.1\. System Architecture of XMODE ‣ 3\. System Design ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent"), the original
+    natural language question is split into four tasks $t_{1}$ to $t_{4}$, namely
+    text2SQL, image_analysis, data_preparation and data_plotting. We leverage LLMs’
+    reasoning ability to generate a workflow from natural language questions by providing
+    detailed specifications of each expert model available in the toolkit.
+  id: totrans-57
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 规划与专家模型分配。系统分析用户的问题，然后构建一个任务序列，考虑到任务之间的依赖关系。它从可用工具包中为每个任务确定所需的专家模型，以及它们的输入参数和相互依赖关系，从而将它们合成一个工作流。为此，它利用了大型语言模型（LLMs）的推理能力。此阶段的输出是一个形式为DAG的工作流，正式化了任务依赖关系。正如我们在图[3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "Figure 3 ‣ 3.1\. System Architecture of XMODE ‣ 3\. System Design ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")中看到的，原始的自然语言问题被分解为四个任务$t_{1}$到$t_{4}$，分别是text2SQL、image_analysis、data_preparation和data_plotting。我们利用LLMs的推理能力，通过提供工具包中每个专家模型的详细规范，从自然语言问题生成工作流。
+- en: (2)
+  id: totrans-58
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (2)
+- en: Execution and Self-Debugging. The system executes tasks according to a generated
+    workflow by calling allocated expert models from a toolkit. The system employs
+    a state object that stores all the intermediate interactions during the execution
+    of a workflow. The independent tasks are executed concurrently and after completing
+    each task, the outcomes are passed on as input to the tasks that rely on them
+    according to the workflow. Each expert model has an inner self-debugging component
+    to handle errors that can occur during its execution. As we can see in the middle
+    of Figure [3](https://arxiv.org/html/2412.18428v1#S3.F3 "Figure 3 ‣ 3.1\. System
+    Architecture of XMODE ‣ 3\. System Design ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent"), XMODE provides reasoning in natural language
+    for each task which can easily be understood by humans.
+  id: totrans-59
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 执行与自我调试。系统根据生成的工作流执行任务，通过调用工具包中的分配专家模型来实现。系统使用一个状态对象来存储工作流执行过程中的所有中间交互。独立的任务并行执行，在每个任务完成后，结果作为输入传递给依赖于它们的任务，按照工作流进行。每个专家模型都有一个内部自我调试组件，用于处理执行过程中可能出现的错误。正如我们在图[3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "Figure 3 ‣ 3.1\. System Architecture of XMODE ‣ 3\. System Design ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")的中间部分看到的，XMODE为每个任务提供了自然语言推理，易于人类理解。
+- en: (3)
+  id: totrans-60
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (3)
+- en: Decision Making. In this part, XMODE synthesizes results from a state object
+    and inspects them for a final decision. If the task results are sufficient to
+    fulfill a user request, it will prepare the final results to respond to the user,
+    otherwise it will request the planning component to re-plan a new workflow by
+    providing the intermediate results and reasons for re-planning. This process repeats
+    until the decision making components are satisfied with the final outcome to present
+    to the user or the maximum loop limit is reached. This component benefits from
+    the reasoning capability of LLMs in the decision making process.
+  id: totrans-61
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 决策制定。在这一部分，XMODE合成来自状态对象的结果，并检查它们以作出最终决策。如果任务结果足够满足用户请求，它将准备最终结果以响应用户；否则，它将请求规划组件重新规划一个新工作流，并提供中间结果和重新规划的原因。这个过程会重复，直到决策组件对最终结果满意并呈现给用户，或者达到最大循环限制。该组件受益于大语言模型（LLM）在决策制定过程中的推理能力。
+- en: (4)
+  id: totrans-62
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (4)
+- en: Expert Models & Tools. This component contains expert models such as machine
+    learning models that perform specific downstream tasks such as text-to-SQL, image
+    analysis, and text analysis. It also contains particular tools such as data formatting
+    and plotting tools. Taking into account various use cases, the toolkit section
+    of XMODE provides access to these models and tools. Each expert model or tool
+    should include a description and argument specifications and they will be available
+    to the planning module.
+  id: totrans-63
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 专家模型与工具。该组件包含专家模型，如执行特定下游任务的机器学习模型，包括文本到SQL、图像分析和文本分析。它还包含特定工具，如数据格式化和绘图工具。考虑到各种使用场景，XMODE的工具包部分提供了对这些模型和工具的访问。每个专家模型或工具应包括描述和参数规范，它们将提供给规划模块。
+- en: (5)
+  id: totrans-64
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (5)
+- en: Data Lake. A repository containing structured and unstructured data such as
+    tabular data, images, and text. Each model expert and tool has direct access to
+    the repository to conduct the assigned task.
+  id: totrans-65
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数据湖。一个包含结构化和非结构化数据的库，如表格数据、图像和文本。每个模型专家和工具可以直接访问该库，以执行指定的任务。
+- en: Our current XMODE implementation offers a range of features, including query
+    debugging, query re-planning, optimization and explainability to better understand
+    how a natural language question is decomposed into multiple sub-tasks. Each feature
+    of our system is available at varying levels of complexity.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们当前的XMODE实现提供了一系列功能，包括查询调试、查询重新规划、优化和可解释性，以便更好地理解自然语言问题是如何被拆解成多个子任务的。我们系统的每个功能都在不同的复杂度级别下可用。
+- en: 4\. Experiments
+  id: totrans-67
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4\. 实验
+- en: 'In this section, we evaluate the performance of our system XMODE. In particular,
+    we want to address the following research questions:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们评估系统XMODE的性能。具体来说，我们希望解决以下研究问题：
+- en: •
+  id: totrans-69
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: How well does XMODE tackle multi-modal natural language questions on two different
+    datasets consisting of tabular data, and images?
+  id: totrans-70
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: XMODE在两个不同数据集上的多模态自然语言问题处理效果如何，这些数据集包含表格数据和图像？
+- en: •
+  id: totrans-71
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: How does the system perform compared to state-of-the-art systems such as CAESURA
+    ([urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21) ) and NeuralSQL ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    )?
+  id: totrans-72
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 与诸如CAESURA（[urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)）和NeuralSQL（[bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)）等最先进系统相比，该系统的表现如何？
+- en: •
+  id: totrans-73
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Which explanations does the system provide to justify the answers?
+  id: totrans-74
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 系统提供了哪些解释来证明答案的正确性？
+- en: 4.1\. Experimental Setup
+  id: totrans-75
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1\. 实验设置
+- en: 4.1.1\. Datasets
+  id: totrans-76
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.1.1\. 数据集
+- en: For our experiments, we used two different datasets, namely information about
+    artwork as well as electronic health records.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们使用了两个不同的数据集，分别是关于艺术品的信息以及电子健康记录。
+- en: 'Dataset 1: Artwork. We use the artwork dataset introduced by ([urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)
+    ). This dataset contains information about paintings in tabular form as well as
+    an image collection containing 100 images of the artworks. This data is taken
+    from Wikipedia. The tabular data contains metadata information about paintings
+    such as title, inception, movement, etc. as well as a reference to the respective
+    paintings. A typical example question from this dataset is Plot the number of
+    paintings depicting war for each century (as previously shown in Figure [3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "Figure 3 ‣ 3.1\. System Architecture of XMODE ‣ 3\. System Design ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")). In addition
+    to the 24 existing questions in the artwork dataset, we propose six new questions
+    aimed at evaluating parallel task planning and execution, facilitating a comparison
+    between the characteristics of the two architectures. These six questions incorporate
+    both single and multiple modalities. Moreover, four of the six questions require
+    responses in various formats: two questions demand two plots, and two questions
+    involve a combination of plotting and showing the results in a specific data structure,
+    i.e. either as a tabular format or as a JSON format. The final test dataset contains
+    30 natural language questions derived from the original 24 in the artwork dataset.
+    These include 8 queries seeking a single result value, 11 requiring structured
+    data as output, and 11 requesting a plot. Of these, 18 queries involve multi-modal
+    data, while the remaining 12 are based exclusively on relational data.'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据集1：艺术作品。我们使用由([urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)）介绍的艺术作品数据集。该数据集包含以表格形式呈现的绘画信息，以及包含100幅艺术作品图像的图像集。数据来源于Wikipedia。表格数据包含有关绘画的元数据，如标题、创作时间、艺术流派等，以及对相应绘画的引用。该数据集的一个典型示例问题是：绘制每个世纪描绘战争的绘画数量（如图[3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "Figure 3 ‣ 3.1\. System Architecture of XMODE ‣ 3\. System Design ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")中所示）。除了艺术作品数据集中的24个现有问题外，我们提出了六个新问题，旨在评估并行任务规划与执行，促进对两种架构特点的比较。这六个问题涉及单一和多模态的数据。此外，六个问题中的四个要求以不同格式回答：两个问题要求绘制两张图表，另外两个问题涉及绘图并以特定数据结构展示结果，即以表格格式或JSON格式展示。最终的测试数据集包含从艺术作品数据集中的24个问题派生出的30个自然语言问题。这些问题包括8个要求单一结果值的查询，11个要求结构化数据输出的查询，以及11个请求绘图的查询。其中，18个查询涉及多模态数据，剩余的12个仅基于关系数据。
+- en: We have chosen this dataset to directly compare our system with CAESURA ([urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)
+    ), one of the state-of-the-art systems for multi-modal data exploration in natural
+    language.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们选择了这个数据集，直接将我们的系统与CAESURA进行比较（[urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)），这是一个用于自然语言中的多模态数据探索的最先进系统之一。
+- en: 'Dataset 2: Electronic Health Records (EHR). We also utilized the EHRXQA ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    ) dataset, a multi-modal question answering dataset that integrates structured
+    electronic health records (EHRs) with chest X-ray images. This dataset consists
+    of 18 tables and 432 images, and specifically requiring cross-modal reasoning.
+    The questions of EHRXQA are categorized based on their scope in terms of modality
+    and patient relevance. For modality-based categorization, questions were classified
+    into three types: Table-related, image-related, and table-image-related, based
+    on the data modality required. The patient-based categorization classified questions
+    based on their relevance to a single patient, a group of patients, or none (i.e.,
+    unrelated to specific patients). We have chosen this dataset since it was used
+    to evaluate NeuralSQL, another state-of-the-art system for multi-modal data exploration.
+    To manage the cost of an API call, we extracted randomly 100 questions. The selection
+    process was guided by three predefined categories within the test set of the EHRXQA
+    dataset: Image Single-1, Image Single-2, and Image+Table Single.'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据集 2：电子健康记录（EHR）。我们还使用了 EHRXQA ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1))
+    数据集，这是一个多模态问答数据集，结合了结构化电子健康记录（EHR）和胸部X光图像。该数据集由18个表格和432张图像组成，特别需要进行跨模态推理。EHRXQA的问题根据其模态范围和患者相关性进行了分类。在基于模态的分类中，问题分为三种类型：与表格相关、与图像相关以及与表格-图像相关，具体取决于所需的数据模态。在基于患者的分类中，问题根据其与单一患者、一组患者或无关（即与特定患者无关）的相关性进行分类。我们选择了这个数据集，因为它曾用于评估NeuralSQL，这也是另一个多模态数据探索的先进系统。为了管理API调用的成本，我们随机提取了100个问题。选择过程受到了EHRXQA数据集中测试集内三个预定义类别的指导：图像单项-1、图像单项-2以及图像+表格单项。
+- en: Here are examples from each category, taken from the original paper ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    ). All questions in these categories require multi-modal data exploration for
+    the reasoning process.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下是来自每个类别的示例，摘自原始论文 ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1))。这些类别中的所有问题都需要多模态数据探索来进行推理。
+- en: •
+  id: totrans-82
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Image Single-1: Given the last study of patient 15439, which anatomical finding
+    is associated with the right lower lung zone, pneumothorax or vascular redistribution?'
+  id: totrans-83
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 图像单项-1：根据患者15439的最后一次检查，右下肺区的解剖学发现与气胸还是血管重分布相关？
+- en: •
+  id: totrans-84
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Image Single-2: Enumerate all newly detected diseases in the last study of
+    patient 19290 in 2103 compared to the previous study.'
+  id: totrans-85
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 图像单项-2：列举患者19290在2103年的最后一次检查中与之前的检查相比，新检测到的所有疾病。
+- en: •
+  id: totrans-86
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Image+Table Single: Did a chest X-ray study for patient 15110 reveal any anatomical
+    findings within 2 months after the prescription of hydralazine since 2021?'
+  id: totrans-87
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 图像+表格单项：对于患者15110，在2021年开始使用 hydralazine 后的2个月内，胸部X光检查是否发现任何解剖学异常？
+- en: 4.1.2\. Baseline Systems and Setup
+  id: totrans-88
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.1.2\. 基准系统与设置
+- en: We compare XMODE to the baseline implementations of CAESURA ([urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21)
+    ) and NeuralSQL ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    ) - two important state-of-the-art systems for multi-modal data exploration.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将 XMODE 与 CAESURA ([urbanB24,](https://arxiv.org/html/2412.18428v1#bib.bib21))
+    和 NeuralSQL ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)) 的基准实现进行了比较——这两个是多模态数据探索领域的先进系统。
+- en: CAESURA supports natural language queries over a multi-modal data lake leveraging
+    BLIP-2 ([li2023blip,](https://arxiv.org/html/2412.18428v1#bib.bib14) ) for visual
+    question answering and BART ([lewis2020bart,](https://arxiv.org/html/2412.18428v1#bib.bib12)
+    ) for text question answering. We reproduced the results of CAESURA on the Artwork
+    dataset using GPT4o. To compare to our system, we utilize GPT4o as an LLM and
+    the same model for visual question answering (i.e., BLIP-2) in XMODE.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CAESURA 支持通过多模态数据湖的自然语言查询，利用 BLIP-2 ([li2023blip,](https://arxiv.org/html/2412.18428v1#bib.bib14))
+    进行视觉问答，利用 BART ([lewis2020bart,](https://arxiv.org/html/2412.18428v1#bib.bib12))
+    进行文本问答。我们使用 GPT4o 在 Artwork 数据集上重现了 CAESURA 的结果。为了与我们的系统进行比较，我们将 GPT4o 作为大语言模型（LLM），并在
+    XMODE 中使用相同的视觉问答模型（即 BLIP-2）。
+- en: In NeuralSQL, an LLM is integrated with an external visual question answering
+    system, M3AE model  ([10.1007/978-3-031-16443-9_65,](https://arxiv.org/html/2412.18428v1#bib.bib3)
+    ), to handle multi-modal questions over a structured database with images by translating
+    a user question to SQL in one step. To ensure that we used the optimal hyperparameter
+    settings and prompt structure, we contacted the authors of EHRXQA ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    ), who provided the results of their experiment for NeuralSQL using GPT-4o on
+    100 randomly selected questions.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在NeuralSQL中，集成了一个外部视觉问答系统M3AE模型（[10.1007/978-3-031-16443-9_65,](https://arxiv.org/html/2412.18428v1#bib.bib3)），通过将用户问题一步转换为SQL，处理包含图像的结构化数据库中的多模态问题。为了确保我们使用了最优的超参数设置和提示结构，我们联系了EHRXQA的作者（[bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)），他们提供了使用GPT-4o在100个随机选择的问题上进行NeuralSQL实验的结果。
+- en: For XMODE, we employ the M3AE model with task-specific fine-tuned weights, provided
+    by  ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1) ), for the
+    image analysis task. The customized M3AE model is encapsulated as a web service
+    and is deployed on the same computing node described in Section [4.1.4](https://arxiv.org/html/2412.18428v1#S4.SS1.SSS4
+    "4.1.4\. Hardware Setup ‣ 4.1\. Experimental Setup ‣ 4\. Experiments ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于XMODE，我们采用M3AE模型，并使用任务特定的微调权重，权重由([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)）提供，用于图像分析任务。定制的M3AE模型被封装为Web服务，并部署在与第[4.1.4](https://arxiv.org/html/2412.18428v1#S4.SS1.SSS4
+    "4.1.4\. Hardware Setup ‣ 4.1\. Experimental Setup ‣ 4\. Experiments ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")节中描述的相同计算节点上。
+- en: 4.1.3\. Evaluation Metrics
+  id: totrans-93
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.1.3\. Evaluation Metrics
+- en: 'To evaluate XMODE against state-of-the-art systems, we use the following metrics:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估XMODE相对于最先进系统的表现，我们使用以下指标：
+- en: •
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Accuracy: Measures the accuracy (i.e., exact match) of the generated result
+    set compared with the gold standard result set or with the human expert.'
+  id: totrans-96
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'Accuracy: 衡量生成的结果集与黄金标准结果集或与人类专家的准确度（即，完全匹配）。'
+- en: •
+  id: totrans-97
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Steps: Number of steps required by the respective system to come up with the
+    final result. These steps include reasoning, planning, re-planning etc.'
+  id: totrans-98
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'Steps: 各系统得出最终结果所需的步骤数。这些步骤包括推理、规划、重新规划等。'
+- en: •
+  id: totrans-99
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Tokens: Number of tokens used for prompt engineering.'
+  id: totrans-100
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'Tokens: 用于提示工程的令牌数量。'
+- en: •
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Latency: End-to-end execution time for a system to come up with the final result.'
+  id: totrans-102
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'Latency: 系统得出最终结果的端到端执行时间。'
+- en: •
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'API costs: Costs for calling the LLM, e.g. for GPT4o.'
+  id: totrans-104
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'API costs: 调用LLM的成本，例如调用GPT4o的费用。'
+- en: 'We apply the above-mentioned metrics under various question and system categories:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在不同的问题和系统类别下应用上述评估指标：
+- en: •
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Modality: Questions can either be of single modality, i.e. querying only relational
+    data or image data, or of multiple modality, i.e. querying both relational and
+    image data.'
+  id: totrans-107
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'Modality: 问题可以是单一模态，即仅查询关系数据或图像数据，或是多模态，即同时查询关系和图像数据。'
+- en: •
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Output Type: The output type of a question can either be a single value, e.g.
+    true or false, a data structure, e.g. in tabular or JSON format, a plot, or a
+    combination of plots and data structures.'
+  id: totrans-109
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'Output Type: 问题的输出类型可以是单个值，例如true或false，一个数据结构，例如表格或JSON格式，图表，或图表与数据结构的组合。'
+- en: •
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Workflow: The generated workflow plan can either be sequential or parallel.'
+  id: totrans-111
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'Workflow: 生成的工作流计划可以是顺序的或并行的。'
+- en: Finally, we evaluate if a system generates a correct (multi-modal) query plan
+    (i.e. generated plan), and if it supports re-planning.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们评估一个系统是否生成了正确的（多模态）查询计划（即生成的计划），以及它是否支持重新规划。
+- en: 4.1.4\. Hardware Setup
+  id: totrans-113
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.1.4\. Hardware Setup
+- en: We conduct the following experiments using a CUDA-accelerated computational
+    node on an OpenStack virtual host. This node is equipped with a 16-core CPU, 16
+    GB of main memory, and 240 GB of SSD storage. Additionally, it features an NVIDIA
+    T4 GPU with 16 GB of dedicated graphics memory.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用一个CUDA加速的计算节点进行以下实验，该节点位于OpenStack虚拟主机上。该节点配备了16核CPU、16GB主内存和240GB的SSD存储。此外，它还配备了一块具有16GB专用显存的NVIDIA
+    T4 GPU。
+- en: 4.2\. Results on the Artwork Dataset
+  id: totrans-115
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2\. Results on the Artwork Dataset
+- en: We first evaluate the results on the artwork dataset and afterward on the EHR
+    dataset.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先在艺术品数据集上评估结果，然后在EHR数据集上评估。
+- en: 4.2.1\. Performance Results
+  id: totrans-117
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.2.1\. Performance Results
+- en: '| System | Category | Accuracy | Steps | Tokens | Latency [s] | API Cost [USD]
+    | Generated Plan | Re-planning |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| System | Category | Accuracy | Steps | Tokens | Latency [s] | API Cost [USD]
+    | Generated Plan | Re-planning |'
+- en: '| CAESURA | Modality | Single (15) | 60.00% | 152 | 214,014 | 973.28 | 1.33
+    | 80% | No |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| CAESURA | 模态 | 单一 (15) | 60.00% | 152 | 214,014 | 973.28 | 1.33 | 80% | 否
+    |'
+- en: '| Multiple (15) | 6.67% | 164 | 268,918 | 4,847.95 | 1.65 |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多模态 (15) | 6.67% | 164 | 268,918 | 4,847.95 | 1.65 |'
+- en: '| Output Type | Single Value (8) | 37.50% | 88 | 135,077 | 1,047.24 | 0.82
+    |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出类型 | 单一值 (8) | 37.50% | 88 | 135,077 | 1,047.24 | 0.82 |'
+- en: '| Data Structure (10) | 50.00% | 116 | 183,454 | 2,683.03 | 1.14 |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据结构 (10) | 50.00% | 116 | 183,454 | 2,683.03 | 1.14 |'
+- en: '| Plot (8) | 25.00% | 79 | 112,732 | 1,856.66 | 0.69 |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| 图表 (8) | 25.00% | 79 | 112,732 | 1,856.66 | 0.69 |'
+- en: '| few-shot ($n=4$) | Plot-Plot (2) | 0% | 16 | 21,508 | 108.87 | 0.14 |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| 少样本 ($n=4$) | 图表-图表 (2) | 0% | 16 | 21,508 | 108.87 | 0.14 |'
+- en: '| in planning | Plot-Data Structure (2) | 0% | 17 | 30,161 | 125.42 | 0.19
+    |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| 规划中 | 图表-数据结构 (2) | 0% | 17 | 30,161 | 125.42 | 0.19 |'
+- en: '|  | Workflow | Sequential (24) | 41.67% | 261 | 399,045 | 5,330.12 | 2.45
+    |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 工作流 | 顺序 (24) | 41.67% | 261 | 399,045 | 5,330.12 | 2.45 |'
+- en: '|  | Parallel (6) | 0% | 55 | 83,887 | 491.11 | 0.52 |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 并行 (6) | 0% | 55 | 83,887 | 491.11 | 0.52 |'
+- en: '|  | Overall (30) | 33.33% | 316 | 482,932 | 5,821.23 | 2.98 |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 总体 (30) | 33.33% | 316 | 482,932 | 5,821.23 | 2.98 |'
+- en: '| XMODE | Modality | Single (15) | 100.00% | 96 | 159,212 | 525.09 | 0.61 |  |  |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| XMODE | 模态 | 单一 (15) | 100.00% | 96 | 159,212 | 525.09 | 0.61 |  |  |'
+- en: '| Multiple (15) | 26.67% | 107 | 326,400 | 2,515.03 | 1.49 | 100% | Yes |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多模态 (15) | 26.67% | 107 | 326,400 | 2,515.03 | 1.49 | 100% | 是 |'
+- en: '| Output Type | Single Value (8) | 50.00% | 56 | 71,575 | 494.78 | 0.39 |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出类型 | 单一值 (8) | 50.00% | 56 | 71,575 | 494.78 | 0.39 |'
+- en: '| Data Structure (10) | 50.00% | 67 | 223,528 | 1,330.40 | 0.89 |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据结构 (10) | 50.00% | 67 | 223,528 | 1,330.40 | 0.89 |'
+- en: '| Plot (8) | 75.00% | 52 | 118,431 | 798.97 | 0.48 |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| 图表 (8) | 75.00% | 52 | 118,431 | 798.97 | 0.48 |'
+- en: '| zero-shot | Plot-Plot (2) | 100.00% | 14 | 50,108 | 308.92 | 0.22 |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| 零样本 | 图表-图表 (2) | 100.00% | 14 | 50,108 | 308.92 | 0.22 |'
+- en: '|  | Plot-Data Structure (2) | 100.00% | 14 | 21,970 | 107.05 | 0.10 |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 图表-数据结构 (2) | 100.00% | 14 | 21,970 | 107.05 | 0.10 |'
+- en: '|  | Workflow | Sequential (24) | 62.50% | 163 | 338,766 | 2,131.11 | 1.51
+    |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 工作流 | 顺序 (24) | 62.50% | 163 | 338,766 | 2,131.11 | 1.51 |'
+- en: '|  | Parallel (6) | 66.67% | 40 | 146,846 | 909.01 | 0.59 |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 并行 (6) | 66.67% | 40 | 146,846 | 909.01 | 0.59 |'
+- en: '|  | Overall (30) | 63.33% | 203 | 485,612 | 3,040.12 | 2.10 |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 总体 (30) | 63.33% | 203 | 485,612 | 3,040.12 | 2.10 |'
+- en: Table 1\. Performance metrics of Caesura ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)
+    ) and XMODE on the artwork dataset.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1\. Caesura ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20))
+    和 XMODE 在艺术作品数据集上的性能指标。
+- en: 'Table [1](https://arxiv.org/html/2412.18428v1#S4.T1 "Table 1 ‣ 4.2.1\. Performance
+    Results ‣ 4.2\. Results on the Artwork Dataset ‣ 4\. Experiments ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent") presents a comparison
+    of XMODE and CAESURA on the artwork dataset across various aspects. The performance
+    metrics for each aspect were determined through a manual evaluation conducted
+    by our team of four researchers. The comparison between XMODE and CAESURA reveals
+    notable differences in their performance across various aspects of the artwork
+    dataset. Starting with the metric accuracy for evaluating queries of different
+    modalities: XMODE outperforms CAESURA in both single- and multi-modality questions.
+    For single cases, XMODE achieves an output accuracy of 100.00%, while CAESURA
+    falls behind at 60.00%. In the more challenging multiple-modality scenarios, XMODE
+    demonstrates a significant edge with 26.67% accuracy, compared to CAESURA’s much
+    lower 6.67%.'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 [1](https://arxiv.org/html/2412.18428v1#S4.T1 "Table 1 ‣ 4.2.1\. Performance
+    Results ‣ 4.2\. Results on the Artwork Dataset ‣ 4\. Experiments ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent") 展示了 XMODE 和 CAESURA
+    在艺术作品数据集上多个方面的比较。每个方面的性能指标是通过我们团队四位研究人员进行的手动评估得出的。XMODE 和 CAESURA 在艺术作品数据集的多个方面表现出显著差异。首先是评估不同模态查询的准确度：XMODE
+    在单模态和多模态问题上的表现均优于 CAESURA。在单一情况中，XMODE 达到 100.00% 的输出准确度，而 CAESURA 的准确度为 60.00%。在更具挑战性的多模态场景中，XMODE
+    展现出明显的优势，准确度为 26.67%，而 CAESURA 仅为 6.67%。
+- en: The accuracy based on the output types shows that for single-value outputs CAESURA
+    achieves an accuracy of 37.5%, while XMODE yields 50%. XMODE’s edge is even more
+    evident for complex tasks where the output is plot, plot-plot, or plot-data structure.
+    Here XMODE reaches an accuracy of 75%, 100%, and 100%, respectively, significantly
+    surpassing CAESURA’s performance of 25%, 0%, and 0%, respectively.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于输出类型的准确度表明，对于单一值输出，CAESURA 的准确度为 37.5%，而 XMODE 为 50%。XMODE 在复杂任务中的优势更加明显，其中输出为图表、图表-图表或图表-数据结构时，XMODE
+    分别达到了 75%、100% 和 100% 的准确度，而 CAESURA 分别为 25%、0% 和 0%。
+- en: Moreover, CAESURA requires sequential reasoning and acting for each natural
+    language question which can result in high latency, cost, and sometimes inaccurate
+    behavior. XMODE identifies dependencies between tasks during workflow planning
+    and thus enables concurrent and parallel task execution. On a set of six new questions
+    requiring parallel task planning and execution, CAESURA fails entirely, while
+    XMODE successfully generates proper plans and achieves 66.67% accuracy.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，CAESURA 需要对每个自然语言问题进行顺序推理和行动，这可能导致高延迟、高成本，并且有时会产生不准确的行为。XMODE 在工作流规划过程中识别任务之间的依赖关系，从而支持并发和并行任务执行。在六个需要并行任务规划和执行的新问题上，CAESURA
+    完全失败，而 XMODE 成功生成了正确的计划，并实现了 66.67% 的准确性。
+- en: Overall, XMODE emerges as the stronger system, with an overall output accuracy
+    of 63.33%, compared to CAESURA’s 33.33%. XMODE distinguishes itself with its ability
+    to provide better explanations, support re-planning, and concurrency—features
+    absent in CAESURA.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，XMODE 作为更强大的系统脱颖而出，整体输出准确率为 63.33%，而 CAESURA 为 33.33%。XMODE 的优势在于能够提供更好的解释、支持重规划和并发执行，而这些功能在
+    CAESURA 中是缺失的。
+- en: From an efficiency perspective, XMODE demonstrates significant advantages over
+    CAESURE in several areas. It requires fewer steps (203 vs. 316) and achieves significantly
+    lower latency (3,040.12 ms vs. 5,821.23 ms) demonstrating a faster response time.
+    Finally, XMODE also incurs a lower API cost (2.10) compared to CAESURA’s 2.98,
+    indicating that XMODE is more cost-effective in terms of API usage.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从效率角度来看，XMODE 在多个领域显示出相较于 CAESURA 的显著优势。它所需的步骤更少（203 步对比 316 步），并且延迟显著更低（3,040.12
+    毫秒对比 5,821.23 毫秒），响应时间更快。最后，XMODE 的 API 成本（2.10）也低于 CAESURA 的 2.98，表明在 API 使用方面，XMODE
+    更具成本效益。
+- en: In summary, the experiment results using the artwork benchmark showed that XMODE
+    consistently outperforms CAESURA in accuracy, efficiency, and feature support,
+    demonstrating its robustness across a variety of tasks on the artwork dataset.
+    Its ability to handle complex outputs, provide explanations, and adapt through
+    replanning positions it as the better choice in this benchmark.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，使用艺术作品基准测试的实验结果表明，XMODE 在准确性、效率和功能支持方面始终优于 CAESURA，展示了它在艺术作品数据集上的多任务鲁棒性。它处理复杂输出、提供解释以及通过重规划进行适应的能力，使其在这个基准测试中成为更好的选择。
+- en: 4.2.2\. Optimizations of XMODE Explained with Examples
+  id: totrans-146
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.2.2\. 通过示例解释 XMODE 的优化
+- en: 'To better demonstrate advantages of XMODE, we provide several examples (see
+    Figures [3](https://arxiv.org/html/2412.18428v1#S3.F3 "Figure 3 ‣ 3.1\. System
+    Architecture of XMODE ‣ 3\. System Design ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent") and [5](https://arxiv.org/html/2412.18428v1#S4.F5
+    "Figure 5 ‣ 4.2.2\. Optimizations of XMODE Explained with Examples ‣ 4.2\. Results
+    on the Artwork Dataset ‣ 4\. Experiments ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent")) across three key aspects: explanations, smart
+    replanning, and parallel planning. The following examples provide a detailed illustration
+    of these three aspects.'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更好地展示 XMODE 的优势，我们提供了若干示例（见图 [3](https://arxiv.org/html/2412.18428v1#S3.F3
+    "图 3 ‣ 3.1\. XMODE 系统架构 ‣ 3\. 系统设计 ‣ 通过 LLM Agent 进行可解释的多模态数据探索") 和 [5](https://arxiv.org/html/2412.18428v1#S4.F5
+    "图 5 ‣ 4.2.2\. 通过示例解释 XMODE 的优化 ‣ 4.2\. 艺术作品数据集上的结果 ‣ 4\. 实验 ‣ 通过 LLM Agent 进行可解释的多模态数据探索"))，涵盖三个关键方面：解释、智能重规划和并行规划。以下示例详细说明了这三个方面。
+- en: '{mdframed}'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{mdframed}'
+- en: '[hidealllines=true,backgroundcolor=cyan!20,innerleftmargin=3pt,innerrightmargin=3pt,leftmargin=-1pt,rightmargin=-1pt]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[hidealllines=true,backgroundcolor=cyan!20,innerleftmargin=3pt,innerrightmargin=3pt,leftmargin=-1pt,rightmargin=-1pt]'
+- en: 'Example 1: Plot the number of paintings that depict war for each century (see
+    Figure [3](https://arxiv.org/html/2412.18428v1#S3.F3 "Figure 3 ‣ 3.1\. System
+    Architecture of XMODE ‣ 3\. System Design ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent")).'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例 1：绘制每个世纪描绘战争的绘画数量（见图 [3](https://arxiv.org/html/2412.18428v1#S3.F3 "图 3 ‣
+    3.1\. XMODE 系统架构 ‣ 3\. 系统设计 ‣ 通过 LLM Agent 进行可解释的多模态数据探索"))。
+- en: '![Refer to caption](img/20b1a87b464f59f228001f8c716266b9.png)'
+  id: totrans-151
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/20b1a87b464f59f228001f8c716266b9.png)'
+- en: 'Figure 5\. Optimization of XMODE: Smart replanning.'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5\. XMODE 优化：智能重规划。
+- en: 'Through a series of well-planned and systematically executed steps, the model
+    demonstrates not only how it processes the query but also how it provides transparency
+    and reasoning at every stage, ensuring the user understands the process and results.
+    The figure depicts a workflow that involves (1) Planning & Expert Model Allocation,
+    (2) Execution & Self-Debugging, and (3) Decision Making. Here’s a breakdown of
+    each step:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过一系列精心计划和系统执行的步骤，模型不仅展示了它是如何处理查询的，还展示了它如何在每个阶段提供透明度和推理，确保用户理解整个过程和结果。图示展示了一个工作流，涉及（1）计划与专家模型分配，（2）执行与自我调试，以及（3）决策过程。以下是每个步骤的详细分解：
+- en: '1) Planning & Expert Model Allocation: The process begins with the query being
+    broken down into a sequence of subtasks: Task 1: Retrieve painting metadata, including
+    their years and associated centuries, from the database. Task 2: Analyze the images
+    to determine whether they depict war. Task 3: Prepare the data by counting the
+    number of war-related paintings per century. Task 4: Visualize these counts in
+    a bar chart.'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1) 计划与专家模型分配：过程从将查询分解为一系列子任务开始：任务 1：从数据库中检索画作元数据，包括它们的创作年份和相关的世纪。任务 2：分析图像，确定它们是否描绘战争。任务
+    3：准备数据，通过统计每个世纪的战争相关画作数量来整理数据。任务 4：在柱状图中可视化这些数量。
+- en: Each task is allocated to specialized tools or models, such as text2SQL to translate
+    the natural language question to SQL and database retrieval, image analysis tools
+    for visual interpretation, coding tools to structure the data, and visualization
+    libraries like matplotlib. This stage establishes a clear plan, showing how the
+    overall query will be tackled in logical steps.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个任务都分配给专门的工具或模型，例如使用 text2SQL 将自然语言问题转换为 SQL 语句并进行数据库检索，使用图像分析工具进行视觉解读，使用编码工具来组织数据，以及使用可视化库如
+    matplotlib。这个阶段建立了一个清晰的计划，展示了如何通过逻辑步骤解决整体查询。
+- en: '2) Execution & Self-Debugging: The model begins executing the tasks, providing
+    explanations and outputs at every stage to ensure clarity. Task 1 - Retrieving
+    Data: The model constructs a SQL query to retrieve the required information from
+    the database. It explains its reasoning: to determine the century of each painting,
+    it converts the inception year into century values. The result is a list of paintings,
+    each associated with its image path and century. Task 2 - Image Analysis: With
+    the retrieved data, the model analyzes each painting to determine if it depicts
+    war. It applies image analysis tools to interpret the visual content of the paintings.
+    The reasoning here is clear—war-related imagery, such as battles or soldiers,
+    must be identified to answer the query. The output is a dataset indicating whether
+    each painting depicts war. Task 3 - Data Preparation: The model filters and aggregates
+    the data, counting the number of paintings depicting war for each century. It
+    explains that grouping the paintings by century allows for easy comparison of
+    trends across time periods. The result is a concise summary: 1 painting from the
+    16th century and 2 from the 18th century are identified as depicting war. Task
+    4 - Data Visualization: Finally, the model prepares a bar chart to visualize the
+    results. It explains its reasoning for choosing this visualization: bar charts
+    effectively compare counts across categories, in this case, centuries. A Python
+    script is provided, showing how the chart was generated, and the output is saved
+    as an image for user reference.'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2) 执行与自我调试：模型开始执行任务，在每个阶段提供解释和输出，以确保清晰性。任务 1 - 检索数据：模型构建 SQL 查询，从数据库中检索所需的信息。它解释了其推理：为了确定每幅画作的世纪，它将创作年份转换为世纪值。结果是一个画作列表，每幅画作都关联了其图像路径和所属世纪。任务
+    2 - 图像分析：使用检索到的数据，模型分析每幅画作，确定其是否描绘战争。它应用图像分析工具来解读画作的视觉内容。这里的推理很明确——必须识别战争相关的图像内容，如战斗或士兵，以回答查询。输出结果是一个数据集，指示每幅画作是否描绘战争。任务
+    3 - 数据准备：模型筛选并聚合数据，统计每个世纪描绘战争的画作数量。它解释说，通过按世纪分组画作，可以轻松比较不同时期的趋势。结果是一个简明的总结：16世纪有1幅画作，18世纪有2幅画作被确定为描绘战争。任务
+    4 - 数据可视化：最后，模型准备了一个柱状图来可视化结果。它解释了选择这种可视化方式的推理：柱状图能有效地比较各类别的数量，在本例中是各个世纪的数量。提供了一段
+    Python 脚本，展示了图表的生成过程，输出结果以图像形式保存，以供用户参考。
+- en: '3) Decision Making: When the tasks are completed, the model reflects on its
+    work and provides a final output based on its thought as Summary:"The number of
+    paintings depicting war has been plotted for the 16th and 18th centuries.", "Details":
+    "The analysis identified 1 painting from the 16th century and 2 paintings from
+    the 18th century that depict war. The plot visualizes these findings. [..]”. Throughout
+    the workflow, the model demonstrates a commitment to transparency.'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3) 决策：当任务完成后，模型会反思自己的工作，并根据其思路提供最终输出，摘要：“描绘战争的画作数量已被绘制于 16 世纪和 18 世纪的图表中。”，
+    “详细信息”： “分析确定了 1 幅来自 16 世纪的画作和 2 幅来自 18 世纪的画作描绘了战争。该图表可视化了这些发现。[..]”。在整个工作流程中，模型展现了对透明度的承诺。
+- en: At every stage, XMODE provides reasoning to justify its actions, from choosing
+    SQL for retrieval to selecting a bar chart for visualization. Intermediate outputs,
+    like the dataset of war paintings and the Python plotting code, are made visible,
+    ensuring the user can trace the steps taken. The decision making phase wraps up
+    the process by summarizing findings, clarifying the approach, and sharing the
+    final visual result. This shows that XMODE not only answers the query effectively
+    but also ensures its steps are understandable, logical, and well-documented, building
+    trust in its analysis.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每个阶段，XMODE 都提供推理来证明其行动的合理性，从选择 SQL 检索到选择条形图进行可视化。中间输出，例如战争画作的数据集和 Python 绘图代码，将会被显示，确保用户可以追溯所采取的步骤。决策阶段通过总结发现、阐明方法并分享最终的可视化结果来结束整个过程。这表明
+    XMODE 不仅有效地回答了问题，还确保其步骤是可以理解、合逻辑且文档化的，从而建立了对其分析的信任。
+- en: '![Refer to caption](img/4c1baf2d72b379c504c97b853e809367.png)'
+  id: totrans-159
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/4c1baf2d72b379c504c97b853e809367.png)'
+- en: 'Figure 6\. Optimization of XMODE: Parallel planning.'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6\. XMODE 的优化：并行规划。
+- en: '{mdframed}'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{mdframed}'
+- en: '[hidealllines=true,backgroundcolor=cyan!20,innerleftmargin=2pt,innerrightmargin=3pt,leftmargin=-1pt,rightmargin=-1pt]
+    Example 2 - Smart Replanning: What is depicted on the oldest Renaissance painting
+    in the database? (see Figure [5](https://arxiv.org/html/2412.18428v1#S4.F5 "Figure
+    5 ‣ 4.2.2\. Optimizations of XMODE Explained with Examples ‣ 4.2\. Results on
+    the Artwork Dataset ‣ 4\. Experiments ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent")). Contrary to the previous example, XMODE
+    here involves smart replanning - a major optimization technique of XMODE. The
+    main idea is to dynamically adapt the planning in case some tasks of the workflow
+    fail or do not produce any results. Here’s a breakdown of each step:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[hidealllines=true,backgroundcolor=cyan!20,innerleftmargin=2pt,innerrightmargin=3pt,leftmargin=-1pt,rightmargin=-1pt]
+    示例 2 - 智能重规划：数据库中最古老的文艺复兴画作描绘了什么？（参见图 [5](https://arxiv.org/html/2412.18428v1#S4.F5
+    "图 5 ‣ 4.2.2\. 通过示例解释 XMODE 的优化 ‣ 4.2\. 在艺术作品数据集上的结果 ‣ 4\. 实验 ‣ 通过 LLM 代理进行可解释的多模态数据探索")）。与前一个例子不同，这里
+    XMODE 涉及智能重规划——这是 XMODE 的一项主要优化技术。其主要思想是，在某些任务失败或未产生任何结果的情况下，动态地调整规划。以下是每个步骤的详细说明：'
+- en: '1) Planning & Expert Model Allocation: XMODE outputs the initial workflow plan
+    that has 2 tasks. The first task involves retrieving the image path and the year
+    of the oldest Renaissance painting in the database using a ”text2SQL” expert model.
+    It also involves an ”image_analysis” expert model in the second task, which aims
+    to determine what is depicted in the image.'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1) 规划与专家模型分配：XMODE 输出包含 2 个任务的初步工作流程计划。第一个任务涉及使用“text2SQL”专家模型从数据库中检索图像路径和最古老文艺复兴时期画作的年份。第二个任务涉及“image_analysis”专家模型，旨在确定图像中所描绘的内容。
+- en: '2) Execution and Self-Debugging: XMODE takes the information about the planned
+    workflow as well as task dependencies and puts it into action. In Task 1, it comes
+    with a reasoning statement to generate the SQL query as: SELECT img_path, strftime(’%Y’,
+    inception) AS year FROM paintings WHERE movement = ’Renaissance’ ORDER BY inception
+    ASC LIMIT 1. Then it executes the query over the Artwork database and retrieves
+    the specific image path and year for the oldest Renaissance painting as [’img_path’:
+    ’images/img_0.jpg’, ’year’: ’1438’]. This allows the model to access the actual
+    painting data in the subsequent task.'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '2) 执行与自我调试：XMODE 将关于计划工作流程的信息以及任务依赖关系付诸实践。在任务 1 中，它提供了一条推理声明，以生成 SQL 查询：SELECT
+    img_path, strftime(’%Y’, inception) AS year FROM paintings WHERE movement = ’Renaissance’
+    ORDER BY inception ASC LIMIT 1。然后，它在 Artwork 数据库中执行该查询，并检索最古老文艺复兴时期画作的图像路径和年份，结果为
+    [’img_path’: ’images/img_0.jpg’, ’year’: ’1438’]。这使得模型能够在后续任务中访问实际的画作数据。'
+- en: 'In Task 2, XMODE utilizes the ”image_analysis” expert model (i.e. visual question
+    answering based on BLIP) to examine the contents of img_0.jpg to answer the question:
+    What is depicted in the image? The output of this task is transferred as a final
+    result to the decision making component. At this point, the model’s ”thought”
+    process in this component becomes evident. It reasons that while it knows that
+    img_0.jpg is a painting, the details about what is depicted in the painting have
+    not been provided. Therefore, the model decides to not provide a final answer
+    to the user and does replanning.'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在任务2中，XMODE利用“image_analysis”专家模型（即基于BLIP的视觉问答）来检查img_0.jpg的内容，以回答问题：“图像中描绘的是什么？”此任务的输出结果作为最终答案传递给决策组件。此时，模型在该组件中的“思考”过程变得显而易见。它推理出，尽管它知道img_0.jpg是一幅画作，但关于画作中描绘内容的细节尚未提供。因此，模型决定不向用户提供最终答案，并进行重新规划。
+- en: The replanning capability is a crucial aspect of the XMODE’s approach. Rather
+    than blindly accepting the final answer which does not produce a satisfiable or
+    correct result, the model recognizes the need to replan and calls the ”image_analysis”
+    module again. Since the model already knows which image in the database contains
+    the oldest Renaissance painting, it smartly plans the ”image_analysis” task as
+    Task 3, by reformulating the question as What is specifically depicted in the
+    painting? XMODE then executes the task, and receives the more concrete answer
+    ”umbrellas”.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重新规划能力是XMODE方法中的一个关键方面。模型不会盲目接受最终答案，如果该答案不能产生令人满意或正确的结果，模型会识别到需要重新规划，并再次调用“image_analysis”模块。由于模型已经知道数据库中哪张图像包含最古老的文艺复兴画作，它巧妙地将“image_analysis”任务规划为任务3，通过将问题重新表述为“画作中具体描绘的是什么？”来执行。XMODE然后执行该任务，并收到更具体的答案“雨伞”。
+- en: 'Moving forward, the decision making component confirms the details about the
+    painting. Here, it verifies that the information it has gathered so far aligns
+    with the natural language question and makes sense as a comprehensive understanding
+    of the oldest Renaissance painting. The key aspect is the model’s ability to replan
+    effectively and to strategically leverage the available information to avoid repeating
+    tasks. {mdframed}[hidealllines=true,backgroundcolor=cyan!20,innerleftmargin=3pt,innerrightmargin=3pt,leftmargin=-1pt,rightmargin=-1pt]
+    Example 3 - Parallel Planning: In the Renaissance, find the total number of paintings
+    depicting war and the number of paintings depicting swords (see Figure [6](https://arxiv.org/html/2412.18428v1#S4.F6
+    "Figure 6 ‣ 4.2.2\. Optimizations of XMODE Explained with Examples ‣ 4.2\. Results
+    on the Artwork Dataset ‣ 4\. Experiments ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent")). The figure illustrates how XMODE process
+    a complex query about Renaissance paintings, focusing on identifying how many
+    paintings depict war and how many depict swords. The pipeline is structured to
+    combine parallel task execution with step-by-step explanations, ensuring clarity
+    and efficiency throughout the process.'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，决策组件确认了画作的细节。此时，它验证已收集的信息是否与自然语言问题一致，并且作为对最古老文艺复兴画作的全面理解是有意义的。关键在于模型能够有效地重新规划，并战略性地利用现有信息避免重复任务。{mdframed}[hidealllines=true,backgroundcolor=cyan!20,innerleftmargin=3pt,innerrightmargin=3pt,leftmargin=-1pt,rightmargin=-1pt]
+    示例3 - 并行规划：在文艺复兴时期，找出描绘战争的画作总数以及描绘剑的画作数量（见图[6](https://arxiv.org/html/2412.18428v1#S4.F6
+    "图6 ‣ 4.2.2\. XMODE优化通过示例解释 ‣ 4.2\. 艺术作品数据集的实验结果 ‣ 4\. 通过LLM代理的可解释多模态数据探索")）。该图展示了XMODE如何处理有关文艺复兴画作的复杂查询，重点是识别有多少画作描绘战争，有多少描绘剑。管道结构旨在将并行任务执行与逐步解释相结合，确保整个过程的清晰和高效。
+- en: 'The process begins in the Planning & Expert Model Allocation, where the model
+    breaks down the user’s query into distinct subtasks. These subtasks are assigned
+    to specialized modules: Task 1 ”text2SQL”: This task retrieves image paths and
+    relevant metadata for Renaissance paintings from a database using a SQL query.
+    Task 2 ”image_analysis”: This task examines whether each painting depicts war.
+    Task 3 ”image_analysis”: Simultaneously, another module analyzes whether each
+    painting depicts a sword. Task 4 ”data_preparation”: This task consolidates the
+    results from Task 2 and Task 3 to count and summarize the paintings.'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该过程从规划与专家模型分配阶段开始，在这一阶段，模型将用户的查询分解为不同的子任务。这些子任务被分配给专门的模块：任务1 "text2SQL"：此任务使用SQL查询从数据库中检索文艺复兴时期画作的图像路径和相关元数据；任务2
+    "image_analysis"：此任务检查每幅画是否描绘了战争；任务3 "image_analysis"：同时，另一个模块分析每幅画是否描绘了剑；任务4
+    "data_preparation"：此任务将任务2和任务3的结果汇总，用于统计和总结画作。
+- en: The execution phase begins with Task 1, where the model generates and runs a
+    SQL query. The reasoning provided for this step explains how the schema is understood
+    and how the query ensures that only Renaissance paintings are retrieved. The output
+    of Task 1 includes image paths and metadata, which are then sent to the next stage.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行阶段从任务1开始，模型生成并运行SQL查询。提供的推理解释了如何理解数据库模式以及查询如何确保仅检索到文艺复兴时期的画作。任务1的输出包括图像路径和元数据，这些数据随后被传送到下一个阶段。
+- en: 'At this point, the model showcases its parallel planning capability. Tasks
+    2 and 3 are performed concurrently: For Task 2, the system uses image analysis
+    to determine if each painting depicts war. For Task 3, a similar image analysis
+    process identifies paintings that depict swords. Running these tasks in parallel
+    significantly speeds up the workflow, as they operate independently of each other.
+    Once the image analysis tasks are complete, the model transitions to Task 4, where
+    it aggregates the results. The reasoning here details how the system compiles
+    two lists - one for paintings depicting war and one for those depicting swords.
+    Afterwards, XMODE counts the entries in each list. The final results are prepared
+    for the decision making module.'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一阶段，模型展示了其并行规划的能力。任务2和任务3是并行执行的：对于任务2，系统使用图像分析来判断每幅画是否描绘了战争；对于任务3，类似的图像分析过程用于识别描绘剑的画作。并行运行这些任务显著加快了工作流程，因为它们相互独立。一旦图像分析任务完成，模型将过渡到任务4，在这一阶段它会汇总结果。推理过程详细说明了系统如何编译两个列表——一个是描绘战争的画作列表，另一个是描绘剑的画作列表。之后，XMODE会计算每个列表中的条目数量。最终结果将为决策模块准备。
+- en: 'In the decision making phase, the model reflects on its findings. It confirms
+    that sufficient data was processed to answer the query and provides a summary:
+    "There is 1 painting depicting war and 38 paintings depicting swords.”'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在决策阶段，模型回顾其发现。它确认已经处理了足够的数据来回答查询，并提供总结：“有1幅画描绘了战争，38幅画描绘了剑。”
+- en: XMODE offers details, explaining how the analysis was conducted and highlighting
+    the disparity between the two categories of paintings. The system further provides
+    an explanation of its methodology, emphasizing how it worked systematically to
+    answer the query. This demonstrates XMODE’s ability to manage tasks efficiently
+    through parallel execution and to ensure transparency through reasoned explanations
+    at every step. By combining these capabilities, the system provides a clear, accurate,
+    and well-supported response to the user’s query.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: XMODE提供了详细信息，解释了分析是如何进行的，并突出了两类画作之间的差异。系统还进一步解释了其方法论，强调了它是如何系统地工作以回答查询的。这展示了XMODE通过并行执行有效管理任务的能力，并通过每一步的推理解释确保了透明度。通过结合这些能力，系统为用户的查询提供了清晰、准确且有力的支持响应。
+- en: It is important to note that we did not compare XMODE to NeuralSQL on ArtWork’s
+    questions, as such a comparison would be unfair due to NeuralSQL’s inability to
+    support plotting.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的是，我们没有将XMODE与NeuralSQL在ArtWork的问题上进行比较，因为这样的比较是不公平的，原因在于NeuralSQL无法支持绘图功能。
+- en: 4.3\. Results on the EHRXQA Dataset
+  id: totrans-174
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3\. 在EHRXQA数据集上的结果
+- en: In this section, we evaluate the performance of NeuralSQL and XMODE on the EHRXQA
+    dataset. This comparison excludes metrics like steps, tokens, and latency because
+    evaluating XMODE’s performance on these aspects against NeuralSQL is not meaningful.
+    NeuralSQL generates the final answer in a single step without providing a plan
+    or intermediate steps, whereas our approach focuses on decomposing natural language
+    questions, planning workflows, and responding transparently.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们评估了 NeuralSQL 和 XMODE 在 EHRXQA 数据集上的表现。此比较排除了步骤、标记和延迟等指标，因为在这些方面评估 XMODE
+    的表现与 NeuralSQL 进行比较没有意义。NeuralSQL 在单个步骤中生成最终答案，不提供计划或中间步骤，而我们的方法专注于分解自然语言问题、规划工作流程，并进行透明的响应。
+- en: We also exclude CAESURA from the EHRXQA experiments. While CAESURA is intended
+    to be a general-purpose multimodal system, it processes the relational database
+    through multiple steps, examining each table and relationship sequentially. This
+    limitation introduces significant overhead when handling the complex data schema
+    of the EHRXQA dataset (there are 18 tables) during the discovery phase. Consequently,
+    reproduing CAESURA on EHRXQA questions fails to perform inferences at the early
+    stages of the planning phase, ultimately terminating after exceeding the maximum
+    number of allowed attempts.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将 CAESURA 从 EHRXQA 实验中排除。虽然 CAESURA 被设计为一个通用的多模态系统，但它通过多个步骤处理关系型数据库，依次检查每个表和关系。这一限制在处理
+    EHRXQA 数据集（有 18 张表）复杂数据模式时，在发现阶段引入了显著的开销。因此，在 EHRXQA 问题上重现 CAESURA 时，未能在规划阶段的早期进行推理，最终在超过允许的最大尝试次数后终止。
+- en: '| System | Scope | Output Type | Overall (100) | Generated | Replanning |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| 系统 | 范围 | 输出类型 | 总体（100） | 生成 | 重新规划 |'
+- en: '| Image Single-1 | Image Single-2 | Image+Table Single | Binary | Categorical
+    | Plan |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| Image Single-1 | Image Single-2 | Image+Table Single | 二元 | 分类 | 计划 |'
+- en: '| (30) | (30) | (40) | (50) | (50) |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| (30) | (30) | (40) | (50) | (50) |'
+- en: '| NeuralSQL | zero-shot | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% | N/A
+    | No |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| NeuralSQL | zero-shot | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% | N/A
+    | No |'
+- en: '| few-shot ($n=10$) | 26.67% | 20.00% | 47.50% | 48.00% | 18.00% | 33.00% |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| few-shot ($n=10$) | 26.67% | 20.00% | 47.50% | 48.00% | 18.00% | 33.00% |'
+- en: '| XMODE | zero-shot | 23.33% | 43.33% | 77.50% | 74.00% | 28.00% | 51.00% |
+    98% | Yes |'
+  id: totrans-182
+  prefs: []
+  type: TYPE_TB
+  zh: '| XMODE | zero-shot | 23.33% | 43.33% | 77.50% | 74.00% | 28.00% | 51.00% |
+    98% | Yes |'
+- en: Table 2\. Performance metrics of NeuralSQL (zero-shot and few-shot) and XMODE
+    (zero-shot) on the EHRXQA dataset.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2\. NeuralSQL（零样本和少样本）和 XMODE（零样本）在 EHRXQA 数据集上的性能指标。
+- en: '![Refer to caption](img/7d1d002d97d6a9d0e249420b38caa012.png)'
+  id: totrans-184
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明](img/7d1d002d97d6a9d0e249420b38caa012.png)'
+- en: (a) CAESURA
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) CAESURA
+- en: '![Refer to caption](img/6916832f02e8365308d5fa8794a20789.png)'
+  id: totrans-186
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明](img/6916832f02e8365308d5fa8794a20789.png)'
+- en: (b) XMODE
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) XMODE
+- en: Figure 7\. Error analysis of CAESURA ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)
+    ) (a) and XMODE (b) on the ArtWork dataset across different steps.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7\. CAESURA ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)
+    ) (a) 和 XMODE (b) 在 ArtWork 数据集上不同步骤的错误分析。
+- en: 'Table [2](https://arxiv.org/html/2412.18428v1#S4.T2 "Table 2 ‣ 4.3\. Results
+    on the EHRXQA Dataset ‣ 4\. Experiments ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent") demonstrates the experimental results of XMODE
+    against NeuralSQL on the EHRXQA dataset. Our evaluation encompasses three scope
+    categories: single-table queries with one image (Image Single-1), single-table
+    queries with two images (Image Single-2), and multiple-table queries with single
+    images (Image+Table Single). XMODE demonstrates robust performance across all
+    evaluation metrics, achieving an overall accuracy of 51.00%. Notably, XMODE excels
+    in handling multiple-table scenarios, where it achieves 77.50% accuracy, significantly
+    outperforming NeuralSQL’s 47.50% in the 10-shot setting. For single-table queries,
+    XMODE shows strong performance with 43.33% accuracy on two-image queries, though
+    it achieves a slightly lower score (23.33%) compared to NeuralSQL’s 10-shot performance
+    (26.67%) on single-image queries.'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 [2](https://arxiv.org/html/2412.18428v1#S4.T2 "Table 2 ‣ 4.3\. Results on
+    the EHRXQA Dataset ‣ 4\. Experiments ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent") 展示了 XMODE 相对于 NeuralSQL 在 EHRXQA 数据集上的实验结果。我们的评估涵盖了三个范围类别：单表查询带一张图片（Image
+    Single-1）、单表查询带两张图片（Image Single-2）和多表查询带单张图片（Image+Table Single）。XMODE 在所有评估指标上都展现了强大的性能，整体准确率为
+    51.00%。特别地，XMODE 在处理多表场景时表现突出，达到了 77.50% 的准确率，显著优于 NeuralSQL 在 10-shot 设置下的 47.50%。对于单表查询，XMODE
+    在两张图片查询上表现强劲，准确率为 43.33%，尽管与 NeuralSQL 在单图查询中的 10-shot 表现（26.67%）相比，得分略低（23.33%）。
+- en: When examining the output types, XMODE exhibits particularly strong performance
+    on binary questions, achieving 74.00% accuracy compared to NeuralSQL’s 48.00%.
+    For categorical questions, both systems show lower performance, with XMODE reaching
+    28.00% and NeuralSQL achieving 18.00% in the 10-shot setting.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在检查输出类型时，XMODE在二元问题上的表现特别强，准确率为74.00%，而NeuralSQL为48.00%。对于类别问题，两个系统的表现都较低，在10-shot设置下，XMODE达到了28.00%，NeuralSQL为18.00%。
+- en: A key distinguishing feature of XMODE is its comprehensive functionality beyond
+    raw accuracy. Unlike NeuralSQL, XMODE generates executable plans with 98% coverage,
+    provides explanations for traceability of final outputs, and supports dynamic
+    replanning capabilities. In contrast, NeuralSQL, even in its 10-shot configuration,
+    lacks these additional features and shows no performance in the zero-shot setting
+    across all metrics. These results highlight XMODE’s effectiveness as a more complete
+    solution for EHRXQA tasks, particularly in complex scenarios involving multiple
+    tables and binary decisions, while also offering important auxiliary features
+    for practical deployment.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: XMODE的一个关键区分特点是它超越原始准确性的全面功能。与NeuralSQL不同，XMODE生成具有98%覆盖率的可执行计划，提供最终输出的可追溯性解释，并支持动态重新规划能力。相比之下，即使在10-shot配置下，NeuralSQL也缺乏这些附加功能，并且在零-shot设置下在所有指标上没有表现。这些结果突显了XMODE作为EHRXQA任务更完整解决方案的有效性，特别是在涉及多个表和二元决策的复杂场景中，同时也为实际部署提供了重要的辅助功能。
+- en: 4.4\. Error Analysis
+  id: totrans-192
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4\. 错误分析
+- en: 'In this section, we conduct a comprehensive analysis of errors encountered
+    during the evaluation process. These errors are systematically classified into
+    the following categories:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节中，我们对评估过程中遇到的错误进行全面分析。这些错误被系统地分类为以下几类：
+- en: •
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Planning Errors: These errors stem from incorrect or incomplete task planning,
+    such as task decomposition, the generation of completely faulty natural language
+    questions, etc.'
+  id: totrans-195
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 规划错误：这些错误源于不正确或不完整的任务规划，例如任务分解、完全错误的自然语言问题生成等。
+- en: •
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Text-to-SQL Errors: Errors where the generated SQL fails to accurately retrieve
+    the intended data.'
+  id: totrans-197
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 文本到SQL错误：生成的SQL无法准确检索到预期的数据。
+- en: •
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Image Analysis Inaccuracy: Errors caused by inaccurate outputs from the image
+    analysis model, even when the underlying task plan is correct.'
+  id: totrans-199
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 图像分析不准确：即使底层任务计划正确，图像分析模型的输出不准确也会导致错误。
+- en: •
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Plot Generation Errors: Errors where plots are completely not generated, partially
+    generated or incorrectly visualized, thereby failing to meet expected outcomes.'
+  id: totrans-201
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 绘图生成错误：图表未完全生成、部分生成或生成错误，未能达到预期的结果。
+- en: 'To systematically analyze key issues, we prioritize the identified categories
+    based on their inter-dependencies during task execution. The priority sequence
+    of these categories is defined as follows: task planning ¿ text-to-SQL generation
+    ¿ Image analysis ¿ plot generation. Only the first affected category is considered
+    if an error occurs at any stage, which may involve issues across multiple categories.
+    For instance, if an error is detected during the planning phase but the subsequent
+    tasks are successful, and another error occurs at the later plot generation stage,
+    only the error in the planning phase is counted. In this case, the sample is classified
+    under the Planning Error category.'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了系统地分析关键问题，我们根据任务执行过程中各类别之间的相互依赖关系优先排序。各类别的优先级顺序定义如下：任务规划 → 文本到SQL生成 → 图像分析
+    → 绘图生成。如果在任何阶段发生错误，只考虑第一个受影响的类别，这可能涉及多个类别的问题。例如，如果在规划阶段检测到错误，但随后的任务成功，且在后期的绘图生成阶段再次发生错误，则只计算规划阶段的错误。在这种情况下，样本被归类为规划错误类别。
+- en: This approach to error analysis is grounded in the logical dependency structure
+    of the tasks. Since each task is a prerequisite for the succeeding one, a failure
+    in an earlier task renders the success of subsequent tasks irrelevant to the overall
+    reasoning process. As a result, errors are attributed to the earliest point of
+    failure better to reflect the hierarchical nature of the task dependencies, thereby
+    facilitating targeted optimization.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种错误分析方法基于任务的逻辑依赖结构。由于每个任务是下一个任务的前提，早期任务的失败会使后续任务的成功对于整体推理过程无关紧要。因此，错误会归因于最早的失败点，以更好地反映任务依赖的层次性，从而促进有针对性的优化。
+- en: 4.4.1\. Error Analysis on the Artwork Dataset.
+  id: totrans-204
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.4.1\. 艺术作品数据集的错误分析。
+- en: As illustrated in Figure [7](https://arxiv.org/html/2412.18428v1#S4.F7 "Figure
+    7 ‣ 4.3\. Results on the EHRXQA Dataset ‣ 4\. Experiments ‣ Explainable Multi-Modal
+    Data Exploration in Natural Language via LLM Agent") (a), a total of 20 errors
+    are identified out of 30 inference tasks for CAESURA. Of these, 14 errors occur
+    within CAESURA’s sequential workflow. The errors include three single-modal questions
+    and 11 multi-modal questions. Among the three single-modal, one task could not
+    be resolved due to insufficient data available in the data pool. Following this
+    failure, CAESURA attempts to replan twice but ultimately generates an incorrect
+    plan, and consequently results in an erroneous response. The remaining two errors
+    in single-modal tasks were classified as Plot Generation Errors, which are caused
+    by inconsistencies in the time axis units of the plot output.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图[7](https://arxiv.org/html/2412.18428v1#S4.F7 "Figure 7 ‣ 4.3\. Results on
+    the EHRXQA Dataset ‣ 4\. Experiments ‣ Explainable Multi-Modal Data Exploration
+    in Natural Language via LLM Agent")（a）所示，在CAESURA的30个推理任务中，共识别出20个错误。其中，14个错误发生在CAESURA的顺序工作流中。这些错误包括三个单模态问题和11个多模态问题。在三个单模态问题中，其中一个任务由于数据池中数据不足未能解决。在这个失败之后，CAESURA尝试重新规划两次，但最终生成了一个不正确的计划，导致错误的响应。其余两个单模态任务的错误被归类为图表生成错误，原因是图表输出的时间轴单位不一致。
+- en: For 11 errors in multi-modal questions, five are related to single-value outputs,
+    four to plots, and three to data structures. All of these errors are attributed
+    to incorrect outputs generated by the image analysis model. After further research,
+    we found two ambiguous tasks in classifying the error categories. (1) Plot the
+    number of paintings that depict war for each year and (2) What is depicted on
+    the oldest religious artwork in the database? Both tasks failed due to improperly
+    parsed sub question for the image analysis task, specifically the oversimplified
+    term “war.” While this term is semantically related to the correct natural language
+    question, “Does the image depict war?”, it does not fully capture the intent of
+    the task. As a result, it cannot be classified as a completely faulty question.
+    Notably, the XMODE model generated correct results for these tasks, underscoring
+    the limitations of CAESURA’s approach in handling subtle semantic distinctions.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在多模态问题中，共有11个错误，其中五个与单值输出相关，四个与图表相关，三个与数据结构相关。所有这些错误都归因于图像分析模型生成的不正确输出。经过进一步研究，我们发现分类错误类别时存在两个模糊的任务：（1）绘制每年描绘战争的画作数量，和（2）数据库中最古老的宗教艺术作品上描绘了什么？这两个任务失败的原因是图像分析任务中的子问题解析不正确，特别是“战争”这一过于简化的术语。虽然该术语在语义上与正确的自然语言问题“图像是否描绘了战争？”相关，但它并未完全捕捉任务的意图。因此，它不能被归类为完全错误的问题。值得注意的是，XMODE模型对这些任务生成了正确的结果，突显了CAESURA方法在处理细微语义差异时的局限性。
+- en: In questions which require a parallel workflow - including two data structure
+    , two plot—plot, and two plot—data structure outputs — errors are observed at
+    the early planning stage. Our analysis reveals that CAESURA encounters significant
+    challenges in generating accurate plans for embarrassingly parallel tasks. For
+    two of these tasks, the system fails to generate any plan at all. For the remaining
+    four tasks, CAESURA can provide partial results for some subtasks, but other subtasks
+    are left unanswered, reflecting a broader issue in its ability to manage parallel
+    planning. Our XMODE system successfully generates the appropriate plans for all
+    tasks. In addition, all text-to-SQL steps , data preparation pipelines, and plot
+    outputs, where required, are validated as correct. As illustrated in Figure [7](https://arxiv.org/html/2412.18428v1#S4.F7
+    "Figure 7 ‣ 4.3\. Results on the EHRXQA Dataset ‣ 4\. Experiments ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")(b), the only
+    source of errors is the inaccurate output of the image analysis model, which accounted
+    for 11 errors.No other errors are located in the text-to-SQL task, plot generation,
+    or task planning deficiencies. This analysis highlights the image analysis model
+    as the bottleneck in system performance, underscoring the need for further refinement
+    in its predictive accuracy.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在需要并行工作流的问题中——包括两种数据结构、两种图—图，以及两种图—数据结构输出——在早期规划阶段观察到错误。我们的分析揭示，CAESURA 在生成准确的计划方面遇到了重大挑战，尤其是在处理令人尴尬的并行任务时。对于这两项任务，系统根本未能生成任何计划。对于其余四项任务，CAESURA
+    能为一些子任务提供部分结果，但其他子任务未得到解答，反映出其在并行规划管理方面的更广泛问题。我们的 XMODE 系统成功地为所有任务生成了适当的计划。此外，所有的文本到
+    SQL 步骤、数据准备管道以及所需的图表输出都已验证为正确。如图 [7](https://arxiv.org/html/2412.18428v1#S4.F7
+    "Figure 7 ‣ 4.3\. Results on the EHRXQA Dataset ‣ 4\. Experiments ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent")(b) 所示，唯一的错误来源是图像分析模型输出的不准确，导致了
+    11 个错误。文本到 SQL 任务、图表生成或任务规划方面没有发现其他错误。此分析突出了图像分析模型作为系统性能瓶颈，强调了进一步提高其预测准确性的必要性。
+- en: 4.4.2\. Error Analysis on the EHRXQA Dataset
+  id: totrans-208
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 4.4.2\. EHRXQA 数据集上的错误分析
+- en: Since NeuralSQL is a one-step approach lacking task planning and explainability,
+    we are unable to localize the source of errors as systematically as in the XMODE
+    or CAESURA systems. Consequently, we focus our error analysis solely on the XMODE
+    system using the EHRXQA dataset.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 NeuralSQL 是一种缺乏任务规划和可解释性的一步法，因此我们无法像在 XMODE 或 CAESURA 系统中那样系统地定位错误来源。因此，我们将错误分析的重点仅放在使用
+    EHRXQA 数据集的 XMODE 系统上。
+- en: 'Figure [8](https://arxiv.org/html/2412.18428v1#S4.F8 "Figure 8 ‣ 4.4.2\. Error
+    Analysis on the EHRXQA Dataset ‣ 4.4\. Error Analysis ‣ 4\. Experiments ‣ Explainable
+    Multi-Modal Data Exploration in Natural Language via LLM Agent") presents the
+    distribution of 49 errors across various steps, categorized by their respective
+    scopes: Image Single-1 (23 errors), Image Single-2 (17 errors), and Image+Table
+    Single (9 errors). Among these, 36 errors are associated with the categorical
+    scope, with 20 attributed to Image Single-1 and 16 to Image Single-2. In contrast,
+    errors linked to the binary output type are primarily found in the Image+Table
+    Single scope. Specifically, Image Single-1 contributes three binary errors, Image
+    Single-2 accounts for one, and Image+Table Single includes nine, summing up to
+    13 binary errors out of the total 49. Considering the uneven distribution of errors
+    across various output types and scopes, we identified inaccurate image analysis
+    — primarily driven by the M3AE model ([10.1007/978-3-031-16443-9_65,](https://arxiv.org/html/2412.18428v1#bib.bib3)
+    ) — as the main source of errors. Our analysis reveals that errors linked to categorical
+    output types (36) are nearly three times higher than those associated with binary
+    output types (13). This suggests that the error pattern is less related to the
+    task difficulty across different scopes and more influenced by the output type,
+    as binary questions demonstrate a statistically higher success rate compared to
+    categorical ones. Notably, the Image + Table Single scope exclusively utilizes
+    binary output types.'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 [8](https://arxiv.org/html/2412.18428v1#S4.F8 "图 8 ‣ 4.4.2\. EHRXQA 数据集的错误分析
+    ‣ 4.4\. 错误分析 ‣ 4\. 实验 ‣ 通过 LLM Agent 在自然语言中可解释的多模态数据探索") 展示了49个错误在不同步骤中的分布，并按各自的范围进行了分类：图像单一-1（23个错误）、图像单一-2（17个错误）和图像+表格单一（9个错误）。其中，36个错误与类别范围相关，其中20个归因于图像单一-1，16个归因于图像单一-2。相反，与二元输出类型相关的错误主要出现在图像+表格单一范围内。具体来说，图像单一-1贡献了三个二元错误，图像单一-2贡献了一个，图像+表格单一包括九个，合计49个错误中的13个是二元错误。考虑到错误在不同输出类型和范围之间的分布不均，我们认为图像分析不准确——主要由M3AE模型（[10.1007/978-3-031-16443-9_65,](https://arxiv.org/html/2412.18428v1#bib.bib3)
+    ）驱动——是错误的主要来源。我们的分析显示，和二元输出类型相关的错误（13个）仅为类别输出类型错误（36个）的三分之一，表明错误模式与不同范围内的任务难度关系较小，更多地受输出类型的影响，因为二元问题相比于类别问题表现出统计学上更高的成功率。值得注意的是，图像+表格单一范围仅使用二元输出类型。
+- en: 'To gain a deeper understanding, a step-by-step error analysis reveals that
+    out of the 23 errors in the Image Single-1 scope, 22 are due to inaccuracies in
+    image analysis, while only one is related to a misstep in the text-to-SQL process.
+    The specific question text for this case is: “Catalog all the anatomical findings
+    seen in the image, given the first study of patient 11801290 on the first hospital
+    visit.” The generated SQL query fails to include the condition specifying the
+    first study, resulting in an incorrect output. In the Image Single-2 category,
+    16 out of 17 total errors are due to inaccurate image analysis, with one error
+    attributed to the text-to-SQL step. The specific query in question is: “Does the
+    second-to-last study of patient 16345504 this year reveal still-present fluid
+    overload/heart failure in the right lung compared to the first study this year?”.
+    The text-to-SQL task fails to correctly retrieve the first and last study of this
+    year as required, instead erroneously returning multiple studies from the current
+    year. In the Image+Table Single scope, all nine errors involve binary output types.
+    Of these, six result from inaccurate image analysis, one from incomplete planning,
+    and two from an incorrect text-to-SQL step. The error caused by incomplete planning
+    occurs with the question: “Did patient 19055351 undergo the combined right and
+    left heart cardiac catheterization procedure within the same month after a chest
+    x-ray revealed any anatomical findings until 2104?”. In this case, the plan omits
+    the necessary image analysis step, leading to an incorrect final output. During
+    the reasoning stage, instances were identified where an empty output produced
+    a no response that coincidentally aligned with the ground truth. However, XMODE’s
+    explainability highlights this as a misclassification, as the absence of output
+    was not due to correct reasoning.'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更深入地了解，逐步的错误分析显示，在图像单一-1范围内的23个错误中，有22个是由于图像分析的不准确，只有一个与文本到SQL过程中的误操作有关。该案例的具体问题文本是：“根据11801290号患者第一次就诊时的首个检查，列出图像中所有可见的解剖学发现。”生成的SQL查询未能包括指定首个检查的条件，导致输出错误。在图像单一-2类别中，总共17个错误中有16个是由于图像分析不准确，1个归因于文本到SQL步骤。问题的具体查询是：“16345504号患者今年的倒数第二次检查是否显示右肺存在仍然存在的液体超负荷/心力衰竭，相较于今年的第一次检查？”文本到SQL任务未能正确检索今年的第一次和最后一次检查，反而错误地返回了今年的多个检查。在图像+表格单一范围内，所有九个错误都涉及二进制输出类型。在这些错误中，六个是由于图像分析不准确，1个是由于计划不完整，2个是由于文本到SQL步骤错误。由计划不完整导致的错误出现在问题：“19055351号患者是否在胸部X光显示任何解剖学发现后，与右心和左心联合心导管检查程序是否在2104年内同一月份进行？”在这种情况下，计划中遗漏了必要的图像分析步骤，导致最终输出错误。在推理阶段，发现了一些空输出的情况，这些情况巧合地与真实结果对齐。但XMODE的可解释性指出这是一个误分类，因为输出的缺失并非由于正确的推理。
+- en: 'Two errors in the Image+Table Single category are attributed to text-to-SQL
+    misbehavior. The specific questions causing these errors are: ”Was patient 12724975
+    diagnosed with hypoxemia until 1 year ago, and did a chest x-ray reveal any tubes/lines
+    in the abdomen during the same period?” and ”Was patient 10762986 diagnosed with
+    a personal history of tobacco use within the same month after a chest x-ray showing
+    any abnormalities in the aortic arch until 1 year ago?” In both cases, the SQL
+    queries fail to correctly apply the condition (since current time) until 1 year
+    ago, instead treating 1 year ago as a fixed point in time.'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图像+表格单一类别中的两个错误归因于文本到SQL的错误行为。导致这些错误的具体问题是：“12724975号患者是否在1年前被诊断为缺氧症，并且在同一期间胸部X光是否显示腹部有任何管子/导管？”以及“10762986号患者是否在胸部X光显示主动脉弓有任何异常后，在同一月内被诊断为吸烟史，且此诊断是在1年前？”在这两种情况下，SQL查询未能正确应用“直到1年前”这一条件（基于当前时间），而是将1年前当作一个固定的时间点。
+- en: These findings highlight the pivotal role of accurate image analysis in multi-modal
+    data exploration systems. Particularly, they emphasize a formidable challenge
+    associated with categorical outputs. Moreover, the findings underscore the necessity
+    of robust planning and effective SQL query generation to achieve optimal system
+    performance. Addressing these challenges requires advancements in visual reasoning,
+    temporal logic comprehension, and SQL generation, all of which are essential for
+    mitigating errors and enhancing system accuracy.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些发现突显了准确图像分析在多模态数据探索系统中的关键作用。特别地，它们强调了与分类输出相关的巨大挑战。此外，研究结果还强调了强有力的规划和高效SQL查询生成的必要性，以实现最佳系统性能。解决这些挑战需要在视觉推理、时序逻辑理解和SQL生成方面的进展，这些都是减少错误并提升系统准确性所必需的。
+- en: '![Refer to caption](img/ee9828cd85be6d93b2161e94a2dc216f.png)'
+  id: totrans-214
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见标题说明](img/ee9828cd85be6d93b2161e94a2dc216f.png)'
+- en: Figure 8\. Error analysis of XMODE on the EHRXQA ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)
+    ) dataset across different steps.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图8\. XMODE在EHRXQA（[bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)）数据集上不同步骤的错误分析。
+- en: 5\. Conclusions
+  id: totrans-216
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5\. 结论
+- en: We demonstrated that multi-agent collaboration using large language models,
+    such as GPT-4, offers a promising approach for explainable multi-modal data exploration
+    in natural language. Our experimental evaluation against two state-of-the-art
+    systems on two different datasets with tabular and image data shows that XMODE
+    not only performs the task of multi-modal data exploration with higher accuracy
+    but also faster due to smart re-planning and parallel execution. Moreover, XMODE
+    also provides detailed explanations and reasoning which makes it transparent and
+    supports the end user to better understand and verify the results. The main findings
+    from our experiments are that the text-to-SQL task shows high accuracy, while
+    the image analysis task only shows limited accuracy. Hence, future work on multi-modal
+    data exploration should focus on improving the accuracy of the image interpretation
+    and understanding models. Potential avenues for research are better alignment
+    approaches between tabular and image data or iterative prompt engineering with
+    natural language question re-writing to better probe the image search space. Another
+    promising approach is to focus on human in the loop approaches where the system
+    and the humans solve tasks jointly.
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们证明了使用大型语言模型（如GPT-4）进行的多代理协作提供了一种有前景的方法，用于自然语言中可解释的多模态数据探索。我们在两个不同数据集上，分别使用表格数据和图像数据，对比了XMODE与两个最先进系统的实验评估，结果表明XMODE不仅在多模态数据探索任务中具有更高的准确性，而且由于智能重新规划和并行执行，还能更快地完成任务。此外，XMODE还提供了详细的解释和推理，使其具有透明性，并帮助最终用户更好地理解和验证结果。我们的实验主要发现，文本到SQL任务表现出高准确性，而图像分析任务的准确性则有限。因此，未来的多模态数据探索工作应集中于提高图像解读和理解模型的准确性。未来研究的潜在方向包括表格数据与图像数据之间的更好对齐方法，或通过自然语言问题重写进行的迭代提示工程，以更好地探测图像搜索空间。另一个有前景的方法是聚焦于“人机协作”方法，在这种方法中，系统与人类共同完成任务。
+- en: 6\. Acknowledgements
+  id: totrans-218
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6\. 致谢
+- en: We want to thank Magda Balazinska from the University of Washington for fruitful
+    discussions on the initial idea of the XMODE system. We also want to thank the
+    CAESURA ([urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20) )
+    and EHRXQA ([bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1) ) team
+    for providing their expertise in running their respective systems.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们要感谢华盛顿大学的Magda Balazinska教授对XMODE系统初步构想的富有成效的讨论。我们还要感谢CAESURA（[urban2023caesura,](https://arxiv.org/html/2412.18428v1#bib.bib20)）和EHRXQA（[bae2024ehrxqa,](https://arxiv.org/html/2412.18428v1#bib.bib1)）团队提供的专业支持，帮助运行各自的系统。
+- en: References
+  id: totrans-220
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] Seongsu Bae, Daeun Kyung, Jaehee Ryu, Eunbyeol Cho, Gyubok Lee, Sunjun
+    Kweon, Jungwoo Oh, Lei Ji, Eric Chang, Tackeun Kim, et al. Ehrxqa: A multi-modal
+    question answering dataset for electronic health records with chest x-ray images.
+    Advances in Neural Information Processing Systems, 36, 2024.'
+  id: totrans-221
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] Seongsu Bae, Daeun Kyung, Jaehee Ryu, Eunbyeol Cho, Gyubok Lee, Sunjun
+    Kweon, Jungwoo Oh, Lei Ji, Eric Chang, Tackeun Kim 等人。EHRXQA：一个用于电子健康记录与胸部X射线图像的多模态问答数据集。神经信息处理系统进展，36，2024。'
+- en: '[2] Saptarashmi Bandyopadhyay and Tianyang Zhao. Natural language response
+    generation from sql with generalization and back-translation. In Workshop on Interactive
+    and Executable Semantic Parsing, 2020.'
+  id: totrans-222
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] Saptarashmi Bandyopadhyay 和 Tianyang Zhao。基于SQL的自然语言响应生成，具有泛化能力和回译机制。发表于2020年互动与可执行语义解析研讨会。'
+- en: '[3] Zhihong Chen, Yuhao Du, Jinpeng Hu, Yang Liu, Guanbin Li, Xiang Wan, and
+    Tsung-Hui Chang. Multi-modal masked autoencoders for medical vision-and-language
+    pretraining. In Medical Image Computing and Computer Assisted Intervention – MICCAI
+    2022: 25th International Conference, Singapore, September 18–22, 2022, Proceedings,
+    Part V, page 679–689, Berlin, Heidelberg, 2022\. Springer-Verlag.'
+  id: totrans-223
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] Zhihong Chen, Yuhao Du, Jinpeng Hu, Yang Liu, Guanbin Li, Xiang Wan 和 Tsung-Hui
+    Chang。用于医学视觉与语言预训练的多模态掩码自编码器。在医学图像计算与计算机辅助介入国际会议（MICCAI 2022），新加坡，2022年9月18-22日，第V部分，页面679–689，柏林，海德堡，2022年。Springer-Verlag出版。'
+- en: '[4] Gaurav Tarlok Kakkar et. al. EVA: an end-to-end exploratory video analytics
+    system. In Workshop on Data Management for End-to-End Machine Learning, DEEM,
+    2023.'
+  id: totrans-224
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] Gaurav Tarlok Kakkar 等。EVA：一个端到端的探索性视频分析系统。在数据管理与端到端机器学习工作坊（DEEM），2023年。'
+- en: '[5] Avrilia Floratou, Fotis Psallidas, Fuheng Zhao, Shaleen Deep, Gunther Hagleither,
+    Wangda Tan, Joyce Cahoon, Rana Alotaibi, Jordan Henkel, Abhik Singla, Alex van
+    Grootel, Brandon Chow, Kai Deng, Katherine Lin, Marcos Campos, Venkatesh Emani,
+    Vivek Pandit, Victor Shnayder, Wenjing Wang, and Carlo Curino. Nl2sql is a solved
+    problem… not! In CIDR, 2024.'
+  id: totrans-225
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Avrilia Floratou, Fotis Psallidas, Fuheng Zhao, Shaleen Deep, Gunther Hagleither,
+    Wangda Tan, Joyce Cahoon, Rana Alotaibi, Jordan Henkel, Abhik Singla, Alex van
+    Grootel, Brandon Chow, Kai Deng, Katherine Lin, Marcos Campos, Venkatesh Emani,
+    Vivek Pandit, Victor Shnayder, Wenjing Wang 和 Carlo Curino。NL2SQL已解决问题……并非如此！在CIDR，2024年。'
+- en: '[6] Saehan Jo and Immanuel Trummer. Thalamusdb: Approximate query processing
+    on multi-modal data. Proc. ACM Manag. Data, 2(3), 2024.'
+  id: totrans-226
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] Saehan Jo 和 Immanuel Trummer。Thalamusdb：多模态数据上的近似查询处理。《ACM数据管理会议论文集》，2(3)，2024年。'
+- en: '[7] Daniel Kang, Peter Bailis, and Matei Zaharia. Blazeit: Optimizing declarative
+    aggregation and limit queries for neural network-based video analytics. Proc.
+    VLDB Endow., 13(4):533–546, 2019.'
+  id: totrans-227
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] Daniel Kang, Peter Bailis 和 Matei Zaharia。Blazeit：优化基于神经网络的视频分析中的声明性聚合和限制查询。《VLDB会议论文集》，13(4):533–546，2019年。'
+- en: '[8] Daniel Kang, Francisco Romero, Peter D. Bailis, Christos Kozyrakis, and
+    Matei Zaharia. VIVA: an end-to-end system for interactive video analytics. In
+    CIDR, 2022.'
+  id: totrans-228
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] Daniel Kang, Francisco Romero, Peter D. Bailis, Christos Kozyrakis 和 Matei
+    Zaharia。VIVA：一个端到端的互动视频分析系统。在CIDR，2022年。'
+- en: '[9] Sayash Kapoor, Benedikt Stroebl, Zachary S Siegel, Nitya Nadgir, and Arvind
+    Narayanan. Ai agents that matter. arXiv preprint arXiv:2407.01502, 2024.'
+  id: totrans-229
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] Sayash Kapoor, Benedikt Stroebl, Zachary S Siegel, Nitya Nadgir 和 Arvind
+    Narayanan。重要的AI代理。arXiv预印本 arXiv:2407.01502，2024年。'
+- en: '[10] Been Kim, Martin Wattenberg, Justin Gilmer, Carrie Cai, James Wexler,
+    Fernanda Viegas, et al. Interpretability beyond feature attribution: Quantitative
+    testing with concept activation vectors (tcav). In ICML, 2018.'
+  id: totrans-230
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] Been Kim, Martin Wattenberg, Justin Gilmer, Carrie Cai, James Wexler,
+    Fernanda Viegas 等。超越特征归因的可解释性：使用概念激活向量（TCAV）进行定量测试。在ICML，2018年。'
+- en: '[11] Sehoon Kim, Suhong Moon, Ryan Tabrizi, Nicholas Lee, Michael W Mahoney,
+    Kurt Keutzer, and Amir Gholami. An llm compiler for parallel function calling.
+    arXiv preprint arXiv:2312.04511, 2023.'
+  id: totrans-231
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] Sehoon Kim, Suhong Moon, Ryan Tabrizi, Nicholas Lee, Michael W Mahoney,
+    Kurt Keutzer 和 Amir Gholami。一个用于并行函数调用的LLM编译器。arXiv预印本 arXiv:2312.04511，2023年。'
+- en: '[12] Mike Lewis, Yinhan Liu, Naman Goyal, Marjan Ghazvininejad, Abdelrahman
+    Mohamed, Omer Levy, Veselin Stoyanov, and Luke Zettlemoyer. Bart: Denoising sequence-to-sequence
+    pre-training for natural language generation, translation, and comprehension.
+    In Proceedings of the 58th Annual Meeting of the Association for Computational
+    Linguistics, page 7871\. Association for Computational Linguistics, 2020.'
+  id: totrans-232
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] Mike Lewis, Yinhan Liu, Naman Goyal, Marjan Ghazvininejad, Abdelrahman
+    Mohamed, Omer Levy, Veselin Stoyanov 和 Luke Zettlemoyer。Bart：用于自然语言生成、翻译和理解的去噪序列到序列预训练。在第58届计算语言学会年会（ACL）论文集，第7871页。计算语言学会，2020年。'
+- en: '[13] Jinyang Li, Binyuan Hui, Ge Qu, Jiaxi Yang, Binhua Li, Bowen Li, Bailin
+    Wang, Bowen Qin, Ruiying Geng, Nan Huo, et al. Can llm already serve as a database
+    interface? a big bench for large-scale database grounded text-to-sqls. NeurIPS,
+    2024.'
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] Jinyang Li, Binyuan Hui, Ge Qu, Jiaxi Yang, Binhua Li, Bowen Li, Bailin
+    Wang, Bowen Qin, Ruiying Geng, Nan Huo 等。大型语言模型（LLM）是否已经能够作为数据库接口？一个针对大规模数据库的文本到
+    SQL 的大基准测试。NeurIPS, 2024。'
+- en: '[14] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping
+    language-image pre-training with frozen image encoders and large language models.
+    In International conference on machine learning, pages 19730–19742\. PMLR, 2023.'
+  id: totrans-234
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] Junnan Li, Dongxu Li, Silvio Savarese 和 Steven Hoi。Blip-2：使用冻结的图像编码器和大型语言模型引导语言-图像预训练。在国际机器学习大会，页面19730–19742。PMLR，2023年。'
+- en: '[15] Chunwei Liu, Matthew Russo, Michael Cafarella, Lei Cao, Peter Baille Chen,
+    Zui Chen, Michael Franklin, Tim Kraska, Samuel Madden, and Gerardo Vitagliano.
+    A declarative system for optimizing ai workloads. arXiv e-prints, pages arXiv–2405,
+    2024.'
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] Chunwei Liu, Matthew Russo, Michael Cafarella, Lei Cao, Peter Baille Chen,
+    Zui Chen, Michael Franklin, Tim Kraska, Samuel Madden, 和 Gerardo Vitagliano。用于优化AI工作负载的声明式系统。arXiv电子预印本，页面arXiv–2405，2024年。'
+- en: '[16] Scott M Lundberg and Su-In Lee. A unified approach to interpreting model
+    predictions. NeurIPS, 2017.'
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] Scott M Lundberg 和 Su-In Lee。统一的模型预测解释方法。NeurIPS，2017年。'
+- en: '[17] Farhad Nooralahzadeh, Yi Zhang, Ellery Smith, Sabine Maennel, Cyril Matthey-Doret,
+    Raphaël de Fondville, and Kurt Stockinger. StatBot.Swiss: Bilingual Open Data
+    Exploration in Natural Language. In Findings of ACL, 2024.'
+  id: totrans-237
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] Farhad Nooralahzadeh, Yi Zhang, Ellery Smith, Sabine Maennel, Cyril Matthey-Doret,
+    Raphaël de Fondville, 和 Kurt Stockinger。StatBot.Swiss：自然语言中的双语开放数据探索。在ACL发现，2024年。'
+- en: '[18] Mohammadreza Pourreza and Davood Rafiei. Din-sql: Decomposed in-context
+    learning of text-to-sql with self-correction. NeurIPS, 2024.'
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] Mohammadreza Pourreza 和 Davood Rafiei。Din-sql：带自我修正的文本到sql的分解式上下文学习。NeurIPS，2024年。'
+- en: '[19] Sithursan Sivasubramaniam, Cedric Osei-Akoto, Yi Zhang, Kurt Stockinger,
+    and Jonathan Fuerst. Sm3-text-to-query: Synthetic multi-model medical text-to-query
+    benchmark. In The Thirty-eight Conference on Neural Information Processing Systems
+    Datasets and Benchmarks Track.'
+  id: totrans-239
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[19] Sithursan Sivasubramaniam, Cedric Osei-Akoto, Yi Zhang, Kurt Stockinger,
+    和 Jonathan Fuerst。Sm3-text-to-query：合成多模态医学文本到查询基准。发表于《第三十八届神经信息处理系统大会 数据集与基准
+    Track》。'
+- en: '[20] Matthias Urban and Carsten Binnig. Caesura: Language models as multi-modal
+    query planners. arXiv preprint arXiv:2308.03424, 2023.'
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[20] Matthias Urban 和 Carsten Binnig。Caesura：作为多模态查询规划器的语言模型。arXiv预印本arXiv:2308.03424，2023年。'
+- en: '[21] Matthias Urban and Carsten Binnig. CAESURA: language models as multi-modal
+    query planners. In CIDR, 2024.'
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[21] Matthias Urban 和 Carsten Binnig。CAESURA：作为多模态查询规划器的语言模型。在CIDR，2024年。'
+- en: '[22] Pius Von Däniken, Jan Milan Deriu, Eneko Agirre, Ursin Brunner, Mark Cieliebak,
+    and Kurt Stockinger. Improving nl-to-query systems through re-ranking of semantic
+    hypothesis. In ICNLSP, 2022.'
+  id: totrans-242
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[22] Pius Von Däniken, Jan Milan Deriu, Eneko Agirre, Ursin Brunner, Mark Cieliebak,
+    和 Kurt Stockinger。通过重新排序语义假设来改进nl-to-query系统。在ICNLSP，2022年。'
+- en: '[23] Zeqing Wang, Wentao Wan, Runmeng Chen, Qiqing Lao, Minjie Lang, and Keze
+    Wang. Towards top-down reasoning: An explainable multi-agent approach for visual
+    question answering. arXiv preprint arXiv:2311.17331, 2023.'
+  id: totrans-243
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[23] Zeqing Wang, Wentao Wan, Runmeng Chen, Qiqing Lao, Minjie Lang, 和 Keze
+    Wang。迈向自上而下推理：一种可解释的多代理视觉问答方法。arXiv预印本arXiv:2311.17331，2023年。'
+- en: '[24] Tao Yu, Rui Zhang, Kai Yang, Michihiro Yasunaga, Dongxu Wang, Zifan Li,
+    James Ma, Irene Li, Qingning Yao, Shanelle Roman, et al. Spider: A large-scale
+    human-labeled dataset for complex and cross-domain semantic parsing and text-to-sql
+    task. In EMNLP, 2018.'
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[24] Tao Yu, Rui Zhang, Kai Yang, Michihiro Yasunaga, Dongxu Wang, Zifan Li,
+    James Ma, Irene Li, Qingning Yao, Shanelle Roman 等。Spider：一个大型人工标注数据集，用于复杂跨领域语义解析和文本到sql任务。发表于EMNLP，2018年。'
+- en: '[25] Enhao Zhang, Maureen Daum, Dong He, Brandon Haynes, Ranjay Krishna, and
+    Magdalena Balazinska. Equi-vocal: Synthesizing queries for compositional video
+    events from limited user interactions. Proceedings of the VLDB Endowment, 16(11):2714–2727,
+    2023.'
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[25] Enhao Zhang, Maureen Daum, Dong He, Brandon Haynes, Ranjay Krishna, 和
+    Magdalena Balazinska。Equi-vocal：从有限的用户交互中合成复合视频事件的查询。发表于《VLDB基金会会议》，16(11)：2714-2727，2023年。'
+- en: '[26] Jingyi Zhang, Jiaxing Huang, Sheng Jin, and Shijian Lu. Vision-language
+    models for vision tasks: A survey. IEEE Transactions on Pattern Analysis and Machine
+    Intelligence, 2024.'
+  id: totrans-246
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[26] Jingyi Zhang, Jiaxing Huang, Sheng Jin, 和 Shijian Lu。用于视觉任务的视觉-语言模型：一项调查。IEEE《模式分析与机器智能学报》，2024年。'
+- en: '[27] Yi Zhang, Jan Deriu, George Katsogiannis-Meimarakis, Catherine Kosten,
+    Georgia Koutrika, and Kurt Stockinger. Sciencebenchmark: A complex real-world
+    benchmark for evaluating natural language to sql systems. Proceedings of the VLDB
+    Endowment, 17(4):685–698, 2024.'
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[27] Yi Zhang, Jan Deriu, George Katsogiannis-Meimarakis, Catherine Kosten,
+    Georgia Koutrika, 和 Kurt Stockinger。Sciencebenchmark：用于评估自然语言到sql系统的复杂现实世界基准。发表于《VLDB基金会会议》，17(4)：685-698，2024年。'

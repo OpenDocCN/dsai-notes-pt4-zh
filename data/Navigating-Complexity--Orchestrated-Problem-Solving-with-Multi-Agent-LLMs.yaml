@@ -1,0 +1,1436 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 12:50:18'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:50:18
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Navigating Complexity: Orchestrated Problem Solving with Multi-Agent LLMs'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 导航复杂性：通过多代理LLM进行协调问题解决
+- en: 来源：[https://arxiv.org/html/2402.16713/](https://arxiv.org/html/2402.16713/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2402.16713/](https://arxiv.org/html/2402.16713/)
+- en: Sumedh Rasal
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Sumedh Rasal
+- en: Georgia Institute of Technology
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 乔治亚理工学院
+- en: Chicago, IL
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 芝加哥，伊利诺伊州
+- en: srasal3@gatech.edu
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: srasal3@gatech.edu
+- en: \AndE. J. Hauer
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \AndE. J. Hauer
+- en: EJ@ThoughtCrafters.com
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: EJ@ThoughtCrafters.com
+- en: Abstract
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Large Language Models (LLMs) have demonstrated remarkable capabilities in solving
+    various tasks, yet they often struggle with comprehensively addressing complex
+    and vague problems. Existing approaches, including multi-agent LLM systems, offer
+    solutions to certain challenges but still require manual setup and lack scalability.
+    To address this gap, we propose a novel approach leveraging decomposition to enable
+    LLMs to tackle vague problems effectively.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）在解决各种任务方面展现了卓越的能力，但它们常常在全面解决复杂和模糊问题时遇到困难。现有的方法，包括多代理LLM系统，提供了针对某些挑战的解决方案，但仍然需要手动设置，且缺乏可扩展性。为了解决这一问题，我们提出了一种新的方法，通过分解来使LLMs能够有效应对模糊问题。
+- en: Our approach involves an orchestrating LLM that interacts with users to understand
+    the problem and then decomposes it into tangible sub-problems. Instead of expecting
+    the LLM to solve the entire problem in one go, we train it to ask follow-up questions
+    to gain a deeper understanding of the user’s requirements. Once the problem is
+    adequately understood, the orchestrating LLM divides it into smaller, manageable
+    sub-problems. Each sub-problem is then assigned to specialized LLM agents or non-LLM
+    functions for resolution. These agents work in parallel to solve their respective
+    sub-problems, with the orchestrating LLM overseeing the process and compiling
+    the solutions into a comprehensive answer for the user. By adopting this decomposition
+    approach, we alleviate the constraints imposed by token limitations on LLM outputs
+    and empower them to provide nuanced solutions to complex and ambiguous problems.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的方法涉及一个协调LLM，该模型与用户互动以理解问题，然后将问题分解为具体的子问题。我们并不期望LLM一次性解决整个问题，而是训练它提出后续问题，以更深入地理解用户的需求。一旦问题被充分理解，协调LLM就将其分解成更小、更易管理的子问题。每个子问题随后会被分配给专门的LLM代理或非LLM功能来解决。这些代理并行工作，解决各自的子问题，协调LLM则监督整个过程，并将解决方案整合成用户的综合答案。通过采用这种分解方法，我们减轻了LLM输出中由令牌限制所带来的约束，使其能够为复杂和模糊的问题提供细致的解决方案。
+- en: Through our approach, we aim to enable LLMs to think and operate more like humans,
+    breaking down complex problems into manageable parts and collaboratively solving
+    them. This not only enhances the problem-solving capabilities of LLMs but also
+    offers a scalable and efficient method for addressing a wide range of real-world
+    challenges.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过我们的方法，我们旨在使LLMs更像人类一样思考和操作，将复杂问题分解成可管理的部分，并通过协作解决它们。这不仅增强了LLMs的解决问题能力，还提供了一种可扩展和高效的方法来应对各种现实世界的挑战。
+- en: '*K*eywords Decomposition  $\cdot$ Multi-Agents'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*K*eywords 分解  $\cdot$ 多代理'
+- en: 1 Introduction
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: In recent years, the proliferation of Large Language Models (LLMs) has revolutionized
+    problem-solving across various domains [[Devlin et al., 2018](https://arxiv.org/html/2402.16713v2#bib.bibx11)]
+    [[Patil et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx25)] [[Touvron
+    et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx32)]. These models possess
+    the ability to comprehend user queries and generate responses, often providing
+    novel insights and solutions [[Wei et al., 2022a](https://arxiv.org/html/2402.16713v2#bib.bibx33)].
+    Notably, LLMs exhibit exceptional performance in tasks that can be tackled through
+    zero-shot or few-shot training techniques [[Brown et al., 2020](https://arxiv.org/html/2402.16713v2#bib.bibx2)],
+    such as transforming questions into familiar formats or solving coding problems
+    based on analogous examples [[Chen et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx5)]
+    [[Sanh et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx29)]. As such,
+    they hold immense potential for automating numerous tasks and streamlining workflows
+    across diverse professional domains [[Liu et al., 2023b](https://arxiv.org/html/2402.16713v2#bib.bibx22)]
+    [[Chiang and Lee, 2023](https://arxiv.org/html/2402.16713v2#bib.bibx6)] [[Gao
+    et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx13)] [[Shen et al.,
+    2023](https://arxiv.org/html/2402.16713v2#bib.bibx31)] [[Zheng et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx37)].
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，大型语言模型（LLMs）的普及彻底改变了各个领域的问题解决方式[[Devlin et al., 2018](https://arxiv.org/html/2402.16713v2#bib.bibx11)]
+    [[Patil et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx25)] [[Touvron
+    et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx32)]。这些模型具备理解用户查询并生成回应的能力，常常能够提供新颖的见解和解决方案[[Wei
+    et al., 2022a](https://arxiv.org/html/2402.16713v2#bib.bibx33)]。尤其是，LLMs在通过零样本或少样本训练技术处理任务时表现出色[[Brown
+    et al., 2020](https://arxiv.org/html/2402.16713v2#bib.bibx2)]，例如将问题转换为熟悉的格式或基于类似例子解决编码问题[[Chen
+    et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx5)] [[Sanh et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx29)]。因此，它们在自动化众多任务和简化各专业领域的工作流方面具有巨大的潜力[[Liu
+    et al., 2023b](https://arxiv.org/html/2402.16713v2#bib.bibx22)] [[Chiang and Lee,
+    2023](https://arxiv.org/html/2402.16713v2#bib.bibx6)] [[Gao et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx13)]
+    [[Shen et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx31)] [[Zheng
+    et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx37)]。
+- en: However, despite their remarkable capabilities, LLMs are not immune to limitations.
+    Instances of hallucination, contradictory responses, or misinterpretation of user
+    queries highlight the challenges inherent in relying solely on these models for
+    problem-solving [[Azamfirei et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx1)].
+    Existing frameworks designed to aid users in systematically addressing novel problems
+    are constrained by token limits imposed by LLM models [[Gur et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx15)].
+    These limits restrict the number of words or tokens that an LLM can process in
+    a single message or query, often hindering the comprehensiveness of responses
+    and impeding the continuity of conversations. While approaches such as chaining
+    previous conversations or employing semantic search techniques mitigate some of
+    these challenges, they are susceptible to errors, including redundancy or irrelevance
+    in retrieved information [[Ouyang et al., 2022](https://arxiv.org/html/2402.16713v2#bib.bibx24)]
+    [[Saunders et al., 2022](https://arxiv.org/html/2402.16713v2#bib.bibx30)] [[Liu
+    et al., 2023a](https://arxiv.org/html/2402.16713v2#bib.bibx21)].
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，尽管大型语言模型（LLMs）具有显著的能力，它们并非没有局限性。幻觉现象、矛盾的回答或误解用户查询的实例突显了仅依赖这些模型进行问题解决所面临的挑战[[Azamfirei
+    et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx1)]。现有的框架旨在帮助用户系统地解决新颖问题，但受到LLM模型所施加的令牌限制的约束[[Gur
+    et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx15)]。这些限制限制了LLM在单个消息或查询中能够处理的单词或令牌数量，常常妨碍回答的全面性，并阻碍了对话的连贯性。虽然诸如连接先前对话或使用语义搜索技术等方法可以缓解其中的一些挑战，但它们仍然容易出错，包括检索信息中的冗余或不相关内容[[Ouyang
+    et al., 2022](https://arxiv.org/html/2402.16713v2#bib.bibx24)] [[Saunders et al.,
+    2022](https://arxiv.org/html/2402.16713v2#bib.bibx30)] [[Liu et al., 2023a](https://arxiv.org/html/2402.16713v2#bib.bibx21)]。
+- en: To address these limitations, a promising avenue lies in leveraging multi-agent
+    frameworks to tackle lengthy or complex problems [[Du et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx12)]
+    [[Cohen et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx8)] [[Dafoe
+    et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx9)] [[Dafoe et al.,
+    2020](https://arxiv.org/html/2402.16713v2#bib.bibx10)] [[Kramár et al., 2022](https://arxiv.org/html/2402.16713v2#bib.bibx16)]
+    [[Yao et al., 2022](https://arxiv.org/html/2402.16713v2#bib.bibx36)]. Such frameworks
+    distribute problem-solving tasks among multiple LLM agents, offering a more robust
+    approach compared to heuristic methods [[Li et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx19)]
+    [[Liang et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx20)] [[Qian
+    et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx26)] [[Lazaridou et al.,
+    2020](https://arxiv.org/html/2402.16713v2#bib.bibx17)] [[Graesser et al., 2020](https://arxiv.org/html/2402.16713v2#bib.bibx14)]
+    [[Lee et al., 2018](https://arxiv.org/html/2402.16713v2#bib.bibx18)] [[Wu et al.,
+    2023](https://arxiv.org/html/2402.16713v2#bib.bibx35)]. However, the manual assignment
+    of personas or roles to each LLM agent presents a bottleneck, particularly when
+    dealing with novel problems lacking predefined roles [[Rasal, 2024](https://arxiv.org/html/2402.16713v2#bib.bibx28)].
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这些局限性，一个有前景的方向是利用多智能体框架来解决长时间或复杂的问题 [[Du et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx12)]
+    [[Cohen et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx8)] [[Dafoe
+    et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx9)] [[Dafoe et al.,
+    2020](https://arxiv.org/html/2402.16713v2#bib.bibx10)] [[Kramár et al., 2022](https://arxiv.org/html/2402.16713v2#bib.bibx16)]
+    [[Yao et al., 2022](https://arxiv.org/html/2402.16713v2#bib.bibx36)]。这种框架通过将问题解决任务分配给多个LLM智能体，提供了一种比启发式方法更为强大的解决方案
+    [[Li et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx19)] [[Liang et
+    al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx20)] [[Qian et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx26)]
+    [[Lazaridou et al., 2020](https://arxiv.org/html/2402.16713v2#bib.bibx17)] [[Graesser
+    et al., 2020](https://arxiv.org/html/2402.16713v2#bib.bibx14)] [[Lee et al., 2018](https://arxiv.org/html/2402.16713v2#bib.bibx18)]
+    [[Wu et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx35)]。然而，手动分配角色或任务给每个LLM智能体会成为瓶颈，特别是在面对缺乏预定义角色的新问题时
+    [[Rasal, 2024](https://arxiv.org/html/2402.16713v2#bib.bibx28)]。
+- en: In this paper, we propose a novel solution that integrates the strengths of
+    existing approaches while addressing their limitations. Our approach centers on
+    an orchestration strategy that employs problem decomposition to facilitate the
+    seamless resolution of lengthy or complex problems. Inspired by human problem-solving
+    approaches, our framework involves an orchestration LLM that engages in iterative
+    conversations with users to ascertain problem requirements. Once the requirements
+    are elucidated, the orchestration LLM decomposes the problem into manageable subproblems
+    and assigns them to specialized agents, each tailored to address specific aspects
+    of the problem. Notably, our approach incorporates non-LLM functionalities where
+    necessary, enhancing robustness and adaptability to real-world tasks [[Qin et al.,
+    2023](https://arxiv.org/html/2402.16713v2#bib.bibx27)]. By leveraging problem
+    decomposition and distributed task assignment, our framework offers a comprehensive
+    and scalable solution for problem-solving with LLMs.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了一种创新的解决方案，结合了现有方法的优点，同时解决了它们的局限性。我们的方法以一个编排策略为核心，通过问题分解来促进长时间或复杂问题的无缝解决。受到人类解决问题方式的启发，我们的框架包含一个编排LLM，该LLM与用户进行迭代对话，以确定问题需求。一旦需求明确，编排LLM将问题分解成可管理的子问题，并将其分配给专门的智能体，每个智能体负责解决问题的特定方面。值得注意的是，我们的方法在必要时还整合了非LLM功能，从而提高了在现实任务中的鲁棒性和适应性
+    [[Qin et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx27)]。通过利用问题分解和分布式任务分配，我们的框架提供了一个全面且可扩展的解决方案，能够在LLMs上进行问题解决。
+- en: 'This is what we propose:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是我们所提出的：
+- en: •
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Our proposed solution integrates problem decomposition and multi-agent orchestration,
+    inspired by human problem-solving approaches, to address the limitations of existing
+    frameworks.
+  id: totrans-24
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出的解决方案将问题分解和多智能体编排相结合，受到人类解决问题方法的启发，旨在解决现有框架的局限性。
+- en: •
+  id: totrans-25
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: By leveraging problem decomposition and distributed task assignment, our framework
+    offers a comprehensive and scalable solution for problem-solving with LLMs, enhancing
+    adaptability to real-world tasks.
+  id: totrans-26
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通过利用问题分解和分布式任务分配，我们的框架提供了一个全面且可扩展的解决方案，能够增强对现实任务的适应性，从而更好地使用大语言模型（LLMs）解决问题。
+- en: 2 Methodology
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 方法论
+- en: In response to these challenges, our methodology adopts a novel approach that
+    seeks to address the token limit issue through algorithmic enhancements rather
+    than relying solely on memory expansion. At the core of our methodology lies the
+    development of an Orchestration LLM, tasked with the responsibility of comprehending
+    user problem statements, decomposing them into manageable subproblems, and orchestrating
+    interactions among specialized LLM agents.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为应对这些挑战，我们的方法采用了一种新颖的方式，旨在通过算法改进解决令牌限制问题，而不是仅仅依赖于内存扩展。我们方法的核心在于开发一个协调型大语言模型（Orchestration
+    LLM），该模型负责理解用户的问题陈述，将其分解为可管理的子问题，并协调专门的大语言模型（LLM）代理之间的互动。
+- en: Inspired by human problem-solving strategies, our methodology mirrors the process
+    of breaking down complex tasks into smaller, more digestible components. We employ
+    advanced natural language processing (NLP) techniques to analyze and dissect complex
+    queries, identifying distinct subproblems across various domains. These subproblems
+    are then mapped to specialized LLM agents, each pre-trained on specific tasks
+    such as data analysis, creative writing, or technical problem-solving, to ensure
+    precision and relevance in their responses.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 受到人类问题解决策略的启发，我们的方法模拟了将复杂任务分解为更小、更易处理组件的过程。我们采用先进的自然语言处理（NLP）技术来分析和剖析复杂的查询，识别跨领域的不同子问题。这些子问题随后被映射到专门的大语言模型代理上，每个代理都经过特定任务的预训练，如数据分析、创意写作或技术问题解决，以确保其回答的精准性和相关性。
+- en: Analogous to seeking expertise in real-life scenarios, our methodology leverages
+    collaboration with domain experts to optimize problem-solving outcomes. For instance,
+    just as individuals seek tax experts for efficient tax filing, our approach integrates
+    specialized agents to tackle domain-specific challenges effectively.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于在现实生活中寻求专家帮助，我们的方法利用与领域专家的协作，以优化问题解决的结果。例如，正如个人为了高效的税务申报而寻求税务专家，我们的方法通过整合专门的代理来有效解决特定领域的挑战。
+- en: Furthermore, we develop an algorithmic framework that enables the Orchestration
+    LLM to decompose complex problems based on predefined criteria such as problem
+    domain, required expertise, and task complexity. Finally, we implement a task
+    assignment system to allocate subproblems among selected specialized agents, considering
+    factors such as availability, expertise, and workload to streamline the problem-solving
+    process and optimize resource utilization.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们开发了一个算法框架，使得协调型大语言模型能够基于预定义的标准（如问题领域、所需专业知识和任务复杂度）对复杂问题进行分解。最后，我们实施了一个任务分配系统，将子问题分配给选定的专门代理，考虑到可用性、专业知识和工作量等因素，以简化问题解决过程并优化资源利用。
+- en: The high-level algorithm to our framework can be found LABEL:tab:problem_solving
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们框架的高级算法可以在LABEL:tab:problem_solving中找到
+- en: '| Step | Orchestration of Problem Solving with LLMs |'
+  id: totrans-33
+  prefs: []
+  type: TYPE_TB
+  zh: '| 步骤 | 利用大语言模型协调问题解决 |'
+- en: '| --- | --- |'
+  id: totrans-34
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| 1 | Require A complex problem statement |'
+  id: totrans-35
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 需要一个复杂的问题陈述 |'
+- en: '| 2 | Ensure A comprehensive solution to the problem |'
+  id: totrans-36
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 确保对问题的全面解决方案 |'
+- en: '| 3 | Begin |'
+  id: totrans-37
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | 开始 |'
+- en: '| 4 | Input the complex problem statement |'
+  id: totrans-38
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | 输入复杂的问题陈述 |'
+- en: '| 5 | Decompose the problem into subproblems |'
+  id: totrans-39
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | 将问题分解为子问题 |'
+- en: '| 6 | for each subproblem do |'
+  id: totrans-40
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 | 对每个子问题执行 |'
+- en: '| 7 | - Select a specialized LLM agent based on the subproblem’s domain and
+    requirements |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | - 根据子问题的领域和需求选择专门的大语言模型代理 |'
+- en: '| 8 | - Assign the subproblem to the selected agent |'
+  id: totrans-42
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | - 将子问题分配给选定的代理 |'
+- en: '| 9 | - Agent solves the subproblem and stores the solution |'
+  id: totrans-43
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9 | - 代理解决子问题并存储解决方案 |'
+- en: '| 10 | end for |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | 结束 |'
+- en: '| 11 | - Aggregate the solutions of subproblems into a coherent overall solution
+    |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11 | - 将子问题的解决方案汇总成一个连贯的整体解决方案 |'
+- en: '| 12 | - Output the comprehensive solution |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12 | - 输出全面的解决方案 |'
+- en: '| 13 | End |'
+  id: totrans-47
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13 | 结束 |'
+- en: 2.1 Decomposition Approach
+  id: totrans-48
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 子问题分解方法
+- en: The implementation of our framework initiates with the user’s submission of
+    a complex problem statement, facilitated through a conversational interface within
+    the LangChain framework [[Chase, 2022](https://arxiv.org/html/2402.16713v2#bib.bibx4)].
+    Within the Orchestration LLM, this input undergoes meticulous processing, wherein
+    key information and requirements are extracted and analyzed with precision. Subsequently,
+    the Orchestration LLM seamlessly applies a sophisticated decomposition algorithm,
+    systematically breaking down the problem into manageable subproblems, thereby
+    ensuring clarity and precision throughout the process.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们框架的实现始于用户提交复杂问题陈述，通过LangChain框架中的对话界面进行。[[Chase, 2022](https://arxiv.org/html/2402.16713v2#bib.bibx4)]
+    在编排LLM中，该输入经历了细致的处理，关键的資訊和需求被精准地提取和分析。随后，编排LLM无缝地应用了一个复杂的分解算法，系统地将问题分解为可管理的子问题，从而确保整个过程的清晰和精确。
+- en: The decomposition approach was crafted through a series of few-shot training
+    iterations employing the GPT4 model [[OpenAI, 2023](https://arxiv.org/html/2402.16713v2#bib.bibx23)]
+    [[Bubeck et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx3)]. Initially,
+    the LLM model decomposed the main problem into vague subproblems, which necessitated
+    further refinement to ensure alignment with the expected decomposition format.
+    Utilizing few-shot training, we provided the model with chain-of-thought type
+    reasoning to guide its decomposition process effectively.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分解方法通过一系列少量训练迭代使用GPT4模型设计完成[[OpenAI, 2023](https://arxiv.org/html/2402.16713v2#bib.bibx23)]
+    [[Bubeck et al., 2023](https://arxiv.org/html/2402.16713v2#bib.bibx3)]。最初，LLM模型将主问题分解为模糊的子问题，这需要进一步细化，以确保与预期的分解格式对齐。通过少量训练，我们为模型提供了链式推理类型的思维过程，以有效引导其分解过程。
+- en: Upon successful decomposition, the Orchestration LLM assumes the pivotal role
+    of assigning these subproblems to the most suitable specialized LLM agents. This
+    assignment process is meticulously orchestrated to ensure that each subproblem
+    is delegated to an agent possessing the requisite expertise and capabilities to
+    effectively address it.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在成功分解后，编排LLM承担着关键角色，将这些子问题分配给最合适的专门化LLM代理。这一分配过程经过精心编排，确保每个子问题都交给拥有必要专业知识和能力的代理来有效解决。
+- en: Central to the framework’s efficacy is the decomposition phase, which serves
+    as its cornerstone. We deliberately crafted the initial design to be adaptable
+    and generalizable across diverse problem domains, prioritizing the demonstration
+    of decomposition capabilities over specialized use-case system development.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 框架效率的核心是分解阶段，它是框架的基石。我们有意将初步设计打造得可适应多种问题领域，优先展示分解能力而非专门化的用例系统开发。
+- en: 3 Experiments
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 实验
+- en: Our experiments center around the utilization of an orchestration LLM agent,
+    employing OpenAI’s gpt-4 model [[OpenAI, 2023](https://arxiv.org/html/2402.16713v2#bib.bibx23)],
+    which adeptly engages with users to elucidate requirements and subsequently decomposes
+    problems into manageable subproblems. This orchestration LLM also determines the
+    most suitable specialized LLM agent to address each subproblem. Each specialized
+    LLM agent employed in our experiments is based on OpenAI’s gpt3.5-turbo model,
+    configured with a temperature parameter set to 0.0, reflecting the balance between
+    coherence and creativity in responses. Facilitating communication among LLM agents
+    is the LangChain framework, enabling seamless multi-agent interaction and facilitating
+    focus on problem-solving.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实验集中在使用编排LLM代理，采用OpenAI的gpt-4模型[[OpenAI, 2023](https://arxiv.org/html/2402.16713v2#bib.bibx23)]，该代理能够巧妙地与用户互动，阐明需求，并随后将问题分解为可管理的子问题。这个编排LLM还会确定最合适的专门化LLM代理来处理每个子问题。我们实验中使用的每个专门化LLM代理都基于OpenAI的gpt3.5-turbo模型，并将温度参数设置为0.0，体现了回应中的连贯性与创造性的平衡。LangChain框架促进了LLM代理之间的通信，使多代理互动无缝衔接，并助力问题解决的专注性。
+- en: '3.1 Experiment 1: Travel Planning with LLM Agents'
+  id: totrans-55
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 实验 1：使用LLM代理进行旅行规划
+- en: In this experiment, users present their travel plans to the framework, initiating
+    a dialogue with the orchestration LLM to refine requirements and subsequently
+    decompose the problem into subproblems. The orchestration LLM allocates tasks
+    to specialized agents, which upon completion, contribute their findings for collation
+    into a final course of action. Before execution, the orchestration LLM verifies
+    details with the user to ensure accuracy.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此实验中，用户向框架呈现其旅行计划，启动与编排 LLM 的对话以完善需求，随后将问题分解为子问题。编排 LLM 将任务分配给专门代理，专门代理在完成任务后提供各自的发现，最终由编排
+    LLM 汇总成一个执行方案。在执行前，编排 LLM 会向用户确认详细信息，以确保准确无误。
+- en: Here’s the conversational output of the framework.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是框架的对话输出。
+- en: 'Initial Interaction: Gathering Requirements'
+  id: totrans-58
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 初步互动：收集需求
+- en: ''
+  id: totrans-59
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'User: I need to book a return flight from Chicago Airport to Newark Airport
+    from 3/22/24 to 3/26/24\. I want to fly in luxury and travel between the hours
+    of 10 am and 4 pm.'
+  id: totrans-60
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 用户：我需要预订一张从 3 月 22 日到 3 月 26 日，从芝加哥机场到纽瓦克机场的往返航班。我想乘坐豪华舱，并且希望航班在上午 10 点到下午 4
+    点之间。
+- en: ''
+  id: totrans-61
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent: Got it. To ensure I find the best options for you,
+    could you specify your preferences for seating class and any additional services
+    you might require during your flight?'
+  id: totrans-62
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 编排 LLM 代理：明白了。为了确保我为您找到最合适的选项，能否请您明确一下座位舱位和航班中可能需要的其他服务？
+- en: ''
+  id: totrans-63
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'User: I prefer business class and would like access to in-flight Wi-Fi and
+    a window seat.'
+  id: totrans-64
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 用户：我偏好商务舱，并希望能使用航班中的 Wi-Fi 和选择一个靠窗的座位。
+- en: ''
+  id: totrans-65
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Orchestration LLM Agent Decomposes the Problem
+  id: totrans-66
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 编排 LLM 代理分解问题
+- en: ''
+  id: totrans-67
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'The Orchestration LLM Agent processes the user’s request and decomposes it
+    into subproblems to be handled by specialized agents:'
+  id: totrans-68
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 编排 LLM 代理处理用户请求，并将其分解为子问题，由专门代理处理：
+- en: ''
+  id: totrans-69
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Flight Search Agent: Find business class flights from Chicago to Newark that
+    depart between 10 am and 4 pm on 3/22/24 and return flights on 3/26/24.'
+  id: totrans-70
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 航班搜索代理：查找从芝加哥到纽瓦克的商务舱航班，出发时间在 3 月 22 日上午 10 点到下午 4 点之间，返程航班在 3 月 26 日。
+- en: ''
+  id: totrans-71
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Amenity Preferences Agent: Identify airlines offering in-flight Wi-Fi and window
+    seat availability in business class.'
+  id: totrans-72
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 设施偏好代理：识别提供商务舱 Wi-Fi 和靠窗座位的航空公司。
+- en: ''
+  id: totrans-73
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Booking Agent: Handle the booking process once the flight options are selected.'
+  id: totrans-74
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 预订代理：在选择航班后，处理预订过程。
+- en: ''
+  id: totrans-75
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Interaction with Specialized Agents
+  id: totrans-76
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 与专门代理的互动
+- en: ''
+  id: totrans-77
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to Flight Search Agent: Find business class flights
+    from Chicago to Newark departing between 10 am and 4 pm on 3/22/24 and returning
+    on 3/26/24.'
+  id: totrans-78
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 编排 LLM 代理对航班搜索代理说：查找从芝加哥到纽瓦克的商务舱航班，出发时间在 3 月 22 日上午 10 点到下午 4 点之间，返程时间为 3 月
+    26 日。
+- en: ''
+  id: totrans-79
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Flight Search Agent: Found several options.'
+  id: totrans-80
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 航班搜索代理：找到了几个选项。
+- en: ''
+  id: totrans-81
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to Amenity Preferences Agent: Which of these options
+    offers in-flight Wi-Fi and window seats in business class?'
+  id: totrans-82
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 编排 LLM 代理对设施偏好代理说：这些选项中哪些提供商务舱的航班 Wi-Fi 和靠窗座位？
+- en: ''
+  id: totrans-83
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Amenity Preferences Agent: [Lists airlines that meet the criteria] Finalizing
+    the Option'
+  id: totrans-84
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 设施偏好代理：[列出符合条件的航空公司] 最终选项确定
+- en: ''
+  id: totrans-85
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to User: Based on your preferences, here are the best
+    flight options that offer business class, in-flight Wi-Fi, and window seats. [Presents
+    options]'
+  id: totrans-86
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 编排 LLM 代理对用户说：根据您的偏好，以下是提供商务舱、航班 Wi-Fi 和靠窗座位的最佳航班选项。[展示选项]
+- en: ''
+  id: totrans-87
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'User: I’ll take the option with Airline X on the 3/22 at 2 pm.'
+  id: totrans-88
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 用户：我选择 3 月 22 日下午 2 点的航空公司 X 的航班。
+- en: ''
+  id: totrans-89
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to Booking Agent: Please book the flight with Airline
+    X for 3/22, departing at 2 pm in business class, with a window seat and in-flight
+    Wi-Fi.'
+  id: totrans-90
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 编排 LLM 代理对预订代理说：请为我预订一张 3 月 22 日的航班，航空公司为 X，下午 2 点起飞，商务舱，靠窗座位并提供航班 Wi-Fi。
+- en: ''
+  id: totrans-91
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Booking Agent: Your flight is booked. Here are your confirmation details.'
+  id: totrans-92
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 预订代理：您的航班已预订。以下是您的确认详情。
+- en: '3.2 Experiment 2: Exploratory Research and Summarization'
+  id: totrans-93
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 实验 2：探索性研究与总结
+- en: Users pose exploratory research queries to the framework, prompting the orchestration
+    LLM to segment the problem into subproblems and assign tasks to specialized agents.
+    Following the completion of tasks, the specialized agents provide their outputs,
+    which are synthesized by the orchestration LLM into a comprehensive summary. Feedback
+    from the user is sought to refine the final output as necessary.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户向框架提出探索性研究问题，促使编排 LLM 将问题分解为子问题，并将任务分配给专门的代理。在任务完成后，专门代理提供其输出，编排 LLM 将这些结果综合成一个全面的总结。需要时，用户会提供反馈以改进最终输出。
+- en: Here’s the conversational output of the framework.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是框架的对话输出。
+- en: 'Initial Interaction: Gathering Requirements'
+  id: totrans-96
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 初步互动：收集需求
+- en: ''
+  id: totrans-97
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'User: I need to research topics about long-term memory management in LLMs,
+    focusing on what’s currently possible and what’s not. Then, I’d like a 5-page
+    article summarizing these findings and suggesting future research directions.'
+  id: totrans-98
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 用户：我需要研究有关 LLM 中长期记忆管理的主题，重点是目前可实现的和无法实现的内容。然后，我希望撰写一篇 5 页的文章，概述这些发现并提出未来的研究方向。
+- en: ''
+  id: totrans-99
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Orchestration LLM Agent Decomposes the Problem
+  id: totrans-100
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 协同 LLM 代理分解问题
+- en: ''
+  id: totrans-101
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'The Orchestration LLM Agent analyzes the request and identifies several key
+    tasks:'
+  id: totrans-102
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 协同 LLM 代理分析请求并识别出几个关键任务：
+- en: ''
+  id: totrans-103
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Literature Review Agent: Conduct a comprehensive review of existing research
+    on long-term memory management in LLMs.'
+  id: totrans-104
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 文献综述代理：对现有关于 LLM 中长期记忆管理的研究进行全面回顾。
+- en: ''
+  id: totrans-105
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Analysis Agent: Analyze the collected research to distinguish between solved
+    problems, ongoing challenges, and unexplored areas.'
+  id: totrans-106
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 分析代理：分析收集到的研究，区分已解决的问题、正在进行的挑战和未探索的领域。
+- en: ''
+  id: totrans-107
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Writing Agent: Synthesize the findings into a coherent 5-page article, highlighting
+    current capabilities, and limitations, and suggesting future research directions.'
+  id: totrans-108
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 写作代理：将研究成果综合成一篇连贯的 5 页文章，突出当前的能力、局限性，并建议未来的研究方向。
+- en: ''
+  id: totrans-109
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Interaction with Specialized Agents
+  id: totrans-110
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 与专门代理的互动
+- en: ''
+  id: totrans-111
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Task 1: Conduct Literature Review'
+  id: totrans-112
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 任务 1：进行文献综述
+- en: ''
+  id: totrans-113
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to Literature Review Agent: Identify and summarize
+    key research articles on long-term memory management in LLMs, focusing on methodologies,
+    findings, and limitations.'
+  id: totrans-114
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 协同 LLM 代理对文献综述代理：识别并总结关于 LLM 中长期记忆管理的关键研究文章，重点是方法论、研究成果和局限性。
+- en: ''
+  id: totrans-115
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Literature Review Agent: [Returns a summary of articles, including key methodologies,
+    findings, challenges, and limitations related to long-term memory management.]'
+  id: totrans-116
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 文献综述代理：[返回包含长期记忆管理相关的关键方法论、研究成果、挑战和局限性的文章总结。]
+- en: ''
+  id: totrans-117
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Task 2: Analyze Research'
+  id: totrans-118
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 任务 2：分析研究
+- en: ''
+  id: totrans-119
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to Analysis Agent: Based on the literature review,
+    analyze the current state of long-term memory management in LLMs, identifying
+    what is possible, what remains challenging, and potential areas for future research.'
+  id: totrans-120
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 协同 LLM 代理对分析代理：基于文献综述，分析 LLM 中长期记忆管理的现状，识别目前可能的内容、依然存在的挑战，以及未来研究的潜在方向。
+- en: ''
+  id: totrans-121
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Analysis Agent: [Provides an analysis distinguishing between the current capabilities
+    and limitations of long-term memory management in LLMs, along with suggestions
+    for future research directions.]'
+  id: totrans-122
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 分析代理：[提供区分 LLM 中长期记忆管理当前能力和局限性的分析，并提出未来研究方向的建议。]
+- en: ''
+  id: totrans-123
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Task 3: Write Article'
+  id: totrans-124
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 任务 3：撰写文章
+- en: ''
+  id: totrans-125
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to Writing Agent: Using the information collected and
+    analyzed, write a 5-page article summarizing the findings on long-term memory
+    management in LLMs. Highlight what is currently possible, and the limitations,
+    and suggest ideas for future research.'
+  id: totrans-126
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 协同 LLM 代理对写作代理：利用收集和分析的信息，撰写一篇 5 页的文章，总结 LLM 中长期记忆管理的研究成果。突出目前的可行性、局限性，并提出未来研究的想法。
+- en: ''
+  id: totrans-127
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Writing Agent: [Drafts a 5-page article that summarizes the state of long-term
+    memory management in LLMs, including an overview of existing research, current
+    limitations, and proposed future directions.]'
+  id: totrans-128
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 写作代理： [起草一篇 5 页的文章，总结 LLM 中长期记忆管理的现状，包括现有研究的概述、当前的局限性和提出的未来研究方向。]
+- en: ''
+  id: totrans-129
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Finalizing the Article
+  id: totrans-130
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 完成文章
+- en: ''
+  id: totrans-131
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'Orchestration LLM Agent to User: Based on the comprehensive research and analysis
+    conducted by specialized agents, we have compiled a 5-page article summarizing
+    the current state of long-term memory management in LLMs. The article discusses
+    what is currently possible, outlines the main challenges and limitations, and
+    suggests potential areas for future research.'
+  id: totrans-132
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 协同 LLM 代理对用户：基于专门代理进行的综合研究和分析，我们编写了一篇 5 页的文章，总结了当前 LLM 中长期记忆管理的现状。文章讨论了目前可能实现的内容，概述了主要的挑战和局限性，并提出了未来研究的潜在方向。
+- en: ''
+  id: totrans-133
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: 'User: Reviews the article and provides feedback or requests revisions if necessary.'
+  id: totrans-134
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 用户：审阅文章并提供反馈，或者在必要时请求修改。
+- en: 4 Results
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 结果
+- en: 'Rather than relying solely on conventional datasets typically utilized in research,
+    we opted to assess the efficacy of our framework using the GSM8K dataset, chosen
+    to specifically demonstrate the capabilities of our approach. We employed four
+    distinct types of agents in our experimentation: a single LLM agent powered by
+    the GPT3.5-turbo model, two LLM agents supported by GPT3.5-turbo models, two LLM
+    agents utilizing the GPT3.5-turbo model combined with the chain-of-thought and
+    persona approach [[Wei et al., 2022b](https://arxiv.org/html/2402.16713v2#bib.bibx34)]
+    [[Rasal, 2024](https://arxiv.org/html/2402.16713v2#bib.bibx28)], and finally,
+    two LLM agents operating with the GPT4 model [[OpenAI, 2023](https://arxiv.org/html/2402.16713v2#bib.bibx23)]
+    for orchestration and decomposition methodology and GPT3.5-turbo model for the
+    specialized LLM agents, which involves breaking down the primary problem into
+    subproblems. Our orchestration framework represents a notable advancement over
+    existing methodologies, with detailed results presented in Table [1](https://arxiv.org/html/2402.16713v2#S4.T1
+    "Table 1 ‣ 4 Results ‣ Navigating Complexity: Orchestrated Problem Solving with
+    Multi-Agent LLMs").'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与仅依赖于传统研究中常用的数据集不同，我们选择了使用GSM8K数据集来评估我们框架的有效性，该数据集专门用于展示我们方法的能力。在实验中，我们采用了四种不同类型的代理：一个由GPT3.5-turbo模型驱动的单一LLM代理，两个由GPT3.5-turbo模型支持的LLM代理，两个结合了链式推理和人格化方法的GPT3.5-turbo模型支持的LLM代理[[Wei
+    et al., 2022b](https://arxiv.org/html/2402.16713v2#bib.bibx34)] [[Rasal, 2024](https://arxiv.org/html/2402.16713v2#bib.bibx28)]，最后，两个使用GPT4模型的LLM代理[[OpenAI,
+    2023](https://arxiv.org/html/2402.16713v2#bib.bibx23)]，用于编排和分解方法，并且GPT3.5-turbo模型用于专门的LLM代理，该方法包括将主要问题分解为子问题。我们的编排框架代表了对现有方法的显著进步，详细结果请参见表[1](https://arxiv.org/html/2402.16713v2#S4.T1
+    "表1 ‣ 4 结果 ‣ 导航复杂性：多代理LLM编排问题解决")。
+- en: '"GSM8K consists of 8.5K high-quality grade school math problems created by
+    human problem writers. We segmented these into 7.5K training problems and 1K test
+    problems. These problems take between 2 and 8 steps to solve, and solutions primarily
+    involve performing a sequence of elementary calculations using basic arithmetic
+    operations (+ - / *) to reach the final answer. A bright middle school student
+    should be able to solve every problem."[[Cobbe et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx7)]'
+  id: totrans-137
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: '"GSM8K包含了由人工问题编写者创建的8.5K高质量的年级数学问题。我们将这些问题分为7.5K训练问题和1K测试问题。这些问题的解答通常需要2到8个步骤，解决方案主要涉及使用基本算术运算（+
+    - / *）执行一系列初等计算，以得出最终答案。一个聪明的中学生应该能够解答每一个问题。"[[Cobbe et al., 2021](https://arxiv.org/html/2402.16713v2#bib.bibx7)]'
+- en: Furthermore, our observations indicated a significant enhancement in accuracy
+    when employing a calculator function as opposed to a math-specialized LLM agent.
+    This improvement stems from the inherent limitations of LLMs in executing mathematical
+    operations, despite their versatility across various domains. We contend that
+    rather than training LLMs for math operations, our framework facilitates the orchestration
+    LLM in discerning whether a subproblem necessitates an LLM agent or an alternative
+    non-LLM approach.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们的观察表明，当使用计算器功能而不是数学专用LLM代理时，准确性有显著提升。这一改进源于LLM在执行数学运算时的固有限制，尽管它们在多个领域具有很强的通用性。我们认为，与其训练LLM进行数学运算，不如通过我们的框架帮助编排LLM判断一个子问题是否需要LLM代理，或者是否可以采用其他非LLM方法。
+- en: 'Table 1: GSM8K Data set Evaluation'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：GSM8K数据集评估
+- en: '| Agent | Solve Rate |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| 代理 | 解答率 |'
+- en: '| --- | --- |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Single GPT3.5-turbo | 50% |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单一GPT3.5-turbo | 50% |'
+- en: '| Multi-Agent GPT3.5-turbo | 55% |'
+  id: totrans-143
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多代理GPT3.5-turbo | 55% |'
+- en: '| Multi-Agent GPT3.5-turbo (LLM-Harmony) | 65% |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多代理GPT3.5-turbo (LLM-Harmony) | 65% |'
+- en: '| Multi-Agent GPT4 (Our Approach) | 73% |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多代理GPT4 (我们的方法) | 73% |'
+- en: 5 Limitations
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 限制
+- en: While our decomposition framework represents a significant advancement, it possesses
+    inherent limitations that warrant consideration. Foremost among these limitations
+    is the framework’s lack of generalization to address all conceivable problem scenarios,
+    both novel and otherwise. We recognize the necessity of further training the orchestration
+    model, essentially serving as a foundational Large Language Model (LLM), to acquire
+    a comprehensive understanding of diverse problem-solving approaches. Presently,
+    the model exhibits proficiency in decomposing various problems, yet its scope
+    may not extend to accommodate the complexities of future challenges.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然我们的分解框架代表了一个重要的进展，但它具有固有的局限性，需要加以考虑。其中最为突出的局限性是该框架缺乏普适性，无法应对所有可能出现的问题场景，无论是新的还是已有的。我们认识到，有必要进一步训练该协调模型，基本上作为一个基础的**大型语言模型**（LLM），以全面理解多种问题解决方法。目前，模型在分解各种问题方面表现出色，但其适用范围可能无法涵盖未来挑战的复杂性。
+- en: For instance, consider a user’s request for transportation. While the current
+    model adeptly decomposes the problem into a specialized agent capable of booking
+    a ride, scenarios may arise where multiple specialized agents possess this capability.
+    In such instances, the orchestration LLM faces the challenge of determining the
+    most appropriate course of action. Additionally, the framework lacks a mechanism
+    to assimilate information about new specialized agents, highlighting the need
+    for a retraining mechanism to continually update the orchestration LLM’s knowledge
+    base.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，考虑一个用户请求交通的情况。尽管当前模型能熟练地将问题分解为一个可以预定车程的专业代理，但也可能出现多个专业代理具有这一能力的场景。在这种情况下，协调LLM面临确定最合适行动方案的挑战。此外，框架缺乏吸收新专业代理信息的机制，这突显了需要一个重新训练机制，以持续更新协调LLM的知识库。
+- en: Furthermore, while the current model effectively decomposes problems, it lacks
+    the capability to iteratively learn and refine its problem-solving strategies
+    based on the outcomes of decomposition steps. Addressing this limitation represents
+    a key focus of our future research endeavors. Nonetheless, the primary objective
+    of this paper is to disseminate our decomposition approach to the readership,
+    offering insights into its application in problem-solving contexts.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，尽管当前模型能够有效地分解问题，但它缺乏根据分解步骤的结果进行迭代学习和改进其问题解决策略的能力。解决这一局限性是我们未来研究的重点之一。然而，本文的主要目的是将我们的分解方法传播给读者，提供其在问题解决中的应用洞察。
+- en: 6 Conclusion
+  id: totrans-150
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论
+- en: In conclusion, our paper introduces a novel approach to problem-solving using
+    a decomposition framework orchestrated by Large Language Models (LLMs). Through
+    meticulous decomposition of complex problem statements into manageable subproblems,
+    our framework demonstrates the potential to streamline problem-solving processes
+    and mitigate the limitations inherent in current LLM-based solutions. By leveraging
+    the inherent capabilities of LLMs to understand user queries and decompose problems,
+    our approach offers a promising avenue for addressing a wide range of challenges
+    across various domains.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，本文介绍了一种通过大型语言模型（LLMs）协调的分解框架解决问题的新方法。通过将复杂的問題陈述细致地分解成可管理的子问题，我们的框架展示了简化问题解决过程并减轻现有LLM解决方案固有局限性的潜力。通过利用LLM本身理解用户查询和分解问题的能力，我们的方法为解决各领域广泛挑战提供了一个有前景的途径。
+- en: Our implementation of the framework highlights its efficacy in breaking down
+    intricate problem statements and assigning tasks to specialized LLM agents, resulting
+    in coherent and comprehensive solutions. Moreover, our experiments underscore
+    the versatility of the framework in facilitating tasks such as travel planning
+    and research summary generation, showcasing its applicability in real-world scenarios.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们对该框架的实现展示了它在分解复杂问题陈述和将任务分配给专业LLM代理方面的有效性，从而产生连贯且全面的解决方案。此外，我们的实验强调了该框架在促进诸如旅行规划和研究总结生成等任务中的多功能性，展示了它在实际场景中的适用性。
+- en: However, our work also reveals several limitations that necessitate further
+    research and development. While the decomposition framework represents a significant
+    advancement, its generalization to novel problem scenarios remains an ongoing
+    challenge. Additionally, the framework lacks mechanisms for adaptive learning
+    and integration of new specialized agents, indicating avenues for future improvement.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，我们的工作也揭示了几个限制，迫切需要进一步的研究和发展。尽管分解框架代表了一个重要的进展，但它对新问题场景的泛化仍然是一个持续的挑战。此外，该框架缺乏自适应学习和新专门代理集成的机制，这为未来的改进提供了方向。
+- en: Despite these limitations, our paper contributes to the growing body of literature
+    on LLM-based problem-solving approaches by introducing a systematic and scalable
+    framework. By sharing our approach and insights, we aim to stimulate further research
+    and innovation in this domain, paving the way for enhanced problem-solving capabilities
+    and the realization of artificial general intelligence.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管存在这些限制，我们的论文通过引入一种系统化和可扩展的框架，为基于大型语言模型的求解方法文献贡献了一份力量。通过分享我们的思路和见解，我们旨在激发该领域的进一步研究与创新，为提升问题解决能力和实现人工通用智能铺平道路。
+- en: References
+  id: totrans-155
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[Azamfirei et al., 2023] Azamfirei, R., Kudchadkar, S. R., and Fackler, J.
+    (2023). Large language models and the perils of their hallucinations. Critical
+    Care, 27(1):1–2.'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Azamfirei et al., 2023] Azamfirei, R., Kudchadkar, S. R., 和 Fackler, J. (2023).
+    大型语言模型及其幻觉的危险. 《重症监护》, 27(1):1–2.'
+- en: '[Brown et al., 2020] Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D.,
+    Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. (2020).
+    Language models are few-shot learners. Advances in neural information processing
+    systems, 33:1877–1901.'
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Brown et al., 2020] Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J.
+    D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., 等. (2020).
+    语言模型是少样本学习者. 神经信息处理系统进展, 33:1877–1901.'
+- en: '[Bubeck et al., 2023] Bubeck, S., Chandrasekaran, V., Eldan, R., Gehrke, J.,
+    Horvitz, E., Kamar, E., Lee, P., Lee, Y. T., Li, Y., Lundberg, S., et al. (2023).
+    Sparks of artificial general intelligence: Early experiments with gpt-4. arXiv
+    preprint arXiv:2303.12712.'
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Bubeck et al., 2023] Bubeck, S., Chandrasekaran, V., Eldan, R., Gehrke, J.,
+    Horvitz, E., Kamar, E., Lee, P., Lee, Y. T., Li, Y., Lundberg, S., 等. (2023).
+    人工通用智能的火花：GPT-4的早期实验. arXiv 预印本 arXiv:2303.12712.'
+- en: '[Chase, 2022] Chase, H. (2022). Langchain, october 2022. URL https://github.
+    com/langchain-ai/langchain.'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Chase, 2022] Chase, H. (2022). Langchain，2022年10月. 网址 https://github.com/langchain-ai/langchain.'
+- en: '[Chen et al., 2021] Chen, M., Tworek, J., Jun, H., Yuan, Q., Pinto, H. P. d. O.,
+    Kaplan, J., Edwards, H., Burda, Y., Joseph, N., Brockman, G., et al. (2021). Evaluating
+    large language models trained on code. arXiv preprint arXiv:2107.03374.'
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Chen et al., 2021] Chen, M., Tworek, J., Jun, H., Yuan, Q., Pinto, H. P. d.
+    O., Kaplan, J., Edwards, H., Burda, Y., Joseph, N., Brockman, G., 等. (2021). 评估在代码上训练的大型语言模型.
+    arXiv 预印本 arXiv:2107.03374.'
+- en: '[Chiang and Lee, 2023] Chiang, C.-H. and Lee, H.-y. (2023). Can large language
+    models be an alternative to human evaluations? arXiv preprint arXiv:2305.01937.'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Chiang and Lee, 2023] Chiang, C.-H. 和 Lee, H.-y. (2023). 大型语言模型能否成为人类评估的替代方案？arXiv
+    预印本 arXiv:2305.01937.'
+- en: '[Cobbe et al., 2021] Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun,
+    H., Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, R., Hesse, C., and
+    Schulman, J. (2021). Training verifiers to solve math word problems. arXiv preprint
+    arXiv:2110.14168.'
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Cobbe et al., 2021] Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun,
+    H., Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, R., Hesse, C., 和
+    Schulman, J. (2021). 训练验证器解决数学文字题. arXiv 预印本 arXiv:2110.14168.'
+- en: '[Cohen et al., 2023] Cohen, R., Hamri, M., Geva, M., and Globerson, A. (2023).
+    Lm vs lm: Detecting factual errors via cross examination. arXiv preprint arXiv:2305.13281.'
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Cohen et al., 2023] Cohen, R., Hamri, M., Geva, M., 和 Globerson, A. (2023).
+    Lm vs lm：通过交叉审查检测事实错误. arXiv 预印本 arXiv:2305.13281.'
+- en: '[Dafoe et al., 2021] Dafoe, A., Bachrach, Y., Hadfield, G., Horvitz, E., Larson,
+    K., and Graepel, T. (2021). Cooperative ai: machines must learn to find common
+    ground. Nature, 593(7857):33–36.'
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Dafoe et al., 2021] Dafoe, A., Bachrach, Y., Hadfield, G., Horvitz, E., Larson,
+    K., 和 Graepel, T. (2021). 协作人工智能：机器必须学会找到共同立场. 《自然》, 593(7857):33–36.'
+- en: '[Dafoe et al., 2020] Dafoe, A., Hughes, E., Bachrach, Y., Collins, T., McKee,
+    K. R., Leibo, J. Z., Larson, K., and Graepel, T. (2020). Open problems in cooperative
+    ai. arXiv preprint arXiv:2012.08630.'
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Dafoe et al., 2020] Dafoe, A., Hughes, E., Bachrach, Y., Collins, T., McKee,
+    K. R., Leibo, J. Z., Larson, K., 和 Graepel, T. (2020). 协作人工智能中的开放问题. arXiv 预印本
+    arXiv:2012.08630.'
+- en: '[Devlin et al., 2018] Devlin, J., Chang, M.-W., Lee, K., and Toutanova, K.
+    (2018). Bert: Pre-training of deep bidirectional transformers for language understanding.
+    arXiv preprint arXiv:1810.04805.'
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Devlin 等, 2018] Devlin, J., Chang, M.-W., Lee, K., 和 Toutanova, K. (2018).
+    Bert: 深度双向变换器的预训练用于语言理解. arXiv 预印本 arXiv:1810.04805.'
+- en: '[Du et al., 2023] Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., and Mordatch,
+    I. (2023). Improving factuality and reasoning in language models through multiagent
+    debate. arXiv preprint arXiv:2305.14325.'
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Du 等, 2023] Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., 和 Mordatch, I.
+    (2023). 通过多代理辩论提升语言模型的事实性和推理能力. arXiv 预印本 arXiv:2305.14325.'
+- en: '[Gao et al., 2023] Gao, M., Ruan, J., Sun, R., Yin, X., Yang, S., and Wan,
+    X. (2023). Human-like summarization evaluation with chatgpt. arXiv preprint arXiv:2304.02554.'
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Gao 等, 2023] Gao, M., Ruan, J., Sun, R., Yin, X., Yang, S., 和 Wan, X. (2023).
+    使用 ChatGPT 进行类人摘要评估. arXiv 预印本 arXiv:2304.02554.'
+- en: '[Graesser et al., 2020] Graesser, L., Cho, K., and Kiela, D. (2020). Emergent
+    linguistic phenomena in multi-agent communication games.'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Graesser 等, 2020] Graesser, L., Cho, K., 和 Kiela, D. (2020). 多代理通信游戏中的新兴语言现象.'
+- en: '[Gur et al., 2023] Gur, I., Furuta, H., Huang, A., Safdari, M., Matsuo, Y.,
+    Eck, D., and Faust, A. (2023). A real-world webagent with planning, long context
+    understanding, and program synthesis. arXiv preprint arXiv:2307.12856.'
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Gur 等, 2023] Gur, I., Furuta, H., Huang, A., Safdari, M., Matsuo, Y., Eck,
+    D., 和 Faust, A. (2023). 一种具备规划、长时上下文理解和程序合成的真实世界网页代理. arXiv 预印本 arXiv:2307.12856.'
+- en: '[Kramár et al., 2022] Kramár, J., Eccles, T., Gemp, I., Tacchetti, A., McKee,
+    K. R., Malinowski, M., Graepel, T., and Bachrach, Y. (2022). Negotiation and honesty
+    in artificial intelligence methods for the board game of diplomacy. Nature Communications,
+    13(1):7214.'
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Kramár 等, 2022] Kramár, J., Eccles, T., Gemp, I., Tacchetti, A., McKee, K.
+    R., Malinowski, M., Graepel, T., 和 Bachrach, Y. (2022). 人工智能在《外交》桌面游戏中的谈判与诚实方法.
+    《自然通讯》，13(1):7214.'
+- en: '[Lazaridou et al., 2020] Lazaridou, A., Potapenko, A., and Tieleman, O. (2020).
+    Multi-agent communication meets natural language: Synergies between functional
+    and structural language learning.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Lazaridou 等, 2020] Lazaridou, A., Potapenko, A., 和 Tieleman, O. (2020). 多代理通信与自然语言：功能性和结构性语言学习的协同作用.'
+- en: '[Lee et al., 2018] Lee, J., Cho, K., Weston, J., and Kiela, D. (2018). Emergent
+    translation in multi-agent communication.'
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Lee 等, 2018] Lee, J., Cho, K., Weston, J., 和 Kiela, D. (2018). 多代理通信中的新兴翻译现象.'
+- en: '[Li et al., 2023] Li, G., Hammoud, H. A. A. K., Itani, H., Khizbullin, D.,
+    and Ghanem, B. (2023). Camel: Communicative agents for" mind" exploration of large
+    scale language model society. arXiv preprint arXiv:2303.17760.'
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Li 等, 2023] Li, G., Hammoud, H. A. A. K., Itani, H., Khizbullin, D., 和 Ghanem,
+    B. (2023). Camel: 用于“大规模语言模型社会”中的“思维”探索的交互式代理. arXiv 预印本 arXiv:2303.17760.'
+- en: '[Liang et al., 2023] Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang,
+    R., Yang, Y., Tu, Z., and Shi, S. (2023). Encouraging divergent thinking in large
+    language models through multi-agent debate. arXiv preprint arXiv:2305.19118.'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Liang 等, 2023] Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang, R.,
+    Yang, Y., Tu, Z., 和 Shi, S. (2023). 通过多代理辩论鼓励大规模语言模型的发散性思维. arXiv 预印本 arXiv:2305.19118.'
+- en: '[Liu et al., 2023a] Liu, J., Xia, C. S., Wang, Y., and Zhang, L. (2023a). Is
+    your code generated by chatgpt really correct? rigorous evaluation of large language
+    models for code generation. arXiv preprint arXiv:2305.01210.'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Liu 等, 2023a] Liu, J., Xia, C. S., Wang, Y., 和 Zhang, L. (2023a). 你的代码真的是由
+    ChatGPT 生成的吗？对大规模语言模型生成代码的严格评估. arXiv 预印本 arXiv:2305.01210.'
+- en: '[Liu et al., 2023b] Liu, Y., Iter, D., Xu, Y., Wang, S., Xu, R., and Zhu, C.
+    (2023b). Gpteval: Nlg evaluation using gpt-4 with better human alignment. arXiv
+    preprint arXiv:2303.16634.'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Liu 等, 2023b] Liu, Y., Iter, D., Xu, Y., Wang, S., Xu, R., 和 Zhu, C. (2023b).
+    Gpteval: 使用 GPT-4 进行的 NLG 评估，并具有更好的人工对齐. arXiv 预印本 arXiv:2303.16634.'
+- en: '[OpenAI, 2023] OpenAI (2023). Gpt-4 technical report. arxiv 2303.08774. View
+    in Article, 2:13.'
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[OpenAI, 2023] OpenAI (2023). GPT-4 技术报告. arXiv 2303.08774. 文章查看，2:13.'
+- en: '[Ouyang et al., 2022] Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright,
+    C. L., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., et al. (2022).
+    Training language models to follow instructions with human feedback, 2022. URL
+    https://arxiv. org/abs/2203.02155, 13.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Ouyang 等, 2022] Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C.
+    L., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., 等. (2022). 训练语言模型以通过人类反馈遵循指令，2022.
+    URL https://arxiv.org/abs/2203.02155, 13.'
+- en: '[Patil et al., 2023] Patil, S. G., Zhang, T., Wang, X., and Gonzalez, J. E.
+    (2023). Gorilla: Large language model connected with massive apis. arXiv preprint
+    arXiv:2305.15334.'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Patil 等, 2023] Patil, S. G., Zhang, T., Wang, X., 和 Gonzalez, J. E. (2023).
+    Gorilla: 连接到大量 API 的大规模语言模型. arXiv 预印本 arXiv:2305.15334.'
+- en: '[Qian et al., 2023] Qian, C., Cong, X., Yang, C., Chen, W., Su, Y., Xu, J.,
+    Liu, Z., and Sun, M. (2023). Communicative agents for software development. arXiv
+    preprint arXiv:2307.07924.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[钱等，2023] 钱晨，丛旭，杨晨，陈维，苏岩，徐俊，刘泽，孙梅。（2023）。面向软件开发的交互式代理。arXiv 预印本 arXiv:2307.07924。'
+- en: '[Qin et al., 2023] Qin, Y., Liang, S., Ye, Y., Zhu, K., Yan, L., Lu, Y., Lin,
+    Y., Cong, X., Tang, X., Qian, B., et al. (2023). Toolllm: Facilitating large language
+    models to master 16000+ real-world apis. arXiv preprint arXiv:2307.16789.'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[秦等，2023] 秦宇，梁晟，叶义，朱可，严力，卢彧，林扬，丛旭，唐昕，钱兵等。（2023）。ToolLLM：帮助大型语言模型掌握16000+实际
+    API。arXiv 预印本 arXiv:2307.16789。'
+- en: '[Rasal, 2024] Rasal, S. (2024). Llm harmony: Multi-agent communication for
+    problem solving. arXiv preprint arXiv:2401.01312.'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[拉萨尔，2024] 拉萨尔，S.。（2024）。LLM 协同：多智能体通信在问题解决中的应用。arXiv 预印本 arXiv:2401.01312。'
+- en: '[Sanh et al., 2021] Sanh, V., Webson, A., Raffel, C., Bach, S. H., Sutawika,
+    L., Alyafeai, Z., Chaffin, A., Stiegler, A., Scao, T. L., Raja, A., et al. (2021).
+    Multitask prompted training enables zero-shot task generalization. arXiv preprint
+    arXiv:2110.08207.'
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[桑等，2021] 桑，V.，韦布森，A.，拉费尔，C.，巴赫，S. H.，苏塔维卡，L.，阿里亚费，Z.，查芬，A.，斯蒂格勒，A.，斯卡奥，T.
+    L.，拉贾，A. 等。（2021）。多任务提示训练使零-shot任务泛化成为可能。arXiv 预印本 arXiv:2110.08207。'
+- en: '[Saunders et al., 2022] Saunders, W., Yeh, C., Wu, J., Bills, S., Ouyang, L.,
+    Ward, J., and Leike, J. (2022). Self-critiquing models for assisting human evaluators.
+    arXiv preprint arXiv:2206.05802.'
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[桑德斯等，2022] 桑德斯，W.，叶辰，C.，吴杰，J.，比尔斯，S.，欧阳，L.，沃德，J.，莱克，J.。（2022）。自我批评模型助力人工评估者。arXiv
+    预印本 arXiv:2206.05802。'
+- en: '[Shen et al., 2023] Shen, C., Cheng, L., You, Y., and Bing, L. (2023). Are
+    large language models good evaluators for abstractive summarization? arXiv preprint
+    arXiv:2305.13091.'
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[沈等，2023] 沈超，程亮，尤宇，邴磊。（2023）。大型语言模型是否适合评估抽象摘要？arXiv 预印本 arXiv:2305.13091。'
+- en: '[Touvron et al., 2023] Touvron, H., Lavril, T., Izacard, G., Martinet, X.,
+    Lachaux, M.-A., Lacroix, T., Rozière, B., Goyal, N., Hambro, E., Azhar, F., et al.
+    (2023). Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971.'
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[图弗龙等，2023] 图弗龙，H.，拉夫里尔，T.，伊扎卡德，G.，马尔蒂内，X.，拉肖，M.-A.，拉克鲁瓦，T.，罗齐埃尔，B.，戈亚尔，N.，汉布罗，E.，阿扎尔，F.
+    等。（2023）。Llama：开放且高效的基础语言模型。arXiv 预印本 arXiv:2302.13971。'
+- en: '[Wei et al., 2022a] Wei, J., Tay, Y., Bommasani, R., Raffel, C., Zoph, B.,
+    Borgeaud, S., Yogatama, D., Bosma, M., Zhou, D., Metzler, D., et al. (2022a).
+    Emergent abilities of large language models. arXiv preprint arXiv:2206.07682.'
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[魏等，2022a] 魏峻，戴毅，R. 博马萨尼，C. 拉费尔，B. 佐普，S. 博尔戈欧，D. 余，M. 博斯玛，D. 周，梅茨勒等。（2022a）。大型语言模型的突现能力。arXiv
+    预印本 arXiv:2206.07682。'
+- en: '[Wei et al., 2022b] Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F.,
+    Chi, E., Le, Q. V., Zhou, D., et al. (2022b). Chain-of-thought prompting elicits
+    reasoning in large language models. Advances in Neural Information Processing
+    Systems, 35:24824–24837.'
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[魏等，2022b] 魏峻，王鑫，舒尔曼，D.，博斯玛，M.，夏飞，F.，池逸，E.，乐其明，Q. V.，周大，D. 等。（2022b）。思维链提示促发大型语言模型推理。神经信息处理系统进展，35:24824–24837。'
+- en: '[Wu et al., 2023] Wu, N., Gong, M., Shou, L., Liang, S., and Jiang, D. (2023).
+    Large language models are diverse role-players for summarization evaluation. arXiv
+    preprint arXiv:2303.15078.'
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[吴等，2023] 吴娜，龚明，邵亮，梁晟，蒋大。（2023）。大型语言模型在摘要评估中的多元角色。arXiv 预印本 arXiv:2303.15078。'
+- en: '[Yao et al., 2022] Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan,
+    K., and Cao, Y. (2022). React: Synergizing reasoning and acting in language models.
+    arXiv preprint arXiv:2210.03629.'
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[姚等，2022] 姚胜，赵俊，余东，杜娜，沙弗兰，I. 纳拉西曼，K.，曹阳。（2022）。React：在语言模型中协同推理与行动。arXiv 预印本
+    arXiv:2210.03629。'
+- en: '[Zheng et al., 2023] Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z.,
+    Zhuang, Y., Lin, Z., Li, Z., Li, D., Xing, E., et al. (2023). Judging llm-as-a-judge
+    with mt-bench and chatbot arena. arXiv preprint arXiv:2306.05685.'
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[郑等，2023] 郑磊，蒋伟林，盛宇，庄实，吴泽，庄彦，林泽，李泽，李大，邢恩等。（2023）。用mt-bench和chatbot arena评判LLM作为评审员。arXiv
+    预印本 arXiv:2306.05685。'

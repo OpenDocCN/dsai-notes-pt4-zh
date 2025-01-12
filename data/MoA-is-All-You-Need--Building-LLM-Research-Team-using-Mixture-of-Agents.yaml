@@ -1,0 +1,968 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 12:15:50'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:15:50
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '--> '
+- en: MoA is All You Need :Building LLM Research Team using Mixture of Agents
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: MoA 就是你所需要的：使用代理混合体构建大型语言模型研究团队
+- en: 来源：[https://arxiv.org/html/2409.07487/](https://arxiv.org/html/2409.07487/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2409.07487/](https://arxiv.org/html/2409.07487/)
+- en: \UseRawInputEncodingSandy Chen, Leqi Zeng, Abhinav Raghunathan, Flora Huang,
+    Terrence C. Kim Vanguard IMFS (Investment Management FinTech Strategies)
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \UseRawInputEncodingSandy Chen, Leqi Zeng, Abhinav Raghunathan, Flora Huang,
+    Terrence C. Kim Vanguard IMFS（投资管理金融科技策略）
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Large Language Models (LLMs) research in the financial domain is particularly
+    complex due to the sheer number of approaches proposed in literature. Retrieval-Augmented
+    Generation (RAG) has emerged as one of the leading methods in the sector due to
+    its inherent groundedness and data source variability. In this work, we introduce
+    a RAG framework called Mixture of Agents (MoA) and demonstrate its viability as
+    a practical, customizable, and highly effective approach for scaling RAG applications.
+    MoA is essentially a layered network of individually customized small language
+    models [[1](https://arxiv.org/html/2409.07487v2#bib.bib1)] collaborating to answer
+    questions and extract information. While there are many theoretical propositions
+    for such an architecture and even a few libraries for generally applying the structure
+    in practice, there are limited documented studies evaluating the potential of
+    this framework considering real business constraints such as cost and speed. We
+    find that the MoA framework, consisting of small language models [[1](https://arxiv.org/html/2409.07487v2#bib.bib1)],
+    produces higher quality and more grounded responses across various financial domains
+    that are core to Vanguard’s business while simultaneously maintaining low costs.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在金融领域，关于大型语言模型（LLMs）的研究尤为复杂，因为文献中提出了大量不同的研究方法。检索增强生成（RAG）已经成为该领域的领先方法之一，因为其固有的扎根性和数据源的多样性。在这项工作中，我们介绍了一种名为“代理混合体”（Mixture
+    of Agents，MoA）的RAG框架，并展示了它作为一种实用、可定制且高效的扩展RAG应用的方法的可行性。MoA本质上是一个由单独定制的小型语言模型组成的分层网络，这些模型协同工作以回答问题和提取信息。尽管这种架构有许多理论上的提议，甚至有一些库可以将其在实践中普遍应用，但针对考虑到现实商业约束（如成本和速度）的框架潜力的文献记录研究较少。我们发现，由小型语言模型[[1](https://arxiv.org/html/2409.07487v2#bib.bib1)]构成的MoA框架，在维持低成本的同时，能够在与先锋公司核心业务相关的多个金融领域产生更高质量、更扎实的响应。
+- en: 1 Introduction
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: 'It is well known in the machine learning community that single-model approaches
+    typically fall short in predictive power compared to multi-model approaches (also
+    known as “ensemble models”). Two main reasons being:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在机器学习领域，众所周知，相较于单一模型方法，多模型方法（也称为“集成模型”）通常在预测能力上更强。主要有两个原因：
+- en: •
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Conclusions drawn from ensemble models are bolstered by the consensus of multiple
+    models, each receiving slightly different inputs. This collective validation enhances
+    the confidence in the predictive outcomes.
+  id: totrans-12
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 来自集成模型的结论得到了多个模型共识的支持，每个模型接收略有不同的输入。这种集体验证增强了对预测结果的信心。
+- en: •
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Ensemble models are better equipped to generalize to new information that has
+    not been captured in the training data.
+  id: totrans-14
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 集成模型更能有效地对未在训练数据中捕获的新信息进行泛化。
+- en: Large Language Models (LLMs) initially relied on single dense transformer approaches
+    due to their computational complexity and the inherent risk of hallucinations.
+    However, the research community has recently shifted its focus towards sparse
+    ensembles of LLMs, as they offer several advantages [[2](https://arxiv.org/html/2409.07487v2#bib.bib2)][[3](https://arxiv.org/html/2409.07487v2#bib.bib3)].
+    These ensembles exhibited lower hallucination rates, improved output quality,
+    and enhanced information surfacing capabilities [[4](https://arxiv.org/html/2409.07487v2#bib.bib4)].
+    Moreover, by arranging multiple LLMs in sequence or parallel, researchers can
+    create intricate networks [[5](https://arxiv.org/html/2409.07487v2#bib.bib5)]
+    that resemble the organizational structures found within real corporations. This
+    arrangement unlocks a crucial collaborative potential, enabling LLMs to work together
+    in a more sophisticated manner.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大语言模型（LLMs）最初依赖于单一的密集型变换器方法，因其计算复杂性和固有的幻觉风险。然而，研究界近期已将注意力转向稀疏集成的LLMs，因为它们具有多个优势[[2](https://arxiv.org/html/2409.07487v2#bib.bib2)][[3](https://arxiv.org/html/2409.07487v2#bib.bib3)]。这些集成展现了较低的幻觉率、提高的输出质量和增强的信息呈现能力[[4](https://arxiv.org/html/2409.07487v2#bib.bib4)]。此外，通过将多个LLM按顺序或并行排列，研究人员可以创建复杂的网络[[5](https://arxiv.org/html/2409.07487v2#bib.bib5)]，这些网络类似于现实公司中的组织结构。这种安排释放了一个至关重要的协作潜力，使LLM能够以更复杂的方式共同工作。
+- en: Large Language Models (LLMs) that surpass simple classification tasks and can
+    perform actions based on information stored in databases, APIs, and other sources
+    are known as ”agents.” Both individual agents and systems composed of multiple
+    agents (often referred to as ”Socratic AI,” ”Agentic AI,” or similar terms) are
+    extremely powerful as they can arbitrarily read and execute tasks far more efficiently
+    than humans [[6](https://arxiv.org/html/2409.07487v2#bib.bib6)]. This capability
+    is particularly valuable in the finance domain, where the vast amount of knowledge
+    researchers consume is of a textual nature. For the purpose of this paper, we
+    define a Mixture of Agents (MoA) system as an ensemble of agents, each with unique
+    characteristics such as customized linking, prompting, and knowledge.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 超越简单分类任务、能够基于数据库、API及其他来源中存储的信息执行操作的大语言模型（LLMs）被称为“代理”。单个代理以及由多个代理组成的系统（通常称为“苏格拉底AI”、“代理AI”或类似术语）都极为强大，因为它们能够比人类更高效地任意读取和执行任务[[6](https://arxiv.org/html/2409.07487v2#bib.bib6)]。这一能力在金融领域尤为重要，因为研究人员所消耗的庞大知识量大多是以文本形式存在。本文中，我们将“混合代理系统”（MoA）定义为由多个代理组成的集成系统，每个代理都具有独特的特征，例如定制化的链接、提示和知识。
+- en: Existing literature explores ensemble LLMs primarily from a theoretical perspective,
+    focusing on experimentation to determine if error improves or compounds in these
+    systems. Studies have provided evidence that ensembles of LLMs can improve classification
+    accuracy over single models [[7](https://arxiv.org/html/2409.07487v2#bib.bib7)]
+    and collaborate through debate to solve complex problems [[8](https://arxiv.org/html/2409.07487v2#bib.bib8)].
+    It is also clear that ensemble LLMs have a wide variety of potential use cases
+    in the biomedical, financial, and even research domains [[5](https://arxiv.org/html/2409.07487v2#bib.bib5)].
+    The main drawback of ensemble LLMs are cost and speed - running multiple models
+    in parallel or in sequence is a computationally costly operation that results
+    in slow generation and high latency.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现有文献主要从理论角度探讨了集成大语言模型（LLMs），重点实验探讨了在这些系统中错误是如何改善还是加剧的。研究提供了证据表明，LLM的集成可以提高分类准确率，相较于单一模型[[7](https://arxiv.org/html/2409.07487v2#bib.bib7)]，并且通过辩论协作解决复杂问题[[8](https://arxiv.org/html/2409.07487v2#bib.bib8)]。也很明显，集成LLM在生物医学、金融甚至科研领域有着广泛的潜在应用[[5](https://arxiv.org/html/2409.07487v2#bib.bib5)]。集成LLM的主要缺点是成本和速度——并行或顺序运行多个模型是一项计算成本高昂的操作，导致生成速度缓慢且延迟较高。
+- en: '![Refer to caption](img/39b35c0bb018b64c2de9a1c32711727b.png)'
+  id: totrans-18
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/39b35c0bb018b64c2de9a1c32711727b.png)'
+- en: 'Figure 1: Single vs. Multi-Agent system configuration.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：单一系统与多代理系统配置。
+- en: In the practical domain, research aligns more closely with intra-model approaches.
+    Mistral AI’s groundbreaking paper on their Mixture of Experts (MoE) model [[9](https://arxiv.org/html/2409.07487v2#bib.bib9)]
+    seems to be motivated, at least partially, from ensemble models in traditional
+    machine learning. Mistral’s Mixtral 8x16,a MoE model, outperformed much of the
+    existing open-source competition due to its innovative architecture, which serves
+    as an inspiration for our work. While MoE is model-centric, applying ensemble
+    learning within a single model, MoA is a system-centric approach to apply ensemble
+    learning across multiple models. OpenAI has also openly embraced the idea of ensembles.
+    The GPT-4 model is rumored to be one of the most impactful implementations of
+    MoE, with “GPTs” representing their active exploration of agents using GPT-4 as
+    the foundation. Although libraries such as AIFlows, Langchain, and Microsoft Autogen
+    enable programmatic composition of agents and LLMs, there are still very limited
+    studies that demonstrate the viability of systems of agents when considering cost
+    and user experience as primary factors [[10](https://arxiv.org/html/2409.07487v2#bib.bib10)][[11](https://arxiv.org/html/2409.07487v2#bib.bib11)].
+    At Vanguard’s Investment Management Fintech Strategies (IMFS) team, we propose
+    one of the first data points suggesting that MoA meets these constraints.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实际领域，研究更接近于模型内方法。Mistral AI的开创性论文介绍了他们的专家混合（MoE）模型[[9](https://arxiv.org/html/2409.07487v2#bib.bib9)]，该模型的动机至少部分来源于传统机器学习中的集成模型。Mistral的Mixtral
+    8x16，一个MoE模型，由于其创新的架构，超越了许多现有的开源竞争者，并为我们的工作提供了灵感。尽管MoE是以模型为中心，应用集成学习于单一模型中，MoA则是一种以系统为中心的方法，旨在跨多个模型应用集成学习。OpenAI也公开接受了集成的概念。GPT-4模型被传言是MoE最具影响力的实现之一，"GPTs"代表了他们积极探索使用GPT-4作为基础的代理。尽管像AIFlows、Langchain和微软Autogen这样的库使得代理和LLM的程序化组合成为可能，但仍然很少有研究展示当考虑到成本和用户体验作为主要因素时，代理系统的可行性[[10](https://arxiv.org/html/2409.07487v2#bib.bib10)][[11](https://arxiv.org/html/2409.07487v2#bib.bib11)]。在先锋投资管理金融科技策略（IMFS）团队，我们提出了其中一个初步数据点，表明MoA满足这些约束。
+- en: 2 Mixture of Agents (MoA)
+  id: totrans-21
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 混合代理（MoA）
+- en: Mixture of Agents (MoA) is an enhanced multi-agent Retrieval-Augmented Generation
+    (RAG) framework that supports a group of highly specialized small [[1](https://arxiv.org/html/2409.07487v2#bib.bib1)]
+    language model agents working together in complex formations to answer questions.
+    MoA is highly inspired by ongoing research into ensemble approaches for LLMs,
+    including Mixture of Experts (MoE) and Socratic AI [[6](https://arxiv.org/html/2409.07487v2#bib.bib6)][[12](https://arxiv.org/html/2409.07487v2#bib.bib12)].
+    Our findings suggest that these agents operate in powerful ways that mimic organizational
+    hierarchies, ultimately producing higher quality outputs with built-in transparency
+    and grounding.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '**混合代理（MoA）**是一种增强型多代理检索增强生成（RAG）框架，支持一组高度专业化的小型[[1](https://arxiv.org/html/2409.07487v2#bib.bib1)]语言模型代理在复杂的结构中协作以回答问题。MoA的灵感来源于正在进行的LLM集成方法研究，包括专家混合（MoE）和苏格拉底AI[[6](https://arxiv.org/html/2409.07487v2#bib.bib6)][[12](https://arxiv.org/html/2409.07487v2#bib.bib12)]。我们的研究表明，这些代理以模仿组织层次结构的强大方式运作，最终生成具有内建透明度和基础的高质量输出。'
+- en: The agents that constitute the MoA system are sophisticated information gatherers,
+    each possessing its own internal knowledge, external knowledge bases [[13](https://arxiv.org/html/2409.07487v2#bib.bib13)],
+    prompts, groundings, abilities, and connections with other agents. This high degree
+    of specialization enables the overall MoA system to develop “diverse views” that
+    converge to form a final response. More importantly, we observe that a robust
+    MoA system consisting of small [[1](https://arxiv.org/html/2409.07487v2#bib.bib1)]
+    language models is incredibly cost-effective. When combined with good data engineering
+    practices, MoA can achieve speed and scale that truly rivals other methods of
+    interacting with traditional single large language models [[14](https://arxiv.org/html/2409.07487v2#bib.bib14)].
+    This makes MoA a suitable approach for most, if not all, enterprise use cases.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 组成MoA系统的代理是复杂的信息收集者，每个代理都拥有自己的内部知识、外部知识库[[13](https://arxiv.org/html/2409.07487v2#bib.bib13)]、提示、基础、能力以及与其他代理的连接。这种高度的专业化使得整个MoA系统能够发展出“多样化的观点”，最终汇聚成一个最终响应。更重要的是，我们观察到，由小型[[1](https://arxiv.org/html/2409.07487v2#bib.bib1)]语言模型组成的强大MoA系统具有极高的成本效益。当结合良好的数据工程实践时，MoA可以实现与传统单一大型语言模型的交互方式相媲美的速度和规模[[14](https://arxiv.org/html/2409.07487v2#bib.bib14)]。这使得MoA成为适用于大多数（如果不是全部）企业用例的合适方法。
+- en: 2.1 Agent as ”Junior Researcher”
+  id: totrans-24
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 代理作为“初级研究员”
+- en: The role of the agent in the MoA framework resembles a junior researcher for
+    investment management, but with tremendous potential. By customizing the knowledge
+    accessible to each agent, we can develop highly diversified yet extremely “intelligent”
+    agents that possess domain understanding and specialization.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在MoA框架中，代理的角色类似于投资管理中的初级研究员，但具有巨大的潜力。通过定制每个代理可以访问的知识，我们可以开发出高度多样化却极为“智能”的代理，这些代理具备领域理解和专业化能力。
+- en: '![Refer to caption](img/a5206bb0b56f3cb11a593a9ea8c672ff.png)'
+  id: totrans-26
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/a5206bb0b56f3cb11a593a9ea8c672ff.png)'
+- en: 'Figure 2: Examples of hyper specialized agents with API access and knowledge.'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：具有API访问权限和知识的超专业化代理示例。
+- en: By hyper-specializing each of these agents, they can individually achieve better
+    results compared to a single model handling both tasks. Figure 2 illustrates an
+    example of such agents, each with its own prompts, knowledge, instructions, fine-tuning,
+    and model bases. In this example, the “10-K/Q Math Agent” is a GPT-4 instance
+    with a definitional understanding of line items and accounting terminology. It
+    is fine-tuned and prompted specifically for mathematical tasks (“take a deep breath”).
+    Additionally, it has RAG access to raw filings and API access to a SQL database
+    containing analyst notes with domain-specific equations. The ”10-K/Q Sentiment
+    Agent,” on the other hand, is a Llama-2 instance fine-tuned on equities sentiment
+    classification. It has RAG access to real positive and negative statements from
+    the company being queried and is prompted for sentiment analysis.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过对每个代理进行超专业化，它们可以单独取得比一个模型同时处理两项任务时更好的结果。图2展示了这样一些代理的示例，每个代理都有自己的提示、知识、指令、微调和模型基础。在这个例子中，“10-K/Q数学代理”是一个具有定义性理解的GPT-4实例，专门用于处理行项目和会计术语。它已经针对数学任务进行了微调和特别提示（“深呼吸”）。此外，它可以访问原始文件的RAG，并且具有对包含领域特定方程式的分析师笔记的SQL数据库的API访问权限。而“10-K/Q情感代理”则是一个经过微调的Llama-2实例，专门用于股票情感分类。它可以访问来自所查询公司的真实正负面声明，并且被提示进行情感分析。
+- en: The split-agent approach offers significantly higher response quality compared
+    to a single-model approach due to the customizability of each individual agent.
+    These specialized agents can answer extremely nuanced and complex questions with
+    greater accuracy and depth in an MoA system.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与单一模型方法相比，分割代理方法由于每个代理的可定制性，提供了显著更高的响应质量。这些专业化代理可以在MoA系统中以更高的准确性和深度回答极为细致和复杂的问题。
+- en: 2.2 Team of Junior Researcher Agents
+  id: totrans-30
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 初级研究员代理团队
+- en: After agents are customized and built, it is immediately evident that for various
+    high-level tasks, pipelines of agents can be constructed in an efficient manner
+    to carry this task to completion. This structure is reminiscent of a “research
+    team,” where experts with different backgrounds (i.e., agents with different customizations)
+    collaborate to tackle a common problem. Using the same example agents from before,
+    it is possible to pose adjacent questions to different agents to obtain more specific
+    responses, which can then be compiled into a comprehensive answer. Figure 3 represents
+    one possible configuration of these two agents, preceded by a “planner” that selects
+    the questions and followed by an “aggregator” that intelligently combines the
+    agents’ responses.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在定制和构建完代理之后，立刻可以明显看出，对于各种高级任务，可以高效地构建代理管道，将任务完成。这种结构类似于一个“研究团队”，其中具有不同背景的专家（即具有不同定制的代理）协作解决一个共同的问题。使用之前的示例代理，可以向不同的代理提出相邻问题，以获得更具体的响应，然后将这些响应汇总成一个全面的答案。图3展示了这两个代理的一种可能配置，前面有一个“规划者”选择问题，后面有一个“聚合器”智能地结合代理的响应。
+- en: '![Refer to caption](img/ee6884c6dca9336ea6b296707d7778c2.png)'
+  id: totrans-32
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/ee6884c6dca9336ea6b296707d7778c2.png)'
+- en: 'Figure 3: Possible split of specialized agents to answer a complex question
+    with strong response quality.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：回答复杂问题的专业代理可能的拆分，具有强大的响应质量。
+- en: The flexibility of MoA lies in the fact that agents can be replaced by heuristics,
+    API calls, or any other subprocess that might feed additional information into
+    the aggregator or other agents.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoA的灵活性在于，代理可以被启发式方法、API调用或任何可能将额外信息输入到聚合器或其他代理的子过程所替代。
+- en: In all these scenarios, MoA greatly benefits from its ability to maintain a
+    high level of customizability. Since each agent effectively serves as a real-time
+    expert on user questions, the overall action and response quality remains strong.
+    However, it is important to note that MoA’s performance is only as good as its
+    data and engineering capabilities. The system can potentially be allowed to grow
+    arbitrarily complex, with reports and answers from an output potentially feeding
+    future inputs through various different approaches currently existing and in development.
+    At Vanguard’s IMFS team, our MoA system has scaled to analyzing tens of thousands
+    of documents simultaneously.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在所有这些场景中，MoA大大受益于其维持高水平定制化的能力。由于每个代理有效地充当用户问题的实时专家，整体的行动和响应质量保持强劲。然而，重要的是要注意，MoA的性能取决于其数据和工程能力。系统可能会变得非常复杂，输出的报告和答案可能通过目前存在的各种不同方法以及正在开发的方式，成为未来输入的一部分。在Vanguard的IMFS团队，我们的MoA系统已经扩展到同时分析数万个文档。
+- en: MoA has a unique property wherein any higher-level agent responsible for summarizing
+    or supervising the outputs of lower-level agents can discern and filter out irrelevant
+    or inaccurate information. Interestingly, we observe that the concept of ”compounding
+    error” only occurs with a single stream of serial models and not with MoA.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoA有一个独特的属性，即任何负责总结或监督低层次代理输出的高层代理，能够辨别并过滤掉无关或不准确的信息。有趣的是，我们观察到“复合错误”这一概念仅在单一串行模型的情况下出现，而在MoA中并不存在。
+- en: 3 Results
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 结果
+- en: MoA is a property of a LLM system, unlike MoE, which is a property of LLMs.
+    Therefore, we abstract away from the complexities of model evaluation and instead
+    focus on higher-level results as a consequence of the system. Consistent with
+    the findings of other researchers, we find that an interwoven network of models
+    outperforms any single workstream. Furthermore, as the system scales and the layers
+    of abstraction increase, both latency and potential grow. The more abstraction
+    present, the more steps are saved for the human researchers. MoA essentially becomes
+    increasingly efficient compared to human effort as it scales. MoA presents an
+    extremely useful solution for those seeking to enhance existing RAG pipelines
+    beyond the response quality of a single-model system.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoA是LLM系统的一种属性，不同于MoE，后者是LLM的属性。因此，我们将模型评估的复杂性抽象化，而专注于作为系统结果的高层次结果。与其他研究者的发现一致，我们发现，交织的模型网络比任何单一工作流表现得更好。此外，随着系统的扩展和抽象层次的增加，延迟和潜力也随之增加。存在的抽象层次越多，人类研究人员节省的步骤就越多。随着规模的扩大，MoA变得相对于人力更加高效。MoA为那些希望在单模型系统的响应质量之外，增强现有RAG管道的人员提供了极为有用的解决方案。
+- en: 3.1 Information Surfacing & Output Quality
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 信息浮现与输出质量
+- en: MoA enhances the information surfacing capabilities of any RAG implementation,
+    thereby increasing the quality of the output.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoA增强了任何RAG实现的信息呈现能力，从而提高了输出的质量。
+- en: One of the most pressing concerns regarding RAG systems is the available context
+    window. When this value is small, the model’s coverage with respect to available
+    data is correspondingly limited. Extensive ongoing research focuses on maximizing
+    context windows while minimizing performance degradation [[15](https://arxiv.org/html/2409.07487v2#bib.bib15)].
+    In this regard, MoA provides an advantage over single-model systems. When using
+    systems of agents, the effective context window of the system is significantly
+    augmented. Instead of one model handling all available context, it can now be
+    deliberately split among multiple expert agents. This approach allows for a higher
+    degree of precision and reduces the probability of “lost in the middle” issues.
+    Responses to questions with known or verifiable answers are typically well-formed
+    and accurate. Furthermore, it is well known that model responses are extremely
+    sensitive to their system prompts. Customizing prompts for agents based on their
+    data source can dramatically improve output quality and insight.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于RAG系统的一个最紧迫问题是可用的上下文窗口。当这个值较小的时候，模型覆盖的可用数据也会相应受限。广泛的持续研究致力于在最大化上下文窗口的同时，尽量减少性能下降[[15](https://arxiv.org/html/2409.07487v2#bib.bib15)]。在这方面，MoA相比单一模型系统具有优势。当使用代理系统时，系统的有效上下文窗口会显著增加。与其让一个模型处理所有可用的上下文，现在可以有意地将其分配给多个专家代理。这种方法允许更高的精度，并减少了“中途丢失”问题的发生。对于那些已知或可验证的答案，模型的回答通常是形成良好且准确的。此外，众所周知，模型的响应对其系统提示非常敏感。根据数据源为代理定制提示，可以显著提高输出质量和洞察力。
+- en: At Vanguard, we regularly employ MoA to extract and surface insights from documents
+    researchers refer to, often in the volume of tens of thousands of documents. We
+    find that one of the main value propositions of MoA is the ability to drastically
+    increase the likelihood of surfacing information that researchers may have missed
+    or overlooked. Each agent’s answers contain different contexts; for example, a
+    10-K filing may contain a revenue figure, while the context for this number may
+    be found in an earnings transcript. When these diverse contexts are combined,
+    analysts can glean circumstantial information and gain deeper levels of insight.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Vanguard，我们定期使用MoA从研究人员参考的文档中提取并呈现洞见，这些文档的数量通常达到数万篇。我们发现，MoA的主要价值之一是大幅提高发现研究人员可能遗漏或忽视信息的可能性。每个代理的回答包含不同的上下文；例如，10-K文件可能包含收入数据，而该数字的背景信息可能出现在财报会议记录中。当这些不同的上下文结合时，分析师可以获得更多背景信息，从而获得更深层次的洞察。
+- en: 3.2 Comparison with Single-Model Providers
+  id: totrans-43
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 与单一模型提供商的比较
+- en: 'MoA has demonstrated better and more holistic response quality without the
+    use of fine-tuning [[14](https://arxiv.org/html/2409.07487v2#bib.bib14)]. As an
+    experiment, major providers of single-model LLM systems (Anthropic’s Claude 3
+    Opus and OpenAI’s ChatGPT 4) were given two public documents: Apple’s Q1 2023
+    earnings transcript and 10-Q. All three models, including a rudimentary MoA system
+    with two Mistral-7B agents (one for each document), were asked questions and graded
+    based on the amount of vital information captured in their responses.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoA在没有微调的情况下展示了更好、更全面的响应质量[[14](https://arxiv.org/html/2409.07487v2#bib.bib14)]。作为实验，主要的单一模型大语言模型（LLM）提供商（Anthropic的Claude
+    3 Opus和OpenAI的ChatGPT 4）被提供了两份公开文档：苹果2023年第一季度的财报会议记录和10-Q文件。所有三个模型，包括一个包含两个Mistral-7B代理（每个文档一个）的简易MoA系统，均被要求回答问题，并根据其回答中捕捉到的关键信息量进行评分。
+- en: 'By way of example, one such question was “In $AAPL 2023Q1 transcripts and filings,
+    what was the context around revenue growth for the rest of the year?” The critical
+    information that needed to be captured included:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，某个问题是：“在$AAPL 2023年第一季度的财报会议记录和文件中，关于全年收入增长的背景是什么？”需要捕捉的关键信息包括：
+- en: '1.'
+  id: totrans-46
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: Revenue for Q2 2023 is projected to be similar to Q1.
+  id: totrans-47
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 预计2023年第二季度的收入将与第一季度相似。
+- en: '2.'
+  id: totrans-48
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: Gross margins are expected to be between 44-44.5%.
+  id: totrans-49
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 预计毛利率将在44%到44.5%之间。
+- en: '3.'
+  id: totrans-50
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: Macroeconomic headwinds in digital advertising and mobile gaming.
+  id: totrans-51
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数字广告和移动游戏领域的宏观经济逆风。
+- en: '4.'
+  id: totrans-52
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: Negative foreign exchange impacts.
+  id: totrans-53
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 负面的外汇影响。
+- en: '5.'
+  id: totrans-54
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '5.'
+- en: Expected stock repurchases and buybacks.
+  id: totrans-55
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 预计的股票回购和自购。
+- en: '6.'
+  id: totrans-56
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '6.'
+- en: Expected 65% deferred revenue to be realized in a year.
+  id: totrans-57
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 预计65%的递延收入将在一年内实现。
+- en: '7.'
+  id: totrans-58
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '7.'
+- en: iPhone sales are expected to accelerate, while Mac/iPad sales are expected to
+    decline.
+  id: totrans-59
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 预计 iPhone 销售将加速，而 Mac/iPad 销售预计将下降。
+- en: '| Model | Response |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 响应 |'
+- en: '| --- | --- |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Claude 3 Opus (4/7) | Based on Apple’s Q1 2023 earnings call transcript and
+    10-Q filing, here are the key points regarding their outlook for revenue growth
+    in fiscal 2023: 1. Apple is not providing specific revenue guidance for Q2 or
+    the full year due to continued macroeconomic uncertainty. However, they did provide
+    some directional insights. 2. For Q2 2023, Apple expects year-over-year revenue
+    performance to be similar to the December quarter (Q1). This represents an acceleration
+    in underlying year-over-year business performance since Q1 benefited from an extra
+    week compared to Q2. 3. Foreign exchange will continue to be a headwind in Q2,
+    with Apple expecting a 5 percentage point negative year-over-year impact. 4. For
+    iPhone, Apple expects the Q2 year-over-year revenue performance to accelerate
+    relative to the Q1 year-over-year revenue decline. 5. For Mac and iPad, Apple
+    expects Q2 revenue for both categories to decline double-digits year-over-year
+    due to challenging compares and macroeconomic headwinds. 6. Services revenue is
+    expected to grow year-over-year in Q2 while continuing to face macroeconomic headwinds
+    in areas like digital advertising and mobile gaming. Overall, while Apple faced
+    short-term revenue declines due to external factors, the company’s strategic focus
+    on services and emerging markets, along with its strong product ecosystem, were
+    seen as key drivers for potential growth throughout the rest of the year. |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| Claude 3 Opus (4/7) | 根据苹果公司2023年第一财季财报电话会议记录和10-Q文件，以下是关于其2023财年收入增长前景的关键要点：
+    1. 由于持续的宏观经济不确定性，苹果未提供第二财季或全年的具体收入指引。然而，他们提供了一些方向性的见解。 2. 对于2023年第二财季，苹果预计年同比收入表现将与12月财季（第一财季）相似。这代表着潜在的年同比业务表现加速，因为第一财季相比第二财季多了一个星期。
+    3. 外汇将继续是第二财季的阻力，苹果预计年同比影响将为负5个百分点。 4. 对于 iPhone，苹果预计第二财季的年同比收入表现将相较于第一财季的收入下降有所加速。
+    5. 对于 Mac 和 iPad，苹果预计第二财季两者的收入将出现双位数的年同比下降，原因是对比基数困难以及宏观经济的逆风。 6. 服务收入预计在第二财季年同比增长，但仍将面临来自数字广告和移动游戏等领域的宏观经济阻力。总的来说，尽管由于外部因素苹果面临短期收入下降，但公司在服务和新兴市场的战略重点，加上强大的产品生态系统，被视为推动全年潜在增长的关键因素。
+    |'
+- en: '| GPT-4o (2/7) | • In Apple’s Q1 2023 earnings report, the company faced several
+    challenges that impacted its revenue growth outlook for the rest of the year.
+    Notably, Apple experienced a 5% year-over-year decline in revenue, amounting to
+    $117.2 billion, primarily due to supply chain shortages and weaker iPhone sales.
+    This decline was significant given that Q1 typically includes the holiday shopping
+    season, which is crucial for Apple’s financial performance. • Tim Cook, Apple’s
+    CEO, highlighted that despite these challenges, the company maintained a strong
+    product lineup and focused on long-term growth. He mentioned that Apple’s installed
+    base of active devices surpassed 2 billion, reflecting high customer loyalty and
+    satisfaction across all product categories. • Looking forward, Apple CFO Luca
+    Maestri emphasized the company’s resilience in the face of a difficult macroeconomic
+    environment. He noted that Apple’s services sector set an all-time revenue record
+    of $20.9 billion, showing robust growth even amidst broader economic pressures.
+    Additionally, Apple saw strong performance in emerging markets, with significant
+    growth in regions like South Asia, India, Latin America, and the Middle East.
+    |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4o (2/7) | • 在苹果2023年第一财季财报中，公司面临了多项挑战，影响了其对剩余年度收入增长前景的预测。特别是，苹果经历了5%的年同比收入下降，总额为1172亿美元，主要由于供应链短缺和
+    iPhone 销售疲软。考虑到第一财季通常包括假日购物季节，而这一季节对苹果的财务表现至关重要，这一下降是显著的。 • 苹果首席执行官蒂姆·库克强调，尽管面临这些挑战，公司仍保持了强大的产品阵容，并专注于长期增长。他提到，苹果的活跃设备安装基数已超过20亿，反映出在所有产品类别中高客户忠诚度和满意度。
+    • 展望未来，苹果首席财务官卢卡·梅斯特里强调了公司在困难的宏观经济环境中的韧性。他指出，苹果的服务部门创下了209亿美元的历史收入纪录，尽管面临更广泛的经济压力，仍展现出强劲的增长。此外，苹果在新兴市场的表现强劲，在南亚、印度、拉丁美洲和中东等地区实现了显著增长。
+    |'
+- en: '| ChatGPT 4(3/7) | In the 2023 Q1 filings and transcripts for Apple, the discussion
+    around revenue growth for the rest of the year highlighted several challenges
+    and strategic focuses. Here are the key points: 1. **Revenue Challenges and Achievements**:
+    Apple reported a revenue of $117.2 billion for the December quarter, marking a
+    decrease of 5% year over year. Despite this decline, they achieved all-time revenue
+    records in multiple markets globally. The factors affecting revenue included foreign
+    exchange headwinds, COVID-19 related supply chain disruptions, particularly with
+    iPhone 14 Pro models, and a challenging macroeconomic environment. However, production
+    had returned to desired levels by the end of the quarter. 2. **Strategic Initiatives
+    and Product Performance**: Apple’s CEO Tim Cook emphasized the company’s continuous
+    investment in innovation and their strategic initiatives across various product
+    categories. iPhone revenue was slightly down but flat on a constant currency basis.
+    The Mac and iPad lines showed robust performances, with the Mac maintaining strong
+    customer upgrade activity and the iPad growing due to a better supply situation
+    compared to the previous year. 3. **Services Growth**: Apple’s services segment
+    reached an all-time revenue record of $20.8 billion, up 6% year over year. This
+    growth was driven by strong performance in cloud services, payment services, and
+    an increase in paid subscriptions. Apple now hosts over 935 million paid subscriptions
+    across its services. 4. **Forward Outlook**: While specific revenue guidance was
+    not provided due to ongoing macroeconomic uncertainties and potential COVID-19
+    impacts, the company shared directional insights suggesting that the year- over-year
+    revenue performance in the March quarter would be similar to the December quarter.
+    They expected continued foreign exchange headwinds but also saw potential revenue
+    growth in services. |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| ChatGPT 4(3/7) | 在2023年第一季度的苹果公司财报和会议记录中，围绕今年余下时间的收入增长进行了讨论，突出了几个挑战和战略重点。以下是关键点：1.
+    **收入挑战与成就**：苹果报告了1172亿美元的收入，较去年同期下降了5%。尽管出现了收入下降，他们在全球多个市场创下了历史最高的收入纪录。影响收入的因素包括外汇压力、与COVID-19相关的供应链中断，特别是iPhone
+    14 Pro型号的供应问题，以及严峻的宏观经济环境。然而，到季度末，生产已经恢复到预期水平。2. **战略举措与产品表现**：苹果首席执行官蒂姆·库克强调了公司在创新方面的持续投资以及他们在多个产品类别上的战略举措。iPhone收入略有下降，但按固定汇率计算持平。Mac和iPad系列表现强劲，Mac保持了强劲的客户换机活动，而iPad则由于比去年更好的供应情况而实现了增长。3.
+    **服务增长**：苹果的服务部门创下了208亿美元的收入纪录，同比增长了6%。这一增长得益于云服务、支付服务的强劲表现以及付费订阅的增加。目前，苹果在其服务中拥有超过9.35亿个付费订阅用户。4.
+    **未来展望**：由于持续的宏观经济不确定性和可能的COVID-19影响，苹果未提供具体的收入指引，但公司分享了指向性的见解，暗示3月季度的年同比收入表现将与12月季度相似。他们预计外汇压力将继续存在，但也看到服务部门有潜在的收入增长。
+    |'
+- en: '| MoA Agent1 (5/7) | Apple’s revenue for Q2 FY23 is expected to be similar
+    to that of Q1 FY23, with a negative year-over-year impact of nearly 4 percentage
+    points due to foreign exchange. Services revenue growth is also expected to be
+    similar to Q1 FY23, while facing macroeconomic headwinds in areas such as digital
+    advertising and mobile gaming. Gross margin is expected to be between 44% and
+    44.5%. The company expects to continue to manage for the long term and invest
+    in innovation and product development, while closely managing spend. Despite the
+    challenges, Apple continues to see strong growth in its installed base of over
+    2 billion active devices and growing customer engagement with its services. The
+    company also plans to return $90 billion to shareholders through share repurchases
+    and dividends, maintaining its goal of getting to net cash neutral over time.
+    |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| MoA Agent1 (5/7) | 苹果2023财年第二季度的收入预计将与第一季度相似，受到外汇影响，预计年同比下降接近4个百分点。服务收入的增长也预计与第一季度相似，但在数字广告和移动游戏等领域将面临宏观经济压力。预计毛利率将在44%至44.5%之间。公司预计将继续以长远规划为主，投资于创新和产品开发，同时密切管理支出。尽管面临挑战，苹果仍然看到其超过20亿活跃设备的安装基础和日益增长的客户服务参与度。公司还计划通过股票回购和股息向股东返还900亿美元，继续保持逐步实现净现金中立的目标。
+    |'
+- en: '| MoA Agent2 (6/7) | The context around revenue growth for the rest of the
+    year in Apple Inc.’s ($AAPL) 2023Q1 transcripts and filings indicates that the
+    Rest of Asia Pacific net sales increase during the second quarter and first six
+    months of 2023 was primarily driven by higher net sales of iPhone, partially offset
+    by lower net sales of Mac. However, the Company also mentions that gross margins
+    are subject to volatility and downward pressure due to various factors, as discussed
+    in the 2022 Form 10-K under the heading ”Risk Factors.” The Company expects 65%
+    of total deferred revenue to be realized in less than a year, 26% within one-to-two
+    years, 7% within two-to-three years, and 2% in greater than three years. There
+    have been no material changes to the Company’s market risk during the first six
+    months of 2023\. The Company’s fiscal years 2023 and 2022 span 53 and 52 weeks,
+    respectively. New product and service introductions can significantly impact net
+    sales, cost of sales, and operating expenses. |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| MoA 代理2（6/7）| 苹果公司（$AAPL）2023财年第一季度财报和文件中关于全年收入增长的背景表明，2023年第二季度和前六个月亚太地区其余地区的净销售增长主要受到iPhone净销售增长的推动，部分被Mac净销售下降所抵消。然而，公司还提到，由于各种因素，毛利率可能会受到波动和下行压力的影响，正如2022年10-K报告中的“风险因素”部分所述。公司预计65%的总递延收入将在一年内实现，26%将在一年至两年内实现，7%将在两年到三年内实现，2%将在三年后实现。在2023年上半年，公司的市场风险没有发生重大变化。公司的2023和2022财政年分别跨越了53和52周。新产品和服务的推出可能会显著影响净销售额、销售成本和运营费用。'
+- en: '| MoA Aggregator (7/7) | According to Apple’s Q1 FY23 transcripts and filings,
+    the company expects its revenue for Q2 FY23 to be similar to that of Q1 FY23,
+    with a negative year-over-year impact of nearly 4 percentage points due to foreign
+    exchange. Services revenue growth is also expected to be similar to Q1 FY23, while
+    facing macroeconomic headwinds in areas such as digital advertising and mobile
+    gaming. Despite these challenges, Apple continues to see strong growth in its
+    installed base of over 2 billion active devices and growing customer engagement
+    with its services. The company plans to return $90 billion to shareholders through
+    share repurchases and dividends, maintaining its goal of getting to net cash neutral
+    over time. Additionally, the company mentions that gross margins are subject to
+    volatility and downward pressure due to various factors, and 65% of total deferred
+    revenue is expected to be realized in less than a year. |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| MoA 聚合器（7/7）| 根据苹果公司2023财年第一季度的财报和文件，苹果预计其2023财年第二季度的收入将与第一季度相似，受到外汇波动的负面影响约为4个百分点。服务收入的增长预计也将与第一季度相似，但面临来自数字广告和移动游戏等领域的宏观经济挑战。尽管面临这些挑战，苹果仍然在其超过20亿活跃设备的安装基础上看到强劲的增长，并且客户在其服务上的参与度也在不断提升。公司计划通过回购股票和分红向股东返还900亿美元，继续保持逐步实现现金中性目标。此外，公司还提到，由于各种因素，毛利率可能会受到波动和下行压力的影响，并且预计65%的总递延收入将在一年内实现。'
+- en: '|  |  |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  |'
+- en: The analysis clearly demonstrates that a MoA system consisting of two Mistral-based
+    agents (each with 7B parameters) competes effectively with much larger and more
+    expensive systems such as ChatGPT 4, GPT-4o and Claude 3 Opus. Interestingly,
+    MoA and Claude excel at reporting on expected or future states, as the question
+    requires, in contrast to ChatGPT 4\. Responses from each agent can also be displayed
+    to the user for transparency. Most of the responses to other questions asked followed
+    closely with the example laid out above.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该分析清楚地表明，由两个人工智能代理（每个代理有7亿个参数）组成的MoA系统，能够有效与更大、更昂贵的系统（如ChatGPT 4、GPT-4o和Claude
+    3 Opus）竞争。有趣的是，MoA和Claude在报告预期或未来状态方面表现出色，正如问题所要求的，与ChatGPT 4相比更具优势。每个代理的回答也可以展示给用户，以增加透明度。对其他问题的回答大多紧随上述示例。
+- en: 3.3 Cost & Scale
+  id: totrans-70
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 成本与规模
+- en: The beauty of the current MoA system lies in its cost effectiveness and simplicity.
+    In its simplest form, MoA can be performed with the same model and endpoint, activated
+    as many times as necessary to perform inference through the various layers. For
+    enterprises with cloud-based compute resources and endpoints priced based on uptime,
+    such as Amazon Sagemaker or Microsoft Azure, there is no significant difference
+    in overall cost between MoA and single-model systems of similar size.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当前MoA系统的美妙之处在于其成本效益和简单性。在最简单的形式下，MoA可以在相同的模型和端点上执行，并可以根据需要多次激活，以通过不同的层进行推理。对于那些拥有基于云计算资源和按上线计费的端点的企业，如Amazon
+    Sagemaker或Microsoft Azure，MoA与同类大小的单模型系统在总体成本上没有显著差异。
+- en: 'The drawback of MoA is its higher demand on concurrent inference. When scaling,
+    single-model systems can support more users because each user accesses only one
+    endpoint. In contrast, MoA requires at least two endpoints per user, and this
+    number can grow arbitrarily large. However, this flexibility allows for the customization
+    of the agent configuration within the system based on budget and use case. Vanguard
+    IMFS’s own MoA system has a significantly lower cost compared to most third-party
+    RAG providers, such as Arcus and Databricks, with a total run cost of under $8,000
+    per month processing a team of researchers’ queries. As for speed, Vanguard IMFS’s
+    MoA system, which includes pre- and post-operations such as tokenization, retrieval,
+    and hallucination catching, is capable of searching and surfacing information
+    from over 30,000 documents in under 60 seconds using two layers of agents. The
+    latency penalty for implementing MoA is approximately 4.07x, or 2.24x when running
+    inference in parallel.In comparison, our original single-model system was capable
+    of performing the same operation in under three seconds. These results, summarized
+    in Table 2, were obtained using a rudimentary MoA with two layers: three context-accepting
+    agents in layer one and one aggregator in layer two.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoA的缺点是其对并发推理的需求更高。在扩展时，单模型系统能够支持更多用户，因为每个用户只访问一个端点。相比之下，MoA每个用户至少需要两个端点，而且这个数量可能会无限增加。然而，这种灵活性允许根据预算和使用案例定制系统中的代理配置。Vanguard
+    IMFS自有的MoA系统，与大多数第三方RAG提供商（如Arcus和Databricks）相比，成本显著更低，处理一组研究人员查询的总运行成本不到每月8,000美元。至于速度，Vanguard
+    IMFS的MoA系统，包括令牌化、检索和幻觉捕捉等预处理和后处理操作，能够在60秒内使用两个代理层从超过30,000份文档中搜索并提取信息。实现MoA的延迟惩罚大约是4.07倍，或在并行推理时是2.24倍。相比之下，我们原始的单模型系统能够在不到三秒的时间内完成相同的操作。这些结果，如表2所示，是通过一个简单的MoA系统（包含两层：第一层有三个接收上下文的代理，第二层有一个聚合器）获得的。
+- en: '| Metric | Single-Model Systems | MoA | MoA (Parallel Inference) |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 单模型系统 | MoA | MoA（并行推理） |'
+- en: '| Max Concurrent Users | Around 20 | 11 | 11 |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最大并发用户数 | 大约20 | 11 | 11 |'
+- en: '| Total Compute Cost per Month | $5,000-$8,000 | $5,000-$8,000 | $5,000-$8,000
+    |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每月总计算成本 | 5,000美元-8,000美元 | 5,000美元-8,000美元 | 5,000美元-8,000美元 |'
+- en: '| Average Response Speed | 2.9974s | 12.3334s | 6.8626s |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均响应速度 | 2.9974秒 | 12.3334秒 | 6.8626秒 |'
+- en: '| Average Latency Penalty | - | 4.07x | 2.24x |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均延迟惩罚 | - | 4.07x | 2.24x |'
+- en: '| Average Passages Considered | 30 | 90 | 90 |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均考虑的段落数 | 30 | 90 | 90 |'
+- en: '| Average Context Window Improvement | - | 3.00x | 3.00x |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均上下文窗口改进 | - | 3.00x | 3.00x |'
+- en: 'Table 2: Summary of speed and context window differences between single-model,
+    MoA, and optimized MoA architectures.'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：单模型、MoA和优化MoA架构之间的速度和上下文窗口差异总结。
+- en: Based on this and other similar analyses, we conclude that the speed and context
+    window improvement of MoA scales linearly with the number of models used in the
+    system. In the above table, we implemented a four-model MoA, consisting of three
+    agents accepting contexts, one aggregator. The total inference time increases
+    by 4x without parallelization, and the context window increases by 3x as a result.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于此及其他类似分析，我们得出结论：MoA的速度和上下文窗口改进随着系统中使用的模型数量的增加而线性扩展。在上述表格中，我们实现了一个四模型的MoA，包括三个接收上下文的代理和一个聚合器。总推理时间在没有并行化的情况下增加了4倍，上下文窗口因此增加了3倍。
+- en: MoA is an efficient system that maximizes the benefits of RAG while still meeting
+    cost and scalability constraints in practice. If an enterprise can create and
+    deploy a single-model system, it can also deploy MoA.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoA是一个高效的系统，最大化了RAG的优势，同时在实际应用中仍能满足成本和可扩展性约束。如果企业能够创建并部署一个单模型系统，那么它同样可以部署MoA。
+- en: 3.4 Permanence
+  id: totrans-83
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 永续性
+- en: As a framework, MoA is a robust system that maintains an edge over traditional
+    single-model LLM systems. At Vanguard, we have supported the hypothesis that smaller
+    language models [[1](https://arxiv.org/html/2409.07487v2#bib.bib1)] are the present
+    and future when it comes to highly efficient and accurate outcomes. MoA is an
+    extension of this hypothesis, as it has allowed us to operate at a fraction of
+    the cost by utilizing open-weight, sub-10B parameter models. With most of the
+    language modeling community arriving at similar conclusions, we believe in MoA’s
+    permanence to become an industry standard.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为一种框架，MoA 是一个强大的系统，相比传统的单模型大语言模型（LLM）系统具有优势。在 Vanguard，我们支持这样一个假设：小型语言模型[[1](https://arxiv.org/html/2409.07487v2#bib.bib1)]是当前和未来实现高效、准确结果的关键。MoA
+    是这一假设的延伸，它使我们能够通过利用开放权重、少于10B参数的模型，以更低的成本运营。随着大部分语言建模社区得出类似的结论，我们相信 MoA 会成为行业标准，并具有持久性。
+- en: 3.5 Transparency
+  id: totrans-85
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.5 透明性
+- en: Since the responses from each agent serve as an input to the final aggregator,
+    each output can be regularly displayed to the user and evaluated for missteps
+    or hallucinations. At its core, MoA is a variant of an advanced RAG system and,
+    therefore, retains all of its transparency and grounding properties.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于每个代理的响应作为输入传递给最终聚合器，因此可以定期向用户展示每个输出，并评估是否存在错误或幻觉。在其核心，MoA 是一种高级 RAG 系统的变体，因此保留了所有的透明性和基础性属性。
+- en: However, there are cases where the final output from the MoA system is not as
+    relevant or impactful as an output from one of the constituent agents. In such
+    situations, it is a straightforward task to present the output from each agent
+    to the user along with the final output, allowing them to make their own judgment.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，也有一些情况，其中 MoA 系统的最终输出不如某个组成代理的输出相关或具有影响力。在这种情况下，可以将每个代理的输出与最终输出一起展示给用户，让他们做出自己的判断。
+- en: '![Refer to caption](img/cf8721cee93abf2a892e60af90bcc250.png)'
+  id: totrans-88
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/cf8721cee93abf2a892e60af90bcc250.png)'
+- en: 'Figure 4: Example output of MoA with Mistral v0.2 as the agent model. Each
+    agent has its own output that can be used to verify the summary.'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：使用 Mistral v0.2 作为代理模型的 MoA 输出示例。每个代理都有自己的输出，可以用于验证摘要。
+- en: At Vanguard, we have invested a substantial amount of time in developing safeguards
+    to limit the hallucination tendency of the models within the MoA system. One of
+    the hardest tasks was to teach the models to say “I don’t know” when the model
+    did not have the relevant dataset to answer a specific question.These safeguards
+    range from heuristics-based checks to more complex embedding comparisons, ensuring
+    the reliability and accuracy of the generated outputs.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Vanguard，我们投入了大量时间来开发保护措施，限制 MoA 系统内模型的幻觉倾向。最困难的任务之一是教会模型在没有相关数据集时说“我不知道”，以回答特定问题。这些保护措施包括基于启发式的检查以及更复杂的嵌入比较，确保生成输出的可靠性和准确性。
+- en: 4 Conclusion & Future Plans
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 结论与未来计划
+- en: By comparing cost, output quality, transparency, and various other characteristics
+    of LLM systems, we conclude that MoA using small language models should be the
+    de facto standard for enterprise-grade RAG pipelines.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过比较 LLM 系统的成本、输出质量、透明性以及其他各种特性，我们得出结论：使用小型语言模型的 MoA 应该成为企业级 RAG 流水线的事实标准。
+- en: It is important to note that this analysis was conducted using a specific technology
+    stack consisting of Amazon AWS. Performance may be significantly improved by employing
+    more efficient cost-per-token providers such as Fireworks AI or Groq, which may
+    also offer faster inference times and better scalability. With improved performance,
+    the delta between MoA and single LLM systems decreases substantially. As MoA’s
+    output quality surpasses that of single LLM systems, it potentially becomes strictly
+    better.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的是，这项分析是使用特定的技术栈进行的，技术栈包括 Amazon AWS。通过使用更高效的按 token 计费的服务提供商，如 Fireworks
+    AI 或 Groq，可能会显著提高性能，这些提供商也可能提供更快的推理时间和更好的可扩展性。随着性能的提升，MoA 和单一 LLM 系统之间的差距显著缩小。当
+    MoA 的输出质量超过单一 LLM 系统时，它有可能变得更优。
+- en: References
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] J. Hoffmann, S. Borgeaud, A. Mensch, E. Buchatskaya, T. Cai, E. Rutherford,
+    D. De, L. Casas, L. Hendricks, J. Welbl, A. Clark, T. Hennigan, E. Noland, K. Millican,
+    G. Van Den Driessche, B. Damoc, A. Guy, S. Osindero, K. Simonyan, E. Elsen, J. Rae,
+    O. Vinyals, L. Sifre, and . Equal, “Training compute-optimal large language models,”
+    03 2022.'
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] J. Hoffmann, S. Borgeaud, A. Mensch, E. Buchatskaya, T. Cai, E. Rutherford,
+    D. De, L. Casas, L. Hendricks, J. Welbl, A. Clark, T. Hennigan, E. Noland, K.
+    Millican, G. Van Den Driessche, B. Damoc, A. Guy, S. Osindero, K. Simonyan, E.
+    Elsen, J. Rae, O. Vinyals, L. Sifre, 和 . Equal, “训练计算最优的大型语言模型,” 2022年03月。'
+- en: '[2] S. Z. Shen, H. Lang, B. Wang, Y. Kim, and D. Sontag, “Learning to decode
+    collaboratively with multiple language models,” 03 2024.'
+  id: totrans-96
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] S. Z. Shen, H. Lang, B. Wang, Y. Kim, 和 D. Sontag, “学习与多个语言模型协作解码,” 2024年03月。'
+- en: '[3] G. Cheng, “Unlocking the power of multiple language models: A dive into
+    collaborative ai,” 11 2023.'
+  id: totrans-97
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] G. Cheng, “解锁多语言模型的力量：深入探讨协作型人工智能,” 2023年11月。'
+- en: '[4] R. Gordon, “Multi-ai collaboration helps reasoning and factual accuracy
+    in large language models,” 09 2023.'
+  id: totrans-98
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] R. Gordon, “多人工智能协作帮助大型语言模型中的推理和事实准确性,” 2023年09月。'
+- en: '[5] Y.-S. Chuang, A. Goyal, N. Harlalka, S. Suresh, R. Hawkins, S. Yang, D. Shah,
+    J. Hu, and T. T. Rogers, “Simulating opinion dynamics with networks of llm-based
+    agents,” 11 2023.'
+  id: totrans-99
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Y.-S. Chuang, A. Goyal, N. Harlalka, S. Suresh, R. Hawkins, S. Yang, D.
+    Shah, J. Hu, 和 T. T. Rogers, “通过LLM模型代理网络模拟意见动态,” 2023年11月。'
+- en: '[6] A. Zeng, M. Attarian, B. Ichter, K. Choromanski, A. Wong, S. Welker, F. Tombari,
+    A. Purohit, M. Ryoo, V. Sindhwani, J. Lee, V. Vanhoucke, and P. Google, “Socratic
+    models: Composing zero-shot multimodal reasoning with language,” 05 2022.'
+  id: totrans-100
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] A. Zeng, M. Attarian, B. Ichter, K. Choromanski, A. Wong, S. Welker, F.
+    Tombari, A. Purohit, M. Ryoo, V. Sindhwani, J. Lee, V. Vanhoucke, 和 P. Google,
+    “苏格拉底模型：通过语言组合零样本多模态推理,” 2022年05月。'
+- en: '[7] J. Li, Q. Zhang, Y. Yu, Q. Fu, and D. Ye, “More agents is all you need,”
+    arXiv (Cornell University), 02 2024.'
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] J. Li, Q. Zhang, Y. Yu, Q. Fu, 和 D. Ye, “更多的代理就是你所需要的一切,” arXiv (康奈尔大学),
+    2024年02月。'
+- en: '[8] T. Guo, X. Chen, Y. Wang, R. Chang, S. Pei, N. V. Chawla, O. Wiest, and
+    X. Zhang, “Large language model based multi-agents: A survey of progress and challenges,”
+    01 2024.'
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] T. Guo, X. Chen, Y. Wang, R. Chang, S. Pei, N. V. Chawla, O. Wiest, 和 X.
+    Zhang, “基于大型语言模型的多代理：进展与挑战综述,” 2024年01月。'
+- en: '[9] A. Q. Jiang, A. Sablayrolles, A. Roux, A. Mensch, B. Savary, C. Bamford,
+    D. S. Chaplot, D. d. l. Casas, E. B. Hanna, F. Bressand, G. Lengyel, G. Bour,
+    G. Lample, L. R. Lavaud, L. Saulnier, M.-A. Lachaux, P. Stock, S. Subramanian,
+    S. Yang, S. Antoniak, T. L. Scao, T. Gervet, T. Lavril, T. Wang, T. Lacroix, and
+    W. E. Sayed, “Mixtral of experts,” 01 2024.'
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] A. Q. Jiang, A. Sablayrolles, A. Roux, A. Mensch, B. Savary, C. Bamford,
+    D. S. Chaplot, D. d. l. Casas, E. B. Hanna, F. Bressand, G. Lengyel, G. Bour,
+    G. Lample, L. R. Lavaud, L. Saulnier, M.-A. Lachaux, P. Stock, S. Subramanian,
+    S. Yang, S. Antoniak, T. L. Scao, T. Gervet, T. Lavril, T. Wang, T. Lacroix, 和
+    W. E. Sayed, “专家混合模型（Mixtral）,” 2024年01月。'
+- en: '[10] M. Josifoski, L. Klein, M. Peyrard, N. Baldwin, Y. Li, S. Geng, J. P.
+    Schnitzler, Y. Yao, J. Wei, D. Paul, and R. West, “Flows: Building blocks of reasoning
+    and collaborating ai,” 02 2024.'
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] M. Josifoski, L. Klein, M. Peyrard, N. Baldwin, Y. Li, S. Geng, J. P.
+    Schnitzler, Y. Yao, J. Wei, D. Paul, 和 R. West, “流：推理与协作型人工智能的构建模块,” 2024年02月。'
+- en: '[11] “Introduction —  ̵️ langchain,”'
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] “介绍 — ̵️ langchain，”'
+- en: '[12] R. Yang, “Socraticai.”'
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] R. Yang, “Socraticai。”'
+- en: '[13] Y. Ding, A. Poudel, Q. Zeng, T. Weninger, B. Veeramani, and S. Bhattacharya,
+    “Entgpt: Linking generative large language models with knowledge bases,” 02 2024.'
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] Y. Ding, A. Poudel, Q. Zeng, T. Weninger, B. Veeramani, 和 S. Bhattacharya,
+    “Entgpt：将生成性大型语言模型与知识库连接,” 2024年02月。'
+- en: '[14] J. Wang, J. Wang, B. Together, C. Zhang, and J. Zou, “Mixture-of-agents
+    enhances large language model capabilities,” 06 2024.'
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] J. Wang, J. Wang, B. Together, C. Zhang, 和 J. Zou, “代理混合增强大型语言模型的能力,”
+    2024年06月。'
+- en: '[15] N. F. Liu, K. Lin, J. Hewitt, A. Paranjape, M. Bevilacqua, F. Petroni,
+    and P. Liang, “Lost in the middle: How language models use long contexts,” arXiv,
+    07 2023.'
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] N. F. Liu, K. Lin, J. Hewitt, A. Paranjape, M. Bevilacqua, F. Petroni,
+    和 P. Liang, “迷失在中间：语言模型如何使用长上下文,” arXiv, 2023年07月。'

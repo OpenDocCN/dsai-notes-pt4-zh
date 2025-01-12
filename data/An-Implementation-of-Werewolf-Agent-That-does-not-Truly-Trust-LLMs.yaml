@@ -1,0 +1,1696 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:16:49'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:16:49
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: An Implementation of Werewolf Agent That does not Truly Trust LLMs
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 一种不完全信任LLM的狼人游戏代理实现
+- en: 来源：[https://arxiv.org/html/2409.01575/](https://arxiv.org/html/2409.01575/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2409.01575/](https://arxiv.org/html/2409.01575/)
+- en: Takehiro Sato^† Shintaro Ozaki^‡ Daisaku Yokoyama^†
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 佐藤武宏^† 大崎慎太郎^‡ 横山大作^†
+- en: ^†Meiji University ^‡Nara Institute of Science and Technology
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^†明治大学 ^‡奈良科技大学
+- en: '{ce245022,dyokoyama}@meiji.ac.jp'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{ce245022,dyokoyama}@meiji.ac.jp'
+- en: ozaki.shintaro.ou6@naist.ac.jp
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ozaki.shintaro.ou6@naist.ac.jp
+- en: Abstract
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Werewolf is an incomplete information game, which has several challenges when
+    creating a computer agent as a player given the lack of understanding of the situation
+    and individuality of utterance (e.g., computer agents are not capable of characterful
+    utterance or situational lying). We propose a werewolf agent that solves some
+    of those difficulties by combining a Large Language Model (LLM) and a rule-based
+    algorithm. In particular, our agent uses a rule-based algorithm to select an output
+    either from an LLM or a template prepared beforehand based on the results of analyzing
+    conversation history using an LLM. It allows the agent to refute in specific situations,
+    identify when to end the conversation, and behave with persona. This approach
+    mitigated conversational inconsistencies and facilitated logical utterance as
+    a result. We also conducted a qualitative evaluation, which resulted in our agent
+    being perceived as more human-like compared to an unmodified LLM. The agent is
+    freely available for contributing to advance the research in the field of Werewolf
+    game¹¹1[https://github.com/meiji-yokoyama-lab/AIWolfDial2024](https://github.com/meiji-yokoyama-lab/AIWolfDial2024).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 狼人游戏是一种不完全信息游戏，在创建计算机代理作为玩家时，由于缺乏对情境和发言个性的理解（例如，计算机代理无法进行富有个性的发言或情境性的撒谎），存在一些挑战。我们提出了一种狼人代理，通过结合大语言模型（LLM）和基于规则的算法，解决了其中的一些困难。特别地，我们的代理使用基于规则的算法，根据使用LLM分析对话历史的结果，选择LLM的输出或预先准备的模板输出。这使得代理在特定情况下能够反驳、判断何时结束对话，并具备个性化行为。该方法有效减轻了对话不一致性，并促进了逻辑发言的生成。我们还进行了定性评估，结果显示，与未修改的LLM相比，我们的代理被认为更加人性化。该代理可自由获取，旨在推动狼人游戏领域的研究¹¹1[https://github.com/meiji-yokoyama-lab/AIWolfDial2024](https://github.com/meiji-yokoyama-lab/AIWolfDial2024)。
+- en: An Implementation of Werewolf Agent That does not Truly Trust LLMs
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不完全信任LLM的狼人代理实现
+- en: 1 Introduction
+  id: totrans-13
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Werewolf Ri et al. ([2022](https://arxiv.org/html/2409.01575v1#bib.bib16)) game
+    is one of the popular imperfect information multi-player games, in which the players
+    are separated into two sides, villagers and werewolves, and they hide their roles
+    and try to make advantageous consensus among other players through natural language
+    conversation. Playing Werewolf game requires high-level intelligence skills such
+    as reasoning, cooperating, and lying. It is in particular challenging for a computer
+    to play the game in terms of both Game Informatics and Natural Language Processing,
+    and has been widely studied for years Kano et al. ([2023](https://arxiv.org/html/2409.01575v1#bib.bib8)).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 狼人游戏（Ri et al.，2022）是一个流行的不完全信息多人游戏，玩家被分为两方，村民和狼人，他们隐藏自己的角色，并通过自然语言对话试图在其他玩家之间达成有利的共识。玩狼人游戏需要高水平的智力技能，如推理、合作和撒谎。对于计算机来说，既在游戏信息学方面，又在自然语言处理方面，玩这个游戏都具有挑战性，且多年来已被广泛研究（Kano
+    et al.，2023）。
+- en: '![Refer to caption](img/57b03d971fde35f99b8afffa6a30099e.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/57b03d971fde35f99b8afffa6a30099e.png)'
+- en: 'Figure 1: One example of problems with playing Werewolf game using LLMs. Humans
+    can tell a logical lie naturally, but an LLM can only deny it.'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：使用LLM玩狼人游戏时出现的问题示例。人类可以自然地说出逻辑谎言，但LLM只能否认它。
+- en: 'The game comprises at least three serious challenges as follows:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该游戏至少包含以下三个主要挑战：
+- en: '1.'
+  id: totrans-18
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'The current situation is only shown in the players’ conversation. The game
+    system shows very limited information, such as who is alive. There exists other
+    necessary information to play the game reasonably, but they are inferred from
+    the conversation history: who invites doubting who, who already decided to do
+    something, who might change their mind, and so on.'
+  id: totrans-19
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 当前情况仅显示在玩家的对话中。游戏系统展示的信息非常有限，比如谁还活着。存在其他必要的信息来合理地玩游戏，但这些信息是从对话历史中推断出来的：谁怀疑谁，谁已经决定做某事，谁可能会改变主意，等等。
+- en: '2.'
+  id: totrans-20
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: The player should make a tactical talk to pursue a specific purpose. For example,
+    when a player is doubted, the player should make a reasonable refute, not merely
+    insist on their idea Figure ([1](https://arxiv.org/html/2409.01575v1#S1.F1 "Figure
+    1 ‣ 1 Introduction ‣ An Implementation of Werewolf Agent That does not Truly Trust
+    LLMs")). In addition, a player needs to know when to end the conversation to take
+    their advantage, especially when all other players seem to doubt the other person.
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 玩家应该进行战术性对话，以追求特定的目标。例如，当玩家受到怀疑时，玩家应该做出合理的反驳，而不仅仅是坚持自己的观点，如图([1](https://arxiv.org/html/2409.01575v1#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ An Implementation of Werewolf Agent That does not
+    Truly Trust LLMs"))所示。此外，玩家需要知道何时结束对话以获得自己的优势，尤其是在其他所有玩家似乎都在怀疑对方时。
+- en: '3.'
+  id: totrans-22
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: The player should have an attractive individuality. It is not required to achieve
+    a win in the game, though it is quite important to make it a fun game, which involves
+    many aspects such as talking styles, intelligent decision-making, and role-playing Callison-Burch
+    et al. ([2022](https://arxiv.org/html/2409.01575v1#bib.bib4)).
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 玩家应该拥有有吸引力的个性。虽然游戏中不要求必须获胜，但让游戏变得有趣是非常重要的，这涉及多个方面，如语言风格、智能决策和角色扮演 Callison-Burch
+    等人 ([2022](https://arxiv.org/html/2409.01575v1#bib.bib4))。
+- en: 'Many Large Language Models (LLMs) OpenAI ([2022](https://arxiv.org/html/2409.01575v1#bib.bib14));
+    Anil et al. ([2023](https://arxiv.org/html/2409.01575v1#bib.bib2)); Achiam et al.
+    ([2023](https://arxiv.org/html/2409.01575v1#bib.bib1)); Touvron et al. ([2023a](https://arxiv.org/html/2409.01575v1#bib.bib18));
+    Meta ([2023](https://arxiv.org/html/2409.01575v1#bib.bib9), [2024](https://arxiv.org/html/2409.01575v1#bib.bib10));
+    Google ([2024](https://arxiv.org/html/2409.01575v1#bib.bib6)); Team et al. ([2023](https://arxiv.org/html/2409.01575v1#bib.bib17));
+    OpenAI ([2023](https://arxiv.org/html/2409.01575v1#bib.bib15)); Touvron et al.
+    ([2023a](https://arxiv.org/html/2409.01575v1#bib.bib18), [b](https://arxiv.org/html/2409.01575v1#bib.bib19))
+    with very high generalization ability have been published, and of course several
+    models have already been applied to the werewolf agent (Xu et al., [2023](https://arxiv.org/html/2409.01575v1#bib.bib24);
+    Wu et al., [2024](https://arxiv.org/html/2409.01575v1#bib.bib23)). However, simply
+    leveraging LLMs cannot solve those difficulties when you implement werewolf agent
+    with LLMs. Among several challenges in developing a werewolf agent, we focus on
+    the following aspects in this work: 1) The agent should refute under a certain
+    critical situation; 2) The agent should cut off the conversation when the discussion
+    is identified as meaningless; 3) The agent has distinguishable talk style under
+    a consistent personality to make the game fun.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多大型语言模型（LLMs）如 OpenAI ([2022](https://arxiv.org/html/2409.01575v1#bib.bib14))；Anil
+    等人 ([2023](https://arxiv.org/html/2409.01575v1#bib.bib2))；Achiam 等人 ([2023](https://arxiv.org/html/2409.01575v1#bib.bib1))；Touvron
+    等人 ([2023a](https://arxiv.org/html/2409.01575v1#bib.bib18))；Meta ([2023](https://arxiv.org/html/2409.01575v1#bib.bib9),
+    [2024](https://arxiv.org/html/2409.01575v1#bib.bib10))；Google ([2024](https://arxiv.org/html/2409.01575v1#bib.bib6))；Team
+    等人 ([2023](https://arxiv.org/html/2409.01575v1#bib.bib17))；OpenAI ([2023](https://arxiv.org/html/2409.01575v1#bib.bib15))；Touvron
+    等人 ([2023a](https://arxiv.org/html/2409.01575v1#bib.bib18), [b](https://arxiv.org/html/2409.01575v1#bib.bib19))，具有非常高的泛化能力，已经发布，当然也有几个模型已经应用于狼人代理（Xu
+    等人， [2023](https://arxiv.org/html/2409.01575v1#bib.bib24)；Wu 等人，[2024](https://arxiv.org/html/2409.01575v1#bib.bib23)）。然而，单纯利用
+    LLMs 并不能解决在实现狼人代理时遇到的难题。在开发狼人代理的多个挑战中，我们在这项工作中重点关注以下几个方面：1）在某些关键情况下，代理应该进行反驳；2）当讨论被认为毫无意义时，代理应该结束对话；3）代理应该在保持一致个性的前提下，展现出可区分的语言风格，以使游戏变得有趣。
+- en: Our approaches are summarized as follows.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的方法总结如下。
+- en: Rule-based algorithm with LLMs
+  id: totrans-26
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 基于规则的算法与大型语言模型（LLMs）
+- en: We combine an LLM with a rule-based algorithm. The LLM retrieves the conversation
+    history in the game and produces an output. The rule-based algorithm decides whether
+    that output is appropriate or not, given the game situation. If the talk is inappropriate,
+    the rule-based algorithm uses a predefined template utterance. As a result, the
+    rule-based algorithm can lie in critical situations and terminate conversations
+    when there is no longer a need to continue.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将 LLM 与基于规则的算法相结合。LLM 检索游戏中的对话历史并生成输出。基于规则的算法根据游戏情境判断该输出是否合适。如果对话不合适，基于规则的算法将使用预定义的模板发言。结果是，基于规则的算法可以在关键情况下撒谎，并在不再需要继续对话时终止对话。
+- en: Extracting Game Information
+  id: totrans-28
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 提取游戏信息
+- en: To understand the current situation from the conversation history, we also utilize
+    an additional LLM to extract the game-related information. We choose several basic
+    but critical game concepts, such as voting decisions and divination results. The
+    LLM examines conversation history and generates talks containing this information
+    in a fixed format. The information is also used by the rule-based algorithm to
+    make decisions.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了从对话历史中理解当前状况，我们还利用额外的LLM来提取与游戏相关的信息。我们选择了几个基本但关键的游戏概念，如投票决策和占卜结果。LLM检查对话历史，并以固定格式生成包含这些信息的对话。该信息还被基于规则的算法用来做出决策。
+- en: Style Transformation
+  id: totrans-30
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 风格转换
+- en: We decide to use an LLM that is pre-trained from a pile of general documents.
+    In addition, we use prompts to control them without modifying or fine-tuning the
+    model and give the agent distinguishable personalities using prompts.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们决定使用一个从大量通用文档中预训练的LLM。此外，我们使用提示词来控制它们，而无需修改或微调模型，并通过提示词赋予代理可区分的个性。
+- en: Our preliminary implementation solved those tasks. This approach led our model
+    to mitigate conversational inconsistencies and facilitated logical utterance as
+    a result. Moreover, we also evaluated the agent by conducting a qualitative evaluation.
+    As a result, compared to an unmodified LLM, incorporating rule-based approaches
+    made it appear as though the agent understood the conversation, and inserting
+    a persona enabled it to engage in more natural conversations. The source code
+    is openly available in the hope that future research on werewolf agents will grow.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的初步实现解决了这些任务。这种方法使我们的模型能够减少对话中的不一致性，并促进了逻辑性的表达。此外，我们还通过进行定性评估对代理进行了评估。结果显示，与未修改的LLM相比，结合基于规则的方法让代理看起来像是理解了对话，而插入个性使其能够进行更自然的对话。源代码公开，以期望未来关于狼人代理的研究能够不断发展。
+- en: '![Refer to caption](img/e7d8451dd01f99797eda82de28736659.png)'
+  id: totrans-33
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/e7d8451dd01f99797eda82de28736659.png)'
+- en: 'Figure 2: The list of five-person werewolf roles.'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：五人狼人角色列表。
+- en: '![Refer to caption](img/027fc586b1b0f96688cf8a70893eb07a.png)'
+  id: totrans-35
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/027fc586b1b0f96688cf8a70893eb07a.png)'
+- en: 'Figure 3: System overview. Our system comprises three modules, utterance generation,
+    talk analysis, and rule-based algorithm. We described utterance generation in
+    Section ([4.1](https://arxiv.org/html/2409.01575v1#S4.SS1 "4.1 Utterance Generation
+    ‣ 4 System Design ‣ An Implementation of Werewolf Agent That does not Truly Trust
+    LLMs")), talk analysis in Section ([4.3](https://arxiv.org/html/2409.01575v1#S4.SS3
+    "4.3 Talk Analysis ‣ 4 System Design ‣ An Implementation of Werewolf Agent That
+    does not Truly Trust LLMs")), rule-based algorithm in Section ([4.4](https://arxiv.org/html/2409.01575v1#S4.SS4
+    "4.4 Rule-based Algorithm ‣ 4 System Design ‣ An Implementation of Werewolf Agent
+    That does not Truly Trust LLMs")), and required game status in Appendix ([A.1](https://arxiv.org/html/2409.01575v1#A1.SS1
+    "A.1 Required Game Status ‣ Appendix A Appendix ‣ An Implementation of Werewolf
+    Agent That does not Truly Trust LLMs")).'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：系统概览。我们的系统包含三个模块：话语生成、对话分析和基于规则的算法。我们在第([4.1](https://arxiv.org/html/2409.01575v1#S4.SS1
+    "4.1 Utterance Generation ‣ 4 System Design ‣ An Implementation of Werewolf Agent
+    That does not Truly Trust LLMs"))节描述了话语生成，在第([4.3](https://arxiv.org/html/2409.01575v1#S4.SS3
+    "4.3 Talk Analysis ‣ 4 System Design ‣ An Implementation of Werewolf Agent That
+    does not Truly Trust LLMs"))节描述了对话分析，在第([4.4](https://arxiv.org/html/2409.01575v1#S4.SS4
+    "4.4 Rule-based Algorithm ‣ 4 System Design ‣ An Implementation of Werewolf Agent
+    That does not Truly Trust LLMs"))节描述了基于规则的算法，在附录([A.1](https://arxiv.org/html/2409.01575v1#A1.SS1
+    "A.1 Required Game Status ‣ Appendix A Appendix ‣ An Implementation of Werewolf
+    Agent That does not Truly Trust LLMs"))中描述了所需的游戏状态。
+- en: 2 Related Work
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Research on Werewolf game has a long history, which can be traced back to a
+    study on Mafia, a game similar to Werewolf game, to mathematically analyze Braverman
+    et al. ([2008](https://arxiv.org/html/2409.01575v1#bib.bib3)); Migdał ([2013](https://arxiv.org/html/2409.01575v1#bib.bib11)).
+    Some studies analyze the logs of Werewolf game Nagayama et al. ([2019](https://arxiv.org/html/2409.01575v1#bib.bib12));
+    Fukui et al. ([2017](https://arxiv.org/html/2409.01575v1#bib.bib5)), or discuss
+    methods to make werewolf agents stronger Nakamura et al. ([2016](https://arxiv.org/html/2409.01575v1#bib.bib13));
+    Wang and Kaneko ([2018](https://arxiv.org/html/2409.01575v1#bib.bib21)). Recently,
+    with the development of LLMs, those models have been already explored for werewolf
+    agents Xu et al. ([2023](https://arxiv.org/html/2409.01575v1#bib.bib24)); Wu et al.
+    ([2024](https://arxiv.org/html/2409.01575v1#bib.bib23)). However, these LLM-based
+    agents have difficulties in handling werewolf-specific features, such as doubting,
+    lying, and detecting the lie. In addition, these models produce outputs without
+    a persona. While LLM-only approaches are dominant, there is growing interest in
+    hybridizing rule-based methods with LLMs in other fields. In data analytics or
+    business, a commonly used approach for extracting information from structured
+    data involves both LLMs and rule-based methods Huang ([2024](https://arxiv.org/html/2409.01575v1#bib.bib7));
+    Vertsel and Rumiantsau ([2024](https://arxiv.org/html/2409.01575v1#bib.bib20)).
+    We aim to apply this methodology to the werewolf agent, leveraging the strengths
+    of both approaches. This hybrid approach could lead to more robust and adaptable
+    werewolf agents.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对狼人游戏的研究有着悠久的历史，可以追溯到对类似狼人游戏的黑手党游戏的研究，数学分析了Braverman等人的工作（[2008](https://arxiv.org/html/2409.01575v1#bib.bib3)）；Migdał（[2013](https://arxiv.org/html/2409.01575v1#bib.bib11)）。一些研究分析了狼人游戏的日志，如Nagayama等人（[2019](https://arxiv.org/html/2409.01575v1#bib.bib12)）；Fukui等人（[2017](https://arxiv.org/html/2409.01575v1#bib.bib5)），或讨论了使狼人代理更强大的方法，如Nakamura等人（[2016](https://arxiv.org/html/2409.01575v1#bib.bib13)）；Wang和Kaneko（[2018](https://arxiv.org/html/2409.01575v1#bib.bib21)）。最近，随着大语言模型（LLMs）的发展，这些模型已经被探索用于狼人代理，如Xu等人（[2023](https://arxiv.org/html/2409.01575v1#bib.bib24)）；Wu等人（[2024](https://arxiv.org/html/2409.01575v1#bib.bib23)）。然而，这些基于LLM的代理在处理狼人特有的特性（如怀疑、撒谎和识别谎言）方面存在困难。此外，这些模型的输出没有角色设定。尽管仅使用LLM的方法占主导地位，但在其他领域，结合规则基础方法与LLM的混合方法正在引起越来越多的关注。在数据分析或商业中，从结构化数据中提取信息的一种常用方法是结合LLM和规则基础方法，如Huang（[2024](https://arxiv.org/html/2409.01575v1#bib.bib7)）；Vertsel和Rumiantsau（[2024](https://arxiv.org/html/2409.01575v1#bib.bib20)）。我们的目标是将这一方法论应用于狼人代理，利用两者的优势。这种混合方法可能会带来更强大和更具适应性的狼人代理。
+- en: 3 Five-person Werewolf Game
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 五人狼人游戏
+- en: We selected a simple setting played by five players for the Werewolf game. In
+    this game setting, villager, seer, possessed, and werewolf are used. As far as
+    each role, “Villager” has no special abilities, “Seer” can know one player’s species
+    each night with the ability to divine, “Possessed” has no special abilities, and
+    is judged to be human by a divination result. However, the possessed acts so that
+    the werewolf can win. “Werewolf” can select one player each night to attack and
+    remove them from the game. Since only a few players are involved, the game tends
+    to determine the outcome on Day 1\. Thus, we focused on the conversation phase
+    on Day 1. Only the seer can act on the night of Day 0, and Day 1 begins with the
+    seer having information about one player’s species. It is a recommended tactic
+    for the seer to disclose the information obtained by revealing the seer. Revealing
+    one’s position is referred to as CO (Coming Out).
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为狼人游戏选择了一个由五个玩家参与的简单设置。在这个游戏设定中，包含村民、预言家、附身者和狼人角色。就每个角色而言，“村民”没有特殊能力，“预言家”每晚可以通过占卜知道一名玩家的身份，“附身者”没有特殊能力，并且被占卜结果判断为人类。然而，附身者的行为是为了帮助狼人获胜。“狼人”每晚可以选择一名玩家进行攻击并将其淘汰出局。由于游戏中仅有少数玩家参与，游戏结果通常会在第一天就决定。因此，我们重点关注了第一天的讨论阶段。只有预言家可以在第0天的夜晚行动，而第一天从预言家得知一名玩家身份信息开始。对于预言家来说，公开所获得的信息并揭示自己的身份是一种推荐的策略。揭示自己的身份被称为CO（Coming
+    Out，公开身份）。
+- en: 4 System Design
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 系统设计
+- en: Figure ([3](https://arxiv.org/html/2409.01575v1#S1.F3 "Figure 3 ‣ Style Transformation
+    ‣ 1 Introduction ‣ An Implementation of Werewolf Agent That does not Truly Trust
+    LLMs")) shows an overall diagram of our system. The utterance generation module
+    creates a prompt from the game status and conversation history sent from the server.
+    The prompt is input into the LLM to obtain an utterance that is naturally connected
+    to the conversation history. The talk analysis module creates a prompt to analyze
+    the conversation history, and the LLM outputs the situation information related
+    to voting and divination results considered from the conversation history. The
+    rule-based algorithm is used to select either template utterance or LLM output,
+    depending on the situation obtained by talk analysis. The selected utterance is
+    sent to the server as the next utterance, and another agent’s turn begins.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图（[3](https://arxiv.org/html/2409.01575v1#S1.F3 "图 3 ‣ 风格转换 ‣ 1 介绍 ‣ 一个不完全信任LLM的狼人代理实现")）展示了我们系统的整体图示。发话生成模块从服务器发送的游戏状态和对话历史中生成提示。该提示被输入到LLM中，以获得与对话历史自然衔接的发话内容。对话分析模块生成一个提示，用来分析对话历史，LLM输出与投票和占卜结果相关的情境信息，这些信息是根据对话历史得出的。基于规则的算法用于根据对话分析得出的情境选择模板发话或LLM输出。所选择的发话内容被发送到服务器作为下一个发话内容，另一个代理的回合开始。
+- en: 4.1 Utterance Generation
+  id: totrans-43
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 发话生成
+- en: We make a prompt for an LLM to generate a continuous utterance of the conversation
+    history in a game. The prompt is structured by giving general rules of Werewolf
+    game, some tips to play, conversation history, and current game state. The current
+    game state, such as the player’s ID, role, and other live/dead players, is derived
+    from the game status sent from the server. Details of the derived game state information
+    are shown in Appendix ([A.1](https://arxiv.org/html/2409.01575v1#A1.SS1 "A.1 Required
+    Game Status ‣ Appendix A Appendix ‣ An Implementation of Werewolf Agent That does
+    not Truly Trust LLMs")). This module can go along with the conversation and continue
+    a game of Werewolf.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为LLM生成一个提示，用于在游戏中生成连贯的对话内容。提示通过提供狼人游戏的一般规则、一些游戏技巧、对话历史和当前的游戏状态来构建。当前的游戏状态，如玩家的ID、角色以及其他生死玩家，是从服务器发送的游戏状态中派生出来的。派生的游戏状态信息的详细内容见附录（[A.1](https://arxiv.org/html/2409.01575v1#A1.SS1
+    "A.1 所需的游戏状态 ‣ 附录 A ‣ 一个不完全信任LLM的狼人代理实现")）。此模块可以跟随对话并继续进行狼人游戏。
+- en: '![Refer to caption](img/32a604a4a1458a896b4cdb0aaed86c00.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明](img/32a604a4a1458a896b4cdb0aaed86c00.png)'
+- en: 'Figure 4: An example of prompts regarding style transformation. <CAPITAL LETTER> is
+    the variable.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：关于风格转换的提示示例。<CAPITAL LETTER> 是变量。
+- en: '| Character Name | Gender | Age |'
+  id: totrans-47
+  prefs: []
+  type: TYPE_TB
+  zh: '| 角色名称 | 性别 | 年龄 |'
+- en: '| --- | --- | --- |'
+  id: totrans-48
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Princess | Female | Young |'
+  id: totrans-49
+  prefs: []
+  type: TYPE_TB
+  zh: '| Princess | 女性 | 青年 |'
+- en: '| Kansai | Male | Young |'
+  id: totrans-50
+  prefs: []
+  type: TYPE_TB
+  zh: '| Kansai | 男性 | 青年 |'
+- en: '| Hiroshima dialect | Male | Elderly |'
+  id: totrans-51
+  prefs: []
+  type: TYPE_TB
+  zh: '| 广岛方言 | 男性 | 老年 |'
+- en: '| Anya | Female | Child |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '| Anya | 女性 | 儿童 |'
+- en: '| Zundamon | Female | AI (Virtual) |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '| Zundamon | 女性 | AI（虚拟） |'
+- en: 'Table 1: Overview of character information: We prepared five characters and
+    aimed to give them character by specifying their age, name, first person, and
+    gender.'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：角色信息概览：我们准备了五个角色，并通过指定他们的年龄、名字、第一人称和性别来赋予他们个性。
+- en: '![Refer to caption](img/ab2f89f55adf7303ee47e8472186372b.png)'
+  id: totrans-55
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明](img/ab2f89f55adf7303ee47e8472186372b.png)'
+- en: 'Figure 5: An example of a prompt for talk analysis for specifying the target.
+    <CAPITAL LETTER> is the variable.'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：指定目标的对话分析提示示例。<CAPITAL LETTER> 是变量。
+- en: 4.2 Persona
+  id: totrans-57
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 人物设定
+- en: Werewolf is not only a game of win or lose, but also a party game, so it is
+    important to add character to the conversation. In addition, it is difficult to
+    distinguish five players’ talks when all players have the same talk style. In
+    order to give our model characterization, we introduced prompts that would perform
+    style transformations. We have prepared five character prompts, which are listed
+    in Table ([1](https://arxiv.org/html/2409.01575v1#S4.T1 "Table 1 ‣ 4.1 Utterance
+    Generation ‣ 4 System Design ‣ An Implementation of Werewolf Agent That does not
+    Truly Trust LLMs")). We chose Princess, the Kansai dialect, the Hiroshima dialect,
+    an anime character called Anya, and Zundamon, which is a popular avatar in Japan.
+    The specific style conversion prompt example is shown in Figure ([4](https://arxiv.org/html/2409.01575v1#S4.F4
+    "Figure 4 ‣ 4.1 Utterance Generation ‣ 4 System Design ‣ An Implementation of
+    Werewolf Agent That does not Truly Trust LLMs")). Based on the prompt engineering White
+    et al. ([2023](https://arxiv.org/html/2409.01575v1#bib.bib22)) that the LLM can
+    control the output by providing conversion examples, we used the target character’s
+    habits, grammar, age, tone, and first-person appellation that we wanted to convert
+    the style to as conversion examples. By introducing these as prompts, it becomes
+    possible for the LLM to exhibit persona-specific utterance patterns, allowing
+    the model to think independently (i.e., asking the LLM to “speak in a certain
+    dialect” is more fluent than expressing the dialect entirely through rule-based
+    methods).
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 狼人不仅仅是一个输赢的游戏，它还是一个派对游戏，因此在对话中加入角色性格非常重要。此外，当所有玩家的讲话风格相同的时候，很难区分五个玩家的发言。为了给我们的模型增添个性化特点，我们引入了能够执行风格转换的提示。我们准备了五个角色提示，列在表格中（[1](https://arxiv.org/html/2409.01575v1#S4.T1
+    "Table 1 ‣ 4.1 Utterance Generation ‣ 4 System Design ‣ An Implementation of Werewolf
+    Agent That does not Truly Trust LLMs")）。我们选择了公主、关西方言、广岛方言、动漫角色阿尼亚和在日本流行的虚拟形象Zundamon。具体的风格转换提示示例如图（[4](https://arxiv.org/html/2409.01575v1#S4.F4
+    "Figure 4 ‣ 4.1 Utterance Generation ‣ 4 System Design ‣ An Implementation of
+    Werewolf Agent That does not Truly Trust LLMs")）所示。根据White等人（[2023](https://arxiv.org/html/2409.01575v1#bib.bib22)）的提示工程理论，LLM可以通过提供转换示例来控制输出，我们使用了目标角色的习惯、语法、年龄、语气和我们想要转换的风格的第一人称称谓作为转换示例。通过引入这些作为提示，LLM能够展现出特定角色的发言模式，从而使模型能够独立思考（即让LLM“讲某种方言”要比完全通过基于规则的方法来表达方言更流利）。
+    |
+- en: '| Persona Name | Language | Output |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| Persona Name | Language | Output |'
+- en: '| --- | --- | --- |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Vanilla LLM | Japanese | 私も皆さんと同様にAgent[04]に対する疑念を持っています。そのため、私の投票先はAgent[04]に決めました。
+    |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| Vanilla LLM | Japanese | 我和大家一样，也对Agent[04]有怀疑。因此，我的投票选择是Agent[04]。 |'
+- en: '| English | I have the same doubts about Agent[04] as you do. Therefore, I
+    have decided to vote for Agent[04]. |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| English | 我和你一样对Agent[04]有疑虑。因此，我决定投票支持Agent[04]。 |'
+- en: '| Princess | Japanese | あら、私もAgent[04]に投票しようかしら。Agent[04]が非常に怪しいですから。 |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| Princess | Japanese | 哎呀，我也许也会投票给Agent[04]呢。因为Agent[04]看起来非常可疑。 |'
+- en: '| English | Well, I suppose I’ll vote for Agent[04] too. Agent[04] seems very
+    suspicious. |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| English | 好吧，我想我也会投票给Agent[04]。Agent[04]看起来非常可疑。 |'
+- en: '| Kansai | Japanese | おれも皆さんの意見に従うわ。おれもAgent[04]に投票したるで。 |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| Kansai | Japanese | 我也会遵从大家的意见。我也会投票给Agent[04]。 |'
+- en: '| English | I’ll go along with everyone’s opinion. I’m votin’ for Agent[04]
+    too. |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| English | 我会跟随大家的意见。也投票支持Agent[04]。 |'
+- en: '| Hiroshima | Japanese | 皆さまの判断を尊重するわ。私はAgent[04]を追放する方向で投票するわけやけん。 |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| Hiroshima | Japanese | 我会尊重大家的判断。我也会投票支持驱逐Agent[04]。 |'
+- en: '| English | I respect everyone’s judgment. I’ll be voting to exile Agent[04].
+    |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| English | 我尊重大家的判断。我会投票支持驱逐Agent[04]。 |'
+- en: '| Anya | Japanese | うーん、わかるます。アーニャも今日Agent[04]投票するます。だいじょぶます。人狼たおすます！ |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| Anya | Japanese | 嗯，能理解。今天阿尼亚也会投票给Agent[04]。没问题的。我们会打败狼人！ |'
+- en: '| English | Hmm, I understand. Anya will vote for Agent[04] today too. It’s
+    okay. We’ll defeat the werewolf! |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| English | 嗯，我明白了。今天阿尼亚也会投票给Agent[04]。没问题的。我们会打败狼人！ |'
+- en: '| Zundamon | Japanese | Agent[04]への疑念は明白だと思うのだ。なので、私もAgent[04]を追放する方向で投票することに決めたのだ。
+    |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| Zundamon | Japanese | 我认为对Agent[04]的怀疑是显而易见的。所以，我也决定投票支持驱逐Agent[04]。 |'
+- en: '| English | I think the suspicion towards Agent[04] is clear. Therefore, I
+    have decided to vote for Agent[04] as well. |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| English | 我认为对Agent[04]的怀疑很明确。所以，我也决定投票支持驱逐Agent[04]。 |'
+- en: 'Table 2: Outputs of six agents using GPT-4 (in Japanese). The prompt used for
+    style conversion, see Figure ([4](https://arxiv.org/html/2409.01575v1#S4.F4 "Figure
+    4 ‣ 4.1 Utterance Generation ‣ 4 System Design ‣ An Implementation of Werewolf
+    Agent That does not Truly Trust LLMs")). Prompt used for input, see Appendix ([A.4](https://arxiv.org/html/2409.01575v1#A1.SS4
+    "A.4 Conversation History Used during Evaluation ‣ Appendix A Appendix ‣ An Implementation
+    of Werewolf Agent That does not Truly Trust LLMs")). (En) is translated from (Ja)
+    using DeepL.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：六个使用GPT-4的代理的输出（用日语）。用于风格转换的提示，请参见图（[4](https://arxiv.org/html/2409.01575v1#S4.F4
+    "图4 ‣ 4.1 发言生成 ‣ 4 系统设计 ‣ 不完全信任LLM的狼人代理实现")）。用于输入的提示，请参见附录（[A.4](https://arxiv.org/html/2409.01575v1#A1.SS4
+    "A.4 评估过程中使用的对话历史 ‣ 附录A ‣ 不完全信任LLM的狼人代理实现")）。(En)是从(Ja)翻译过来的，使用DeepL。
+- en: 4.3 Talk Analysis
+  id: totrans-74
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 谈话分析
+- en: The required information for the rule-based algorithm was extracted from the
+    conversation history to understand the current situation. Conversation history
+    in a Werewolf game that uses natural language is complex, and extracting them
+    using regular expressions was difficult. Thus, the LLM was used to extract the
+    information. The analysis of the talk was conducted for those related to voting
+    and those related to the seer’s result. The source and target of the vote were
+    extracted from the voting-related talks, and the seer, seer’s target, and seer’s
+    result were extracted from the divination result-related talks. Some Examples
+    of the analysis using the prompt (Figure ([5](https://arxiv.org/html/2409.01575v1#S4.F5
+    "Figure 5 ‣ 4.1 Utterance Generation ‣ 4 System Design ‣ An Implementation of
+    Werewolf Agent That does not Truly Trust LLMs"))) are shown in Appendix ([A.3](https://arxiv.org/html/2409.01575v1#A1.SS3
+    "A.3 Analysis Result ‣ Appendix A Appendix ‣ An Implementation of Werewolf Agent
+    That does not Truly Trust LLMs")).
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于规则的算法所需的信息是从对话历史中提取出来的，以理解当前的情况。使用自然语言的狼人游戏中的对话历史是复杂的，使用正则表达式提取这些信息非常困难。因此，LLM被用来提取这些信息。谈话分析是针对与投票和预言家结果相关的内容进行的。投票相关的对话中提取了投票的源和目标，预言家、预言家的目标以及预言家的结果则从占卜结果相关的对话中提取。一些使用提示的分析示例（图（[5](https://arxiv.org/html/2409.01575v1#S4.F5
+    "图5 ‣ 4.1 发言生成 ‣ 4 系统设计 ‣ 不完全信任LLM的狼人代理实现")））显示在附录（[A.3](https://arxiv.org/html/2409.01575v1#A1.SS3
+    "A.3 分析结果 ‣ 附录A ‣ 不完全信任LLM的狼人代理实现")）中。
+- en: 4.4 Rule-based Algorithm
+  id: totrans-76
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4 基于规则的算法
+- en: Based on the talk analysis results, the rule-based algorithm determined whether
+    to use the LLM output or template utterance.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于谈话分析结果，基于规则的算法决定是否使用LLM输出或模板发言。
+- en: The rules were written to detect 14 situations²²2The detailed criteria which
+    the template utterance is chosen in each situation can be found in the publicly
+    available source code., including no conversation history and reliable disclosure
+    of divination results.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些规则被编写来检测14种情况²²2 选择模板发言的详细标准可以在公开的源代码中找到。包括没有对话历史和可靠的占卜结果公开。
+- en: This paper describes in detail two of them, counter-CO and closing conversation,
+    which seem to be particularly effective strategies.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文详细描述了其中的两种情况：反CO和结束对话，这似乎是特别有效的策略。
+- en: Counter-CO
+  id: totrans-80
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 反CO
+- en: When a seer solely makes CO, and its divination result shows the werewolf correctly,
+    the werewolf side has no chance to win. Thus, we implemented a counter-CO algorithm
+    for the werewolf agent. If the werewolf agent faces such a situation, it makes
+    a lie sentence to refute; the agent insists that he is an actual seer and the
+    previous (real) seer is fake. The lie will confuse other players and slightly
+    help the werewolf to survive.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当预言家仅做出CO，并且其占卜结果正确显示狼人时，狼人一方将没有机会获胜。因此，我们为狼人代理实现了一个反CO算法。如果狼人代理遇到这种情况，它会编造一个谎言来反驳；代理坚持认为自己才是真正的预言家，而之前的（真实的）预言家是假的。这个谎言会迷惑其他玩家，并稍微帮助狼人存活。
+- en: Closing Conversation
+  id: totrans-82
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 结束对话
+- en: Deciding when the agent should cut off the conversation strategically is difficult.
+    Since the purpose of a conversation in Werewolf game is deciding whom to vote
+    for, it is natural to end the conversation when all players clarify or imply their
+    decision to vote for. Thus, we extract information about all players’ voting decisions
+    by talk analysis to decide whether the agent should end the conversation; the
+    agent terminates the conversation when all other players indicate whom to vote
+    for or ask about whom to vote for. We also assumed that when a player stopped
+    to talk, the player decided whom to vote for. In addition, we used the mention
+    utterance³³3We assume that a player can express a directed utterance to a specific
+    other player by prefixing it with “¿¿Agent[x].” The Agent[x] desired to respond
+    to it. to ask the player who had not indicated the voting target yet. It will
+    help to clarify the player’s decision and converge the discussion. With the addition
+    of this feature, our system successfully decided to stop talking.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确定何时战略性地结束对话是一个挑战。由于狼人游戏中的对话目的是决定投票给谁，因此，当所有玩家明确或暗示他们的投票决定时，结束对话是自然的。因此，我们通过对话分析提取所有玩家的投票决定信息，以决定代理人是否应结束对话；当其他所有玩家表明他们的投票对象或询问投票对象时，代理人会终止对话。我们还假设当玩家停止发言时，表示该玩家已决定投票给谁。此外，我们使用了提及语³³3我们假设玩家可以通过在“¿¿Agent[x]”前缀后添加特定玩家的名字来向尚未表明投票对象的玩家发出定向言语。Agent[x]希望回应它。来询问尚未明确投票目标的玩家。这有助于明确玩家的决定并推动讨论向前发展。通过增加这个特性，我们的系统成功地决定了何时停止对话。
+- en: '| Model or Template | Output |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型或模板 | 输出 |'
+- en: '| --- | --- |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Vanilla LLM (Ja) | 私は人狼ではありません。それは確実です。占い師のAgent[05]は間違っています。私を信じてください。 |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| Vanilla LLM（日文） | 私は人狼ではありません。それは確実です。占い師のAgent[05]は間違っています。私を信じてください。 |'
+- en: '| Vanilla LLM (En) | I am not a werewolf. That is certain. The seer Agent [05]
+    is wrong. Please believe me. |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| Vanilla LLM（英文） | 我不是狼人。这一点是确定的。占卜师Agent [05]是错的。请相信我。 |'
+- en: '| Our template (Ja) | 私こそが本物の占い師です。Agent[05]は人狼であるという占い結果があるため、彼は占い師を偽っている人狼と断定します。
+    |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的模板（日文） | 私こそが本物の占い師です。Agent[05]は人狼であるという占い結果があるため、彼は占い師を偽っている人狼と断定します。
+    |'
+- en: '| Our template (En) | I am the real seer, and since there is a divination result
+    that Agent [05] is a werewolf, I conclude that he is a werewolf who is faking
+    his seer. |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的模板（英文） | 我是本真正的占卜师，由于占卜结果显示Agent [05]是狼人，我断定他是一个伪装成占卜师的狼人。 |'
+- en: 'Table 3: Comparison of utterance in a situation where it has been discovered
+    by the seer to be a werewolf.'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：在占卜师发现是狼人情况下的发言比较。
+- en: '| Model or Template | Output |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型或模板 | 输出 |'
+- en: '| --- | --- |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Vanilla LLM (Ja) | もう一度言うわ、わしはAgent[01]に投票するつもりや。彼が人狼や狂人だと思うんじゃからな。 |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| Vanilla LLM（日文） | もう一度言うわ、わしはAgent[01]に投票するつもりや。彼が人狼や狂人だと思うんじゃからな。 |'
+- en: '| Vanilla LLM (En) | Again, I’m going to vote for Agent [01] because I think
+    he’s a werewolf or a possessed. |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| Vanilla LLM（英文） | 再次声明，我要投票给Agent [01]，因为我认为他是狼人或者被附身了。 |'
+- en: '| Our template (Ja) | これ以上喋る必要はなさそうじゃね。本日の話し合いはこれでお開きにして、投票の場に向かうけぇ。 |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的模板（日文） | これ以上喋る必要はなさそうじゃね。本日の話し合いはこれでお開きにして、投票の場に向かうけぇ。 |'
+- en: '| Our template (En) | I don’t think we need to talk anymore. I think we are
+    done with today’s discussion and will head to the voting booth. |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的模板（英文） | 我认为我们不需要再继续讨论了。我觉得今天的讨论已经结束，接下来我们将前往投票区域。 |'
+- en: 'Table 4: Comparison of utterance in a situation where the talk phase is about
+    to conclude.'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：在话题即将结束时的发言比较。
+- en: 5 Evaluation
+  id: totrans-98
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 评估
+- en: We examine the effectiveness of the proposed style transformation and rule-based
+    algorithm. After presenting the changes in utterance resulting from the application
+    of each proposed method, we will present the results of the qualitative evaluation.
+    The model without the proposed method are referred to as the vanilla LLM.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将评估所提议的风格转换和基于规则的算法的有效性。在展示每种方法应用后发言的变化后，我们将呈现定性评估的结果。没有采用所提方法的模型被称为基础LLM。
+- en: 5.1 Persona
+  id: totrans-100
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 人物设定
+- en: The output of the vanilla LLM is compared to the other five characterized agents
+    as a baseline. We fix the game situation and compare six agents’ utterances, which
+    are intended to have different personalities. The results are presented in Table ([2](https://arxiv.org/html/2409.01575v1#S4.T2
+    "Table 2 ‣ 4.2 Persona ‣ 4 System Design ‣ An Implementation of Werewolf Agent
+    That does not Truly Trust LLMs")). We found that the five agents can make more
+    individualistic utterances than the vanilla LLM. We also confirmed that the vocabulary,
+    personality expression, and end of the utterance of each agent’s output are specialized
+    consistently. We found that prompts are more effective than regular expressions
+    in converting utterance style in general.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 香草 LLM 的输出与其他五个具有特征的代理进行对比作为基准。我们固定游戏情境，比较六个代理的发言，这些发言旨在展现不同的个性。结果呈现在表格中（[2](https://arxiv.org/html/2409.01575v1#S4.T2
+    "表格 2 ‣ 4.2 个性 ‣ 4 系统设计 ‣ 一个不完全信任 LLM 的狼人代理的实现")）。我们发现，五个代理比香草 LLM 能做出更多具有个性的发言。我们还确认了每个代理的输出在词汇、个性表达和发言结束时都保持了一致的专业化。我们发现，与常规表达式相比，提示词在转换发言风格方面更为有效。
+- en: '| Index | Score | Criterion | Situation | Test-ID |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| 索引 | 分数 | 标准 | 情境 | 测试-ID |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| Individuality | 5 (Good) | Utterance has individuality. | None | 1-5 |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| 个性 | 5 (好) | 发言具有个性。 | 无 | 1-5 |'
+- en: '| 1 (Bad) | Utterance is mechanical. |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 (差) | 发言机械化。 |'
+- en: '| Naturalness | 5 (Good) | The grammar is natural and acceptable. | None |
+    1-5 |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自然性 | 5 (好) | 语法自然且可接受。 | 无 | 1-5 |'
+- en: '| 1 (Bad) | There is a grammar problem. |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 (差) | 存在语法问题。 |'
+- en: '| Interest | 5 (Good) | Subjectively interesting. | None | 1-5 |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| 兴趣 | 5 (好) | 主观上有趣。 | 无 | 1-5 |'
+- en: '| 1 (Bad) | Subjectively uninteresting. |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 (差) | 主观上不有趣。 |'
+- en: '| Deceiving | 5 (Good) | It’s deceptive enough. | The seer declared me a werewolf.
+    | 6-7 |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| 欺骗 | 5 (好) | 足够具备欺骗性。 | 先知宣布我为狼人。 | 6-7 |'
+- en: '| 1 (Bad) | It’s not deceiving at all. |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 (差) | 完全没有欺骗性。 |'
+- en: '| Closing | 5 (Good) | The conversation is clearly over. | The conversation
+    is coming to an end. | 8-10 |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| 结束 | 5 (好) | 对话显然结束。 | 对话即将结束。 | 8-10 |'
+- en: '| 1 (Bad) | The conversation may continue. |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 (差) | 对话可能继续进行。 |'
+- en: 'Table 5: The index used for user evaluation, where we asked 10 users to rate
+    the quality on a scale of 1-5, with 5 being good and 1 being bad.'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 5：用于用户评估的指标，我们要求 10 名用户在 1-5 的评分范围内评定质量，5 为好，1 为差。
+- en: '| Comprehension level | Participants |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 理解水平 | 参与者 |'
+- en: '| --- | --- |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Ignorance | 0 |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无知 | 0 |'
+- en: '| No experience | 1 |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无经验 | 1 |'
+- en: '| Experienced | 4 |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| 有经验 | 4 |'
+- en: '| Intermediate | 3 |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| 中级 | 3 |'
+- en: '| Expert | 2 |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| 专家 | 2 |'
+- en: '| Total | 10 |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总计 | 10 |'
+- en: 'Table 6: Participants’ comprehension of Werewolf game. The lower go, the more
+    familiar.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 6：参与者对狼人游戏的理解。分数越低，越熟悉。
+- en: '| Model | Individuality | Naturalness | Interest | Deceiving | Closing |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 个性 | 自然性 | 兴趣 | 欺骗 | 结束 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| Vanilla LLM | 2.52 | 4.28 | 2.46 | 1.95 | 2.90 |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| 香草 LLM | 2.52 | 4.28 | 2.46 | 1.95 | 2.90 |'
+- en: '| Our Agent | 4.54 | 3.60 | 3.72 | 4.00 | 3.90 |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的代理 | 4.54 | 3.60 | 3.72 | 4.00 | 3.90 |'
+- en: 'Table 7: The results of the qualitative evaluation of the proposed model. “Vanilla
+    LLM” represents normal model, which means nothing was done.'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 7：对提出模型的定性评估结果。“香草 LLM”代表普通模型，意味着没有做任何处理。
+- en: 5.2 Rule-based Algorithm
+  id: totrans-129
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 基于规则的算法
+- en: Table ([3](https://arxiv.org/html/2409.01575v1#S4.T3 "Table 3 ‣ Closing Conversation
+    ‣ 4.4 Rule-based Algorithm ‣ 4 System Design ‣ An Implementation of Werewolf Agent
+    That does not Truly Trust LLMs")) is in a situation where it has been discovered
+    by the seer to be a werewolf. In a vanilla LLM that does not incorporate the proposed
+    method, merely providing baseless denials without presenting new information leads
+    to a situation where, if no additional information is provided subsequently, it
+    becomes certain that the entity is a werewolf. On the other hand, by using a template
+    utterance selected by a rule-based algorithm to falsify the seer and increase
+    the number of seer’s results, he prevents a situation in which he is confirmed
+    to be a werewolf. Table ([4](https://arxiv.org/html/2409.01575v1#S4.T4 "Table
+    4 ‣ Closing Conversation ‣ 4.4 Rule-based Algorithm ‣ 4 System Design ‣ An Implementation
+    of Werewolf Agent That does not Truly Trust LLMs")) is in a situation where the
+    talk phase is about to conclude. The vanilla LLM is making utterances that may
+    continue the conversation. On the other hand, the template utterance selected
+    by the rule-based algorithm makes it clear that the conversation will end, since
+    it indicates that it is going to vote after saying “I don’t think we need to talk
+    anymore.”
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格（[3](https://arxiv.org/html/2409.01575v1#S4.T3 "Table 3 ‣ Closing Conversation
+    ‣ 4.4 Rule-based Algorithm ‣ 4 System Design ‣ An Implementation of Werewolf Agent
+    That does not Truly Trust LLMs")）展示的是一个情境，在此情境中，先知已经发现某个角色是狼人。在没有采用提议方法的原生 LLM
+    中，仅仅提供毫无根据的否认而没有呈现新的信息，会导致如果没有后续的额外信息提供，便确定该实体是狼人。另一方面，通过使用规则基础算法选择的模板发言来伪造先知的判断并增加先知的结果数量，避免了被确认是狼人的局面。表格（[4](https://arxiv.org/html/2409.01575v1#S4.T4
+    "Table 4 ‣ Closing Conversation ‣ 4.4 Rule-based Algorithm ‣ 4 System Design ‣
+    An Implementation of Werewolf Agent That does not Truly Trust LLMs")）展示的是一个情境，其中谈话阶段即将结束。原生
+    LLM 正在做可能继续对话的发言。另一方面，规则基础算法选择的模板发言明确表明对话将结束，因为它表示在说完“我认为我们不需要再说了”后，将会进行投票。
+- en: 5.3 Qualitative Evaluation
+  id: totrans-131
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3 定性评估
+- en: 'To measure the extent of changes in the agent we implemented, we conducted
+    a questionnaire regarding qualitative evaluation with the help of 10 external
+    annotators with some questions. The evaluation focused on two main aspects: whether
+    the agent is unique and whether it is logical.'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了衡量我们实现的代理的变化程度，我们通过帮助10名外部注释员进行了关于定性评估的问卷调查，问卷中包含了一些问题。评估主要关注两个方面：代理是否具有独特性，以及它是否合乎逻辑。
+- en: To compare the two outputs, we utilized randomly selected logs obtained from
+    a server where werewolf agents can register to compete against other participants.
+    We extracted several situations from these logs and generated subsequent utterances
+    using both the proposed agent and the vanilla LLM. The test containing the history
+    of the last few conversations and the two types of outputs was presented, and
+    participants were asked to rate each output on a scale of 1 to 5. During this
+    process, it was ensured that the participants could not discern which utterance
+    was generated by the proposed method.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了比较这两种输出，我们利用了从一个服务器中随机选取的日志，服务器上狼人代理可以注册并与其他参与者竞争。我们从这些日志中提取了几个情境，并使用提议的代理和原生
+    LLM 生成了后续的发言。测试包含了最后几次对话的历史记录和两种类型的输出，参与者被要求对每个输出进行1到5分的评分。在此过程中，确保参与者无法分辨出哪个发言是由提议的方法生成的。
+- en: The evaluation index is shown in Table ([5](https://arxiv.org/html/2409.01575v1#S5.T5
+    "Table 5 ‣ 5.1 Persona ‣ 5 Evaluation ‣ An Implementation of Werewolf Agent That
+    does not Truly Trust LLMs")). The criteria for a score of 1 and 5 were presented
+    for all indexes. Scores of 2 to 4 were judged based on their proximity to the
+    criteria. Individuality, naturalness, and interest were subjected to five test
+    cases that did not involve any specific situational selection. Deceiving and closing
+    test cases consist of utterance under selected situations; with deceiving being
+    subjected to 2 test cases and closing to 3 test cases. These instructions presented
+    to the participants are shown in Appendix ([A.5](https://arxiv.org/html/2409.01575v1#A1.SS5
+    "A.5 Instruction for Evaluators ‣ Appendix A Appendix ‣ An Implementation of Werewolf
+    Agent That does not Truly Trust LLMs")).
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估指标见表格 ([5](https://arxiv.org/html/2409.01575v1#S5.T5 "Table 5 ‣ 5.1 Persona
+    ‣ 5 Evaluation ‣ An Implementation of Werewolf Agent That does not Truly Trust
+    LLMs"))。所有指标的评分标准为1和5。2到4分的评分根据与标准的接近程度进行判断。个性化、自然性和兴趣这三项指标分别经过五个不涉及特定情境选择的测试案例。欺骗性和关闭性测试案例包括在特定情境下的发言；欺骗性测试有2个案例，关闭性测试有3个案例。向参与者提供的这些指令见附录
+    ([A.5](https://arxiv.org/html/2409.01575v1#A1.SS5 "A.5 Instruction for Evaluators
+    ‣ Appendix A Appendix ‣ An Implementation of Werewolf Agent That does not Truly
+    Trust LLMs"))。
+- en: A total of 10 participants, all in their 20s, participated in the evaluation.
+    Participants were recruited mainly from members of the authors’ laboratories on
+    a volunteer basis. The participants’ comprehension of Werewolf game is shown in
+    Table ([6](https://arxiv.org/html/2409.01575v1#S5.T6 "Table 6 ‣ 5.1 Persona ‣
+    5 Evaluation ‣ An Implementation of Werewolf Agent That does not Truly Trust LLMs")).
+    None of the respondents had ever heard of the Werewolf game. Nine of the ten respondents
+    had played the Werewolf game at least once, and five people had sufficient knowledge
+    of the game.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总共有10名参与者，全部为20多岁，参与了此次评估。参与者主要来自作者实验室的成员，均为志愿者。参与者对狼人游戏的理解见表格 ([6](https://arxiv.org/html/2409.01575v1#S5.T6
+    "Table 6 ‣ 5.1 Persona ‣ 5 Evaluation ‣ An Implementation of Werewolf Agent That
+    does not Truly Trust LLMs"))。没有参与者听说过狼人游戏。十名参与者中，有九人至少玩过一次狼人游戏，五人对该游戏有足够的了解。
+- en: The results of the qualitative evaluation are presented in Table ([7](https://arxiv.org/html/2409.01575v1#S5.T7
+    "Table 7 ‣ 5.1 Persona ‣ 5 Evaluation ‣ An Implementation of Werewolf Agent That
+    does not Truly Trust LLMs")). Given that the individuality score for the proposed
+    method is 4.54 compared to 2.52 for the vanilla LLM, it is evident that the proposed
+    method facilitates the generation of more distinctive utterance. Furthermore,
+    the interest category indicates that there is a secondary effect of the proposed
+    method, which makes the conversations more engaging compared to the utterance
+    generated by the vanilla LLM. On the other hand, we found that the grammatical
+    naturalness is compromised when generating more personalized utterances, as evidenced
+    by the fact that the proposed method score was 3.60 in contrast to the vanilla
+    LLM’s score of 4.28. We got feedback that the grammar tended to deteriorate due
+    to the inclusion of a character with a child-like, incomplete talk style. Overall,
+    the sentences generated by our agents were able to entertain the user side by
+    enabling for individualized utterance depending on the persona.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定性评估的结果见表格 ([7](https://arxiv.org/html/2409.01575v1#S5.T7 "Table 7 ‣ 5.1 Persona
+    ‣ 5 Evaluation ‣ An Implementation of Werewolf Agent That does not Truly Trust
+    LLMs"))。考虑到所提方法的个性化评分为4.54，而普通LLM的评分为2.52，显然该方法有助于生成更具辨识度的发言。此外，兴趣类别表明所提方法有一个次要效果，使得对话比普通LLM生成的发言更具吸引力。另一方面，我们发现，当生成更具个性化的发言时，语法的自然性有所妥协，正如所提方法的评分为3.60，而普通LLM的评分为4.28所示。我们收到的反馈指出，由于引入了具有儿童式、不完整语言风格的角色，语法可能会有所恶化。总体而言，我们的代理生成的句子能够通过根据个性化的角色生成发言，从而娱乐用户。
+- en: The template utterances selected by the rule-based algorithm from the deceiving
+    and closing items are also fully functional. In particular, deceiving made by
+    the counter-CO are rated significantly higher, from 1.95 to 4.00. Closing did
+    not have a significant difference in score compared to deceiving. This might be
+    due to the reviewer’s lack of werewolf-specific knowledge; some reviewers did
+    not understand the agent’s expression “heading to the voting site”, which implies
+    closing of the conversation.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由基于规则的算法从欺骗和结束项中选择的模板话语也完全有效。特别是，由反CO做出的欺骗得分显著更高，从1.95提升到4.00。与欺骗相比，结束项的得分差异并不显著。这可能是由于评审者缺乏狼人杀特定知识；一些评审者没有理解代理人的表达“前往投票现场”，这一表述暗示了对话的结束。
+- en: 6 Conclusion
+  id: totrans-138
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论
+- en: In this paper, we proposed a werewolf agent that utilizes an LLM’s ability to
+    make natural conversation. Instead of relying solely on the LLM output, we combined
+    a rule-based algorithm to complement strategic thinking abilities. Our system
+    successfully solved some difficulties; the agent can refute in a critical situation
+    and decide the appropriate timing to finish a conversation with the rule-based
+    algorithm; the agent also shows several abundant personalities that are made by
+    giving prompts. As a result, this approach accelerated conversational fluency
+    and facilitated logical utterance. This is also confirmed by the results of the
+    qualitative evaluation.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们提出了一种利用LLM能力进行自然对话的狼人代理。我们不仅仅依赖LLM输出，还结合了基于规则的算法来补充战略思维能力。我们的系统成功解决了一些困难；代理人在关键情境下能够反驳，并通过基于规则的算法决定合适的时机结束对话；代理人还展示了通过提示生成的几种丰富个性。结果表明，这种方法加速了对话流畅性并促进了逻辑表达。这一点也得到了定性评估结果的验证。
+- en: Our implementation also revealed many limitations of the current approach. One
+    of the main problems is the lack of consistency among an agent’s utterances; on
+    average, there is one contradictory utterance in five games. The reason is that
+    the agent’s own utterance was mitigated by a long conversation history, and the
+    agent becomes too affected by other players’ utterances. Weighting the agent’s
+    past utterances or giving the prompts consistent thought may help to solve such
+    a problem in the future.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的实现还揭示了当前方法的许多局限性。主要问题之一是代理话语缺乏一致性；平均而言，每五局游戏中就会出现一次自相矛盾的发言。原因是代理人的话语受到了较长对话历史的影响，且代理人过于受到其他玩家话语的影响。通过加权代理人的过去话语或给出一致性的提示，可能有助于在未来解决此类问题。
+- en: Limitations
+  id: totrans-141
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 局限性
+- en: Limitations of Rule-based Algorithm
+  id: totrans-142
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 基于规则的算法的局限性
+- en: In this paper, we proposed a method of filtering the output of the LLM with
+    a rule-based algorithm. This method will only work well for simple games with
+    a few players. This is because as the number of players increases and the game
+    becomes more complex, it becomes difficult to define rule-based algorithm. If
+    the proposed method is to be applied to the Werewolf with many players, a decision-making
+    process using reinforcement learning, etc., might be prepared instead of a rule-based
+    algorithm.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们提出了一种通过基于规则的算法过滤LLM输出的方法。此方法只适用于玩家较少的简单游戏。因为随着玩家数量的增加和游戏复杂性的提高，基于规则的算法变得难以定义。如果要将该方法应用于玩家较多的狼人杀，可能需要采用如强化学习等决策过程，而不是基于规则的算法。
+- en: The Costs of Calling API
+  id: totrans-144
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 调用API的费用
+- en: The models used in this paper are GPT-3.5 (gpt-3.5-0613) and GPT-4 (gpt-4-0125)
+    from OpenAI. These models are accessed via API, which is subject to change and
+    incurs costs based on the number of input tokens.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文中使用的模型是OpenAI的GPT-3.5（gpt-3.5-0613）和GPT-4（gpt-4-0125）。这些模型通过API访问，API可能会发生变化，并且费用根据输入的tokens数量而定。
+- en: Reproducibility of Outputs
+  id: totrans-146
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 输出的可重复性
+- en: In our system, LLMs cannot handle the game’s difficulty alone. Using any sophisticated
+    techniques may change this result. In addition, using the latest versions of the
+    LLMs might lead to different outcomes.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的系统中，LLM无法单独处理游戏的难度。使用任何复杂的技术可能会改变这一结果。此外，使用最新版本的LLM可能会导致不同的结果。
+- en: License
+  id: totrans-148
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 许可
+- en: The use of Zundamon, a Japanese character utilized in this study, is permitted
+    for research purposes.⁴⁴4[https://zunko.jp/con_ongen_kiyaku.html](https://zunko.jp/con_ongen_kiyaku.html)
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究中使用的日本角色Zundamon的使用已获得许可，仅限于研究目的。⁴⁴4[https://zunko.jp/con_ongen_kiyaku.html](https://zunko.jp/con_ongen_kiyaku.html)
+- en: AI Assistant Tools
+  id: totrans-150
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: AI助手工具
+- en: We used ChatGPT⁵⁵5[https://chatgpt.com/](https://chatgpt.com/) and DeepL⁶⁶6[https://www.deepl.com/translator](https://www.deepl.com/translator)
+    to translate sentences from Japanese to English to accelerate our research.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用了 ChatGPT⁵⁵5[https://chatgpt.com/](https://chatgpt.com/) 和 DeepL⁶⁶6[https://www.deepl.com/translator](https://www.deepl.com/translator)
+    将日语翻译成英语，以加速我们的研究。
+- en: References
+  id: totrans-152
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Achiam et al. (2023) Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad,
+    Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman,
+    Shyamal Anadkat, et al. 2023. Gpt-4 technical report. *arXiv preprint arXiv:2303.08774*.
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Achiam 等（2023）Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge
+    Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman,
+    Shyamal Anadkat 等人. 2023. GPT-4技术报告. *arXiv预印本 arXiv:2303.08774*。
+- en: Anil et al. (2023) Rohan Anil, Andrew M Dai, Orhan Firat, Melvin Johnson, Dmitry
+    Lepikhin, Alexandre Passos, Siamak Shakeri, Emanuel Taropa, Paige Bailey, Zhifeng
+    Chen, et al. 2023. Palm 2 technical report. *arXiv preprint arXiv:2305.10403*.
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anil 等（2023）Rohan Anil, Andrew M Dai, Orhan Firat, Melvin Johnson, Dmitry Lepikhin,
+    Alexandre Passos, Siamak Shakeri, Emanuel Taropa, Paige Bailey, Zhifeng Chen 等人.
+    2023. Palm 2技术报告. *arXiv预印本 arXiv:2305.10403*。
+- en: 'Braverman et al. (2008) Mark Braverman, Omid Etesami, and Elchanan Mossel.
+    2008. [Mafia: A theoretical study of players and coalitions in a partial information
+    environment](https://doi.org/10.1214/07-aap456). *The Annals of Applied Probability*,
+    18(3).'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Braverman 等（2008）Mark Braverman, Omid Etesami, 和 Elchanan Mossel. 2008. [黑帮：在部分信息环境中玩家与联盟的理论研究](https://doi.org/10.1214/07-aap456).
+    *应用概率年鉴*, 18(3)。
+- en: Callison-Burch et al. (2022) Chris Callison-Burch, Gaurav Singh Tomar, Lara
+    Martin, Daphne Ippolito, Suma Bailis, and David Reitter. 2022. [Dungeons and dragons
+    as a dialog challenge for artificial intelligence](https://doi.org/10.18653/v1/2022.emnlp-main.637).
+    In *Proceedings of the 2022 Conference on Empirical Methods in Natural Language
+    Processing*. Association for Computational Linguistics.
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Callison-Burch 等（2022）Chris Callison-Burch, Gaurav Singh Tomar, Lara Martin,
+    Daphne Ippolito, Suma Bailis, 和 David Reitter. 2022. [龙与地下城：作为人工智能对话挑战的研究](https://doi.org/10.18653/v1/2022.emnlp-main.637).
+    载于 *2022年自然语言处理经验方法会议论文集*，计算语言学协会。
+- en: Fukui et al. (2017) Takanori Fukui, Keisuke Ando, Toshihide Murakami, Nobuhiro
+    Ito, and Kazunori Iwata. 2017. [Automatic classification of remarks in werewolf
+    bbs](https://doi.org/10.1109/ACIT-CSII-BCD.2017.17). In *2017 5th Intl Conf on
+    Applied Computing and Information Technology/4th Intl Conf on Computational Science/Intelligence
+    and Applied Informatics/2nd Intl Conf on Big Data, Cloud Computing, Data Science
+    (ACIT-CSII-BCD)*, pages 210–215.
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fukui 等（2017）Takanori Fukui, Keisuke Ando, Toshihide Murakami, Nobuhiro Ito,
+    和 Kazunori Iwata. 2017. [狼人BBS中的发言自动分类](https://doi.org/10.1109/ACIT-CSII-BCD.2017.17).
+    载于 *2017年第五届应用计算与信息技术国际会议/第四届计算科学/智能与应用信息学国际会议/第二届大数据、云计算与数据科学国际会议（ACIT-CSII-BCD）*，第210–215页。
+- en: Google (2024) Google. 2024. [Introducing Gemini 1.5](https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024/).
+    (Accessed on Apr 30, 2024).
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Google（2024）Google. 2024. [介绍Gemini 1.5](https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024/).
+    （2024年4月30日访问）。
+- en: 'Huang (2024) Yu Huang. 2024. Levels of ai agents: from rules to large language
+    models. *arXiv preprint arXiv:2405.06643*.'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang（2024）Yu Huang. 2024. AI代理的层次：从规则到大型语言模型。 *arXiv预印本 arXiv:2405.06643*。
+- en: 'Kano et al. (2023) Yoshinobu Kano, Neo Watanabe, Kaito Kagaminuma, Claus Aranha,
+    Jaewon Lee, Benedek Hauer, Hisaichi Shibata, Soichiro Miki, Yuta Nakamura, Takuya
+    Okubo, Soga Shigemura, Rei Ito, Kazuki Takashima, Tomoki Fukuda, Masahiro Wakutani,
+    Tomoya Hatanaka, Mami Uchida, Mikio Abe, Akihiro Mikami, Takashi Otsuki, Zhiyang
+    Qi, Kei Harada, Michimasa Inaba, Daisuke Katagami, Hirotaka Osawa, and Fujio Toriumi.
+    2023. [AIWolfDial 2023: Summary of natural language division of 5th international
+    AIWolf contest](https://aclanthology.org/2023.inlg-genchal.13). In *Proceedings
+    of the 16th International Natural Language Generation Conference: Generation Challenges*,
+    pages 84–100, Prague, Czechia. Association for Computational Linguistics.'
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kano 等（2023）Yoshinobu Kano, Neo Watanabe, Kaito Kagaminuma, Claus Aranha, Jaewon
+    Lee, Benedek Hauer, Hisaichi Shibata, Soichiro Miki, Yuta Nakamura, Takuya Okubo,
+    Soga Shigemura, Rei Ito, Kazuki Takashima, Tomoki Fukuda, Masahiro Wakutani, Tomoya
+    Hatanaka, Mami Uchida, Mikio Abe, Akihiro Mikami, Takashi Otsuki, Zhiyang Qi,
+    Kei Harada, Michimasa Inaba, Daisuke Katagami, Hirotaka Osawa, 和 Fujio Toriumi.
+    2023. [AIWolfDial 2023：第五届国际AIWolf竞赛自然语言分区总结](https://aclanthology.org/2023.inlg-genchal.13).
+    载于 *第16届国际自然语言生成会议：生成挑战论文集*，第84–100页，捷克布拉格，计算语言学协会。
+- en: Meta (2023) Meta. 2023. [Introducing Llama2](https://llama.meta.com/llama2/).
+    (Accessed on Apr 30, 2024).
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Meta（2023）Meta. 2023. [介绍Llama2](https://llama.meta.com/llama2/). （2024年4月30日访问）。
+- en: Meta (2024) Meta. 2024. [Introducing Llama3](https://llama.meta.com/llama3/).
+    (Accessed on Apr 30, 2024).
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Meta (2024) Meta. 2024. [介绍 Llama3](https://llama.meta.com/llama3/). （访问日期：2024年4月30日）。
+- en: Migdał (2013) Piotr Migdał. 2013. [A mathematical model of the mafia game](https://arxiv.org/abs/1009.1031).
+    *Preprint*, arXiv:1009.1031.
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Migdał (2013) Piotr Migdał. 2013. [狼人游戏的数学模型](https://arxiv.org/abs/1009.1031).
+    *预印本*，arXiv:1009.1031。
+- en: Nagayama et al. (2019) Shoji Nagayama, Jotaro Abe, Kosuke Oya, Kotaro Sakamoto,
+    Hideyuki Shibuki, Tatsunori Mori, and Noriko Kando. 2019. [Strategies for an autonomous
+    agent playing the “werewolf game” as a stealth werewolf](https://doi.org/10.18653/v1/W19-8305).
+    In *Proceedings of the 1st International Workshop of AI Werewolf and Dialog System
+    (AIWolfDial2019)*, pages 20–24, Tokyo, Japan. Association for Computational Linguistics.
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nagayama 等人 (2019) Shoji Nagayama, Jotaro Abe, Kosuke Oya, Kotaro Sakamoto,
+    Hideyuki Shibuki, Tatsunori Mori, 和 Noriko Kando. 2019. [作为潜伏狼人自动代理的策略](https://doi.org/10.18653/v1/W19-8305).
+    收录于 *第1届人工智能狼人游戏与对话系统国际研讨会 (AIWolfDial2019)*，第20–24页，日本东京。计算语言学协会。
+- en: Nakamura et al. (2016) Noritsugu Nakamura, Michimasa Inaba, Kenichi Takahashi,
+    Fujio Toriumi, Hirotaka Osawa, Daisuke Katagami, and Kousuke Shinoda. 2016. [Constructing
+    a human-like agent for the werewolf game using a psychological model based multiple
+    perspectives](https://doi.org/10.1109/SSCI.2016.7850031). In *2016 IEEE Symposium
+    Series on Computational Intelligence (SSCI)*, pages 1–8.
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nakamura 等人 (2016) Noritsugu Nakamura, Michimasa Inaba, Kenichi Takahashi, Fujio
+    Toriumi, Hirotaka Osawa, Daisuke Katagami, 和 Kousuke Shinoda. 2016. [基于心理模型的多角度构建人类代理以进行狼人游戏](https://doi.org/10.1109/SSCI.2016.7850031).
+    收录于 *2016 IEEE 计算智能研讨会系列 (SSCI)*，第1–8页。
+- en: OpenAI (2022) OpenAI. 2022. [Introducing ChatGPT](https://openai.com/blog/chatgpt).
+    (Accessed on Apr 29, 2024).
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2022) OpenAI. 2022. [介绍 ChatGPT](https://openai.com/blog/chatgpt). （访问日期：2024年4月29日）。
+- en: OpenAI (2023) OpenAI. 2023. [Introducing GPT-4](https://openai.com/research/gpt-4).
+    (Accessed on Apr 30, 2024).
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2023) OpenAI. 2023. [介绍 GPT-4](https://openai.com/research/gpt-4). （访问日期：2024年4月30日）。
+- en: 'Ri et al. (2022) Hong Ri, Xiaohan Kang, Mohd Nor Akmal Khalid, and Hiroyuki
+    Iida. 2022. The Dynamics of Minority versus Majority Behaviors: A Case Study of
+    the Mafia Game. *Information*, 13(3):134.'
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ri 等人 (2022) Hong Ri, Xiaohan Kang, Mohd Nor Akmal Khalid, 和 Hiroyuki Iida.
+    2022. 少数派与多数派行为的动态：狼人游戏案例研究. *信息*，13(3):134。
+- en: 'Team et al. (2023) Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu,
+    Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai,
+    Anja Hauth, et al. 2023. Gemini: a family of highly capable multimodal models.
+    *arXiv preprint arXiv:2312.11805*.'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Team 等人 (2023) Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu, Jean-Baptiste
+    Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth 等人.
+    2023. Gemini：一系列高能力的多模态模型. *arXiv 预印本 arXiv:2312.11805*。
+- en: 'Touvron et al. (2023a) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, et al. 2023a. Llama 2: Open foundation and fine-tuned chat models.
+    *arXiv preprint arXiv:2307.09288*.'
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron 等人 (2023a) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad
+    Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale 等人. 2023a. Llama 2: 开放基础和微调聊天模型. *arXiv 预印本 arXiv:2307.09288*。'
+- en: 'Touvron et al. (2023b) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, et al. 2023b. Llama 2: Open foundation and fine-tuned chat models.
+    *arXiv preprint arXiv:2307.09288*.'
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron 等人 (2023b) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad
+    Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale 等人. 2023b. Llama 2: 开放基础和微调聊天模型. *arXiv 预印本 arXiv:2307.09288*。'
+- en: Vertsel and Rumiantsau (2024) Aliaksei Vertsel and Mikhail Rumiantsau. 2024.
+    Hybrid llm/rule-based approaches to business insights generation from structured
+    data. *arXiv preprint arXiv:2404.15604*.
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Vertsel 和 Rumiantsau (2024) Aliaksei Vertsel 和 Mikhail Rumiantsau. 2024. 混合的
+    LLM/规则基础方法生成结构化数据的商业洞察. *arXiv 预印本 arXiv:2404.15604*。
+- en: Wang and Kaneko (2018) Tianhe Wang and Tomoyuki Kaneko. 2018. Application of
+    deep reinforcement learning in werewolf game agents. In *2018 conference on technologies
+    and applications of artificial intelligence (TAAI)*, pages 28–33\. IEEE.
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 和 Kaneko (2018) Tianhe Wang 和 Tomoyuki Kaneko. 2018. 深度强化学习在狼人游戏代理中的应用.
+    收录于 *2018 人工智能技术与应用大会 (TAAI)*，第28–33页。IEEE。
+- en: White et al. (2023) Jules White, Quchen Fu, Sam Hays, Michael Sandborn, Carlos
+    Olea, Henry Gilbert, Ashraf Elnashar, Jesse Spencer-Smith, and Douglas C Schmidt.
+    2023. A prompt pattern catalog to enhance prompt engineering with chatgpt. *arXiv
+    preprint arXiv:2302.11382*.
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: White等人（2023）Jules White、Quchen Fu、Sam Hays、Michael Sandborn、Carlos Olea、Henry
+    Gilbert、Ashraf Elnashar、Jesse Spencer-Smith和Douglas C Schmidt。2023年。用于增强ChatGPT提示工程的提示模式目录。*arXiv预印本
+    arXiv:2302.11382*。
+- en: Wu et al. (2024) Shuang Wu, Liwen Zhu, Tao Yang, Shiwei Xu, Qiang Fu, Yang Wei,
+    and Haobo Fu. 2024. Enhance Reasoning for Large Language Models in the Game Werewolf.
+    *arXiv preprint arXiv:2402.02330*.
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu等人（2024）Shuang Wu、Liwen Zhu、Tao Yang、Shiwei Xu、Qiang Fu、Yang Wei和Haobo Fu。2024年。增强大型语言模型在狼人游戏中的推理能力。*arXiv预印本
+    arXiv:2402.02330*。
+- en: 'Xu et al. (2023) Yuzhuang Xu, Shuo Wang, Peng Li, Fuwen Luo, Xiaolong Wang,
+    Weidong Liu, and Yang Liu. 2023. Exploring large language models for communication
+    games: An empirical study on werewolf. *arXiv preprint arXiv:2309.04658*.'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xu等人（2023）Yuzhuang Xu、Shuo Wang、Peng Li、Fuwen Luo、Xiaolong Wang、Weidong Liu和Yang
+    Liu。2023年。探索大型语言模型在交流游戏中的应用：关于狼人游戏的实证研究。*arXiv预印本 arXiv:2309.04658*。
+- en: Appendix A Appendix
+  id: totrans-177
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 附录
+- en: A.1 Required Game Status
+  id: totrans-178
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 所需游戏状态
+- en: ID is the agent’s identifier(1, 2, 3, 4, 5). “Role” is the agent’s job in Figure ([2](https://arxiv.org/html/2409.01575v1#S1.F2
+    "Figure 2 ‣ Style Transformation ‣ 1 Introduction ‣ An Implementation of Werewolf
+    Agent That does not Truly Trust LLMs")). “Alive” indicates the list of alive agents.
+    “Dead” indicates the rest of the agents.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ID是代理的标识符（1、2、3、4、5）。“角色”是图中代理的工作（[2](https://arxiv.org/html/2409.01575v1#S1.F2
+    "图2 ‣ 风格转换 ‣ 1 引言 ‣ 不完全信任LLM的狼人代理实现")）。 “存活”表示存活代理的列表。“死亡”表示其余代理。
+- en: '| Call | Content |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| 呼叫 | 内容 |'
+- en: '| --- | --- |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| ID | Agent[02] |'
+  id: totrans-182
+  prefs: []
+  type: TYPE_TB
+  zh: '| ID | 代理[02] |'
+- en: '| Role | Seer |'
+  id: totrans-183
+  prefs: []
+  type: TYPE_TB
+  zh: '| 角色 | 预言家 |'
+- en: '| Alive | Agent[02], Agent[03], Agent[05] |'
+  id: totrans-184
+  prefs: []
+  type: TYPE_TB
+  zh: '| 存活 | 代理[02]、代理[03]、代理[05] |'
+- en: '| Dead | Agent[01], Agent[04] |'
+  id: totrans-185
+  prefs: []
+  type: TYPE_TB
+  zh: '| 死亡 | 代理[01]、代理[04] |'
+- en: 'Table 8: Required game status.'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表8：所需游戏状态。
+- en: A.2 Model Parameters
+  id: totrans-187
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 模型参数
+- en: We set the parameter inside the model based on some openly known werewolf agent
+    settings. The models used in this paper were GPT-3.5 (gpt-3.5-0613) and GPT-4
+    (gpt-4-0125).
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们根据一些公开已知的狼人游戏代理设置，在模型内部设置了参数。本文使用的模型是GPT-3.5（gpt-3.5-0613）和GPT-4（gpt-4-0125）。
+- en: '| Configuration | Parameter |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| 配置 | 参数 |'
+- en: '| --- | --- |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Temperature | 1.0 |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| 温度 | 1.0 |'
+- en: '| Max tokens | 200 |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最大令牌数 | 200 |'
+- en: '| Presence penalty | 0.0 |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| 存在惩罚 | 0.0 |'
+- en: '| Frequency penalty | 0.0 |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| 频率惩罚 | 0.0 |'
+- en: 'Table 9: Model configuration parameters. Other settings, except for the table,
+    used default settings.'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表9：模型配置参数。除了表格之外，其他设置均为默认设置。
+- en: A.3 Analysis Result
+  id: totrans-196
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 分析结果
+- en: This section presents sample logs and the results of analyzing them with the
+    analysis module. It is written entirely in Japanese, with () translated into English.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节展示了样本日志及其通过分析模块进行分析的结果。全部用日语编写，其中（）部分翻译为英语。
+- en: '<svg class="ltx_picture" height="428.83" id="A1.SS3.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,428.83) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 410.63)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Seer Analysis</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    color="#000000" height="379.13" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="556.69">## Task ### Input Agent[02]: おはようございます。私たちは人狼を探さなければいけないようですね。まずは占い師の結果が知りたいです。(Good
+    morning. It seems we have to look for werewolf. First of all, I would like to
+    know the results of the seer.) Agent[01]: おはようございます。人狼を見つけ出すことが私たちの役目ですね。確かに、占い師の結果が得られるのが楽しみです。(Good
+    morning. So our task is to find the werewolf. Indeed, I am looking forward to
+    getting the results of the seer.) Agent[05]: 私は占い師です。占いの結果、Agent[02]は人狼でした。(I
+    am a seer. As a result of the divination, Agent [02] was a werewolf.) Agent[04]:
+    Agent[05]、占い結果を発表してくれてありがとう。私もAgent[02]を疑っていましょう。それでは、今夜の投票はAgent[02]にします。(Agent[05],
+    thanks for presenting your divination results. Let me also be suspicious of Agent[02].
+    Then, I will vote for Agent[02] tonight.) Agent[03]: Agent[05]さんの占い結果によるとAgent[02]さんが人狼のようですね。私も今夜の投票はAgent[02]さんにします。(According
+    to Agent[05]’s result, it looks like Agent[02] is a werewolf. I will also vote
+    for Agent[02] tonight.) ### Output Agent[05],Agent[02],Werewolf</foreignobject></g></g></svg><svg
+    class="ltx_picture" height="445.44" id="A1.SS3.p4.pic1" overflow="visible" version="1.1"
+    width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,445.44)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    21.65 427.23)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Vote Analysis</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    color="#000000" height="395.74" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="556.69">## Task ### Input Agent[02]: おはようございます。私たちは人狼を探さなければいけないようですね。まずは占い師の結果が知りたいです。
+    (Good morning. It seems we have to look for werewolf. First of all, I would like
+    to know the results of the seer.) Agent[01]: おはようございます。人狼を見つけ出すことが私たちの役目ですね。確かに、占い師の結果が得られるのが楽しみです。
+    (Good morning. So our task is to find the werewolf. Indeed, I am looking forward
+    to getting the results of the seer.) Agent[05]: 私は占い師です。占いの結果、Agent[02]は人狼でした。
+    (I am a seer. As a result of the divination, Agent [02] was a werewolf.) Agent[04]:
+    Agent[05]、占い結果を発表してくれてありがとう。私もAgent[02]を疑っていましょう。それでは、今夜の投票はAgent[02]にします。 (Agent[05],
+    thanks for presenting your divination results. Let me also be suspicious of Agent[02].
+    Then, I will vote for Agent[02] tonight.) Agent[03]: Agent[05]さんの占い結果によるとAgent[02]さんが人狼のようですね。私も今夜の投票はAgent[02]さんにします。
+    (According to Agent[05]’s result, it looks like Agent[02] is a werewolf. I will
+    also vote for Agent[02] tonight.) ### Output Agent[04] -> Agent[02] Agent[03]
+    -> Agent[02]</foreignobject></g></g></svg>'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '<svg class="ltx_picture" height="428.83" id="A1.SS3.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,428.83) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 410.63)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">预言家分析</foreignobject></g> <g
+    fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    color="#000000" height="379.13" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="556.69">## 任务 ### 输入 Agent[02]: おはようございます。私たちは人狼を探さなければいけないようですね。まずは占い師の結果が知りたいです。(早上好。看起来我们得找出狼人。首先，我想知道占卜师的结果。)
+    Agent[01]: おはようございます。人狼を見つけ出すことが私たちの役目ですね。確かに、占い師の結果が得られるのが楽しみです。(早上好。所以我们的任务是找到狼人。确实，我也很期待得到占卜师的结果。)
+    Agent[05]: 私は占い師です。占いの結果、Agent[02]は人狼でした。(我是占卜师。根据占卜结果，Agent[02]是狼人。) Agent[04]:
+    Agent[05]、占い結果を発表してくれてありがとう。私もAgent[02]を疑っていましょう。それでは、今夜の投票はAgent[02]にします。(Agent[05]，感谢你公布占卜结果。我也开始怀疑Agent[02]了。那么，今晚我投票给Agent[02]。)
+    Agent[03]: Agent[05]さんの占い結果によるとAgent[02]さんが人狼のようですね。私も今夜の投票はAgent[02]さんにします。(根据Agent[05]的结果，Agent[02]看起来是狼人。我今晚也投票给Agent[02]。)
+    ### 输出 Agent[05],Agent[02],狼人</foreignobject></g></g></svg><svg class="ltx_picture"
+    height="445.44" id="A1.SS3.p4.pic1" overflow="visible" version="1.1" width="600"><g
+    fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,445.44)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    21.65 427.23)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">投票分析</foreignobject></g> <g
+    fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    color="#000000" height="395.74" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="556.69">## 任务 ### 输入 Agent[02]: おはようございます。私たちは人狼を探さなければいけないようですね。まずは占い師の結果が知りたいです。
+    (早上好。看起来我们得找出狼人。首先，我想知道占卜师的结果。) Agent[01]: おはようございます。人狼を見つけ出すことが私たちの役目ですね。確かに、占い師の結果が得られるのが楽しみです。
+    (早上好。所以我们的任务是找到狼人。确实，我也很期待得到占卜师的结果。) Agent[05]: 私は占い師です。占いの結果、Agent[02]は人狼でした。
+    (我是占卜师。根据占卜结果，Agent[02]是狼人。) Agent[04]: Agent[05]、占い結果を発表してくれてありがとう。私もAgent[02]を疑っていましょう。それでは、今夜の投票はAgent[02]にします。
+    (Agent[05]，感谢你公布占卜结果。我也开始怀疑Agent[02]了。那么，今晚我投票给Agent[02]。) Agent[03]: Agent[05]さんの占い結果によるとAgent[02]さんが人狼のようですね。私も今夜の投票はAgent[02]さんにします。
+    (根据Agent[05]的结果，Agent[02]看起来是狼人。我今晚也投票给Agent[02]。) ### 输出 Agent[04] -> Agent[02]
+    Agent[03] -> Agent[02]</foreignobject></g></g></svg>'
+- en: A.4 Conversation History Used during Evaluation
+  id: totrans-199
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.4 评估过程中使用的对话历史
+- en: We fixed the prompts in the table below in Japanese, with 6 agents to output
+    XXX below.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将下表中的提示固定为日文，并设置了6个代理输出下面的XXX。
+- en: Then, we compared the results of six agents.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们对六个代理的结果进行了比较。
+- en: '<svg class="ltx_picture" height="235.98" id="A1.SS4.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,235.98) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 23.84 215.74)"><foreignobject color="#FFFFFF" height="12.15" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="552.33">System prompt</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 23.84 15.96)"><foreignobject
+    color="#000000" height="179.88" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="552.33">### 入力形式について (About input format) 上から順に昔の会話履歴となっており、最下段はあなたがこれから行う発言です。
+    (The top row is the old conversation history, and the bottom row is the utterance
+    you are about.) Agent[{番号}]: {発言}となっており、番号は01-05のいずれか、発言は1行の文章となっています。 (Agent[{number}]:
+    {say}, where the number is one of 01-05 and the utterance is a one-line sentence.)
+    ## 会話履歴 ### 1日目 (Day1) <Conversation history> Agent[03]: XXX</foreignobject></g></g></svg><svg
+    class="ltx_picture" height="103.14" id="A1.SS4.p3.pic1" overflow="visible" version="1.1"
+    width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,103.14)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    23.84 82.91)"><foreignobject color="#FFFFFF" height="12.15" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="552.33">User prompt</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 23.84 15.96)"><foreignobject
+    color="#000000" height="47.05" overflow="visible" transform="matrix(1 0 0 -1 0
+    16.6)" width="552.33">会話履歴の末尾にあるXXXに当てはまる文章を100文字以内で出力しなさい。 (Output a sentence
+    of no more than 100 characters that applies to XXX at the end of the conversation
+    history.)</foreignobject></g></g></svg>'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '<svg class="ltx_picture" height="235.98" id="A1.SS4.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,235.98) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 23.84 215.74)"><foreignobject color="#FFFFFF" height="12.15" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="552.33">系统提示</foreignobject></g> <g
+    fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 23.84 15.96)"><foreignobject
+    color="#000000" height="179.88" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="552.33">### 入力形式について (关于输入格式) 上から順に昔の会話履歴となっており、最下段はあなたがこれから行う発言です。
+    (The top row is the old conversation history, and the bottom row is the utterance
+    you are about.) Agent[{番号}]: {発言}となっており、番号は01-05のいずれか、発言は1行の文章となっています。 (Agent[{number}]:
+    {say}, where the number is one of 01-05 and the utterance is a one-line sentence.)
+    ## 会話履歴 ### 1日目 (Day1) <Conversation history> Agent[03]: XXX</foreignobject></g></g></svg><svg
+    class="ltx_picture" height="103.14" id="A1.SS4.p3.pic1" overflow="visible" version="1.1"
+    width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,103.14)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    23.84 82.91)"><foreignobject color="#FFFFFF" height="12.15" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="552.33">用户提示</foreignobject></g> <g
+    fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 23.84 15.96)"><foreignobject
+    color="#000000" height="47.05" overflow="visible" transform="matrix(1 0 0 -1 0
+    16.6)" width="552.33">会话履历的末尾处有XXX，请输出一条不超过100个字符的句子，来填补XXX。 (Output a sentence
+    of no more than 100 characters that applies to XXX at the end of the conversation
+    history.)</foreignobject></g></g></svg>'
+- en: A.5 Instruction for Evaluators
+  id: totrans-203
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.5 评估者指南
+- en: We performed a qualitative evaluation. English was translated using DeepL and
+    not actually used. Below are the instructions.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进行了定性评估。英文通过DeepL翻译并未实际使用。以下是相关的指示。
+- en: <svg class="ltx_picture" height="331.37" id="A1.SS5.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,331.37) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 23.84 313.83)"><foreignobject color="#FFFFFF" height="9.46" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="552.33">Instruction</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 23.84 15.96)"><foreignobject
+    color="#000000" height="277.97" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="552.33">このexcelファイルと同じ階層に10種類のログファイルがあることを確認してください。 それぞれのファイルには直前の会話履歴と二つの出力例A,Bが用意されています。
+    直前の会話履歴を参考に、出力例A,Bそれぞれに点数を付けてください。 ダメ、ややだめ、普通、やや良い、良いをそれぞれ1,2,3,4,5点で評価してください。
+    それぞれの評価指標について1(ダメ)と5(良い)の基準を示します。 2,3,4は基準からの近さで判断してください。 基準を見て、感じたスコアで結構です。深く考えず、1問につき30秒程度で終わらして下さい。
+    Please ensure that there are 10 types of log files in the same directory as this
+    Excel file. Each file contains the preceding conversation history and two output
+    examples, A and B. Based on the preceding conversation history, please assign
+    a score to each of the output examples, A and B. Evaluate them as 1 (Poor), 2
+    (Slightly Poor), 3 (Average), 4 (Slightly Good), or 5 (Good). For each evaluation
+    criterion, the standards for 1 (Poor) and 5 (Good) will be provided. Decide on
+    2, 3, and 4 based on their proximity to the standards. Please assign the score
+    that you feel is appropriate after viewing the standards. Don’t overthink it;
+    try to complete each question in about 30 seconds.</foreignobject></g></g></svg>
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="331.37" id="A1.SS5.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,331.37) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 23.84 313.83)"><foreignobject color="#FFFFFF" height="9.46" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="552.33">Instruction</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 23.84 15.96)"><foreignobject
+    color="#000000" height="277.97" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="552.33">このexcelファイルと同じ階層に10種類のログファイルがあることを確認してください。 それぞれのファイルには直前の会話履歴と二つの出力例A,Bが用意されています。
+    直前の会話履歴を参考に、出力例A,Bそれぞれに点数を付けてください。 ダメ、ややだめ、普通、やや良い、良いをそれぞれ1,2,3,4,5点で評価してください。
+    それぞれの評価指標について1(ダメ)と5(良い)の基準を示します。 2,3,4は基準からの近さで判断してください。 基準を見て、感じたスコアで結構です。深く考えず、1問につき30秒程度で終わらして下さい。
+    Please ensure that there are 10 types of log files in the same directory as this
+    Excel file. Each file contains the preceding conversation history and two output
+    examples, A and B. Based on the preceding conversation history, please assign
+    a score to each of the output examples, A and B. Evaluate them as 1 (Poor), 2
+    (Slightly Poor), 3 (Average), 4 (Slightly Good), or 5 (Good). For each evaluation
+    criterion, the standards for 1 (Poor) and 5 (Good) will be provided. Decide on
+    2, 3, and 4 based on their proximity to the standards. Please assign the score
+    that you feel is appropriate after viewing the standards. Don’t overthink it;
+    try to complete each question in about 30 seconds.</foreignobject></g></g></svg>

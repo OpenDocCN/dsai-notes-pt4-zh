@@ -1,0 +1,2095 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:42:29'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:42:29
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'ODA: Observation-Driven Agent for integrating LLMs and Knowledge Graphs'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: ODA：用于集成LLMs与知识图谱的观察驱动代理
+- en: 来源：[https://arxiv.org/html/2404.07677/](https://arxiv.org/html/2404.07677/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2404.07677/](https://arxiv.org/html/2404.07677/)
+- en: Lei Sun¹¹1Equal contribution²²2Corresponding author¹ Zhengwei Tao¹¹1Equal contribution
+    ² Youdi Li ¹ Hiroshi Arakawa ¹
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Lei Sun¹¹1Equal contribution²²2Corresponding author¹ Zhengwei Tao¹¹1Equal contribution
+    ² Youdi Li ¹ Hiroshi Arakawa ¹
+- en: ¹Panasonic Connect Co., Ltd., Japan
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹Panasonic Connect株式会社，日本
+- en: ²Peking University
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ²北京大学
+- en: tttzw@stu.pku.edu.cn
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: tttzw@stu.pku.edu.cn
+- en: '{sun.lei, ri.yutei, arakawa.hrs}@jp.panasonic.com'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{sun.lei, ri.yutei, arakawa.hrs}@jp.panasonic.com'
+- en: Abstract
+  id: totrans-11
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: The integration of Large Language Models (LLMs) and knowledge graphs (KGs) has
+    achieved remarkable success in various natural language processing tasks. However,
+    existing methodologies that integrate LLMs and KGs often navigate the task-solving
+    process solely based on the LLM’s analysis of the question, overlooking the rich
+    cognitive potential inherent in the vast knowledge encapsulated in KGs. To address
+    this, we introduce Observation-Driven Agent (ODA), a novel AI agent framework
+    tailored for tasks involving KGs. ODA incorporates KG reasoning abilities via
+    global observation, which enhances reasoning capabilities through a cyclical paradigm
+    of observation, action, and reflection. Confronting the exponential explosion
+    of knowledge during observation, we innovatively design a recursive observation
+    mechanism. Subsequently, we integrate the observed knowledge into the action and
+    reflection modules. Through extensive experiments, ODA demonstrates state-of-the-art
+    performance on several datasets, notably achieving accuracy improvements of 12.87%
+    and 8.9%. Our code and data are available on [ODA](https://github.com/lanjiuqing64/KGdata).
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）与知识图谱（KGs）的结合在各种自然语言处理任务中取得了显著的成功。然而，现有的将LLMs与KGs结合的方法通常仅基于LLM对问题的分析来推动任务解决过程，忽视了KGs中蕴含的丰富认知潜力。为了解决这一问题，我们提出了观察驱动代理（ODA），一种专为涉及KGs的任务设计的全新AI代理框架。ODA通过全球观察整合了KG推理能力，通过观察、行动和反思的循环范式增强了推理能力。在观察过程中面对知识的指数级爆炸，我们创新性地设计了递归观察机制。随后，我们将观察到的知识整合到行动和反思模块中。通过广泛的实验，ODA在多个数据集上展示了最先进的性能，特别是在准确率上分别提高了12.87%和8.9%。我们的代码和数据可以在[ODA](https://github.com/lanjiuqing64/KGdata)上找到。
+- en: 'ODA: Observation-Driven Agent for integrating LLMs and Knowledge Graphs'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ODA：用于集成LLMs与知识图谱的观察驱动代理
+- en: Lei Sun¹¹1Equal contribution²²2Corresponding author¹ Zhengwei Tao¹¹1Equal contribution
+    ² Youdi Li ¹ Hiroshi Arakawa ¹ ¹Panasonic Connect Co., Ltd., Japan ²Peking University
+    tttzw@stu.pku.edu.cn {sun.lei, ri.yutei, arakawa.hrs}@jp.panasonic.com
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Lei Sun¹¹1Equal contribution²²2Corresponding author¹ Zhengwei Tao¹¹1Equal contribution
+    ² Youdi Li ¹ Hiroshi Arakawa ¹ ¹Panasonic Connect株式会社，日本 ²北京大学 tttzw@stu.pku.edu.cn
+    {sun.lei, ri.yutei, arakawa.hrs}@jp.panasonic.com
+- en: 1 Introduction
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Large language models (LLMs) Touvron et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib27));
+    Scao et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib23)); Muennighoff
+    et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib16)); Brown et al. ([2020](https://arxiv.org/html/2404.07677v2#bib.bib2))
+    have exhibited extraordinary capabilities across a variety of natural language
+    processing tasks. Despite their impressive accomplishments, LLMs often struggle
+    to provide accurate responses to queries that necessitate specialized expertise
+    beyond their pre-training content. In response to this limitation, a natural and
+    promising approach involves the integration of external knowledge sources, such
+    as knowledge graphs (KGs), to augment LLM reasoning abilities. KGs provide structured,
+    explicit, and explainable knowledge representations, offering a synergistic method
+    to overcome the intrinsic constraints of LLMs. The fusion of LLMs with KGs has
+    garnered significant interest in recent research Pan et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib19)),
+    underlying a vast array of applications Zhang et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib35));
+    Do et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib5)); Sun et al. ([2023b](https://arxiv.org/html/2404.07677v2#bib.bib25)).
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）Touvron 等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib27)）；Scao
+    等人（[2022](https://arxiv.org/html/2404.07677v2#bib.bib23)）；Muennighoff 等人（[2022](https://arxiv.org/html/2404.07677v2#bib.bib16)）；Brown
+    等人（[2020](https://arxiv.org/html/2404.07677v2#bib.bib2)）在多种自然语言处理任务中展现了卓越的能力。尽管取得了令人印象深刻的成就，LLM
+    在处理需要超出其预训练内容的专门知识的查询时，仍然常常无法提供准确的回答。针对这一局限性，一种自然且富有前景的解决方案是将外部知识源（如知识图谱（KG））与
+    LLM 集成，以增强 LLM 的推理能力。KG 提供了结构化、明确且可解释的知识表示，提供了一种协同的方法来克服 LLM 的固有限制。LLM 与 KG 的融合在最近的研究中引起了广泛关注，Pan
+    等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib19)）提出了这一点，并在大量应用中取得了成果，Zhang
+    等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib35)）；Do 等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib5)）；Sun
+    等人（[2023b](https://arxiv.org/html/2404.07677v2#bib.bib25)）。
+- en: '![Refer to caption](img/c7f28811d05f3e767380eba864f016e3.png)'
+  id: totrans-17
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/c7f28811d05f3e767380eba864f016e3.png)'
+- en: 'Figure 1: An example of LLM integrating with KG. Observed entities are shown
+    in white, while non-observed entities are displayed in gray. Entities selected
+    by the agent to answer the question are highlighted in yellow.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：LLM 与知识图谱（KG）集成的示例。观察到的实体以白色显示，未观察到的实体以灰色显示。代理选择的用于回答问题的实体以黄色高亮显示。
+- en: 'Existing methodologies for solving tasks that integrate KGs with LLMs can be
+    categorized into two groups. The first one involves retrieving relevant triples
+    from KGs in response to specific questions Wang et al. ([2023b](https://arxiv.org/html/2404.07677v2#bib.bib29));
+    Luo et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib14)); Jiang et al.
+    ([2023](https://arxiv.org/html/2404.07677v2#bib.bib11)). The second part adopts
+    an explore-exploit strategy, directing the knowledge utilization process within
+    the graph according to the question Sun et al. ([2023b](https://arxiv.org/html/2404.07677v2#bib.bib25));
+    Guo et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib8)). However, both
+    categories navigate the task-solving process by merely relying on the LLM’s analysis
+    of the question, overlooking the rich cognitive potential inherent in the abundant
+    knowledge encapsulated in KGs. KGs, which store a wealth of informative and symbolic
+    facts, should deeply participate in the reasoning process together with LLM rather
+    than being merely treated as a static repository of knowledge Pan et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib19)).
+    As the example in the upper panel of Figure [1](https://arxiv.org/html/2404.07677v2#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs"), LLM analyzes the question and navigates towards Narrative
+    location relation of entity The Call of The Wild. However, this entity has many
+    neighboring entities with that relation, leading LLM to incorrectly infer Canada
+    as the answer. In contrast, the bottom panel demonstrates how KG provides key
+    patterns that reveal both The Call of The Wild and White Fang share the location
+    Yukon. If LLM could observe this information beforehand, it would precisely guide
+    its reasoning process towards the correct answer (as shown in the bottom panel).
+    Therefore, LLM should adopt an overall observation to incorporate the extensive
+    knowledge and intricate patterns embedded within the KG. Achieving this objective
+    presents two primary challenges: firstly, a global observation of the KG can result
+    in an exponential growth in the number of triples. As shown in the upper panel
+    of Figure [1](https://arxiv.org/html/2404.07677v2#S1.F1 "Figure 1 ‣ 1 Introduction
+    ‣ ODA: Observation-Driven Agent for integrating LLMs and Knowledge Graphs"), fully
+    processing all 3-hop connections for The Call of the Wild is impractical. Secondly,
+    the integration of such comprehensive observation into the existing reasoning
+    paradigms of LLMs presents another challenge. How to combine the observation with
+    the reasoning process of LLM matters for solving the tasks.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '现有的将知识图谱（KGs）与大语言模型（LLMs）结合的任务解决方法可以分为两类。第一类方法是根据特定问题从KG中检索相关的三元组，Wang等人（[2023b](https://arxiv.org/html/2404.07677v2#bib.bib29)）；Luo等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib14)）；Jiang等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib11)）。第二类方法则采用探索-利用策略，根据问题引导图谱中的知识利用过程，Sun等人（[2023b](https://arxiv.org/html/2404.07677v2#bib.bib25)）；Guo等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib8)）。然而，两个类别的方法都是仅仅依赖LLM对问题的分析来导航任务解决过程，忽略了KG中蕴含的丰富认知潜力。知识图谱作为存储大量信息和符号事实的工具，应该与LLM一起深度参与推理过程，而不是仅仅作为一个静态的知识库存在，Pan等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib19)）。如图[1](https://arxiv.org/html/2404.07677v2#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs")上面的示例所示，LLM分析问题并导航到实体《荒野的呼唤》的地点关系。然而，这个实体有许多邻近的实体也具有这种关系，导致LLM错误地推断出加拿大为答案。相比之下，下面的面板展示了KG如何提供关键模式，揭示《荒野的呼唤》和《白
+    Fang》都共享地点“育空”。如果LLM能够事先观察到这些信息，它将准确地引导其推理过程朝着正确的答案（如下图所示）。因此，LLM应该采用一种全局观察方法，将KG中蕴含的广泛知识和复杂模式纳入其中。实现这一目标面临两个主要挑战：首先，对KG的全局观察可能导致三元组数量呈指数增长。如图[1](https://arxiv.org/html/2404.07677v2#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs")上面的示例所示，完全处理《荒野的呼唤》的所有3跳连接是不可行的。其次，将这种全面观察融入现有的LLM推理范式中，提出了另一个挑战。如何将这种观察与LLM的推理过程结合，对于解决任务至关重要。'
+- en: 'Motivated by this, we introduce a novel framework, the Observation-Driven Agent
+    (ODA), aimed at sufficiently and autonomously integrating the capabilities of
+    both LLM and KG. ODA serves as an AI Agent specifically designed for KG-centric
+    tasks. ODA engages in a cyclical paradigm of observation, action, and reflection.
+    Within ODA, we design a novel observation module to efficiently draw autonomous
+    reasoning patterns of KG. Our observation module avoids the problem of exponential
+    growth of triples via recursive progress. This approach ensures ODA integrating
+    abilities of KG and LLM while mitigating the challenges associated with excessive
+    data in KG, improving the efficiency and accuracy. Following the observation phase,
+    ODA takes action by autonomously amalgamating insights derived from LLM inferences
+    with the observed KG patterns. ODA can perform actions of three distinct types:
+    Neighbor Exploration, Path Discovery, and Answering. Subsequently, ODA reflects
+    on its internal state, considering both the outcomes of its actions and the prior
+    observations. This iterative process continues until ODA accomplishes the task
+    at hand.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有鉴于此，我们提出了一种新的框架——观察驱动代理（ODA），旨在充分且自主地整合LLM和KG的能力。ODA作为一个AI代理，专门为以KG为中心的任务设计。ODA采用观察、行动和反思的循环模式。在ODA中，我们设计了一个新的观察模块，以高效地提取KG的自主推理模式。我们的观察模块通过递归进展避免了三元组的指数增长问题。该方法确保了ODA在集成KG和LLM的能力的同时，减轻了KG中过多数据带来的挑战，提高了效率和准确性。在观察阶段之后，ODA通过自主地将LLM推理得到的洞察与观察到的KG模式结合起来采取行动。ODA可以执行三种不同类型的行动：邻居探索、路径发现和回答问题。随后，ODA会对其内部状态进行反思，考虑到其行动的结果和先前的观察。这个迭代过程将持续进行，直到ODA完成当前任务。
+- en: 'We conduct extensive experiments to testify to the effectiveness of ODA on
+    four datasets: QALD10-en, T-REx, Zero-Shot RE and Creak. Notably, our approach
+    achieved state-of-the-art (SOTA) performance compared to competitive baselines.
+    Specifically, on QALD10-en and T-REx datasets, we observed remarkable accuracy
+    improvements of 12.87% and 8.9%, respectively. We conclude the contributions as
+    follows:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进行了一系列广泛的实验，验证了ODA在四个数据集上的有效性：QALD10-en、T-REx、Zero-Shot RE和Creak。值得注意的是，与竞争性基准相比，我们的方法在表现上达到了最先进（SOTA）水平。具体来说，在QALD10-en和T-REx数据集上，我们观察到准确率分别提高了12.87%和8.9%。我们的贡献总结如下：
+- en: $\bullet$
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: $\bullet$
+- en: We propose ODA, an AI Agent tailored for KG-centric tasks. ODA conducts observation
+    to incorporate the reasoning ability of KG.
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出了ODA，一个为KG任务量身定制的AI代理。ODA通过观察将KG的推理能力整合进来。
+- en: $\bullet$
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: $\bullet$
+- en: We design action and reflection modules that integrate observation into LLM
+    reasoning. This strategy leverages the autonomous reasoning of KG and LLM in synergy.
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们设计了行动与反思模块，将观察集成到LLM推理中。这一策略利用了KG和LLM的自主推理，二者协同工作。
+- en: $\bullet$
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: $\bullet$
+- en: We conduct experiments on four datasets and achieve SOTA performances.
+  id: totrans-27
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们在四个数据集上进行了实验，并达到了SOTA的表现。
+- en: '![Refer to caption](img/9506ca0addb5d0ca83170bcf62555176.png)'
+  id: totrans-28
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/9506ca0addb5d0ca83170bcf62555176.png)'
+- en: 'Figure 2: The overall framework of ODA.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：ODA的整体框架。
+- en: 2 Methods
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 方法
+- en: 'In this work, we aim to solve tasks associated with KG. Let $q$ represent a
+    user question. The task $T$ can be defined as generating an answer $Y$ given a
+    question $q$, task-relevant entities $E=\{e_{0},e_{1},...,e_{k}\}$, and a KG denoted
+    as $G$. Formally, the task $T$ can be expressed as:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文的目标是解决与KG相关的任务。设$q$为用户问题。任务$T$可以定义为在给定问题$q$、任务相关实体$E=\{e_{0},e_{1},...,e_{k}\}$和KG
+    $G$的情况下生成答案$Y$。形式化地，任务$T$可以表示为：
+- en: '|  | $T:(q,E),G\rightarrow Y$ |  |'
+  id: totrans-32
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $T:(q,E),G\rightarrow Y$ |  |'
+- en: '![Refer to caption](img/a8d2f44a844cabab5ee958d40a0d9960.png)'
+  id: totrans-33
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/a8d2f44a844cabab5ee958d40a0d9960.png)'
+- en: 'Figure 3: An example workflow of ODA. In this case, ODA initiates the obervation
+    with entity Johann Wolfgang von Goethe. During the first iteration on the left
+    side, the Neighbor Exploration of Johann Wolfgang von Goethe is selected, and
+    the reflected triple (Johann Wolfgang von Goethe, unmarried Partner, Lili Schöneman)
+    is stored in memory. Subsequently, The observation of Lili Schöneman then guides
+    ODA to choose Neighbor Exploration action, and leads to the retention of the triple
+    (Lili Schöneman, place of birth, Offenbach am Main) in memory, as shown on the
+    right side. Once sufficient knowledge has been accumulated, ODA triggers the Answer
+    action, correctly identifying Offenbach am Main as the answer.'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：ODA的示例工作流。在这个例子中，ODA首先用实体Johann Wolfgang von Goethe启动观察。在左侧的第一次迭代中，选择Johann
+    Wolfgang von Goethe的邻居探索，并将反映的三元组（Johann Wolfgang von Goethe, unmarried Partner,
+    Lili Schöneman）存储在内存中。随后，Lili Schöneman的观察引导ODA选择邻居探索动作，导致将三元组（Lili Schöneman,
+    place of birth, Offenbach am Main）存储在内存中，如右侧所示。当积累了足够的知识后，ODA触发答案动作，正确地识别出Offenbach
+    am Main作为答案。
+- en: 'Employing an iterative approach, ODA tackles the challenges inherent in KG-centric
+    tasks. In contrast to existing methods that couple LLMs and KGs and rely solely
+    on analyzing the LLM’s query, ODA autonomously integrates observed knowledge from
+    the KG into the entire reasoning process, resulting in more informed decisions.
+    To achieve this objective, our ODA system, illustrated in Figure [2](https://arxiv.org/html/2404.07677v2#S1.F2
+    "Figure 2 ‣ 1 Introduction ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs"), primarily comprises three key modules for task resolution:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '采用迭代方法，ODA解决了知识图谱（KG）任务中固有的挑战。与现有将大规模语言模型（LLM）与KG结合并仅依赖于分析LLM查询的方法不同，ODA自主地将从KG中观察到的知识整合到整个推理过程中，从而做出更为明智的决策。为了实现这一目标，我们的ODA系统，如图[2](https://arxiv.org/html/2404.07677v2#S1.F2
+    "Figure 2 ‣ 1 Introduction ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs")所示，主要包括三个关键模块用于任务解决：'
+- en: •
+  id: totrans-36
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Observation: This module efficiently observes and processes relevant knowledge
+    from the KG environment. In each iteration $i$, it constructs an observation subgraph
+    (denoted as $O_{i}$). By leveraging insights and patterns gleaned from the KG,
+    this subgraph is autonomously incorporated into a reasoning LLM. This synergistic
+    integration equips ODA with enhanced capabilities from both the LLM and KG, allowing
+    it to tackle tasks more effectively.'
+  id: totrans-37
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 观察：该模块高效地观察并处理来自KG环境的相关知识。在每次迭代$i$中，它构建一个观察子图（记作$O_{i}$）。通过利用从KG中获得的见解和模式，子图被自主地整合进推理LLM。这种协同整合使ODA同时具备了LLM和KG的增强能力，从而更有效地完成任务。
+- en: •
+  id: totrans-38
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Action: Drawing upon both the observation subgraph $O_{i}$ and ODA memory (denoted
+    as $M_{<i}$), the action module,represented by $a_{i}$, strategically selects
+    the most suitable action to execute on the KG, ensuring the accurate answering
+    of the question.'
+  id: totrans-39
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 行动：该模块利用观察子图$O_{i}$和ODA内存（记作$M_{<i}$）中的信息，由$a_{i}$表示，战略性地选择最合适的行动执行在KG上，确保问题的准确回答。
+- en: •
+  id: totrans-40
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Reflection: Utilizing the observation subgraph $O_{i}$, the reflection module
+    provides feedback by reflecting on the knowledge obtained from the action step.
+    The reflected knowledge is then stored in memory $M_{i}$ for the next iteration,
+    facilitating continuous reasoning.'
+  id: totrans-41
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 反思：利用观察子图$O_{i}$，反思模块通过反思从行动步骤中获得的知识提供反馈。反映的知识随后存储在内存$M_{i}$中，供下一次迭代使用，促进连续的推理。
+- en: Through this iterative process, ODA dynamically updates its observation subgraph
+    $O_{i}$ and memory $M_{i}$ at each iteration $i$. Each module is discussed in
+    detail in the following sections.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个迭代过程，ODA在每次迭代$i$中动态更新其观察子图$O_{i}$和内存$M_{i}$。每个模块将在以下章节中详细讨论。
+- en: 2.1 Observation
+  id: totrans-43
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 观察
+- en: 'The observation module is designed to inspect global KG knowledge and navigate
+    the autonomous reasoning process with the KG environments. At each iteration $i$,
+    it leverages task-relevant entities $E_{i}$ and a question $q$ to generate an
+    observation subgraph $O_{i}$. This process can be formulated as:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 观察模块旨在检查全局KG知识并在KG环境中导航自主推理过程。在每次迭代$i$中，它利用任务相关的实体$E_{i}$和问题$q$生成一个观察子图$O_{i}$。这个过程可以表示为：
+- en: '|  | $O_{i}=\text{Observation}([E_{i},q])$ |  |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $O_{i}=\text{Observation}([E_{i},q])$ |  |'
+- en: Initially, the task-relevant entities are populated with the entities embedded
+    within the question $q$.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最初，任务相关的实体通过问题$q$中嵌入的实体进行填充。
+- en: 'For KG-centric tasks, the observation incurs the problem of an explosive number
+    of nodes. To address the scalability challenge during observation subgraph updates,
+    we propose a $D$-turn observe strategy, where $D$ represents the maximum hop depth.
+    Each turn has two steps: update and refine. The update step focuses on expanding
+    the subgraph, while the refining step ensures its appropriate size without loss
+    of important information.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于KG中心的任务，观察面临节点数量爆炸的问题。为了解决在观察子图更新过程中扩展性挑战，我们提出了一种$D$轮观察策略，其中$D$表示最大跳跃深度。每一轮有两个步骤：更新和优化。更新步骤关注于扩展子图，而优化步骤确保子图的适当大小，并且不丢失重要信息。
+- en: 'For each entity $e\in E_{i}$, the observation module initializes the observation
+    entities as a set $E_{o}^{d}=\{e\}$ at hop depth $d$, where $d$ represents the
+    current search depth within the KG. The two-step, update and refine, iterates
+    for each entity $e$ until $D$ is reached. The specific details are described as:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个$e \in E_{i}$，观察模块在跳跃深度$d$处初始化观察实体集$E_{o}^{d}=\{e\}$，其中$d$表示当前在KG中的搜索深度。更新和优化的两步操作将为每个实体$e$迭代执行，直到达到$D$为止。具体细节如下所示：
+- en: Algorithm 1 Observation
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法1 观察
+- en: 'Require: Question $q$, limit $D$, $N$, and $P$'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需求：问题$q$，限制$D$，$N$和$P$
+- en: Initialize task-relevant entities $E_{i}$ with the entities in $q$for $e\in
+    E_{i}$ do     Set $d=0$     Initialize observation entities ${E_{o}^{d}}=\{e\}$     while $d<D$ do         for $entity\in{E_{o}^{d}}$ do              Extract
+    the neighboring triples         end for         for $(r,t)\in\text{triples}$ do              Cosine
+    similarity($q$,$r+t$)         end for         Sort similarity scores of triples         Append
+    top ${N}$ triples to $O_{i}$         Extract top ${P\%}$ triples from top ${N}$         Update
+    ${E_{o}^{d}}$ with $t$ in top ${P\%}$         Increment $d$     end whileend for
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '使用任务相关实体$E_{i}$初始化$q$中的实体，对于$e \in E_{i}$，执行以下操作：  '
+- en: 'Update:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新：
+- en: •
+  id: totrans-53
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: For each entity $e$ in $E_{o}^{d}$, neighboring triples are extracted from KG.
+    Each triple takes the form $[e,r,t]$, where $r$ signifies the relation, and $t$
+    denotes the tail entity.
+  id: totrans-54
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 对于$E_{o}^{d}$中的每个实体$e$，从KG中提取邻接三元组。每个三元组的形式为$[e,r,t]$，其中$r$表示关系，$t$表示尾实体。
+- en: •
+  id: totrans-55
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'The similarity score between the question and the combined representation of
+    $r$ and $t$, is computed by measuring the cosine similarity of their embeddings¹¹1We
+    use the GPT text-embedding-ada-002 model from OpenAI for encoding.:'
+  id: totrans-56
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通过测量它们的嵌入向量的余弦相似度，计算问题和$r$与$t$的组合表示之间的相似度得分¹¹1我们使用OpenAI的GPT text-embedding-ada-002模型进行编码。：
+- en: '|  | $\text{Cosine Similarity}(\mathbf{v}_{q},\mathbf{v}_{r+t})=\frac{\mathbf{v}_{q}%
+    \cdot\mathbf{v}_{r+t}}{\&#124;\mathbf{v}_{q}\&#124;\&#124;\mathbf{v}_{r+t}\&#124;}$
+    |  |'
+  id: totrans-57
+  prefs:
+  - PREF_IND
+  type: TYPE_TB
+  zh: '|  | $\text{余弦相似度}(\mathbf{v}_{q},\mathbf{v}_{r+t})=\frac{\mathbf{v}_{q} \cdot
+    \mathbf{v}_{r+t}}{\|\mathbf{v}_{q}\|\|\mathbf{v}_{r+t}\|}$ |  |'
+- en: •
+  id: totrans-58
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: All triples associated with entities in $E$ are collectively sorted in descending
+    order based on their similarity scores.
+  id: totrans-59
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 与$E$中实体相关的所有三元组被按相似度得分降序排列。
+- en: •
+  id: totrans-60
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The Top-$N$ triples are added to the observation subgraph $O_{i}$.
+  id: totrans-61
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 前$N$个三元组被添加到观察子图$O_{i}$中。
+- en: 'Refine:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 优化：
+- en: •
+  id: totrans-63
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The Top-$N$ triples are further refined by retaining only the top $P\%$ with
+    the highest similarity scores.
+  id: totrans-64
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通过保留相似度得分最高的前$P\%$三元组，进一步优化前$N$个三元组。
+- en: •
+  id: totrans-65
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The tail entities from the refined top $P\%$ triples are identified as the starting
+    observation entities $E_{o}^{d}$ for the next iteration.
+  id: totrans-66
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 从优化后的前$P\%$三元组中识别尾实体，作为下一轮观察的起始观察实体$E_{o}^{d}$。
+- en: 2.2 Action
+  id: totrans-67
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 动作
+- en: Harnessing the power of an LLM, the action module crafts strategic prompts to
+    generate optimal actions. Based on its memory $M_{<i}$, observation subgraph $O_{i}$,
+    and historical actions $a_{<i}$, the ODA selects the most accurate action $a_{i}$.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用LLM的强大功能，动作模块设计战略性提示来生成最优动作。基于其记忆$M_{<i}$、观察子图$O_{i}$和历史动作$a_{<i}$，ODA选择最准确的动作$a_{i}$。
+- en: '|  | $a_{i}=\text{Action}([O_{i},a_{<i},M_{<i}])$ |  |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $a_{i}=\text{动作}([O_{i},a_{<i},M_{<i}])$ |  |'
+- en: 'We propose three core actions designed to empower ODA :'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出了三种核心动作，旨在增强ODA的能力：
+- en: •
+  id: totrans-71
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Neighbor Exploration: This action explores the KG neighborhood of task-relevant
+    entities $E_{i}$ and retrieves all neighboring triples. This helps build context
+    and understand interconnectedness within the KG for ODA .'
+  id: totrans-72
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 邻居探索：该动作探索任务相关实体 $E_{i}$ 的知识图谱邻域，并检索所有邻接的三元组。这有助于为 ODA 构建上下文，并理解知识图谱中的相互关联性。
+- en: •
+  id: totrans-73
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Path Discovery: Given two entities in task-relevant entities $E_{i}$, this
+    action searches for all possible paths connecting them. Each path consists of
+    interconnected triples, allowing the ODA to explore various connections and potentially
+    uncover hidden relationships.'
+  id: totrans-74
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 路径发现：给定任务相关实体 $E_{i}$ 中的两个实体，该动作会搜索连接它们的所有可能路径。每条路径由相互连接的三元组组成，允许 ODA 探索各种连接，并可能揭示隐藏的关系。
+- en: •
+  id: totrans-75
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Answer: This action responds to the question only if the required information
+    is present in memory $M_{<i}$.'
+  id: totrans-76
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 回答：仅在所需信息存在于内存 $M_{<i}$ 中时，该动作才会响应问题。
+- en: 'Upon selecting an answer action, ODA halts the iterative loop of observation,
+    action, and reflection. Leveraging the reliable knowledge within memory $M_{<i}$,
+    it can then directly formulate the answer to the question. Alternatively, if a
+    Neighbor Exploration or Path Discovery action is selected, ODA strategically extracts
+    relevant knowledge from the KG as a set of triples. These extracted triples are
+    then fed into the subsequent reflection step for further processing. The prompt
+    used here can be found in Table [7](https://arxiv.org/html/2404.07677v2#A2.T7
+    "Table 7 ‣ Appendix B Prompt ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs").'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在选择一个回答动作后，ODA 会停止观察、行动和反思的迭代循环。通过利用记忆中可靠的知识 $M_{<i}$，它可以直接生成问题的答案。或者，如果选择了邻居探索或路径发现动作，ODA
+    会战略性地从知识图谱（KG）中提取相关知识作为一组三元组。这些提取的三元组随后会被输入到后续的反思步骤中进行进一步处理。这里使用的提示可以在表格 [7](https://arxiv.org/html/2404.07677v2#A2.T7
+    "Table 7 ‣ Appendix B Prompt ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs") 中找到。'
+- en: 2.3 Reflection
+  id: totrans-78
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.3 反思
+- en: 'The reflection module plays a crucial role in evaluating the triples generated
+    from the action step and subsequently updating ODA memory $M_{i}$. Designed specifically
+    for KG tasks, memory $M_{i}$ adopts a subgraph format consisting of a network
+    of paths that align with the inherent structure of KG, aimed at optimizing efficiency
+    and relevance. By integrating the observation subgraph $O_{i}$ and existing memory
+    $M_{<i}$ autonomously, the reflection module provides invaluable feedback that
+    guides future decision-making. This process can be formalized as:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反思模块在评估来自行动步骤生成的三元组并随后更新 ODA 内存 $M_{i}$ 中起着至关重要的作用。该模块专为知识图谱任务设计，内存 $M_{i}$
+    采用子图格式，包含与知识图谱固有结构对齐的路径网络，旨在优化效率和相关性。通过自主整合观察子图 $O_{i}$ 和现有内存 $M_{<i}$，反思模块提供了宝贵的反馈，指导未来的决策。这一过程可以形式化为：
+- en: '|  | $M_{i}=\text{Reflection}([O_{i},a_{i},M_{<i}])$ |  |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $M_{i}=\text{反思}([O_{i},a_{i},M_{<i}])$ |  |'
+- en: Given that memory $M_{i}$ is structured as a network of paths, the reflection
+    module navigates these paths to identify the first suitable one for integrating
+    the reflected triple. This suitability arises from aligning the tail $t$ of the
+    last triple in the selected path with the entity $e$ of the reflected triple.
+    If a matching path is found, the reflected triple is appended. Otherwise, a new
+    path is created based on the reflected triple. The maximum size of reflected triples
+    is denoted as $K$.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于内存 $M_{i}$ 结构化为一组路径网络，反思模块会在这些路径中导航，以识别第一个适合整合反思三元组的路径。这种适配性来自于将所选路径中最后一个三元组的尾部
+    $t$ 与反思三元组的实体 $e$ 对齐。如果找到匹配路径，则将反思三元组附加到该路径上。否则，将基于反思三元组创建一条新路径。反思三元组的最大大小记为 $K$。
+- en: 'Subsequently, the tail entities in the reflected triples are designated as
+    the task-relevant entities for the next iteration. The specific prompt description
+    used for the reflection module is provided in Table [8](https://arxiv.org/html/2404.07677v2#A2.T8
+    "Table 8 ‣ Appendix B Prompt ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs").'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '随后，反思三元组中的尾部实体被指定为下一次迭代的任务相关实体。反思模块中使用的具体提示描述见表格 [8](https://arxiv.org/html/2404.07677v2#A2.T8
+    "Table 8 ‣ Appendix B Prompt ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs")。'
+- en: 'The observation, action, and reflection modules collaborate iteratively until
+    either the Answer action is triggered or the maximum iteration limit is reached.
+    Figure [3](https://arxiv.org/html/2404.07677v2#S2.F3 "Figure 3 ‣ 2 Methods ‣ ODA:
+    Observation-Driven Agent for integrating LLMs and Knowledge Graphs") shows how
+    observation, action, and reflection work together.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 观察、行动和反射模块协同工作，直到触发“答案”行动或达到最大迭代限制。图[3](https://arxiv.org/html/2404.07677v2#S2.F3
+    "图3 ‣ 2 方法 ‣ ODA：集成LLM和知识图谱的观察驱动代理")展示了观察、行动和反射如何协同工作。
+- en: 3 Experiments
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 实验
+- en: '| Dataset | Test | Entity | Type | License |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据集 | 测试 | 实体 | 类型 | 许可证 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| QALD10-en | 333 | 396 | Multi-hop | MIT License |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| QALD10-en | 333 | 396 | 多跳 | MIT许可证 |'
+- en: '| T-REx | 5000 | 4943 | Slot-Filling | MIT License |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| T-REx | 5000 | 4943 | 插槽填充 | MIT许可证 |'
+- en: '| Zero-Shot RE | 3724 | 3657 | Slot Filling | MIT License |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| Zero-Shot RE | 3724 | 3657 | 插槽填充 | MIT许可证 |'
+- en: '| Creak | 1371 | 516 | Fact Checking | MIT License |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| Creak | 1371 | 516 | 事实核查 | MIT许可证 |'
+- en: 'Table 1: Dataset statistics. Entity stands for the entity size derived from
+    all the question within the datasets.'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：数据集统计信息。实体指的是从数据集中的所有问题中派生出的实体大小。
+- en: 3.1 Dataset
+  id: totrans-92
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 数据集
+- en: 'To evaluate the performance of our ODA , we conduct experiments on four KBQA
+    datasets: QALD10-en Perevalov et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib20)),Creak
+    Onoe et al. ([2021](https://arxiv.org/html/2404.07677v2#bib.bib17)), T-REx Elsahar
+    et al. ([2018](https://arxiv.org/html/2404.07677v2#bib.bib6)), and Zero-Shot RE
+    Petroni et al. ([2021](https://arxiv.org/html/2404.07677v2#bib.bib21)). Detailed
+    specifications for each dataset are provided in Table [1](https://arxiv.org/html/2404.07677v2#S3.T1
+    "Table 1 ‣ 3 Experiments ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs"). The Hits@1Sun et al. ([2019](https://arxiv.org/html/2404.07677v2#bib.bib26))
+    accuracy with exact match is utilized as our evaluation metric.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估我们ODA的性能，我们在四个KBQA数据集上进行了实验：QALD10-en Perevalov et al.（[2022](https://arxiv.org/html/2404.07677v2#bib.bib20)），Creak
+    Onoe et al.（[2021](https://arxiv.org/html/2404.07677v2#bib.bib17)），T-REx Elsahar
+    et al.（[2018](https://arxiv.org/html/2404.07677v2#bib.bib6)），以及Zero-Shot RE Petroni
+    et al.（[2021](https://arxiv.org/html/2404.07677v2#bib.bib21)）。每个数据集的详细规格见表[1](https://arxiv.org/html/2404.07677v2#S3.T1
+    "表1 ‣ 3 实验 ‣ ODA：集成LLM和知识图谱的观察驱动代理")。我们使用了Hits@1Sun et al.（[2019](https://arxiv.org/html/2404.07677v2#bib.bib26)）的准确度作为评估指标，准确匹配为评估标准。
+- en: 3.2 Setup
+  id: totrans-94
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 设置
+- en: We utilized the GPT-4 OpenAI ([2023](https://arxiv.org/html/2404.07677v2#bib.bib18))
+    model as the ODA via the OpenAI API. Throughout our experiments, we consistently
+    configured the temperature value of GPT-4 to 0.4 and set the maximum token length
+    to 500.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过OpenAI API使用了GPT-4 OpenAI模型（[2023](https://arxiv.org/html/2404.07677v2#bib.bib18)）。在整个实验过程中，我们始终将GPT-4的温度值配置为0.4，并将最大标记长度设置为500。
+- en: For the observation step, we tuned key parameters based on preliminary experiments.
+    we set $P_{t}$ to 10 and $N_{t}$ to 50\. Furthermore, the ODA loop was capped
+    at a maximum of 8 iterations. Lastly, the maximum hop depth $D$ is set to 3\.
+    As for the reflection module, we set the size of reflected triples $K$ to 15.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于观察步骤，我们根据初步实验调整了关键参数。我们将$P_{t}$设置为10，$N_{t}$设置为50。此后，ODA循环最多限制为8次迭代。最后，最大跳跃深度$D$设置为3。至于反射模块，我们将反射三元组的大小$K$设置为15。
+- en: To establish Wikidata KG database and retrieve information from it, we employed
+    the simple-wikidata-db¹¹1https://github.com/neelguha/simple-wikidata-db Python
+    library. This library provides various scripts for downloading the Wikidata dump,
+    organizing it into staging files, and executing distributed queries on the data
+    within these staged files. Specifically, we deployed the Wikidata dump across
+    five AWS EC2 instances, each consisting of a 768GB machine with 48 cores.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了建立Wikidata知识图谱数据库并从中检索信息，我们使用了simple-wikidata-db¹¹1https://github.com/neelguha/simple-wikidata-db
+    Python库。该库提供了各种脚本，用于下载Wikidata数据转储，将其组织成暂存文件，并在这些暂存文件中的数据上执行分布式查询。具体来说，我们将Wikidata数据转储部署在五个AWS
+    EC2实例上，每个实例包括一个768GB内存和48个核心的机器。
+- en: 'Considering that our ODA relies heavily on continuous interaction with the
+    KG, we discovered that the real-time extraction of required Wikidata knowledge
+    on AWS achieved an average completion time of 50 seconds per question-answer pair
+    within QALD10-en dataset. However, as the KBQA dataset expanded, the cost of using
+    the Wikidata database on AWS became prohibitively expensive. Consequently, to
+    address the computational expenses involved, we devised a solution by generating
+    an offline subgraph for each KBQA dataset. This offline subgraph captures all
+    the triples within a 3-hop radius of the entities in each dataset, including the
+    properties of both the entities and the relations involved. Notably, generating
+    such a subgraph for the T-REx dataset, with its 4943 entities (as listed in Table
+    [1](https://arxiv.org/html/2404.07677v2#S3.T1 "Table 1 ‣ 3 Experiments ‣ ODA:
+    Observation-Driven Agent for integrating LLMs and Knowledge Graphs")), takes approximately
+    54 minutes and 42.834 seconds in practice.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '考虑到我们的ODA在很大程度上依赖于与KG的持续互动，我们发现，实时从AWS上提取所需的Wikidata知识，在QALD10-en数据集中的每对问答的平均完成时间为50秒。然而，随着KBQA数据集的扩展，在AWS上使用Wikidata数据库的成本变得非常昂贵。因此，为了应对计算开销，我们设计了一种解决方案，即为每个KBQA数据集生成离线子图。这个离线子图捕捉了每个数据集中实体的3跳范围内的所有三元组，包括实体和相关关系的属性。值得注意的是，生成T-REx数据集的子图（该数据集包含4943个实体，如表[1](https://arxiv.org/html/2404.07677v2#S3.T1
+    "Table 1 ‣ 3 Experiments ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs")所示）大约需要54分钟42.834秒。'
+- en: 3.3 Baseline Models
+  id: totrans-99
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 基准模型
+- en: To comprehensively evaluate ODA effectiveness, we conduct a rigorous benchmark
+    against several SOTA models across diverse categories. The comparison encompasses
+    various models, starting with prompt-based approaches that do not utilize external
+    knowledge. These include direct answering with GPT-3.5 and GPT-4, as well as the
+    Self-Consistency Wang et al. ([2023c](https://arxiv.org/html/2404.07677v2#bib.bib30))
+    and CoT Sun et al. ([2023b](https://arxiv.org/html/2404.07677v2#bib.bib25)). On
+    the other hand, Kownledge-combined models are considered, which incorporate fine-tuned
+    techniques such as SPARQL-QA Santana et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib22)),
+    RACo Yu et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib34)), RAG Petroni
+    et al. ([2021](https://arxiv.org/html/2404.07677v2#bib.bib21)) and Re2G Glass
+    et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib7)). Additionally, there
+    is ToG Sun et al. ([2023a](https://arxiv.org/html/2404.07677v2#bib.bib24)) model,
+    which integrates LLM with KG to bolster question-answering proficiency.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了全面评估ODA的有效性，我们对多个SOTA模型在不同类别上的表现进行了严格的基准测试。比较包括各种模型，从不使用外部知识的基于提示的方法开始。这些方法包括直接使用GPT-3.5和GPT-4进行回答，以及Self-Consistency
+    Wang等人（[2023c](https://arxiv.org/html/2404.07677v2#bib.bib30)）和CoT Sun等人（[2023b](https://arxiv.org/html/2404.07677v2#bib.bib25)）的方法。另一方面，还考虑了结合知识的模型，这些模型结合了像SPARQL-QA
+    Santana等人（[2022](https://arxiv.org/html/2404.07677v2#bib.bib22)）、RACo Yu等人（[2022](https://arxiv.org/html/2404.07677v2#bib.bib34)）、RAG
+    Petroni等人（[2021](https://arxiv.org/html/2404.07677v2#bib.bib21)）和Re2G Glass等人（[2022](https://arxiv.org/html/2404.07677v2#bib.bib7)）等技术。除此之外，还有ToG
+    Sun等人（[2023a](https://arxiv.org/html/2404.07677v2#bib.bib24)）模型，它将LLM与KG集成，以提高问答能力。
+- en: 3.4 Main Result
+  id: totrans-101
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 主要结果
+- en: 'Our ODA method outperforms existing methods, as shown in Table [2](https://arxiv.org/html/2404.07677v2#S3.T2
+    "Table 2 ‣ 3.4 Main Result ‣ 3 Experiments ‣ ODA: Observation-Driven Agent for
+    integrating LLMs and Knowledge Graphs"). On average, our method achieves an accuracy
+    gain of up to 19.58% compared to direct answering with GPT-4, 19.28% compared
+    to fine-tuned models, and 7.09% compared to TOG. These results demonstrate the
+    efficiency and effectiveness of our method in comparison to other state-of-the-art
+    methods.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们的ODA方法优于现有方法，如表[2](https://arxiv.org/html/2404.07677v2#S3.T2 "Table 2 ‣ 3.4
+    Main Result ‣ 3 Experiments ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs")所示。与GPT-4的直接回答相比，我们的方法平均提高了19.58%的准确率；与微调模型相比提高了19.28%；与TOG相比提高了7.09%。这些结果展示了我们的方法在与其他最先进方法比较时的高效性和有效性。'
+- en: Furthermore, our ODA significantly outperforms the prompt-based methods across
+    various datasets, particularly showing an improvement of 65.50% and 23.77% on
+    Zero-Shot REx and QALD10-en , respectively. These results underscore the importance
+    of leveraging external knowledge graphs for reasoning and completing the question-answering
+    task.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们的ODA在多个数据集上显著优于基于提示的方法，特别是在Zero-Shot REx和QALD10-en上分别取得了65.50%和23.77%的提升。这些结果强调了利用外部知识图谱进行推理和完成问答任务的重要性。
+- en: Compared to the fine-tuned method, our ODA method demonstrates superior performance.
+    Specifically, our method achieves a performance gain of 21.27% for the QALD10-en
+    dataset, 6.99% for the Creak dataset, and 50.56% for the Zero-Shot RE dataset.
+    Notably, this interaction between the LLM and KG, as our method employs, proves
+    more effective than data-driven fine-tuned techniques, despite requiring no explicit
+    training.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与微调方法相比，我们的ODA方法展现了更优的性能。具体来说，我们的方法在QALD10-en数据集上提高了21.27%，在Creak数据集上提高了6.99%，在Zero-Shot
+    RE数据集上提高了50.56%。值得注意的是，我们的方法采用的LLM与知识图谱之间的交互比基于数据驱动的微调技术更为有效，尽管不需要显式训练。
+- en: Our ODA method exhibits significant performance gains over the ToG method across
+    most datasets, with improvements of 12.87% (QALD10-en), 8.9% (T-REx), and 7% (Zero-Shot
+    RE), despite both methods leveraging large language models and knowledge graphs.
+    This performance disparity highlights the critical role of our observation module
+    and the effectiveness of autonomously incorporating reasoning from KG. Specifically,
+    our method demonstrates significantly stronger performance on the QALD10-en dataset,
+    known for its multi-hop and complex reasoning requirements. This achievement underscores
+    our ODA ability to exploit the rich knowledge and patterns within KG effectively,
+    combining the autonomous reasoning strengths of both LLM and KG to tackle complex
+    questions successfully.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的ODA方法在大多数数据集上相较于ToG方法展现了显著的性能提升，分别为12.87%（QALD10-en）、8.9%（T-REx）和7%（Zero-Shot
+    RE），尽管这两种方法都利用了大型语言模型和知识图谱。这一性能差异突显了我们观察模块的关键作用，以及自主融合知识图谱推理的有效性。具体来说，我们的方法在QALD10-en数据集上表现得更为强劲，该数据集以多跳和复杂推理要求著称。这一成就凸显了我们ODA在有效利用知识图谱中的丰富知识和模式方面的能力，成功地将大型语言模型和知识图谱的自主推理优势结合，解决复杂问题。
+- en: '| Method | QALD10-en | Creak | T-REx | Zero-Shot RE | Average |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | QALD10-en | Creak | T-REx | Zero-Shot RE | 平均 |'
+- en: '| w.o. Knowledge |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无知识 |'
+- en: '| Direct answering(GPT3.5) | 44.74^((1)) | 90.00^((1)) | 37.78^((1)) | 37.14^((1))
+    | 52.42 |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| 直接回答（GPT3.5） | 44.74^((1)) | 90.00^((1)) | 37.78^((1)) | 37.14^((1)) | 52.42
+    |'
+- en: '| Direct answering(GPT4) | 57.10^((1)) | 94.52^((1)) | 57.72^((1)) | 55.50^((1))
+    | 66.21 |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| 直接回答（GPT4） | 57.10^((1)) | 94.52^((1)) | 57.72^((1)) | 55.50^((1)) | 66.21
+    |'
+- en: '| Self-Consistency(GPT3.5)Wang et al. ([2023c](https://arxiv.org/html/2404.07677v2#bib.bib30))
+    | 45.30^((1)) | 90.80^((1)) | 41.80^((1)) | 45.40^((1)) | 55.83 |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自一致性（GPT3.5）Wang等（[2023c](https://arxiv.org/html/2404.07677v2#bib.bib30)）
+    | 45.30^((1)) | 90.80^((1)) | 41.80^((1)) | 45.40^((1)) | 55.83 |'
+- en: '| COT(GPT3.5)Sun et al. ([2023a](https://arxiv.org/html/2404.07677v2#bib.bib24))
+    | 42.90^((1)) | 90.10^((1)) | 32.00^((1)) | 28.80^((1)) | 48.45 |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| COT（GPT3.5）Sun等（[2023a](https://arxiv.org/html/2404.07677v2#bib.bib24)） |
+    42.90^((1)) | 90.10^((1)) | 32.00^((1)) | 28.80^((1)) | 48.45 |'
+- en: '| w.t. Knowledge / Fine-tuned |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| 带知识/微调 |'
+- en: '| SOTA | 45.40¹ | 88.20² | 87.70³ | 44.74⁴ | 66.51 |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| SOTA | 45.40¹ | 88.20² | 87.70³ | 44.74⁴ | 66.51 |'
+- en: '| w.t. Knowledge / Zero-Shot (GPT-4) |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| 带知识/零-shot（GPT-4） |'
+- en: '| TOG-R Sun et al. ([2023a](https://arxiv.org/html/2404.07677v2#bib.bib24))
+    | 54.70^((1)) | 95.40^((1)) | 75.50^((1)) | 86.90^((1)) | 78.13 |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| TOG-R Sun等（[2023a](https://arxiv.org/html/2404.07677v2#bib.bib24)） | 54.70^((1))
+    | 95.40^((1)) | 75.50^((1)) | 86.90^((1)) | 78.13 |'
+- en: '| TOG Sun et al. ([2023a](https://arxiv.org/html/2404.07677v2#bib.bib24)) |
+    53.80^((1)) | 95.60^((1)) | 77.10^((1)) | 88.30^((1)) | 78.70 |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| TOG Sun等（[2023a](https://arxiv.org/html/2404.07677v2#bib.bib24)） | 53.80^((1))
+    | 95.60^((1)) | 77.10^((1)) | 88.30^((1)) | 78.70 |'
+- en: '| ODA (Ours) | 66.67^((1)) | 95.19^((1)) | 86.00^((1)) | 95.30^((1)) | 85.79
+    |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| ODA（我们的方法） | 66.67^((1)) | 95.19^((1)) | 86.00^((1)) | 95.30^((1)) | 85.79
+    |'
+- en: 'Table 2: Performance Comparison of different methods. Bold scores stand for
+    best performances among all GPT-based zero-shot methods. The fine-tuned SOTA includes:
+    1: SPARQL-QASantana et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib22)),
+    2: RACoYu et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib34)), 3: Re2GGlass
+    et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib7)), 4:RAGPetroni et al.
+    ([2021](https://arxiv.org/html/2404.07677v2#bib.bib21)).'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：不同方法的性能比较。粗体分数表示在所有基于GPT的零-shot方法中的最佳表现。微调的SOTA包括：1：SPARQL-QASantana等（[2022](https://arxiv.org/html/2404.07677v2#bib.bib22)），2：RACoYu等（[2022](https://arxiv.org/html/2404.07677v2#bib.bib34)），3：Re2GGlass等（[2022](https://arxiv.org/html/2404.07677v2#bib.bib7)），4：RAGPetroni等（[2021](https://arxiv.org/html/2404.07677v2#bib.bib21)）。
+- en: 4 Discussion
+  id: totrans-119
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 讨论
+- en: To better understand the key factors influencing our ODA, we conducted extensive
+    analysis experiments. To conserve computational resources, we kept the previously
+    mentioned datasets (QALD10-en, Creak, T-REx, and Zero-Shot RE) but randomly sampled
+    400 examples each for Creak, T-REx, and Zero-Shot RE.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更好地理解影响我们ODA的关键因素，我们进行了广泛的分析实验。为了节省计算资源，我们保留了之前提到的数据集（QALD10-en、Creak、T-REx和Zero-Shot
+    RE），但为Creak、T-REx和Zero-Shot RE随机抽取了每个400个示例。
+- en: 4.1 Effect of Observation
+  id: totrans-121
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 观察的影响
+- en: To assess the efficacy of the observation module, we conducted comprehensive
+    experiments with the model without observation. During the action step, ODA selects
+    the action only based on the memory. Subsequently, the reflection step reflects
+    on the triples outputted by the action and updates memory without the guide from
+    observation.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估观察模块的效果，我们进行了包括没有观察的模型在内的全面实验。在行动步骤中，ODA仅根据记忆选择行动。随后，反思步骤基于行动输出的三元组进行反思，并在没有观察指导的情况下更新记忆。
+- en: 'A statistical comparison was performed to evaluate the performance of the ODA with
+    and without observation across all datasets (see Table [3](https://arxiv.org/html/2404.07677v2#S4.T3
+    "Table 3 ‣ 4.1 Effect of Observation ‣ 4 Discussion ‣ ODA: Observation-Driven
+    Agent for integrating LLMs and Knowledge Graphs")). The results show that the
+    ODA with observation outperforms the ODA without observation, with an average
+    improvement of 3.14%. Specifically, for QALD10-en dataset, the ODA with observation
+    outperforms the ODA without observation by 5.41%. Since QALD10-en involves multi-hop
+    reasoning, the improved performance of the ODA with observation indicates that
+    the observation module enhances the reasoning ability of the agent, enabling more
+    accurate action selection and reflection.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们进行了一项统计比较，以评估具有观察和没有观察的ODA在所有数据集上的表现（见表[3](https://arxiv.org/html/2404.07677v2#S4.T3
+    "表3 ‣ 4.1 观察的影响 ‣ 4 讨论 ‣ ODA: 基于观察的智能体用于集成大语言模型和知识图谱")）。结果表明，具有观察的ODA优于没有观察的ODA，平均提升了3.14%。具体而言，对于QALD10-en数据集，具有观察的ODA比没有观察的ODA提高了5.41%。由于QALD10-en涉及多跳推理，因此具有观察的ODA性能的提升表明观察模块增强了智能体的推理能力，使得行动选择和反思更为准确。'
+- en: 'We can further illustrate the benefits of the observation module with a practical
+    case. In this scenario (see Table [6](https://arxiv.org/html/2404.07677v2#A1.T6
+    "Table 6 ‣ Appendix A Case Study ‣ ODA: Observation-Driven Agent for integrating
+    LLMs and Knowledge Graphs")), question is Where are both The Call of the Wild
+    and White Fang set, the most two famous works of Jack London?. Without observation,
+    ODA generated the memory, such as (The Call of the Wild, narrative location, Canada),
+    ultimately produced the wrong answer of Canada. However, with the observation
+    module, the ODA correctly reasons the memory,such as (The Call of the Wild, narrative
+    location, Yukon), (White Fang, narrative location, Yukon). As a result, the ODA with
+    observation provides the correct answer, Yukon. This case exemplifies how the
+    observation module improves the accuracy of action selection and reflection, consequently
+    enhancing the reasoning ability of ODA .'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们可以通过一个实际案例进一步说明观察模块的好处。在这个场景中（见表[6](https://arxiv.org/html/2404.07677v2#A1.T6
+    "表6 ‣ 附录A 案例研究 ‣ ODA: 基于观察的智能体用于集成大语言模型和知识图谱")），问题是《野性的呼唤》和《白 Fang》这两部杰克·伦敦最著名的作品发生在哪里？没有观察时，ODA生成了记忆，例如（《野性的呼唤》，叙述地点，加拿大），最终给出了错误的答案加拿大。然而，有了观察模块，ODA正确推理出记忆，例如（《野性的呼唤》，叙述地点，育空），（《白
+    Fang》，叙述地点，育空）。因此，具有观察的ODA提供了正确的答案——育空。这个案例展示了观察模块如何提高行动选择和反思的准确性，从而增强ODA的推理能力。'
+- en: By incorporating observation information, ODA reasoning power undergoes a dramatic
+    leap, therefore generate an accurate answers. This boost stems from the synergistic
+    interplay between the observation module, harnessing the KG’s autonomous reasoning
+    capabilities, and LLM, which further amplifies those strengths.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过整合观察信息，ODA的推理能力发生了显著跃升，因此能够生成准确的答案。这一提升源于观察模块与知识图谱（KG）自主推理能力的协同作用，以及大语言模型（LLM），进一步放大了这些优势。
+- en: '| Method | QALD10-en | Creak | T-REx | Zero-Shot RE | Average |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | QALD10-en | Creak | T-REx | Zero-Shot RE | 平均 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| Without Observation | 61.26 | 95.50 | 82.00 | 91.75 | 82.63 |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| 没有观察 | 61.26 | 95.50 | 82.00 | 91.75 | 82.63 |'
+- en: '| Similarity-based Reflection | 61.26 | 95.20 | 83.20 | 93.50 | 83.29 |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基于相似度的反思 | 61.26 | 95.20 | 83.20 | 93.50 | 83.29 |'
+- en: '| Random-based Reflection | 58.56 | 89.00 | 79.50 | 92.00 | 79.77 |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基于随机的反射 | 58.56 | 89.00 | 79.50 | 92.00 | 79.77 |'
+- en: '| Generated-fact Reflection | 63.66 | 91.00 | 80.00 | 93.75 | 82.10 |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| 生成事实反射 | 63.66 | 91.00 | 80.00 | 93.75 | 82.10 |'
+- en: '| ODA | 66.67 | 96.00 | 85.40 | 95.00 | 85.77 |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| ODA | 66.67 | 96.00 | 85.40 | 95.00 | 85.77 |'
+- en: 'Table 3: Ablation Comparison'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：消融比较
+- en: 4.2 Effect of Observation on Reflection
+  id: totrans-134
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 观察对反射的影响
+- en: In this section, we discuss the impact of observation on reflection module.
+    Three non-observation reflection methods were designed to verify whether observation
+    can enhance the effectiveness of reflection. The similarity-based involves reflecting
+    on the triples from action steps by calculating similarity. In this approach,
+    triples are first sorted based on the similarity score between the $r+t$ and the
+    question. The top-$K$ triples are then selected and stored in memory for the next
+    iteration. The random-based method randomly picks $K$ triples from the action’s
+    output and stores them in memory. Finally, the generated-fact method creates $K$
+    natural language question-related facts for storage. All methods use a setting
+    of $K=15$.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们讨论了观察对反射模块的影响。设计了三种非观察反射方法来验证观察是否能够增强反射的有效性。基于相似性的反射方法通过计算相似性来反思来自行动步骤的三元组。在这种方法中，三元组首先根据$r+t$与问题之间的相似性得分进行排序。然后选择得分最高的前$K$个三元组，并将它们存储在内存中以供下次迭代使用。基于随机的反射方法随机从行动输出中选择$K$个三元组，并将其存储在内存中。最后，生成事实方法创建$K$个与自然语言问题相关的事实进行存储。所有方法都使用$K=15$的设置。
+- en: 'Table [3](https://arxiv.org/html/2404.07677v2#S4.T3 "Table 3 ‣ 4.1 Effect of
+    Observation ‣ 4 Discussion ‣ ODA: Observation-Driven Agent for integrating LLMs
+    and Knowledge Graphs") showcases our ODA dominance over all three non-observation
+    methods. It achieved an average accuracy increase of 2.48% compared to the similarity-based
+    method, 6.00% compared to the random-based method, and 3.66% compared to the generated-fact
+    method.'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[3](https://arxiv.org/html/2404.07677v2#S4.T3 "表 3 ‣ 4.1 观察的效果 ‣ 4 讨论 ‣ ODA：集成LLM和知识图谱的观察驱动代理")展示了我们的ODA在所有三种非观察方法中的优势。与基于相似性的方法相比，ODA平均准确率提高了2.48%，与基于随机的方法相比提高了6.00%，与生成事实的方法相比提高了3.66%。
+- en: 'In specific scenarios (see Table [5](https://arxiv.org/html/2404.07677v2#A1.T5
+    "Table 5 ‣ Appendix A Case Study ‣ ODA: Observation-Driven Agent for integrating
+    LLMs and Knowledge Graphs")), when answering the question What is the capital
+    of the prefecture Tokyo?, the generated-fact method resulted in problematic facts,
+    such as Tokyo is the capital of Tokyo, and Tokyo is the capital of Japan. These
+    were essentially hallucinations created by the LLM based on the given question,
+    which misled the agent and resulted in incorrect answers. In contrast, the reflection
+    of our ODA leveraging observation yielded factual knowledge, (Tokyo, instance
+    of, prefecture of Japan), (Tokyo, capital,Japan) and (Tokyo, capital, Shinjuku),
+    consequently enabling the ODA to answer the question correctly.'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在特定场景下（见表[5](https://arxiv.org/html/2404.07677v2#A1.T5 "表 5 ‣ 附录 A 案例研究 ‣ ODA：集成LLM和知识图谱的观察驱动代理")），在回答问题“东京的首府是哪里？”时，生成事实方法产生了有问题的事实，例如“东京是东京的首府”和“东京是日本的首府”。这些本质上是基于给定问题，由LLM生成的虚假信息，误导了代理，导致错误的答案。相比之下，我们的ODA通过观察进行的反射产生了事实性知识，（东京，实例，属于，日本的都道府县），（东京，首府，日本）和（东京，首府，新宿），从而使ODA能够正确回答该问题。
+- en: 'The findings of Table [3](https://arxiv.org/html/2404.07677v2#S4.T3 "Table
+    3 ‣ 4.1 Effect of Observation ‣ 4 Discussion ‣ ODA: Observation-Driven Agent for
+    integrating LLMs and Knowledge Graphs") reveal that observation enables reflection
+    module to generate more accurate memories, which translates to improved question-answering
+    accuracy for ODA. This result underscores the value of both leveraging KG autonomous
+    reasoning capabilities and fostering deep collaboration between KG and LLMs.'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[3](https://arxiv.org/html/2404.07677v2#S4.T3 "表 3 ‣ 4.1 观察的效果 ‣ 4 讨论 ‣ ODA：集成LLM和知识图谱的观察驱动代理")的结果表明，观察使反射模块能够生成更准确的记忆，从而提高了ODA的问答准确率。这个结果强调了利用知识图谱（KG）自主推理能力以及促进KG和LLM之间深度协作的重要性。
+- en: 4.3 Performance across Different Backbone Models
+  id: totrans-139
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 不同骨干模型的表现
+- en: 'To evaluate the effectiveness of ODA across various backbones, we analyzed
+    its impact on performance in T-REx and QALD10-en datasets. We employed three backbones:
+    GPT-3.5, GPT-4 and DeepSeek-V2 DeepSeek-AI et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib4)).
+    DeepSeek-V2 stands out as a powerful, economical, and efficient mixture-of-experts
+    language model. Notably, DeepSeek-V2 surpasses the performance of LLaMA3 70B Instruct
+    on standard benchmarks.'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估ODA在不同骨干网络上的效果，我们分析了它在T-REx和QALD10-en数据集上的性能表现。我们使用了三种骨干网络：GPT-3.5、GPT-4和DeepSeek-V2（DeepSeek-AI等，([2024](https://arxiv.org/html/2404.07677v2#bib.bib4))）。DeepSeek-V2作为一种强大、经济高效的专家混合语言模型脱颖而出。值得注意的是，DeepSeek-V2在标准基准测试中超过了LLaMA3
+    70B Instruct的表现。
+- en: 'As evidenced by the Table [4](https://arxiv.org/html/2404.07677v2#S4.T4 "Table
+    4 ‣ 4.3 Performance across Different Backbone Models ‣ 4 Discussion ‣ ODA: Observation-Driven
+    Agent for integrating LLMs and Knowledge Graphs"), our ODA approach significantly
+    outperformed the direct answering methods using GPT-3.5, GPT-4 and DeepSeek-V2\.
+    Notably, ODA demonstrated a remarkable 30.4% improvement in direct answering performance
+    when utilizing GPT-3.5 model on QALD10-en dataset. This experiment suggests the
+    generalizability of ODA across different LLMs.'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如表[4](https://arxiv.org/html/2404.07677v2#S4.T4 "Table 4 ‣ 4.3 Performance
+    across Different Backbone Models ‣ 4 Discussion ‣ ODA: Observation-Driven Agent
+    for integrating LLMs and Knowledge Graphs")所示，我们的ODA方法在使用GPT-3.5、GPT-4和DeepSeek-V2的直接回答方法上显著优于其他方法。特别地，在使用GPT-3.5模型进行QALD10-en数据集的直接回答时，ODA表现出显著的30.4%的提升。这个实验表明，ODA在不同LLM之间具有较好的泛化能力。'
+- en: '| Method | T-REx | QALD10-en |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | T-REx | QALD10-en |'
+- en: '| --- | --- | --- |'
+  id: totrans-143
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Direct answering(GPT3.5) | 37.60 | 44.74 |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| 直接回答（GPT3.5） | 37.60 | 44.74 |'
+- en: '| ODA (GPT3.5) | 68.00 | 49.71 |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| ODA (GPT3.5) | 68.00 | 49.71 |'
+- en: '| Direct answering(GPT4) | 57.44 | 57.10 |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| 直接回答（GPT4） | 57.44 | 57.10 |'
+- en: '| ODA (GPT4) | 86.00 | 66.67 |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| ODA (GPT4) | 86.00 | 66.67 |'
+- en: '| Direct answering(DeepSeek-V2) | 32.86 | 41.14 |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| 直接回答（DeepSeek-V2） | 32.86 | 41.14 |'
+- en: '| ODA (DeepSeek-V2) | 62.67 | 57.36 |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| ODA (DeepSeek-V2) | 62.67 | 57.36 |'
+- en: 'Table 4: Performance comparison using different backbone models'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4：使用不同骨干模型的性能比较
+- en: 5 Related Works
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 相关工作
+- en: KG-enhanced LLM
+  id: totrans-152
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 增强知识图谱的LLM
+- en: Knowledge Graph-enhanced Language Models utilize two primary methodologies when
+    tackling tasks that require integration with KGs. The first involves the extraction
+    of relevant triples from KGs in response to posed questions. Wang et al. ([2023b](https://arxiv.org/html/2404.07677v2#bib.bib29))
+    prompt LLMs to generate explicit knowledge evidence structured as triples, while
+    Jiang et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib11)) develop specialized
+    interfaces for gathering pertinent evidence from structured data, enabling LLMs
+    to focus on reasoning tasks based on this information. Baek et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib1))
+    retrieve facts related to the input question by assessing semantic similarities
+    between the question and associated facts, then prepending these facts to the
+    input. Meanwhile, Li et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib13))
+    iteratively refine reasoning rationales by adapting knowledge from the KG. Wang
+    et al. ([2023a](https://arxiv.org/html/2404.07677v2#bib.bib28)) dissect complex
+    questions using predefined templates, retrieve entities from the KG, and generate
+    answers accordingly. Luo et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib14))
+    employs a planning-retrieval-reasoning framework to generate relation paths grounded
+    by KGs, thereby enhancing the reasoning capabilities of LLMs. Recently, graph
+    retrieve augmented generation (GRAG) has been introduced to retrieve proper knowledge
+    subgraphs rather than triplets He et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib9));
+    Hu et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib10)); Mavromatis
+    and Karypis ([2024](https://arxiv.org/html/2404.07677v2#bib.bib15)). In GRAG approaches,
+    subgraphs are first encoded into graph embeddings, and then retrieved based on
+    their similarity to the query. Hu et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib10))
+    proposes an additional step of filtering irrelevant entities within each retrieved
+    subgraph.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 知识图谱增强语言模型在处理需要与KG集成的任务时，采用两种主要方法。第一种方法是根据提出的问题从KG中提取相关的三元组。Wang等人（[2023b](https://arxiv.org/html/2404.07677v2#bib.bib29)）提示LLM生成明确的知识证据，结构化为三元组，而Jiang等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib11)）开发了专门的接口，用于从结构化数据中收集相关证据，使LLM能够基于这些信息专注于推理任务。Baek等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib1)）通过评估问题与相关事实之间的语义相似性，检索与输入问题相关的事实，然后将这些事实添加到输入中。同时，Li等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib13)）通过适应KG中的知识，迭代地完善推理理由。Wang等人（[2023a](https://arxiv.org/html/2404.07677v2#bib.bib28)）通过预定义模板解析复杂问题，从KG中检索实体，并相应地生成答案。Luo等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib14)）采用规划-检索-推理框架，生成由KG支持的关系路径，从而增强LLM的推理能力。最近，引入了图检索增强生成（GRAG），通过检索适当的知识子图而非三元组来增强推理能力。He等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib9)）；Hu等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib10)）；Mavromatis和Karypis（[2024](https://arxiv.org/html/2404.07677v2#bib.bib15)）提出了这一方法。在GRAG方法中，首先将子图编码为图嵌入，然后根据与查询的相似性进行检索。Hu等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib10)）提出了一个额外的步骤，即在每个检索到的子图中过滤掉无关实体。
+- en: The second approach employs an explore-exploit strategy that guides the knowledge
+    utilization process within the graph. Sun et al. ([2023b](https://arxiv.org/html/2404.07677v2#bib.bib25))
+    perform an iterative beam search on the KG to identify the most promising reasoning
+    pathways and report the outcomes. Guo et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib8))
+    selectively accumulate supporting information from the KG through an iterative
+    process that incorporates insights from the LLM to address the question. HyKGE [Jiang
+    et al.](https://arxiv.org/html/2404.07677v2#bib.bib12) first generates a hypothesis
+    of the question by an LLM. Then it retrieves knowledge from the KG according to
+    the entities of the hypothesis and answers the question based on the knowledge.
+    To deal with incomplete KG, Xu et al. ([2024](https://arxiv.org/html/2404.07677v2#bib.bib32))
+    add a generation operation if some knowledge is missing.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二种方法采用探索-利用策略，指导图中的知识利用过程。Sun等人（[2023b](https://arxiv.org/html/2404.07677v2#bib.bib25)）在知识图谱（KG）上执行迭代束搜索，以识别最有前景的推理路径并报告结果。Guo等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib8)）通过一个迭代过程，选择性地从KG中积累支持信息，结合LLM的见解来解决问题。HyKGE
+    [Jiang等人](https://arxiv.org/html/2404.07677v2#bib.bib12)首先通过LLM生成问题的假设。然后，根据假设中的实体从KG中检索知识，并基于这些知识回答问题。为了解决不完整的KG，Xu等人（[2024](https://arxiv.org/html/2404.07677v2#bib.bib32)）在缺失某些知识时添加生成操作。
+- en: Although these methods utilize the structural knowledge of KG, the searching
+    or retrieving process is driven by the rationale of LLMs to the target question.
+    Our method is the first to incorporate existing patterns in KG as a way to deeply
+    bind the reasoning abilities of both LLM and KG via our novel observation mechanism.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这些方法利用了知识图谱的结构化知识，但搜索或检索过程是由 LLM 对目标问题的推理驱动的。我们的方法是首个通过我们新颖的观察机制将现有模式融入 KG，以深度绑定
+    LLM 和 KG 的推理能力的工作。
+- en: AI Agent
+  id: totrans-156
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 人工智能代理
+- en: In the domain of AI agents, Yao et al. ([2022](https://arxiv.org/html/2404.07677v2#bib.bib33))
+    utilize LLMs to interleave the generation of reasoning traces with task-specific
+    actions. Wu et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib31)) propose
+    an adaptable and conversational agent framework. This framework can operate in
+    various modes, leveraging combinations of LLMs, human input, and auxiliary tools,
+    resulting in a flexible and versatile system. Chen et al. ([2023](https://arxiv.org/html/2404.07677v2#bib.bib3))
+    focus on creating expert agents capable of solving complex tasks.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在人工智能代理领域，Yao 等人（[2022](https://arxiv.org/html/2404.07677v2#bib.bib33)）利用大语言模型（LLMs）将推理轨迹的生成与任务特定的行动交织在一起。Wu
+    等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib31)）提出了一个可适应的对话代理框架。该框架可以在多种模式下运行，结合
+    LLMs、人类输入和辅助工具，形成一个灵活多样的系统。Chen 等人（[2023](https://arxiv.org/html/2404.07677v2#bib.bib3)）专注于创建能够解决复杂任务的专家代理。
+- en: 6 Conclusion
+  id: totrans-158
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论
+- en: In this work, we design ODA framework for KG-centric tasks. In ODA, we introduce
+    KG observation mechanism to autonomously combine the reasoning abilities of KG
+    with LLM. We first propose the observation method to mitigate the problem of explosive
+    number of triples in KG when tackling complex tasks. Then we fuse the observation
+    into the action and reflection modules to further enhance the overall performance.
+    We conduct extensive experiments, and the results clearly illustrate the effectiveness
+    of our framework, highlighting its capability to enhance performance across four
+    KBQA datasets, particularly in handling complicated questions.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究设计了一个针对知识图谱（KG）中心任务的 ODA 框架。在 ODA 中，我们引入了 KG 观察机制，以自主地将 KG 的推理能力与 LLM 结合。我们首先提出了一种观察方法，以减轻在处理复杂任务时知识图谱中三元组数量爆炸的问题。然后，我们将观察机制融合到行动和反思模块中，以进一步提升整体性能。我们进行了大量实验，结果清晰地展示了我们框架的有效性，突显了它在四个
+    KBQA 数据集上提升性能的能力，尤其是在处理复杂问题时。
+- en: Limitation
+  id: totrans-160
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 局限性
+- en: Given the diverse nature of KG-related tasks spanning multiple domains and requiring
+    a broad range of capabilities, the implementation of a multi-agent system is promising
+    to significantly enhance task performance. We leave the integration of our observation
+    mechanism with multi-agent system to future work. Additionally, our current method
+    encounters computational challenges when applied to knowledge graphs with missing
+    relations or entities, such as Freebase. Therefore, in our subsequent work, we
+    plan to address these issues and explore the use of Freebase more comprehensively.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于知识图谱相关任务的多样性，跨多个领域并且需要广泛的能力，实施多代理系统有望显著提高任务性能。我们将我们观察机制与多代理系统的结合留待未来工作。此外，我们当前的方法在应用于缺失关系或实体的知识图谱（如
+    Freebase）时面临计算挑战。因此，在后续工作中，我们计划解决这些问题，并更全面地探索 Freebase 的使用。
+- en: References
+  id: totrans-162
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Baek et al. (2023) Jinheon Baek, Alham Fikri Aji, and Amir Saffari. 2023. Knowledge-augmented
+    language model prompting for zero-shot knowledge graph question answering. *arXiv
+    preprint arXiv:2306.04136*.
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Baek 等人（2023） Jinheon Baek, Alham Fikri Aji 和 Amir Saffari. 2023. 知识增强语言模型提示用于零-shot知识图谱问答。*arXiv
+    预印本 arXiv:2306.04136*。
+- en: Brown et al. (2020) Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
+    Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+    Askell, et al. 2020. Language models are few-shot learners. *Advances in neural
+    information processing systems*, 33:1877–1901.
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown 等人（2020）Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
+    Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+    Askell 等人. 2020. 语言模型是少样本学习者。*神经信息处理系统进展*, 33:1877–1901。
+- en: 'Chen et al. (2023) Guangyao Chen, Siwei Dong, Yu Shu, Ge Zhang, Jaward Sesay,
+    Börje F Karlsson, Jie Fu, and Yemin Shi. 2023. Autoagents: A framework for automatic
+    agent generation. *arXiv preprint arXiv:2309.17288*.'
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2023）Guangyao Chen, Siwei Dong, Yu Shu, Ge Zhang, Jaward Sesay, Börje
+    F Karlsson, Jie Fu 和 Yemin Shi. 2023. Autoagents：自动代理生成框架。*arXiv 预印本 arXiv:2309.17288*。
+- en: 'DeepSeek-AI et al. (2024) DeepSeek-AI, :, Xiao Bi, Deli Chen, Guanting Chen,
+    Shanhuang Chen, Damai Dai, Chengqi Deng, Honghui Ding, Kai Dong, Qiushi Du, Zhe
+    Fu, Huazuo Gao, Kaige Gao, Wenjun Gao, Ruiqi Ge, Kang Guan, Daya Guo, Jianzhong
+    Guo, Guangbo Hao, Zhewen Hao, Ying He, Wenjie Hu, Panpan Huang, Erhang Li, Guowei
+    Li, Jiashi Li, Yao Li, Y. K. Li, Wenfeng Liang, Fangyun Lin, A. X. Liu, Bo Liu,
+    Wen Liu, Xiaodong Liu, Xin Liu, Yiyuan Liu, Haoyu Lu, Shanghao Lu, Fuli Luo, Shirong
+    Ma, Xiaotao Nie, Tian Pei, Yishi Piao, Junjie Qiu, Hui Qu, Tongzheng Ren, Zehui
+    Ren, Chong Ruan, Zhangli Sha, Zhihong Shao, Junxiao Song, Xuecheng Su, Jingxiang
+    Sun, Yaofeng Sun, Minghui Tang, Bingxuan Wang, Peiyi Wang, Shiyu Wang, Yaohui
+    Wang, Yongji Wang, Tong Wu, Y. Wu, Xin Xie, Zhenda Xie, Ziwei Xie, Yiliang Xiong,
+    Hanwei Xu, R. X. Xu, Yanhong Xu, Dejian Yang, Yuxiang You, Shuiping Yu, Xingkai
+    Yu, B. Zhang, Haowei Zhang, Lecong Zhang, Liyue Zhang, Mingchuan Zhang, Minghua
+    Zhang, Wentao Zhang, Yichao Zhang, Chenggang Zhao, Yao Zhao, Shangyan Zhou, Shunfeng
+    Zhou, Qihao Zhu, and Yuheng Zou. 2024. [Deepseek llm: Scaling open-source language
+    models with longtermism](http://arxiv.org/abs/2401.02954).'
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: DeepSeek-AI 等人 (2024) DeepSeek-AI、:、肖斌、陈德立、陈冠廷、陈山黄、戴大迈、邓成奇、丁洪辉、董凯、杜秋实、傅哲、高华作、高凯歌、高文君、葛睿琪、关康、郭大雅、郭建忠、郝光波、郝哲文、何颖、胡文杰、黄盼盼、李尔航、李国伟、李家时、李耀、李Y.K.、梁文峰、林芳云、刘A.X.、刘博、刘文、刘晓东、刘欣、刘一源、陆浩宇、陆尚昊、罗富力、马世荣、聂晓涛、裴天、邱一志、曲慧、任同政、任泽辉、阮冲、沙张利、邵志鸿、宋俊晓、苏学成、孙景翔、孙耀峰、唐名辉、王冰轩、王佩怡、王世瑜、王耀辉、王永吉、吴彭、吴Y.、谢欣、谢振达、谢子威、熊一良、徐汉伟、徐R.X.、徐彦鸿、杨德建、游宇翔、于水平、于兴凯、张B.、张浩伟、张乐聪、张李跃、张名川、张名华、张文涛、张艺超、张成钢、赵耀、周尚岩、周顺峰、朱启豪
+    和 邹宇恒。2024。[Deepseek llm：通过长期主义扩展开源语言模型](http://arxiv.org/abs/2401.02954)。
+- en: 'Do et al. (2024) Quyet V Do, Tianqing Fang, Shizhe Diao, Zhaowei Wang, and
+    Yangqiu Song. 2024. Constraintchecker: A plugin for large language models to reason
+    on commonsense knowledge bases. *arXiv preprint arXiv:2401.14003*.'
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Do 等人 (2024) Quyet V Do、方天青、刁诗哲、王兆威 和 宋扬秋。2024。Constraintchecker：一个用于大规模语言模型推理常识知识库的插件。*arXiv
+    预印本 arXiv:2401.14003*。
+- en: 'Elsahar et al. (2018) Hady Elsahar, Pavlos Vougiouklis, Arslen Remaci, Christophe
+    Gravier, Jonathon Hare, Frederique Laforest, and Elena Simperl. 2018. [T-REx:
+    A large scale alignment of natural language with knowledge base triples](https://aclanthology.org/L18-1544).
+    In *Proceedings of the Eleventh International Conference on Language Resources
+    and Evaluation (LREC 2018)*, Miyazaki, Japan. European Language Resources Association
+    (ELRA).'
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Elsahar 等人 (2018) Hady Elsahar、Pavlos Vougiouklis、Arslen Remaci、Christophe Gravier、Jonathon
+    Hare、Frederique Laforest 和 Elena Simperl。2018。[T-REx：自然语言与知识库三元组的大规模对齐](https://aclanthology.org/L18-1544)。发表于
+    *第十一届国际语言资源与评估会议 (LREC 2018)*，日本宫崎。欧洲语言资源协会 (ELRA)。
+- en: 'Glass et al. (2022) Michael Glass, Gaetano Rossiello, Md Faisal Mahbub Chowdhury,
+    Ankita Naik, Pengshan Cai, and Alfio Gliozzo. 2022. [Re2G: Retrieve, rerank, generate](https://doi.org/10.18653/v1/2022.naacl-main.194).
+    In *Proceedings of the 2022 Conference of the North American Chapter of the Association
+    for Computational Linguistics: Human Language Technologies*, pages 2701–2715,
+    Seattle, United States. Association for Computational Linguistics.'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Glass 等人 (2022) Michael Glass、Gaetano Rossiello、Md Faisal Mahbub Chowdhury、Ankita
+    Naik、蔡鹏山 和 Alfio Gliozzo。2022。[Re2G：检索、重排、生成](https://doi.org/10.18653/v1/2022.naacl-main.194)。发表于
+    *2022年北美计算语言学协会：人类语言技术会议论文集*，第2701-2715页，美国西雅图。计算语言学协会。
+- en: 'Guo et al. (2023) Tiezheng Guo, Qingwen Yang, Chen Wang, Yanyi Liu, Pan Li,
+    Jiawei Tang, Dapeng Li, and Yingyou Wen. 2023. Knowledgenavigator: Leveraging
+    large language models for enhanced reasoning over knowledge graph. *arXiv preprint
+    arXiv:2312.15880*.'
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Guo 等人 (2023) 郭铁铮、杨清文、王晨、刘彦仪、李攀、唐家伟、李大鹏、文英友。2023。Knowledgenavigator：利用大规模语言模型增强知识图推理。*arXiv
+    预印本 arXiv:2312.15880*。
+- en: 'He et al. (2024) Xiaoxin He, Yijun Tian, Yifei Sun, Nitesh V Chawla, Thomas
+    Laurent, Yann LeCun, Xavier Bresson, and Bryan Hooi. 2024. G-retriever: Retrieval-augmented
+    generation for textual graph understanding and question answering. *arXiv preprint
+    arXiv:2402.07630*.'
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: He 等人 (2024) 何小新、田一君、孙一飞、Nitesh V Chawla、Thomas Laurent、Yann LeCun、Xavier Bresson
+    和 Bryan Hooi。2024。G-retriever：用于文本图理解和问题回答的检索增强生成。*arXiv 预印本 arXiv:2402.07630*。
+- en: 'Hu et al. (2024) Yuntong Hu, Zhihan Lei, Zheng Zhang, Bo Pan, Chen Ling, and
+    Liang Zhao. 2024. Grag: Graph retrieval-augmented generation. *arXiv preprint
+    arXiv:2405.16506*.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Hu 等人（2024）Yuntong Hu, Zhihan Lei, Zheng Zhang, Bo Pan, Chen Ling, 和 Liang
+    Zhao. 2024. Grag: 图检索增强生成。*arXiv 预印本 arXiv:2405.16506*。'
+- en: 'Jiang et al. (2023) Jinhao Jiang, Kun Zhou, Zican Dong, Keming Ye, Wayne Xin
+    Zhao, and Ji-Rong Wen. 2023. Structgpt: A general framework for large language
+    model to reason over structured data. *arXiv preprint arXiv:2305.09645*.'
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Jiang 等人（2023）Jinhao Jiang, Kun Zhou, Zican Dong, Keming Ye, Wayne Xin Zhao,
+    和 Ji-Rong Wen. 2023. StructGPT: 一个面向大型语言模型在结构化数据上进行推理的一般框架。*arXiv 预印本 arXiv:2305.09645*。'
+- en: '(12) Xinke Jiang, Ruizhe Zhang, Yongxin Xu, Rihong Qiu, Yue Fang, Zhiyuan Wang,
+    Jinyi Tang, Hongxin Ding, Xu Chu, Junfeng Zhao, et al. Hykge: A hypothesis knowledge
+    graph enhanced framework for accurate and reliable medical llms responses.'
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '（12）Xinke Jiang, Ruizhe Zhang, Yongxin Xu, Rihong Qiu, Yue Fang, Zhiyuan Wang,
+    Jinyi Tang, Hongxin Ding, Xu Chu, Junfeng Zhao 等人。Hykge: 一个增强假设知识图的框架，用于准确且可靠的医疗语言模型响应。'
+- en: 'Li et al. (2023) Xingxuan Li, Ruochen Zhao, Yew Ken Chia, Bosheng Ding, Shafiq
+    Joty, Soujanya Poria, and Lidong Bing. 2023. Chain-of-knowledge: Grounding large
+    language models via dynamic knowledge adapting over heterogeneous sources. *arXiv
+    preprint arXiv:2305.13269*.'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li 等人（2023）Xingxuan Li, Ruochen Zhao, Yew Ken Chia, Bosheng Ding, Shafiq Joty,
+    Soujanya Poria, 和 Lidong Bing. 2023. Chain-of-knowledge: 通过在异构来源上进行动态知识适配来为大型语言模型提供基础。*arXiv
+    预印本 arXiv:2305.13269*。'
+- en: 'Luo et al. (2024) Linhao Luo, Yuan-Fang Li, Gholamreza Haffari, and Shirui
+    Pan. 2024. [Reasoning on graphs: Faithful and interpretable large language model
+    reasoning](http://arxiv.org/abs/2310.01061).'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Luo 等人（2024）Linhao Luo, Yuan-Fang Li, Gholamreza Haffari, 和 Shirui Pan. 2024.
+    [基于图的推理：忠实且可解释的大型语言模型推理](http://arxiv.org/abs/2310.01061)。
+- en: 'Mavromatis and Karypis (2024) Costas Mavromatis and George Karypis. 2024. Gnn-rag:
+    Graph neural retrieval for large language model reasoning. *arXiv preprint arXiv:2405.20139*.'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Mavromatis 和 Karypis（2024）Costas Mavromatis 和 George Karypis. 2024. GNN-RAG:
+    面向大型语言模型推理的图神经检索。*arXiv 预印本 arXiv:2405.20139*。'
+- en: Muennighoff et al. (2022) Niklas Muennighoff, Thomas Wang, Lintang Sutawika,
+    Adam Roberts, Stella Biderman, Teven Le Scao, M Saiful Bari, Sheng Shen, Zheng-Xin
+    Yong, Hailey Schoelkopf, et al. 2022. Crosslingual generalization through multitask
+    finetuning. *arXiv preprint arXiv:2211.01786*.
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Muennighoff 等人（2022）Niklas Muennighoff, Thomas Wang, Lintang Sutawika, Adam
+    Roberts, Stella Biderman, Teven Le Scao, M Saiful Bari, Sheng Shen, Zheng-Xin
+    Yong, Hailey Schoelkopf 等人. 2022. 通过多任务微调实现跨语言泛化。*arXiv 预印本 arXiv:2211.01786*。
+- en: 'Onoe et al. (2021) Yasumasa Onoe, Michael J. Q. Zhang, Eunsol Choi, and Greg
+    Durrett. 2021. [Creak: A dataset for commonsense reasoning over entity knowledge](http://arxiv.org/abs/2109.01653).'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Onoe 等人（2021）Yasumasa Onoe, Michael J. Q. Zhang, Eunsol Choi, 和 Greg Durrett.
+    2021. [Creak: 一个面向实体知识常识推理的数据集](http://arxiv.org/abs/2109.01653)。'
+- en: OpenAI (2023) R OpenAI. 2023. Gpt-4 technical report. *arXiv*, pages 2303–08774.
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI（2023）R OpenAI. 2023. GPT-4 技术报告。*arXiv*，第2303–08774页。
+- en: 'Pan et al. (2024) Shirui Pan, Linhao Luo, Yufei Wang, Chen Chen, Jiapu Wang,
+    and Xindong Wu. 2024. Unifying large language models and knowledge graphs: A roadmap.
+    *IEEE Transactions on Knowledge and Data Engineering*.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pan 等人（2024）Shirui Pan, Linhao Luo, Yufei Wang, Chen Chen, Jiapu Wang, 和 Xindong
+    Wu. 2024. 统一大型语言模型和知识图谱：一条发展路线图。*IEEE 知识与数据工程学报*。
+- en: 'Perevalov et al. (2022) Aleksandr Perevalov, Dennis Diefenbach, Ricardo Usbeck,
+    and Andreas Both. 2022. [Qald-9-plus: A multilingual dataset for question answering
+    over dbpedia and wikidata translated by native speakers](https://doi.org/10.1109/ICSC52841.2022.00045).
+    In *2022 IEEE 16th International Conference on Semantic Computing (ICSC)*, pages
+    229–234.'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Perevalov 等人（2022）Aleksandr Perevalov, Dennis Diefenbach, Ricardo Usbeck, 和
+    Andreas Both. 2022. [Qald-9-plus: 一个由母语者翻译的面向 DBpedia 和 Wikidata 问答的多语言数据集](https://doi.org/10.1109/ICSC52841.2022.00045)。在
+    *2022 IEEE 第16届语义计算国际会议（ICSC）*，第229–234页。'
+- en: 'Petroni et al. (2021) Fabio Petroni, Aleksandra Piktus, Angela Fan, Patrick
+    Lewis, Majid Yazdani, Nicola De Cao, James Thorne, Yacine Jernite, Vladimir Karpukhin,
+    Jean Maillard, Vassilis Plachouras, Tim Rocktäschel, and Sebastian Riedel. 2021.
+    [KILT: a benchmark for knowledge intensive language tasks](https://doi.org/10.18653/v1/2021.naacl-main.200).
+    In *Proceedings of the 2021 Conference of the North American Chapter of the Association
+    for Computational Linguistics: Human Language Technologies*, pages 2523–2544,
+    Online. Association for Computational Linguistics.'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Petroni 等人（2021）Fabio Petroni, Aleksandra Piktus, Angela Fan, Patrick Lewis,
+    Majid Yazdani, Nicola De Cao, James Thorne, Yacine Jernite, Vladimir Karpukhin,
+    Jean Maillard, Vassilis Plachouras, Tim Rocktäschel, 和 Sebastian Riedel. 2021.
+    [KILT: 面向知识密集型语言任务的基准](https://doi.org/10.18653/v1/2021.naacl-main.200)。在 *2021年北美计算语言学会年会：人类语言技术论文集*，第2523–2544页，线上。计算语言学协会。'
+- en: Santana et al. (2022) Manuel Alejandro Borroto Santana, Bernardo Cuteri, Francesco
+    Ricca, and Vito Barbara. 2022. [SPARQLQA enters the QALD challenge](https://ceur-ws.org/Vol-3196/paper3.pdf).
+    In *Proceedings of the 7th Natural Language Interfaces for the Web of Data (NLIWoD)
+    co-located with the 19th European Semantic Web Conference (ESWC 2022)*, volume
+    3196 of *CEUR Workshop Proceedings*, pages 25–31, Hersonissos, Greece. CEUR-WS.org.
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Santana et al. (2022) Manuel Alejandro Borroto Santana, Bernardo Cuteri, Francesco
+    Ricca, and Vito Barbara. 2022. [SPARQLQA进入QALD挑战](https://ceur-ws.org/Vol-3196/paper3.pdf)。在*第七届Web数据自然语言接口（NLIWoD）与第十九届欧洲语义Web会议（ESWC
+    2022）联合会议论文集*中，CEUR Workshop Proceedings第3196卷，第25–31页，希腊赫尔索尼斯索斯。CEUR-WS.org。
+- en: 'Scao et al. (2022) Teven Le Scao, Angela Fan, Christopher Akiki, Ellie Pavlick,
+    Suzana Ilić, Daniel Hesslow, Roman Castagné, Alexandra Sasha Luccioni, François
+    Yvon, Matthias Gallé, et al. 2022. Bloom: A 176b-parameter open-access multilingual
+    language model. *arXiv preprint arXiv:2211.05100*.'
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Scao et al. (2022) Teven Le Scao, Angela Fan, Christopher Akiki, Ellie Pavlick,
+    Suzana Ilić, Daniel Hesslow, Roman Castagné, Alexandra Sasha Luccioni, François
+    Yvon, Matthias Gallé, et al. 2022. Bloom: 一个1760亿参数的开放获取多语言语言模型。*arXiv 预印本 arXiv:2211.05100*。'
+- en: 'Sun et al. (2023a) Jiashuo Sun, Chengjin Xu, Lumingyuan Tang, Saizhuo Wang,
+    Chen Lin, Yeyun Gong, Lionel M. Ni, Heung-Yeung Shum, and Jian Guo. 2023a. [Think-on-graph:
+    Deep and responsible reasoning of large language model on knowledge graph](http://arxiv.org/abs/2307.07697).'
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Sun et al. (2023a) Jiashuo Sun, Chengjin Xu, Lumingyuan Tang, Saizhuo Wang,
+    Chen Lin, Yeyun Gong, Lionel M. Ni, Heung-Yeung Shum, and Jian Guo. 2023a. [Think-on-graph:
+    基于知识图谱的大型语言模型的深度与责任推理](http://arxiv.org/abs/2307.07697)。'
+- en: 'Sun et al. (2023b) Jiashuo Sun, Chengjin Xu, Lumingyuan Tang, Saizhuo Wang,
+    Chen Lin, Yeyun Gong, Heung-Yeung Shum, and Jian Guo. 2023b. Think-on-graph: Deep
+    and responsible reasoning of large language model with knowledge graph. *arXiv
+    preprint arXiv:2307.07697*.'
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Sun et al. (2023b) Jiashuo Sun, Chengjin Xu, Lumingyuan Tang, Saizhuo Wang,
+    Chen Lin, Yeyun Gong, Heung-Yeung Shum, and Jian Guo. 2023b. Think-on-graph: 基于知识图谱的大型语言模型的深度与责任推理。*arXiv
+    预印本 arXiv:2307.07697*。'
+- en: 'Sun et al. (2019) Zhiqing Sun, Zhi-Hong Deng, Jian-Yun Nie, and Jian Tang.
+    2019. [Rotate: Knowledge graph embedding by relational rotation in complex space](http://arxiv.org/abs/1902.10197).'
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Sun et al. (2019) Zhiqing Sun, Zhi-Hong Deng, Jian-Yun Nie, and Jian Tang.
+    2019. [Rotate: 通过复数空间中的关系旋转进行知识图谱嵌入](http://arxiv.org/abs/1902.10197)。'
+- en: 'Touvron et al. (2023) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, et al. 2023. Llama: Open and efficient foundation language
+    models. *arXiv preprint arXiv:2302.13971*.'
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron et al. (2023) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, et al. 2023. Llama: 开放和高效的基础语言模型。*arXiv 预印本 arXiv:2302.13971*。'
+- en: 'Wang et al. (2023a) Chaojie Wang, Yishi Xu, Zhong Peng, Chenxi Zhang, Bo Chen,
+    Xinrun Wang, Lei Feng, and Bo An. 2023a. keqing: knowledge-based question answering
+    is a nature chain-of-thought mentor of llm. *arXiv preprint arXiv:2401.00426*.'
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wang et al. (2023a) Chaojie Wang, Yishi Xu, Zhong Peng, Chenxi Zhang, Bo Chen,
+    Xinrun Wang, Lei Feng, and Bo An. 2023a. keqing: 基于知识的问答是大型语言模型的自然链式思维导师。*arXiv
+    预印本 arXiv:2401.00426*。'
+- en: Wang et al. (2023b) Jianing Wang, Qiushi Sun, Nuo Chen, Xiang Li, and Ming Gao.
+    2023b. Boosting language models reasoning with chain-of-knowledge prompting. *arXiv
+    preprint arXiv:2306.06427*.
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023b) Jianing Wang, Qiushi Sun, Nuo Chen, Xiang Li, and Ming Gao.
+    2023b. 通过知识链提示提升语言模型推理能力。*arXiv 预印本 arXiv:2306.06427*。
+- en: Wang et al. (2023c) Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi,
+    Sharan Narang, Aakanksha Chowdhery, and Denny Zhou. 2023c. [Self-consistency improves
+    chain of thought reasoning in language models](http://arxiv.org/abs/2203.11171).
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023c) Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi,
+    Sharan Narang, Aakanksha Chowdhery, and Denny Zhou. 2023c. [自洽性提升语言模型的链式思维推理](http://arxiv.org/abs/2203.11171)。
+- en: 'Wu et al. (2023) Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Shaokun Zhang,
+    Erkang Zhu, Beibin Li, Li Jiang, Xiaoyun Zhang, and Chi Wang. 2023. Autogen: Enabling
+    next-gen llm applications via multi-agent conversation framework. *arXiv preprint
+    arXiv:2308.08155*.'
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wu et al. (2023) Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Shaokun Zhang,
+    Erkang Zhu, Beibin Li, Li Jiang, Xiaoyun Zhang, and Chi Wang. 2023. Autogen: 通过多智能体对话框架推动下一代大型语言模型应用。*arXiv
+    预印本 arXiv:2308.08155*。'
+- en: 'Xu et al. (2024) Yao Xu, Shizhu He, Jiabei Chen, Zihao Wang, Yangqiu Song,
+    Hanghang Tong, Kang Liu, and Jun Zhao. 2024. Generate-on-graph: Treat llm as both
+    agent and kg in incomplete knowledge graph question answering. *arXiv preprint
+    arXiv:2404.14741*.'
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Xu et al. (2024) Yao Xu, Shizhu He, Jiabei Chen, Zihao Wang, Yangqiu Song,
+    Hanghang Tong, Kang Liu, and Jun Zhao. 2024. Generate-on-graph: 将大型语言模型视为智能体和知识图谱，用于不完整知识图谱问答。*arXiv
+    预印本 arXiv:2404.14741*。'
+- en: 'Yao et al. (2022) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+    Karthik Narasimhan, and Yuan Cao. 2022. React: Synergizing reasoning and acting
+    in language models. *arXiv preprint arXiv:2210.03629*.'
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 姚等（2022）姚顺宇、赵杰富、余滇、杜楠、伊扎克·沙夫兰、卡尔提克·纳拉辛汉和袁超。2022年。《React：在语言模型中协同推理与行动》。*arXiv
+    预印本 arXiv:2210.03629*。
+- en: 'Yu et al. (2022) Wenhao Yu, Chenguang Zhu, Zhihan Zhang, Shuohang Wang, Zhuosheng
+    Zhang, Yuwei Fang, and Meng Jiang. 2022. [Retrieval augmentation for commonsense
+    reasoning: A unified approach](https://doi.org/10.18653/v1/2022.emnlp-main.294).
+    In *Proceedings of the 2022 Conference on Empirical Methods in Natural Language
+    Processing*, pages 4364–4377, Abu Dhabi, United Arab Emirates. Association for
+    Computational Linguistics.'
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 于等（2022）于文浩、朱晨光、张智涵、王硕航、张卓生、方雨薇和蒋萌。2022年。[检索增强的常识推理：一种统一的方法](https://doi.org/10.18653/v1/2022.emnlp-main.294)。在*2022年自然语言处理实证方法会议论文集*，第4364-4377页，阿布扎比，阿联酋。计算语言学协会。
+- en: Zhang et al. (2023) Yichi Zhang, Zhuo Chen, Wen Zhang, and Huajun Chen. 2023.
+    Making large language models perform better in knowledge graph completion. *arXiv
+    preprint arXiv:2310.06671*.
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 张等（2023）张艺驰、陈卓、张文和陈华俊。2023年。《使大型语言模型在知识图谱补全中表现更好》。*arXiv 预印本 arXiv:2310.06671*。
+- en: Appendix A Case Study
+  id: totrans-198
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 案例研究
+- en: 'To demonstrate ODA effectiveness, we highlight several representative cases
+    from the QALD10-en dataset. For improved readability, we replaced entity IDs in
+    Outputs with their corresponding names. We selected two examples to illustrate
+    how ODA utilizes observation to correctly address the question in Table [5](https://arxiv.org/html/2404.07677v2#A1.T5
+    "Table 5 ‣ Appendix A Case Study ‣ ODA: Observation-Driven Agent for integrating
+    LLMs and Knowledge Graphs") and Table [6](https://arxiv.org/html/2404.07677v2#A1.T6
+    "Table 6 ‣ Appendix A Case Study ‣ ODA: Observation-Driven Agent for integrating
+    LLMs and Knowledge Graphs").'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了展示ODA的有效性，我们从QALD10-en数据集中挑选了几个典型案例。为了提高可读性，我们在输出中将实体ID替换为其对应的名称。我们选择了两个例子，说明ODA如何利用观察来正确回答表[5](https://arxiv.org/html/2404.07677v2#A1.T5
+    "表5 ‣ 附录A 案例研究 ‣ ODA：面向大语言模型与知识图谱整合的观察驱动代理")和表[6](https://arxiv.org/html/2404.07677v2#A1.T6
+    "表6 ‣ 附录A 案例研究 ‣ ODA：面向大语言模型与知识图谱整合的观察驱动代理")中的问题。
+- en: '| Question | The question is What is the capital of the prefecture Tokyo ?
+    |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| 问题 | 这个问题是：东京都的首府是什么？ |'
+- en: '| --- | --- |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Action | Thought: The question is asking for the capital of the prefecture
+    Tokyo. The candidate entity ID ’Q1490’ corresponds to Tokyo. I can see from the
+    observation that there is a triple (Tokyo, capital, Shinjuku) which might answer
+    the question. However, to confirm this, I will execute a GetNeighbor action on
+    ’Q1490’ to get all the triples where Tokyo is the head. |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '| 动作 | 思考: 这个问题是在询问东京都的首府。候选实体ID ''Q1490'' 对应于东京。我从观察中看到有一个三元组（东京，首府，新宿），这可能是答案。然而，为了确认这一点，我将对
+    ''Q1490'' 执行 GetNeighbor 动作，以获取所有以东京为主体的三元组。 |'
+- en: '|  | Action: GetNeighbor |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 动作: GetNeighbor |'
+- en: '|  | Entity_id: Tokyo |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 实体ID: 东京 |'
+- en: '| Reflection | Thought: The question is asking for the capital of Tokyo. From
+    the observation, we can see that Tokyo is the capital of Japan and it is a prefecture
+    of Japan. The capital of Tokyo is Shinjuku. Therefore, we should select the triples
+    that contain this information. |'
+  id: totrans-205
+  prefs: []
+  type: TYPE_TB
+  zh: '| 反思 | 思考: 这个问题是在询问东京都的首府。从观察中可以看出，东京是日本的首府，并且是日本的一个行政区。东京的首府是新宿。因此，我们应该选择包含这些信息的三元组。
+    |'
+- en: '|  | Triples: (Tokyo, instance of, prefecture of Japan), (Tokyo, capital ,
+    Shinjuku), (Tokyo, capital, Japan) |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 三元组: (东京，实例，日本的行政区)，(东京，首府，新宿)，(东京，首府，日本) |'
+- en: '| Action | Thought:The question is asking for the capital of the prefecture
+    Tokyo. From the reference memory, it is stated that the capital of Tokyo is Shinjuku.
+    Therefore, the answer to the question is Shinjuku. |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| 动作 | 思考: 这个问题是在询问东京都的首府。从参考记忆中可以看出，东京都的首府是新宿。因此，问题的答案是新宿。 |'
+- en: '|  | Action: Answer |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 动作: 答案 |'
+- en: '| Answer | Shinjuku |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| 答案 | 新宿 |'
+- en: 'Table 5: Case 1'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表5: 案例1'
+- en: '| Question | Where are both The Call of the Wild and White Fang set, the most
+    two famous works of Jack London? |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| 问题 | 《荒野的呼唤》和《白牙》这两部作品，杰克·伦敦的最著名的作品，都发生在什么地方？ |'
+- en: '| --- | --- |'
+  id: totrans-212
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Action | Thought: The question asks about the setting of two works, The Call
+    of the Wild and White Fang, both by Jack London. The observation provides some
+    information about the narrative locations of these works, but to confirm and provide
+    a specific answer, I will use the GetNeighbor function on The Call of the Wild.
+    |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| 动作 | 思考：问题询问的是杰克·伦敦的两部作品《野性的呼唤》和《白牙》的背景设定。观察结果提供了一些关于这两部作品叙事地点的信息，但为了确认并给出具体答案，我将对《野性的呼唤》使用获取邻居（GetNeighbor）功能。
+    |'
+- en: '|  | Action: GetNeighbor |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 动作：获取邻居 |'
+- en: '|  | Entity_id: The Call of the Wild |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 实体ID：《野性的呼唤》 |'
+- en: '| Reflection | Thought: First, I will focus on the triples related to the locations
+    of the two works, The Call of the Wild and White Fang, as the question is asking
+    about the settings of these two novels. I will also consider the triples related
+    to the author, Jack London, as the question mentions him. I will select the triples
+    that are most directly related to the settings of the two novels. |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '| 反思 | 思考：首先，我将关注与两部作品《野性的呼唤》和《白牙》地点相关的三元组，因为问题询问的是这两部小说的背景设定。我还将考虑与作者杰克·伦敦相关的三元组，因为问题提到了他。我将选择与这两部小说背景最直接相关的三元组。
+    |'
+- en: '|  | Triples: (The Call of the Wild, Narrative location, Yukon), (The Call
+    of the Wild, Narrative location, Canada), (The Call of the Wild, author, Jack
+    London) |'
+  id: totrans-217
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 三元组：（《野性的呼唤》，叙事地点，育空），（《野性的呼唤》，叙事地点，加拿大），（《野性的呼唤》，作者，杰克·伦敦） |'
+- en: '| Action | Thought:The question asks for the setting of both The Call of the
+    Wild and White Fang, two notable works of Jack London. From the observation, we
+    can see that The Call of the Wild has narrative locations in the United States
+    of America, Alaska, Canada, and Yukon. However, we don’t have the narrative location
+    for White Fang. Therefore, I will use the GetNeighbor function on the entityID
+    of White Fang to find its narrative location. |'
+  id: totrans-218
+  prefs: []
+  type: TYPE_TB
+  zh: '| 动作 | 思考：问题询问的是《野性的呼唤》和《白牙》两部杰克·伦敦的著名作品的背景设定。从观察中可以看出，《野性的呼唤》有美国、阿拉斯加、加拿大和育空等叙事地点。然而，我们并没有《白牙》的叙事地点。因此，我将对《白牙》的实体ID使用获取邻居功能，以找出其叙事地点。
+    |'
+- en: '|  | Action: GetNeighbor |'
+  id: totrans-219
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 动作：获取邻居 |'
+- en: '|  | Entity_id: White Fang |'
+  id: totrans-220
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 实体ID：《白牙》 |'
+- en: '| Reflection | Thought:First, I will look for triples that directly answer
+    the question. The question is asking for the setting of two works by Jack London,
+    namely, The Call of the Wild and White Fang. Therefore, I will look for triples
+    that contain these two works and a relation that indicates a setting or location.
+    From the candidate triples, I can see that there are two triples that indicate
+    a narrative location for White Fang: (White Fang, Narrative location, Yukon),
+    (White Fang, Narrative location, Canada). |'
+  id: totrans-221
+  prefs: []
+  type: TYPE_TB
+  zh: '| 反思 | 思考：首先，我将寻找能够直接回答问题的三元组。问题询问的是杰克·伦敦的两部作品《野性的呼唤》和《白牙》的背景设定。因此，我将寻找包含这两部作品及指示背景或地点的关系的三元组。从候选三元组中，我可以看到有两个三元组指示《白牙》的叙事地点：（《白牙》，叙事地点，加拿大），（《白牙》，叙事地点，育空）。
+    |'
+- en: '|  | Triples: (White Fang, Narrative location, Yukon), (White Fang, Narrative
+    location, Canada) |'
+  id: totrans-222
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 三元组：（《白牙》，叙事地点，育空），（《白牙》，叙事地点，加拿大） |'
+- en: '| Action | Thought:The question is asking for the locations where both The
+    Call of the Wild and White Fang are set. From the reference memory, I can see
+    that The Call of the Wild is set in the United States of America, Alaska, Canada,
+    and Yukon. White Fang is set in Canada and Yukon. The common locations for both
+    books are Canada and Yukon. |'
+  id: totrans-223
+  prefs: []
+  type: TYPE_TB
+  zh: '| 动作 | 思考：问题询问的是《野性的呼唤》和《白牙》两部作品的背景地点。从参考记忆中可以看到，《野性的呼唤》的设定地点为美国、阿拉斯加、加拿大和育空，《白牙》的设定地点为加拿大和育空。这两部作品的共同地点是加拿大和育空。
+    |'
+- en: '|  | Action: Answer |'
+  id: totrans-224
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 动作：回答 |'
+- en: '| Answer | [Canada,Yukon] |'
+  id: totrans-225
+  prefs: []
+  type: TYPE_TB
+  zh: '| 答案 | [加拿大, 育空] |'
+- en: 'Table 6: Case 2'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6：案例 2
+- en: Appendix B Prompt
+  id: totrans-227
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B 提示
+- en: 'This section presents the prompts for the action and reflection modules in
+    tables [7](https://arxiv.org/html/2404.07677v2#A2.T7 "Table 7 ‣ Appendix B Prompt
+    ‣ ODA: Observation-Driven Agent for integrating LLMs and Knowledge Graphs") and
+    [8](https://arxiv.org/html/2404.07677v2#A2.T8 "Table 8 ‣ Appendix B Prompt ‣ ODA:
+    Observation-Driven Agent for integrating LLMs and Knowledge Graphs").'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节展示了行动和反思模块的提示，见表格[7](https://arxiv.org/html/2404.07677v2#A2.T7 "表 7 ‣ 附录 B
+    提示 ‣ ODA：基于观察的代理，用于整合大语言模型和知识图谱")和[8](https://arxiv.org/html/2404.07677v2#A2.T8
+    "表 8 ‣ 附录 B 提示 ‣ ODA：基于观察的代理，用于整合大语言模型和知识图谱")。
+- en: '| Action | Prompt |'
+  id: totrans-229
+  prefs: []
+  type: TYPE_TB
+  zh: '| 动作 | 提示 |'
+- en: '| --- | --- |'
+  id: totrans-230
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Neighbor Exploration & Path Discovery | Agent Instructions: |'
+  id: totrans-231
+  prefs: []
+  type: TYPE_TB
+  zh: '| 邻域探索与路径发现 | 代理指令： |'
+- en: '| You function as an agent that provides answers based on a knowledge graph.
+    |'
+  id: totrans-232
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你作为一个基于知识图谱提供答案的代理。 |'
+- en: '| To assist you in querying the KB, use the following tools: |'
+  id: totrans-233
+  prefs: []
+  type: TYPE_TB
+  zh: '| 为了帮助你查询知识库，使用以下工具： |'
+- en: '|  | GetNeighbor(entityID: str) -> List[Tuple[str, str, str]]: |'
+  id: totrans-234
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | GetNeighbor(entityID: str) -> List[Tuple[str, str, str]]: |'
+- en: '|  | Description: Returns triplets containing the given entityID as the head
+    and its corresponding entityID as the tail. |'
+  id: totrans-235
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 描述：返回包含给定实体ID作为头实体，其对应实体ID作为尾实体的三元组。 |'
+- en: '|  | GetPath(entityID1: str, entityID2: str) -> List[List[Tuple[str, str, str]]]:
+    |'
+  id: totrans-236
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | GetPath(entityID1: str, entityID2: str) -> List[List[Tuple[str, str, str]]]:
+    |'
+- en: '|  | Description: Returns all triplets linking the two given entityIDs. |'
+  id: totrans-237
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 描述：返回连接两个给定实体ID的所有三元组。 |'
+- en: '|  | Example Usage:GetPath("Q30", "Q25231") returns all triplets connecting
+    ’Q30’ and ’Q25231’. |'
+  id: totrans-238
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 示例用法：GetPath("Q30", "Q25231") 返回所有连接 ’Q30’ 和 ’Q25231’ 的三元组。 |'
+- en: '|  | Data Provided to You: |'
+  id: totrans-239
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 提供给你的数据： |'
+- en: '|  | Question:[Question] |'
+  id: totrans-240
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 问题：[问题] |'
+- en: '|  | Memory: [Memory] |'
+  id: totrans-241
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 记忆：[记忆] |'
+- en: '|  | Candidate EntityIDs: [Task-relevant EntityIDs] (Choose 1 or 2 based on
+    the action) |'
+  id: totrans-242
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 候选实体ID：[与任务相关的实体ID]（根据操作选择1或2） |'
+- en: '|  | Observation: [Observation] (These serve as a reference to assist you in
+    selecting the appropriate entityID from the Candidate EntityIDs) |'
+  id: totrans-243
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 观察：[观察]（这些作为参考，帮助你从候选实体ID中选择合适的实体ID） |'
+- en: '|  | Labels: [Task-relevant entities labels] |'
+  id: totrans-244
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 标签：[与任务相关的实体标签] |'
+- en: '|  | Action History: [historical action] (Avoid these actions) |'
+  id: totrans-245
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 操作历史：[历史操作]（避免这些操作） |'
+- en: '|  | Guidelines: |'
+  id: totrans-246
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 指南： |'
+- en: '|  | Choose only one action at a time. |'
+  id: totrans-247
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 每次只能选择一个操作。 |'
+- en: '|  | For GetPath, select two entityIDs. For GetNeighbor, select one entityID.
+    If there are less than 2 entityIDs available, only choose the GetNeighbor action.
+    |'
+  id: totrans-248
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 对于GetPath，选择两个实体ID。对于GetNeighbor，选择一个实体ID。如果可用的实体ID少于2个，则只选择GetNeighbor操作。
+    |'
+- en: '| Answer | You are a agent that answer questions based on the reference memory
+    and your knowledge. |'
+  id: totrans-249
+  prefs: []
+  type: TYPE_TB
+  zh: '| 答案 | 你是一个基于参考记忆和知识回答问题的代理。 |'
+- en: '|  | Here are the reference memory:[Memory]. You can use it to help you answer
+    the quesiton. |'
+  id: totrans-250
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 这里是参考记忆：[记忆]。你可以使用它帮助你回答问题。 |'
+- en: '|  | Here is the question you are asked to answer the question:[Question].
+    |'
+  id: totrans-251
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 这是你被要求回答的问题：[问题]。 |'
+- en: '|  | Ensure that your answer contains one answer or a list of answer, and each
+    answer should be only one or several words,a phrase, a number,true or false, or
+    a date, no other information or descripation in answer. |'
+  id: totrans-252
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 确保你的答案包含一个答案或一组答案，每个答案应该只有一个或几个单词、一个短语、一个数字、true或false，或一个日期，答案中不得包含其他信息或描述。
+    |'
+- en: 'Table 7: Action Prompt Description'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 7：操作提示描述
+- en: '| Field | Prompt |'
+  id: totrans-254
+  prefs: []
+  type: TYPE_TB
+  zh: '| 字段 | 提示 |'
+- en: '| --- | --- |'
+  id: totrans-255
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Reflection | You are an agent that provides answers based on a KG. |'
+  id: totrans-256
+  prefs: []
+  type: TYPE_TB
+  zh: '| 反思 | 你是一个基于知识图谱提供答案的代理。 |'
+- en: '|  | You queried some candidate triples [triples] from last action step and
+    their corresponding labels:[entities labels] from the KB based on the question:
+    [Question]. |'
+  id: totrans-257
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 你根据问题：[问题]，从上一步操作中查询到了一些候选三元组[三元组]，以及它们对应的标签：[实体标签]。 |'
+- en: '|  | Now you are asked to select related triples, so you can answer the question
+    in the future by using them. |'
+  id: totrans-258
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 现在你被要求选择相关的三元组，以便将来通过它们回答问题。 |'
+- en: '|  | Here are the observation: [Obervation] for guiding you to select the right
+    triples from the candidate triples. |'
+  id: totrans-259
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 这里是观察信息：[观察]，帮助你从候选三元组中选择正确的三元组。 |'
+- en: '|  | Also, here is the memory: [Memory]. You can use it to help you select
+    the right triples from the candidate triples. |'
+  id: totrans-260
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 此外，这里是记忆：[记忆]。你可以使用它帮助你从候选三元组中选择正确的三元组。 |'
+- en: '|  | Guidelines: |'
+  id: totrans-261
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 指南： |'
+- en: '|  | You can select less than 15 triples from the candidate triples. |'
+  id: totrans-262
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 你可以从候选三元组中选择少于15个三元组。 |'
+- en: '|  | Your output triples must be in the format of entityID,relationID,entityID.
+    |'
+  id: totrans-263
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 你的输出三元组必须采用实体ID、关系ID、实体ID的格式。 |'
+- en: 'Table 8: Reflection Prompt Description'
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 8：反思提示描述

@@ -1,0 +1,745 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:04:29'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025年1月11日 12:04:29
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild https://ai-honeypot.palisaderesearch.org'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: LLM Agent Honeypot：监控现实环境中的AI黑客代理 https://ai-honeypot.palisaderesearch.org
+- en: 来源：[https://arxiv.org/html/2410.13919/](https://arxiv.org/html/2410.13919/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2410.13919/](https://arxiv.org/html/2410.13919/)
+- en: Reworr
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Reworr
+- en: reworr@palisaderesearch.org    Dmitrii Volkov
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: reworr@palisaderesearch.org    Dmitrii Volkov
+- en: dmitrii@palisaderesearch.org(Oct 10, 2024)
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: dmitrii@palisaderesearch.org（2024年10月10日）
+- en: Abstract
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: We introduce the LLM Honeypot, a system for monitoring autonomous AI hacking
+    agents. We deployed a customized SSH honeypot and applied prompt injections with
+    temporal analysis to identify LLM-based agents among attackers. Over a trial run
+    of a few weeks in a public environment, we collected 800,000 hacking attempts
+    and 6 potential AI agents, which we plan to analyze in depth in future work. Our
+    objectives aim to improve awareness of AI hacking agents and enhance preparedness
+    for their risks.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们介绍了LLM蜜罐，这是一个用于监控自主AI黑客代理的系统。我们部署了一个定制的SSH蜜罐，并应用了提示注入和时间分析，旨在识别攻击者中的LLM驱动代理。在几周的公开环境试运行中，我们收集了80万个黑客尝试和6个潜在的AI代理，计划在未来的工作中对其进行深入分析。我们的目标是提高对AI黑客代理的意识，并增强应对其风险的准备性。
+- en: 1 Introduction
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: The continuous evolution of AI capabilities and agent frameworks is gradually
+    increasing the potential for AI-driven cyberattacks. These advancements make it
+    possible to create autonomous agents capable of adapting to diverse environments
+    and executing complex attack behaviors.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 人工智能能力和代理框架的持续发展，逐渐增加了AI驱动的网络攻击的潜力。这些进展使得创建能够适应多种环境并执行复杂攻击行为的自主代理成为可能。
+- en: This paper introduces LLM Agent Honeypot, a system for capturing and analyzing
+    in-the-wild LLM-based cyberattacks using prompt injections and temporal analysis
+    aimed at improving preparedness for AI-driven threats. Its dashboard is available
+    online at [https://ai-honeypot.palisaderesearch.org/](https://ai-honeypot.palisaderesearch.org/).
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文介绍了LLM Agent Honeypot，这是一个用于捕捉和分析基于LLM的网络攻击系统，通过提示注入和时间分析，旨在提高应对AI驱动威胁的准备性。其仪表盘可以在线访问：[https://ai-honeypot.palisaderesearch.org/](https://ai-honeypot.palisaderesearch.org/)。
+- en: 2 Related Work
+  id: totrans-14
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Honeypots. Cybersecurity professionals use honeypots as decoy systems to attract
+    potential attackers and study their techniques and behaviors. While these systems
+    have been effective with conventional cyberattacks, their application in AI-driven
+    contexts is still new.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 蜜罐。网络安全专家使用蜜罐作为诱饵系统来吸引潜在攻击者，并研究他们的技术和行为。虽然这些系统在传统网络攻击中已经有效，但它们在AI驱动的环境中的应用仍然是新的。
+- en: Recent literature has begun to explore the intersection of AI and honeypot technologies.
+    Two representative works are Sladic et al.’s LLM-powered shell honeypots [[1](https://arxiv.org/html/2410.13919v1#bib.bib1)]
+    and ”Galah” the LLM-powered web honeypot [[2](https://arxiv.org/html/2410.13919v1#bib.bib2)].
+    However, these focus on using AI to improve traditional honeypots, rather than
+    capturing AI-driven attacks through honeypots.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的文献开始探索人工智能与蜜罐技术的交集。两项代表性工作是Sladic等人的LLM驱动的Shell蜜罐[[1](https://arxiv.org/html/2410.13919v1#bib.bib1)]和“Galah”LLM驱动的Web蜜罐[[2](https://arxiv.org/html/2410.13919v1#bib.bib2)]。然而，这些工作侧重于使用AI来改进传统蜜罐，而不是通过蜜罐捕捉AI驱动的攻击。
+- en: Agents. AI agents are becoming more important to cybersecurity. Google’s Project
+    Naptime [[3](https://arxiv.org/html/2410.13919v1#bib.bib3)] evaluates LLMs’ offensive
+    security capabilities, and OpenAI o1 had escaped its Docker containment during
+    evals [[4](https://arxiv.org/html/2410.13919v1#bib.bib4)].
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代理。AI代理在网络安全中变得越来越重要。Google的Project Naptime[[3](https://arxiv.org/html/2410.13919v1#bib.bib3)]评估了LLM的攻击安全能力，OpenAI的o1在评估期间曾成功逃脱其Docker容器[[4](https://arxiv.org/html/2410.13919v1#bib.bib4)]。
+- en: Prompt injection. We follow AgentDojo’s [[5](https://arxiv.org/html/2410.13919v1#bib.bib5)]
+    evaluations of agent prompt injection resistance and use a variation of the ”Important
+    message” hijack in our work.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提示注入。我们遵循AgentDojo对代理提示注入抗性[[5](https://arxiv.org/html/2410.13919v1#bib.bib5)]的评估，并在我们的工作中使用了“重要消息”劫持的变体。
+- en: 3 Methodology
+  id: totrans-19
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 方法论
+- en: 3.1 Pre-Evaluations
+  id: totrans-20
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 预评估
+- en: Before deploying the honeypot on the Internet, we conducted internal evaluations
+    on model hacking agents to calibrate detection methods.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在将蜜罐部署到互联网之前，我们对模型黑客代理进行了内部评估，以校准检测方法。
+- en: 3.1.1 Prompt Injection Techniques
+  id: totrans-22
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.1.1 提示注入技术
+- en: First, we tested prompt injections across common agent design frameworks (ReAct
+    and CoT).
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们在常见的代理设计框架（ReAct和CoT）中测试了提示注入。
+- en: '![Refer to caption](img/fe619961ba2e762012b73274b97438fd.png)'
+  id: totrans-24
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/fe619961ba2e762012b73274b97438fd.png)'
+- en: (a) Success rate by prompt injection type
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 按提示注入类型的成功率
+- en: '![Refer to caption](img/0763b04cfad55727caba0744303009af.png)'
+  id: totrans-26
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/0763b04cfad55727caba0744303009af.png)'
+- en: (b) Success rate by prompt injection goal
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 按提示注入目标的成功率
+- en: 'Figure 1: Internal evaluations of prompt injection success rates'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：提示注入成功率的内部评估
+- en: 'Our results are consistent with the findings from AgentDojo. Traditional prompt
+    injection techniques (e.g., “Ignore previous instructions and do X”) are generally
+    less effective than the “Important Message” attack, as shown in Figure [1(a)](https://arxiv.org/html/2410.13919v1#S3.F1.sf1
+    "In Figure 1 ‣ 3.1.1 Prompt Injection Techniques ‣ 3.1 Pre-Evaluations ‣ 3 Methodology
+    ‣ LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild https://ai-honeypot.palisaderesearch.org").'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的结果与AgentDojo的发现一致。传统的提示注入技术（例如，“忽略之前的指令并做X”）通常不如“重要信息”攻击有效，如图[1(a)](https://arxiv.org/html/2410.13919v1#S3.F1.sf1
+    "图1 ‣ 3.1.1 提示注入技术 ‣ 3.1 预评估 ‣ 3 方法论 ‣ LLM代理蜜罐：监控AI黑客代理在野外 https://ai-honeypot.palisaderesearch.org")所示。
+- en: 'We also found that the success of the “Important Message” injection depends
+    on the goal. When used to steal a system prompt, the success rate drops (Figure
+    [1(b)](https://arxiv.org/html/2410.13919v1#S3.F1.sf2 "In Figure 1 ‣ 3.1.1 Prompt
+    Injection Techniques ‣ 3.1 Pre-Evaluations ‣ 3 Methodology ‣ LLM Agent Honeypot:
+    Monitoring AI Hacking Agents in the Wild https://ai-honeypot.palisaderesearch.org")).
+    Therefore, we first detect an agent via goal hijacking, and only then attempt
+    to steal its prompt.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还发现，“重要信息”注入的成功率取决于目标。当用于窃取系统提示时，成功率会下降（图[1(b)](https://arxiv.org/html/2410.13919v1#S3.F1.sf2
+    "图1 ‣ 3.1.1 提示注入技术 ‣ 3.1 预评估 ‣ 3 方法论 ‣ LLM代理蜜罐：监控AI黑客代理在野外 https://ai-honeypot.palisaderesearch.org")）。因此，我们首先通过目标劫持来检测代理，然后再尝试窃取其提示。
+- en: 3.1.2 Temporal Analysis
+  id: totrans-31
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.1.2 时间分析
+- en: In addition to active detection, we performed a temporal analysis to identify
+    implicit indicators of LLM agents.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了主动检测外，我们还进行了时间分析，以识别LLM代理的隐性指示器。
+- en: 'Our analysis shows that most interactions ($\sim$96%) in the wild, including
+    those driven by LLMs, occur within 1.5 seconds:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的分析显示，大多数在野外的交互（$\sim$96%），包括那些由LLM驱动的交互，发生在1.5秒内：
+- en: '![Refer to caption](img/800e82446e3138e3fe8e8915e8f8e37c.png)'
+  id: totrans-34
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/800e82446e3138e3fe8e8915e8f8e37c.png)'
+- en: 'Figure 2: Temporal Analysis of all bots in the wild'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：野外所有机器人时间分析
+- en: 'LLM response timings are similar across normal and injected prompts:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM的响应时序在正常提示和注入提示之间相似：
+- en: '![Refer to caption](img/3ec4dfe7cd850d1ffcb210e8ab990c3b.png)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/3ec4dfe7cd850d1ffcb210e8ab990c3b.png)'
+- en: 'Figure 3: Internal Evaluations of GPT-4o LLM Agents'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：GPT-4o LLM代理的内部评估
+- en: Temporal analysis helps reduce false positives in distinguishing LLMs from humans,
+    as humans need more time to process and respond to non-trivial prompt injections.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 时间分析有助于减少在区分LLM和人类时的误报，因为人类需要更多时间来处理和响应非平凡的提示注入。
+- en: 3.2 Detection Methodology
+  id: totrans-40
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 检测方法论
+- en: '![Refer to caption](img/9f8ec2e52b3b1522552e15a8f8b7505c.png)'
+  id: totrans-41
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/9f8ec2e52b3b1522552e15a8f8b7505c.png)'
+- en: 'Figure 4: Honeypot Detection Scheme'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：蜜罐检测方案
+- en: 'The detection methodology of our AI Honeypot system combines active and passive
+    techniques to identify AI agents. It classifies actor types into three categories:
+    traditional software bots, AI-based agents, and humans.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的AI蜜罐系统的检测方法论结合了主动和被动技术来识别AI代理。它将行为者类型分为三类：传统软件机器人、基于AI的代理和人类。
+- en: Our core strategy uses prompt injections to manipulate potential AI agents and
+    timing analysis to identify non-human interactions based on response speed.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的核心策略是通过提示注入来操控潜在的AI代理，并通过时间分析来基于响应速度识别非人类交互。
+- en: 3.2.1 Distinguishing LLM Agents
+  id: totrans-45
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.1 区分LLM代理
+- en: 'Our detection strategy focuses on two key distinctions:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的检测策略聚焦于两个关键区分点：
+- en: '1.'
+  id: totrans-47
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'LLM Agents vs. Software Bots: We use prompt injections to alter behavior and
+    ask questions requiring human-like intelligence (e.g., goal hijacking: ignore
+    all previous instructions and …, return the color of …). However, humans can also
+    manually respond to these injections, potentially passing the test.'
+  id: totrans-48
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM代理与软件机器人：我们使用提示注入来改变行为，并提出需要类人智能的任务（例如，目标劫持：忽略所有之前的指令并……，返回……的颜色）。然而，人类也可以手动响应这些注入，从而可能通过测试。
+- en: '2.'
+  id: totrans-49
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'LLM Agents vs. Humans: The primary distinction is response time. LLMs respond
+    quickly, while humans need time to read, process, and answer prompt injections.'
+  id: totrans-50
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM代理与人类：主要区别在于响应时间。LLM的响应速度很快，而人类需要时间阅读、处理并回答提示注入。
+- en: 3.2.2 Prompt Injection
+  id: totrans-51
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.2 提示注入
+- en: 'Prompt injections are central to our detection strategy. We use two types:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提示注入是我们检测策略的核心。我们使用了两种类型：
+- en: •
+  id: totrans-53
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Goal Hijacking: manipulate the agent’s behavior to perform a new goal. We use
+    contextual prompt injections based on the “Important Message” attack, nudging
+    the agent toward additional actions.'
+  id: totrans-54
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 目标劫持：操控代理的行为以执行新的目标。我们使用基于“重要信息”攻击的上下文提示注入，推动代理执行额外的操作。
+- en: •
+  id: totrans-55
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Prompt Stealing: ask the LLM to reveal its initial system instructions, uncovering
+    the system’s context and goals. We apply this technique only after triggering
+    Goal Hijacking.'
+  id: totrans-56
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 提示窃取：要求LLM暴露其初始系统指令，从而揭示系统的上下文和目标。我们仅在触发目标劫持后才应用此技术。
+- en: By cross-referencing agent behaviors with prompt injection responses and temporal
+    analysis, we reduce false positives and enhance detection efficiency. Software
+    bots cannot pass human-like questions, and humans cannot respond as quickly as
+    LLMs. Temporal analysis also helps identify potential AI-driven attacks.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过交叉引用代理行为与提示注入响应，并进行时间分析，我们减少了误报并提高了检测效率。软件机器人无法回答类人问题，而人类无法像LLM那样快速响应。时间分析还帮助识别潜在的AI驱动攻击。
+- en: '![Refer to caption](img/63fb93415870ea43ecbbb35584622cd0.png)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/63fb93415870ea43ecbbb35584622cd0.png)'
+- en: 'Figure 5: Multi-step detection example'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：多步骤检测示例
+- en: 3.3 System Architecture
+  id: totrans-60
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 系统架构
+- en: Our honeypot is built on a customized version of the Cowrie SSH honeypot [[6](https://arxiv.org/html/2410.13919v1#bib.bib6)],
+    following recommendations frmo Cabral et al. in Advanced Cowrie Configuration
+    [[7](https://arxiv.org/html/2410.13919v1#bib.bib7)]. The modifications include
+    deploying a vulnerable SSH version and altering default users and standard outputs
+    to increase deceptiveness.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的蜜罐建立在定制版本的Cowrie SSH蜜罐之上[[6](https://arxiv.org/html/2410.13919v1#bib.bib6)]，遵循Cabral等人在《高级Cowrie配置》中的建议[[7](https://arxiv.org/html/2410.13919v1#bib.bib7)]。这些修改包括部署一个易受攻击的SSH版本，并改变默认用户和标准输出，以增加欺骗性。
+- en: 'We integrated prompt injections into various system components to expose interactions
+    with LLM-based agents:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将提示注入集成到多个系统组件中，以暴露与基于LLM的代理的交互。
+- en: •
+  id: totrans-63
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Banner Messages: Prompts are injected into the banner message displayed during
+    SSH connection.'
+  id: totrans-64
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 横幅消息：在SSH连接过程中显示的横幅消息中注入提示。
+- en: •
+  id: totrans-65
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Command Outputs: Common shell commands (e.g., uname) include customized injected
+    prompts.'
+  id: totrans-66
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 命令输出：常见的Shell命令（例如uname）包括自定义的注入提示。
+- en: •
+  id: totrans-67
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'System Files: Some accessible files also contain prompt injections.'
+  id: totrans-68
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 系统文件：一些可访问的文件也包含提示注入。
+- en: '![Refer to caption](img/cf9b27f238d104c30fe4246786bd2420.png)'
+  id: totrans-69
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/cf9b27f238d104c30fe4246786bd2420.png)'
+- en: 'Figure 6: Example of SSH Honeypot with Prompt Injection'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：带提示注入的SSH蜜罐示例
+- en: This setup simulates a realistic vulnerable environment, making it harder for
+    bots to detect the honeypot while maximizing the potential for AI agents to reveal
+    themselves.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该设置模拟了一个真实的易受攻击环境，使得机器人更难检测到蜜罐，同时最大限度地提高AI代理暴露自身的可能性。
+- en: 3.4 Deployment
+  id: totrans-72
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 部署
+- en: 'We deployed the honeypot as a publicly accessible system and implemented strategies
+    to attract a wide variety of attackers:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将蜜罐部署为一个公开可访问的系统，并实施策略以吸引各种攻击者：
+- en: •
+  id: totrans-74
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Sensitive Domains: Configured DNS entries to point seemingly sensitive domain
+    names (e.g., gov-defense-dev.il) to honeypot IPs.'
+  id: totrans-75
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 敏感领域：配置DNS条目，将看似敏感的域名（例如gov-defense-dev.il）指向蜜罐IP。
+- en: •
+  id: totrans-76
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Search Engines: Indexed the honeypots on hacker-oriented search engines like
+    Shodan and Censys to increase visibility.'
+  id: totrans-77
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 搜索引擎：将蜜罐索引到面向黑客的搜索引擎（如Shodan和Censys）上，以提高可见性。
+- en: •
+  id: totrans-78
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Scaling: Distributed the honeypot across 10 IP addresses in various countries
+    to capture diverse interactions.'
+  id: totrans-79
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 扩展：将蜜罐分布到10个不同国家的10个IP地址上，以捕捉多样化的交互。
+- en: 4 Preliminary Results
+  id: totrans-80
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 初步结果
+- en: During the deployment, the honeypot recorded 813,202 interaction attempts, detecting
+    a small number of potential AI-driven hacking attempts. The collected data includes
+    interaction logs, timestamps, session details, and behavioral patterns. As the
+    dataset grows, we will conduct more in-depth analyses to better understand LLM
+    hacking behaviors and refine our methods.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在部署期间，蜜罐记录了813,202次交互尝试，检测到少量潜在的AI驱动的黑客攻击尝试。收集的数据包括交互日志、时间戳、会话详情和行为模式。随着数据集的增长，我们将进行更深入的分析，以更好地理解LLM黑客行为并改进我们的方法。
+- en: '| Interaction Type | Count |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| 交互类型 | 次数 |'
+- en: '| --- | --- |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Total Interactions | 813,202 |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总交互次数 | 813,202 |'
+- en: '| Potential AI Agents | 6 |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| 潜在AI代理 | 6 |'
+- en: 'Table 1: Summary of Honeypot Interactions'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格1：蜜罐交互总结
+- en: 4.1 Public Dashboard
+  id: totrans-87
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 公开仪表盘
+- en: We developed a public website to provide real-time statistics and results from
+    the LLM Agent Honeypot system. The dashboard offers insights into interaction
+    metrics, threat analysis, and AI-specific threats, along with updates on our findings.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们开发了一个公开网站，提供来自LLM代理蜜罐系统的实时统计数据和结果。该仪表盘提供了交互指标、威胁分析和AI特定威胁的见解，以及我们的研究进展更新。
+- en: 5 Limitations
+  id: totrans-89
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 局限性
+- en: A key limitation of this work is that AI in cybersecurity is often applied to
+    narrow tasks like AI-powered vulnerability detection [[8](https://arxiv.org/html/2410.13919v1#bib.bib8)],
+    rather than as autonomous agents.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该研究的一个关键局限性是，AI在网络安全中通常应用于狭窄的任务，如AI驱动的漏洞检测[[8](https://arxiv.org/html/2410.13919v1#bib.bib8)]，而非作为自主代理。
+- en: Our honeypot measures the proliferation of autonomous AI hacking agents and
+    will not catch other AI-driven improvements like 10x faster fuzzing.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的蜜罐测量了自主AI黑客代理的传播，并不会捕捉到其他基于AI的改进，例如10倍更快的模糊测试。
+- en: 6 Future Work
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 未来工作
+- en: 6.1 Threat Analysis
+  id: totrans-93
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1 威胁分析
+- en: Our immediate focus is to continue collecting data and maintaining the honeypot,
+    as interactions remain infrequent. This will allow us to capture a broader range
+    of potential AI-driven attacks. Once we have sufficient data, we will analyze
+    it to identify patterns, behaviors, and strategies used by AI agents, publishing
+    our findings on the website and in future work.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们当前的重点是继续收集数据并维护蜜罐，因为交互仍然不频繁。这将使我们能够捕捉到更广泛的潜在AI驱动攻击。一旦我们收集到足够的数据，我们将对其进行分析，识别AI代理使用的模式、行为和策略，并将我们的发现发布在网站和未来的研究中。
+- en: 6.2 Improving Detection
+  id: totrans-95
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2 改进检测
+- en: Future work will explore advanced detection methods, focusing on data analysis
+    and algorithms. We aim to test widely-used LLM agent frameworks and identify distinctive
+    AI-driven attack patterns.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 未来的工作将探索先进的检测方法，重点关注数据分析和算法。我们的目标是测试广泛使用的LLM代理框架，并识别独特的AI驱动攻击模式。
+- en: 6.3 Expanding Honeypot
+  id: totrans-97
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.3 扩展蜜罐
+- en: To attract more AI-driven agents, we plan to expand the honeypot to monitor
+    a wider range of attack surfaces, such as social media, websites, databases, email
+    services, and industrial control systems. This would help capture a broader range
+    of threats, including spambots, phishing agents, and other offensive LLM-based
+    applications. Additionally, we could integrate the honeypot with existing security
+    solutions, such as SIEM systems.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了吸引更多的AI驱动代理，我们计划扩展蜜罐，监控更广泛的攻击面，如社交媒体、网站、数据库、电子邮件服务和工业控制系统。这将有助于捕捉到更广泛的威胁，包括垃圾邮件机器人、钓鱼代理和其他基于LLM的进攻性应用。此外，我们还可以将蜜罐与现有的安全解决方案（如SIEM系统）集成。
+- en: 7 Conclusion
+  id: totrans-99
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 结论
+- en: In this paper, we introduced the LLM Agent Honeypot ([https://ai-honeypot.palisaderesearch.org/](https://ai-honeypot.palisaderesearch.org/)),
+    a system designed to detect and analyze AI hacking agents. As AI agents grow more
+    sophisticated, our approach offers insights into emerging cybersecurity threats
+    and new strategies to counter them. We hope this project encourages further study
+    of AI-driven agents, which have the potential to significantly alter the cybersecurity
+    landscape.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们介绍了LLM代理蜜罐系统（[https://ai-honeypot.palisaderesearch.org/](https://ai-honeypot.palisaderesearch.org/)），该系统旨在检测和分析AI黑客代理。随着AI代理的日益复杂，我们的方法为新兴的网络安全威胁提供了见解，并提出了应对这些威胁的新策略。我们希望该项目能够鼓励进一步研究AI驱动的代理，这些代理有潜力显著改变网络安全格局。
+- en: References
+  id: totrans-101
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] Muris Sladić, Veronica Valeros, Carlos Catania, and Sebastian Garcia. Llm
+    in the shell: Generative honeypots. In 2024 IEEE European Symposium on Security
+    and Privacy Workshops (EuroS&PW), volume 220, page 430–435\. IEEE, July 2024.'
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] Muris Sladić, Veronica Valeros, Carlos Catania, 和 Sebastian Garcia. Llm
+    in the shell: 生成蜜罐。载于2024年IEEE欧洲安全与隐私研讨会（EuroS&PW），第220卷，第430-435页，IEEE，2024年7月。'
+- en: '[2] Adel Karimi. Galah: An llm-powered web honeypot. [https://github.com/0x4D31/galah](https://github.com/0x4D31/galah),
+    2024. GitHub repository.'
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] Adel Karimi. Galah: 一个基于LLM的Web蜜罐. [https://github.com/0x4D31/galah](https://github.com/0x4D31/galah)，2024年。GitHub仓库。'
+- en: '[3] Sergei Glazunov and Mark Brand. Project naptime: Evaluating offensive security
+    capabilities of large language models. [https://googleprojectzero.blogspot.com/2024/06/project-naptime.html](https://googleprojectzero.blogspot.com/2024/06/project-naptime.html),
+    June 2024.'
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] Sergei Glazunov 和 Mark Brand. 项目午休：评估大型语言模型的进攻性安全能力. [https://googleprojectzero.blogspot.com/2024/06/project-naptime.html](https://googleprojectzero.blogspot.com/2024/06/project-naptime.html)，2024年6月。'
+- en: '[4] OpenAI. Openai o1 system card. Technical report, OpenAI, Sept 2024.'
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] OpenAI. OpenAI O1系统卡. 技术报告，OpenAI，2024年9月。'
+- en: '[5] Edoardo Debenedetti, Jie Zhang, Mislav Balunovic, Luca Beurer-Kellner,
+    Marc Fischer, and Florian Tramèr. Agentdojo: A dynamic environment to evaluate
+    attacks and defenses for llm agents. arXiv preprint arXiv:2406.13352, 2024.'
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Edoardo Debenedetti, Jie Zhang, Mislav Balunovic, Luca Beurer-Kellner,
+    Marc Fischer 和 Florian Tramèr. Agentdojo: 评估LLM代理攻击与防御的动态环境. arXiv预印本 arXiv:2406.13352，2024年。'
+- en: '[6] Michel Oosterhof. Cowrie ssh/telnet honeypot. [https://github.com/cowrie/cowrie](https://github.com/cowrie/cowrie),
+    2014. GitHub repository.'
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] Michel Oosterhof. Cowrie SSH/Telnet蜜罐. [https://github.com/cowrie/cowrie](https://github.com/cowrie/cowrie)，2014年。GitHub仓库。'
+- en: '[7] Warren Z. Cabral, Craig Valli, Leslie F. Sikos, and Samuel G. Wakeling.
+    Advanced cowrie configuration to increase honeypot deceptiveness. IFIP Advances
+    in Information and Communication Technology, 2022. 36th IFIP International Conference
+    on ICT Systems Security and Privacy Protection (SEC), Oslo, Norway, June 2021.'
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] Warren Z. Cabral, Craig Valli, Leslie F. Sikos 和 Samuel G. Wakeling. 高级Cowrie配置以提高蜜罐欺骗性.
+    IFIP信息与通信技术进展, 2022年. 第36届IFIP国际ICT系统安全与隐私保护会议（SEC），挪威奥斯陆，2021年6月。'
+- en: '[8] Google Security Blog. Ai-powered fuzzing: Breaking the bug hunting barrier,
+    2023.'
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] 谷歌安全博客. AI驱动的模糊测试：打破漏洞狩猎的障碍，2023年。'
+- en: Appendix A Examples of Prompt Injections
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 提示注入示例
+- en: '![Refer to caption](img/cf9b27f238d104c30fe4246786bd2420.png)'
+  id: totrans-111
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/cf9b27f238d104c30fe4246786bd2420.png)'
+- en: 'Figure 7: Banner Message with Prompt Injection'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图7：带有提示注入的横幅消息
+- en: '![Refer to caption](img/7f01ab977bb249374063929b5ffbc6f6.png)'
+  id: totrans-113
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/7f01ab977bb249374063929b5ffbc6f6.png)'
+- en: 'Figure 8: System Command with Prompt Injection'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图8：带有提示注入的系统命令
+- en: '![Refer to caption](img/d6ebc5857440e18ff3b501a1d37b2891.png)'
+  id: totrans-115
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/d6ebc5857440e18ff3b501a1d37b2891.png)'
+- en: 'Figure 9: Arbitrary Command with Prompt Injection'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图9：带有提示注入的任意命令

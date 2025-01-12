@@ -1,0 +1,1318 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 12:59:04'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:59:04
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'LLM Harmony: Multi-Agent Communication for Problem Solving'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: LLM和谐：多代理通信问题解决框架
+- en: 来源：[https://arxiv.org/html/2401.01312/](https://arxiv.org/html/2401.01312/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2401.01312/](https://arxiv.org/html/2401.01312/)
+- en: Sumedh Rasal
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Sumedh Rasal
+- en: Georgia Institute of Technology
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 乔治亚理工学院
+- en: Chicago, IL
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 芝加哥，IL
+- en: srasal3@gatech.edu
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: srasal3@gatech.edu
+- en: Abstract
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Large Language Models (LLMs) have revolutionized Natural Language Processing
+    but exhibit limitations, particularly in autonomously addressing novel challenges
+    such as reasoning and problem-solving. Traditional techniques like chain-of-thought
+    prompting necessitate explicit human guidance. This paper introduces a novel multi-agent
+    communication framework, inspired by the CAMEL model, to enhance LLMs’ autonomous
+    problem-solving capabilities. The framework employs multiple LLM agents, each
+    with a distinct persona, engaged in role-playing communication, offering a nuanced
+    and adaptable approach to diverse problem scenarios. Extensive experimentation
+    demonstrates the framework’s superior performance and adaptability, providing
+    valuable insights into the collaborative potential of multiple agents in overcoming
+    the limitations of individual models.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）已经彻底改变了自然语言处理（NLP）领域，但仍然存在一些局限性，特别是在自主解决新颖挑战（如推理和问题解决）方面。传统技术，如链式思维提示（chain-of-thought
+    prompting），需要明确的人类指导。本文介绍了一种新颖的多代理通信框架，灵感来源于CAMEL模型，以增强LLMs的自主问题解决能力。该框架采用多个具有独特个性的LLM代理，通过角色扮演交流，提供了一种细致且适应性强的方法来应对不同的问题场景。大量实验证明，该框架具有更优的表现和适应性，为多个代理协作克服单一模型局限性提供了宝贵的见解。
+- en: 1 Introduction
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: The rise of Large Language Models (LLMs) [[Brown et al., 2020](#bib.bibx3)]
+    [[Touvron et al., 2023](#bib.bibx55)] [[Thoppilan et al., 2022](#bib.bibx54)]
+    [[Patil et al., 2023](#bib.bibx38)] [[OpenAI, 2023](#bib.bibx34)] [[Bubeck et al.,
+    2023](#bib.bibx4)] has undeniably revolutionized the software industry, particularly
+    in the realm of Natural Language Processing (NLP) [[Devlin et al., 2018](#bib.bibx16)].
+    These models have demonstrated a remarkable ability not only to generate text
+    but also to grasp the underlying structures of written language, extending their
+    utility to tasks ranging from text generation to code understanding [[Chen et al.,
+    2021](#bib.bibx7)] [[Schick et al., 2023](#bib.bibx48)]. However, despite their
+    prowess, it has become evident that LLMs, while adept at handling familiar topics,
+    often falter when confronted with novel challenges.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）的兴起[[Brown et al., 2020](#bib.bibx3)] [[Touvron et al., 2023](#bib.bibx55)]
+    [[Thoppilan et al., 2022](#bib.bibx54)] [[Patil et al., 2023](#bib.bibx38)] [[OpenAI,
+    2023](#bib.bibx34)] [[Bubeck et al., 2023](#bib.bibx4)] 无疑已经彻底改变了软件行业，尤其是在自然语言处理（NLP）领域[[Devlin
+    et al., 2018](#bib.bibx16)]。这些模型不仅表现出了生成文本的非凡能力，而且能够掌握书面语言的基本结构，从而将其应用扩展到从文本生成到代码理解等任务[[Chen
+    et al., 2021](#bib.bibx7)] [[Schick et al., 2023](#bib.bibx48)]。然而，尽管其表现出色，但已经显现出，LLMs在处理熟悉的主题时游刃有余，面对新颖的挑战时往往会出现不足。
+- en: One notable limitation lies in their tendency to hallucinate information when
+    presented with unfamiliar subjects [[Azamfirei et al., 2023](#bib.bibx2)]. Moreover,
+    while these models exhibit commendable proficiency in addressing technical coding
+    challenges across multiple programming languages, they struggle with fundamental
+    reasoning questions. Addressing such limitations necessitates an approach that
+    goes beyond conventional methodologies [[Rajani et al., 2019](#bib.bibx40)] [[Ling
+    et al., 2017](#bib.bibx28)] [[Cobbe et al., 2021a](#bib.bibx11)] [[Chiang and
+    Chen, 2018](#bib.bibx10)] [[Amini et al., 2019](#bib.bibx1)] [[Chen et al., 2019](#bib.bibx8)]
+    [[Roy and Roth, 2016](#bib.bibx43)] [[Lu et al., 2023](#bib.bibx31)] [[Yao et al.,
+    2022](#bib.bibx61)].
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中一个显著的局限性在于，当面对不熟悉的主题时，这些模型往往会产生幻觉信息[[Azamfirei et al., 2023](#bib.bibx2)]。此外，尽管这些模型在处理多种编程语言的技术编码挑战方面表现出色，但它们在解决基本推理问题时却存在困难。解决这些局限性需要一种超越传统方法的方式[[Rajani
+    et al., 2019](#bib.bibx40)] [[Ling et al., 2017](#bib.bibx28)] [[Cobbe et al.,
+    2021a](#bib.bibx11)] [[Chiang and Chen, 2018](#bib.bibx10)] [[Amini et al., 2019](#bib.bibx1)]
+    [[Chen et al., 2019](#bib.bibx8)] [[Roy and Roth, 2016](#bib.bibx43)] [[Lu et
+    al., 2023](#bib.bibx31)] [[Yao et al., 2022](#bib.bibx61)]。
+- en: In response to this challenge, our paper introduces a novel strategy aimed at
+    enhancing LLM performance on novel problems. Drawing inspiration from the effectiveness
+    of chain-of-thought prompting [[Wei et al., 2022b](#bib.bibx58)] in breaking down
+    complex problems, we seek to leverage the synergy of multiple LLM agents working
+    collaboratively [[Cohen et al., 2023](#bib.bibx13)] [[Du et al., 2023](#bib.bibx17)].
+    Each agent is endowed with a distinct persona, a concept inspired by the CAMEL
+    framework, and engages in role-playing communication methods.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 针对这一挑战，我们的论文提出了一种新颖的策略，旨在提升LLM在新问题上的表现。受链式思维提示[[Wei et al., 2022b](#bib.bibx58)]在分解复杂问题中的有效性启发，我们力图利用多个LLM智能体协同工作的协同效应[[Cohen
+    et al., 2023](#bib.bibx13)] [[Du et al., 2023](#bib.bibx17)]。每个智能体都被赋予独特的个性，这一概念来源于CAMEL框架，并采用角色扮演的沟通方式。
+- en: Unlike traditional approaches that might be limited to binary agent personas,
+    such as "user" and "assistant," or simplistic positive and negative agent roles,
+    our proposed framework adopts a nuanced and flexible strategy. The intricacies
+    of various novel scenarios demand a more sophisticated approach. Our design incorporates
+    industry best practices to guide the creation of diverse agent personas, ensuring
+    adaptability to a multitude of problem-solving contexts.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与传统方法可能局限于“用户”和“助手”等二元智能体角色，或简单的正面与负面智能体角色不同，我们提出的框架采用了更为细致和灵活的策略。各种新颖情境的复杂性要求更加精密的方法。我们的设计结合了行业最佳实践，指导多样化智能体个性的创建，确保其能够适应各种问题解决情境。
+- en: The paper not only addresses the limitations of existing LLM models but also
+    explores the potential of harnessing the collective intelligence of multiple agents
+    to tackle a broader range of challenges. We aim to demonstrate that the proposed
+    framework not only outperforms traditional methodologies but also provides a foundation
+    for autonomous problem-solving, minimizing the need for explicit human guidance.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这篇论文不仅探讨了现有LLM模型的局限性，还探索了利用多个智能体的集体智慧来解决更广泛挑战的潜力。我们的目标是展示所提出的框架不仅优于传统方法，而且为自主解决问题提供了基础，最大限度地减少了对明确人类指导的需求。
+- en: In the subsequent sections, we delve into the existing techniques that have
+    been developed to address similar challenges, highlighting their strengths and
+    limitations [[Dafoe et al., 2021](#bib.bibx14)]. Following this, we present our
+    multi-agent communication design, emphasizing its improvements over current methodologies
+    [[Saunders et al., 2022](#bib.bibx47)]. The extendability of our approach to various
+    LLM models is a key focus, underlining its potential as a versatile and reusable
+    solution. Through rigorous experimentation and analysis, we aim to showcase the
+    effectiveness and adaptability of our proposed framework in enhancing the quality
+    of LLM outputs across a spectrum of tasks.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在随后的章节中，我们将深入探讨为解决类似挑战而开发的现有技术，突出它们的优势和局限性[[Dafoe et al., 2021](#bib.bibx14)]。接着，我们介绍我们的多智能体通信设计，强调其相较于现有方法的改进[[Saunders
+    et al., 2022](#bib.bibx47)]。我们方法的可扩展性，尤其是其对不同LLM模型的适用性，是重点之一，凸显了它作为一个多功能和可重复使用的解决方案的潜力。通过严格的实验和分析，我们旨在展示所提出框架在提升LLM输出质量方面的有效性和适应性，涵盖多个任务。
+- en: 'This is what we propose:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们提出的内容：
+- en: •
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: An innovative framework employing multiple large language model workers/agents,
+    each characterized by a unique persona and guided by a chain-of-thought prompt.
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一种创新的框架，采用多个大型语言模型工作者/智能体，每个智能体具有独特的个性，并通过思维链提示进行引导。
+- en: •
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The collaborative effort of all agents is directed toward devising solutions
+    for novel problems.
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 所有智能体的协同努力都指向为新问题设计解决方案。
+- en: •
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The framework’s versatility allows the incorporation of any persona and chain-of-thought
+    prompt, aligning with the specific problem to be addressed.
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 该框架的多功能性允许纳入任何个性化设定和思维链提示，以适应需要解决的具体问题。
+- en: •
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: The framework is available. [https://github.com/sumedhrasal/simulation](https://github.com/sumedhrasal/simulation).
+    It is built on top of CAMEL’s and ChatDev’s framework.
+  id: totrans-27
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 该框架已经发布。 [https://github.com/sumedhrasal/simulation](https://github.com/sumedhrasal/simulation)。它建立在CAMEL和ChatDev框架之上。
+- en: 2 Methodology
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 方法论
+- en: In the realm of collaborative problem-solving, particularly evident in scenarios
+    like software development, the complexities arise from coordinating efforts among
+    diverse individuals. Software development teams, for instance, often undergo iterative
+    cycles before converging on a viable solution, and even then, compromises may
+    be accepted as the best available option [[Callison-Burch, 2009](#bib.bibx5)]
+    [[Liu et al., 2023a](#bib.bibx29)]. Our proposed strategy addresses the need for
+    comprehensive validation of Large Language Models (LLMs), not just in code evaluation
+    but also in complex reasoning and arithmetic challenges [[Celikyilmaz et al.,
+    2020](#bib.bibx6)] [[ROUGE, 2004](#bib.bibx42)] [[Kondrak, 2005](#bib.bibx22)]
+    [[Novikova et al., 2017](#bib.bibx33)] [[Wei et al., 2022a](#bib.bibx57)]. Focused
+    on breaking down problem statements and leveraging distinct personas [[Li et al.,
+    2023](#bib.bibx26)], the framework provides agents with tailored chain-of-thought
+    prompts [[Wei et al., 2022b](#bib.bibx58)], enabling multi-agent models to tackle
+    novel problems collaboratively.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在协作问题解决的领域，特别是在软件开发等场景中，复杂性源于不同个体之间协调工作的难度。例如，软件开发团队通常会经历反复的周期，才能找到可行的解决方案，即使如此，也可能需要接受妥协作为最佳的可用选项
+    [[Callison-Burch, 2009](#bib.bibx5)] [[Liu et al., 2023a](#bib.bibx29)]。我们提出的策略解决了对大语言模型（LLMs）进行全面验证的需求，不仅限于代码评估，还包括复杂推理和算术挑战
+    [[Celikyilmaz et al., 2020](#bib.bibx6)] [[ROUGE, 2004](#bib.bibx42)] [[Kondrak,
+    2005](#bib.bibx22)] [[Novikova et al., 2017](#bib.bibx33)] [[Wei et al., 2022a](#bib.bibx57)]。该框架专注于分解问题陈述并利用不同的角色
+    [[Li et al., 2023](#bib.bibx26)]，为代理提供定制的思考链提示 [[Wei et al., 2022b](#bib.bibx58)]，使多代理模型能够协作解决新问题。
+- en: 'Understanding personas is crucial; in a software development organization,
+    roles such as CEO, VP of Engineering, developers, testers, and product managers
+    contribute unique perspectives to problem-solving [[Qian et al., 2023](#bib.bibx39)].
+    The interplay of these personas allows agents to validate each other’s responses
+    effectively [[Woolley et al., 2010](#bib.bibx59)] [[Luppi et al., 2022](#bib.bibx32)]
+    [[Wu et al., 2023](#bib.bibx60)]. The concept of chain-of-thought mirrors human
+    problem-solving strategies: decomposing a problem, identifying solutions to sub-problems,
+    and constructing a comprehensive answer. The chain-of-thought prompt extends this
+    strategy, offering the LLM an input, a problem-solving approach, and the desired
+    output. The fusion of personas [[Li et al., 2023](#bib.bibx26)] and chain-of-thought
+    [[Wei et al., 2022b](#bib.bibx58)] prompts capitalizes on mimicking human analytical
+    and execution strategies [[Ouyang et al., 2022](#bib.bibx35)] [[Sanh et al., 2021](#bib.bibx44)]
+    [[Liu et al., 2023b](#bib.bibx30)] [[Chiang and Lee, 2023](#bib.bibx9)] [[Gao
+    et al., 2023](#bib.bibx18)] [[Shen et al., 2023](#bib.bibx50)] [[Zheng et al.,
+    2023](#bib.bibx62)] [[Sap et al., 2019](#bib.bibx46)] [[Talmor et al., 2018](#bib.bibx53)]
+    [[Sclar et al., 2023](#bib.bibx49)] [[Sap et al., 2022](#bib.bibx45)].'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理解角色至关重要；在一个软件开发组织中，像CEO、工程副总裁、开发者、测试人员和产品经理等角色为问题解决提供了独特的视角 [[Qian et al.,
+    2023](#bib.bibx39)]。这些角色的互动使得代理能够有效地验证彼此的回答 [[Woolley et al., 2010](#bib.bibx59)]
+    [[Luppi et al., 2022](#bib.bibx32)] [[Wu et al., 2023](#bib.bibx60)]。思考链的概念与人类问题解决策略相似：将问题分解，识别子问题的解决方案，并构建一个全面的答案。思考链提示扩展了这一策略，为LLM提供了输入、问题解决方法和期望的输出。角色的融合
+    [[Li et al., 2023](#bib.bibx26)] 和思考链 [[Wei et al., 2022b](#bib.bibx58)] 提示利用模仿人类分析和执行策略的方式
+    [[Ouyang et al., 2022](#bib.bibx35)] [[Sanh et al., 2021](#bib.bibx44)] [[Liu
+    et al., 2023b](#bib.bibx30)] [[Chiang and Lee, 2023](#bib.bibx9)] [[Gao et al.,
+    2023](#bib.bibx18)] [[Shen et al., 2023](#bib.bibx50)] [[Zheng et al., 2023](#bib.bibx62)]
+    [[Sap et al., 2019](#bib.bibx46)] [[Talmor et al., 2018](#bib.bibx53)] [[Sclar
+    et al., 2023](#bib.bibx49)] [[Sap et al., 2022](#bib.bibx45)]。
+- en: While some might question the necessity of this approach over retraining the
+    model for novel problems, the practicality lies in the belief that emulating human-like
+    analysis and execution strategies can create autonomous agents capable of diverse
+    tasks without extensive model retraining [[Karpinska et al., 2021](#bib.bibx21)]
+    [[Van Der Lee et al., 2019](#bib.bibx56)]. Additionally, the high cost and challenges
+    associated with retraining LLMs [[Rasal and Boddhu, 2023](#bib.bibx41)], particularly
+    for problems with limited training data, support the appeal of our strategy.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管有些人可能会质疑这种方法相较于重新训练模型解决新问题的必要性，但其实际价值在于，通过模仿人类分析和执行策略，可以创造出能够执行多种任务的自主代理，而无需广泛的模型重训
+    [[Karpinska et al., 2021](#bib.bibx21)] [[Van Der Lee et al., 2019](#bib.bibx56)]。此外，重新训练LLM的高成本和挑战
+    [[Rasal and Boddhu, 2023](#bib.bibx41)]，特别是对于数据训练较为有限的问题，进一步支持了我们策略的吸引力。
+- en: In the realm of multi-agent communication [[Liang et al., 2023](#bib.bibx27)]
+    [[Du et al., 2023](#bib.bibx17)], adherence to assigned personas and chain-of-thought
+    prompts is foundational to mitigate agent hallucination and improving cooperation
+    [[Dafoe et al., 2021](#bib.bibx14)] [[Dafoe et al., 2020](#bib.bibx15)]. The framework’s
+    versatility extends beyond problem-solving to applications in multi-player games
+    [[Susskind, 1985](#bib.bibx51)] [[Susskind and Corburn, 2000](#bib.bibx52)] [[Lazaridou
+    et al., 2020](#bib.bibx24)] [[Graesser et al., 2020](#bib.bibx19)] [[Lee et al.,
+    2018](#bib.bibx25)] [[Hendrycks et al., 2021](#bib.bibx20)] [[Zhou et al., 2023](#bib.bibx63)]
+    [[Pan et al., 2023](#bib.bibx36)] [[Kramár et al., 2022](#bib.bibx23)], accommodating
+    both team-oriented and individual goal-driven scenarios, and offering flexibility
+    in achieving optimal outcomes.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在多智能体通信领域[[Liang et al., 2023](#bib.bibx27)] [[Du et al., 2023](#bib.bibx17)]，遵循分配的角色设定和思维链提示是基础，以减少智能体的幻觉现象并提高合作效果[[Dafoe
+    et al., 2021](#bib.bibx14)] [[Dafoe et al., 2020](#bib.bibx15)]。该框架的多功能性不仅限于问题解决，还扩展到多人游戏应用[[Susskind,
+    1985](#bib.bibx51)] [[Susskind and Corburn, 2000](#bib.bibx52)] [[Lazaridou et
+    al., 2020](#bib.bibx24)] [[Graesser et al., 2020](#bib.bibx19)] [[Lee et al.,
+    2018](#bib.bibx25)] [[Hendrycks et al., 2021](#bib.bibx20)] [[Zhou et al., 2023](#bib.bibx63)]
+    [[Pan et al., 2023](#bib.bibx36)] [[Kramár et al., 2022](#bib.bibx23)]，既适用于面向团队的场景，也适用于个人目标驱动的情境，并提供在实现最佳结果方面的灵活性。
+- en: 3 Experiments
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 实验
+- en: 'In our experimentation, we adopt a two-agent strategy comprising an expert
+    agent and an evaluator agent, both instances of OpenAI’s "gpt3.5-turbo." Each
+    agent is configured with specific parameters: temperature set to 0.0, representing
+    the trade-off between coherence and creativity, and a conversation limit of 5,
+    indicating the maximum iterations allowed for inter-agent conversation. The evaluator
+    agent assesses the responses generated by the expert agent, guiding it to rectify
+    inaccuracies. Leveraging OpenAI’s LLM object, our framework, integrated with CAMEL’s
+    architecture, facilitates seamless communication among multiple LLM agents, aiming
+    to establish a collaborative problem-solving capability for advanced LLM models.'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们采用了一个双智能体策略，包含一个专家智能体和一个评估智能体，两个智能体均为OpenAI的“gpt3.5-turbo”实例。每个智能体的配置具有特定的参数：温度设置为0.0，代表一致性与创造性之间的权衡，且对话次数限制为5，表示允许智能体间对话的最大迭代次数。评估智能体评估专家智能体生成的回应，引导其修正不准确的地方。通过利用OpenAI的LLM对象，我们的框架与CAMEL架构集成，促进多个LLM智能体之间的无缝通信，旨在为先进的LLM模型建立协作解决问题的能力。
+- en: 3.1 Arithmetic Reasoning
+  id: totrans-35
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 算术推理
+- en: 'In the arithmetic reasoning segment, we address challenges that assess the
+    arithmetic proficiency of LLMs, an area where traditional large language models
+    have historically faced limitations. The experiment employs the GSM8K benchmark
+    and the SVAMP data set, specifically designed for math word problems. We evaluate
+    the performance of three LLMs: a standalone GPT-3 model, a multi-agent GPT-3 model,
+    and a multi-agent GPT-3 model integrated into our framework. The objective is
+    to gauge the effectiveness of our collaborative approach in enhancing arithmetic
+    reasoning capabilities.'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在算术推理部分，我们解决评估LLM算术能力的挑战，这是传统大规模语言模型历来面临的局限性。实验使用GSM8K基准和专门为数学文字问题设计的SVAMP数据集。我们评估了三种LLM的表现：独立的GPT-3模型、一个多智能体GPT-3模型，以及将多智能体GPT-3模型集成到我们框架中的版本。目标是评估我们的协作方法在增强算术推理能力方面的有效性。
+- en: '"GSM8K consists of 8.5K high-quality grade school math problems created by
+    human problem writers. We segmented these into 7.5K training problems and 1K test
+    problems. These problems take between 2 and 8 steps to solve, and solutions primarily
+    involve performing a sequence of elementary calculations using basic arithmetic
+    operations (+ - / *) to reach the final answer. A bright middle school student
+    should be able to solve every problem."[[Cobbe et al., 2021b](#bib.bibx12)]'
+  id: totrans-37
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: '"GSM8K包含8500个高质量的小学数学问题，由人工问题编写者创建。我们将这些问题分为7500个训练问题和1000个测试问题。这些问题的解决步骤为2到8步，解决方案主要包括通过基本的算术运算（+
+    - / *）执行一系列简单的计算，以得出最终答案。一位聪明的中学生应该能够解决每一个问题。"[[Cobbe et al., 2021b](#bib.bibx12)]'
+- en: '"We first show that existing models achieve reasonably high accuracies on these
+    datasets even after removing the "question" part of the MWP at test time. We further
+    show that a simple model without any word-order information can also solve a majority
+    of MWPs in these datasets. Our experiments indicate that existing models rely
+    on shallow heuristics in benchmark MWP datasets for achieving high performance.
+    Our experiments render the benchmark datasets unreliable to measure model performance.
+    To enable more robust evaluation of automatic MWP solvers, we created a challenge
+    set called "SVAMP"."[[Patel et al., 2021](#bib.bibx37)]'
+  id: totrans-38
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: “我们首先展示了现有模型在这些数据集上即使在测试时去除MWP中的“问题”部分后，仍然能够达到相当高的准确率。我们进一步展示了一个没有任何词序信息的简单模型也能解决这些数据集中的大多数MWP。我们的实验表明，现有模型在基准MWP数据集上依赖浅层启发式方法来实现高性能。我们的实验使得基准数据集在衡量模型性能时变得不可靠。为了实现更强健的自动MWP求解器评估，我们创建了一个名为“SVAMP”的挑战数据集。”[[Patel
+    et al., 2021](#bib.bibx37)]
+- en: '3.1.1 Example: 1'
+  id: totrans-39
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.1.1 示例：1
+- en: '[PRE0]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: '[PRE1]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[PRE2]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 3.1.2 Example 2
+  id: totrans-43
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.1.2 示例 2
+- en: '[PRE3]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: '[PRE4]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: '[PRE5]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 3.1.3 Results
+  id: totrans-47
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.1.3 结果
+- en: 'The outcomes from both experiments can be found in Table [1](#S3.T1 "Table
+    1 ‣ 3.1.3 Results ‣ 3.1 Arithmetic Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent
+    Communication for Problem Solving") and Table [2](#S3.T2 "Table 2 ‣ 3.1.3 Results
+    ‣ 3.1 Arithmetic Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent Communication
+    for Problem Solving"). In the initial experiment (example can be found here [3.1.1](#S3.SS1.SSS1
+    "3.1.1 Example: 1 ‣ 3.1 Arithmetic Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent
+    Communication for Problem Solving")) using the GSM8K data set, the single-agent
+    GPT-3 achieves approximately 50% accuracy, and the multi-agent GPT-3 performs
+    slightly better at 55%. However, our multi-agent approach significantly enhances
+    accuracy, surpassing other large language models (LLMs) such as Google’s PALM
+    540B parameter model, which we haven’t directly tested but are referencing from
+    their paper. This improvement is notable in terms of accuracy, and it’s noteworthy
+    that we haven’t retrained the model to achieve this enhancement. Assigning personas
+    to the agents enables the LLM model to concentrate on specific aspects of the
+    problem, and the use of chain-of-thought prompts equips it with efficient means
+    to solve sub-problems.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两个实验的结果可以在表格[1](#S3.T1 "表格 1 ‣ 3.1.3 结果 ‣ 3.1 算术推理 ‣ 3 实验 ‣ LLM 和谐：多代理通信解决问题")和表格[2](#S3.T2
+    "表格 2 ‣ 3.1.3 结果 ‣ 3.1 算术推理 ‣ 3 实验 ‣ LLM 和谐：多代理通信解决问题")中找到。在初始实验中（示例可见[3.1.1](#S3.SS1.SSS1
+    "3.1.1 示例：1 ‣ 3.1 算术推理 ‣ 3 实验 ‣ LLM 和谐：多代理通信解决问题")），使用GSM8K数据集，单一代理的GPT-3准确率大约为50%，而多代理的GPT-3表现略好，达到55%。然而，我们的多代理方法显著提高了准确率，超过了其他大型语言模型（LLM），例如谷歌的PALM
+    540B参数模型，尽管我们没有直接测试该模型，但从他们的论文中引用了这一点。这个改进在准确率上是显著的，值得注意的是，我们并没有重新训练该模型来实现这一增强。为代理分配角色使得LLM模型能够集中处理问题的特定方面，而使用思维链提示则使其具备有效解决子问题的能力。
+- en: 'In the second experiment (example can be found here [3.1.2](#S3.SS1.SSS2 "3.1.2
+    Example 2 ‣ 3.1 Arithmetic Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent
+    Communication for Problem Solving")) using the SVAMP data set, similar results
+    are observed to those in the first experiment. The single-agent GPT-3 achieves
+    an accuracy of approximately 70%, while the multi-agent version of GPT-3 attains
+    an accuracy of 73%. Even in the SVAMP data set experiment, our multi-agent approach
+    surpasses others, delivering an impressive 77% accuracy.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在第二个实验中（示例可见[3.1.2](#S3.SS1.SSS2 "3.1.2 示例 2 ‣ 3.1 算术推理 ‣ 3 实验 ‣ LLM 和谐：多代理通信解决问题")），使用SVAMP数据集，观察到的结果与第一个实验相似。单一代理的GPT-3准确率大约为70%，而多代理版本的GPT-3达到73%的准确率。即使在SVAMP数据集的实验中，我们的多代理方法也超过了其他方法，达到了令人印象深刻的77%准确率。
+- en: If our approach is unsuccessful in arriving at the correct answer, it is often
+    due to an arithmetic error occurring in one of the sub-steps of the provided problem,
+    accounting for more than half of the instances. This implies that if subsequent
+    iterations of large language models (LLMs) enhance their proficiency in basic
+    arithmetic operations, we can potentially attain an even greater accuracy with
+    our framework.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的方法未能得出正确答案，通常是因为在提供的问题的某个子步骤中发生了算术错误，这种情况占了大多数实例的一半以上。这意味着，如果后续版本的大型语言模型（LLM）能够提高其基本算术操作的熟练度，我们的框架有可能达到更高的准确率。
+- en: 'Table 1: GSM8K Data set Evaluation'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 1：GSM8K 数据集评估
+- en: '| Agent | Solve Rate |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '| 代理 | 求解率 |'
+- en: '| --- | --- |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Single GPT3.5-turbo | 50% |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单一 GPT3.5-turbo | 50% |'
+- en: '| Multi-Agent GPT3.5-turbo | 55% |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多智能体 GPT3.5-turbo | 55% |'
+- en: '| Multi-Agent GPT3.5-turbo (Our approach) | 65% |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多智能体 GPT3.5-turbo （我们的方法） | 65% |'
+- en: 'Table 2: SVAMP Data set Evaluation'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格 2: SVAMP 数据集评估'
+- en: '| Agent | Solve Rate |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| 智能体 | 解题率 |'
+- en: '| --- | --- |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Single GPT3.5-turbo | 70% |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单一 GPT3.5-turbo | 70% |'
+- en: '| Multi-Agent GPT3.5-turbo | 73% |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多智能体 GPT3.5-turbo | 73% |'
+- en: '| Multi-Agent GPT3.5-turbo (Our approach) | 77% |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多智能体 GPT3.5-turbo （我们的方法） | 77% |'
+- en: 3.2 Commonsense Reasoning
+  id: totrans-63
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 常识推理
+- en: The subsequent experiment delves into commonsense reasoning, requiring logical
+    inference from a given problem statement, assuming general knowledge. Unlike traditional
+    natural language processing systems, LLMs are uniquely equipped for such tasks
+    due to their predictive nature, where they anticipate the next word, inherently
+    understanding the contextual nuances of sentences. We aim to harness this inherent
+    capability and build a versatile, context-aware framework driven by multiple agents.
+    Evaluations on the CSQA dataset involve a one-agent GPT-3 model, a multi-agent
+    GPT-3 model, and a multi-agent GPT-3 model integrated into our framework. The
+    goal is to assess the performance gains achieved through collaborative, context-driven
+    approaches in enhancing commonsense reasoning tasks.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随后的实验深入探讨了常识推理，需要根据给定的问题陈述进行逻辑推理，假设具有一般知识。与传统的自然语言处理系统不同，大语言模型（LLMs）由于其预测性质，能够独特地处理此类任务，预测下一个词并固有地理解句子的上下文细微差别。我们旨在利用这种内在能力，构建一个由多个智能体驱动的多功能、上下文感知框架。针对CSQA数据集的评估包括一个单一智能体
+    GPT-3 模型，一个多智能体 GPT-3 模型，以及一个集成到我们框架中的多智能体 GPT-3 模型。目标是评估通过协作和基于上下文的方法在提升常识推理任务中的表现。
+- en: 3.2.1 Example 1
+  id: totrans-65
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.1 示例 1
+- en: '[PRE6]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '[PRE7]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: '[PRE8]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 3.2.2 Example 2
+  id: totrans-69
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.2 示例 2
+- en: '[PRE9]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: '[PRE10]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '[PRE11]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 3.2.3 Results
+  id: totrans-73
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.3 结果
+- en: 'The results of the third experiment are detailed in Table [3](#S3.T3 "Table
+    3 ‣ 3.2.3 Results ‣ 3.2 Commonsense Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent
+    Communication for Problem Solving"). The single-agent GPT-3 achieves an impressive
+    77% accuracy, while the multi-agent GPT-3 performs slightly better at 78%. However,
+    our multi-agent approach substantially improves accuracy, surpassing the other
+    two and reaching approximately 83% accuracy. Notably, this accuracy is attained
+    through Few-Shot training, indicating there is room for further enhancement. Few-shot
+    training involves providing the LLM with a few examples of a specific problem
+    type, enabling it to learn the correct answer without retraining the entire model
+    for novel problems. Examples can be found here [3.2.1](#S3.SS2.SSS1 "3.2.1 Example
+    1 ‣ 3.2 Commonsense Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent Communication
+    for Problem Solving") and here [3.2.2](#S3.SS2.SSS2 "3.2.2 Example 2 ‣ 3.2 Commonsense
+    Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent Communication for Problem
+    Solving").'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '第三个实验的结果详见表格[3](#S3.T3 "Table 3 ‣ 3.2.3 Results ‣ 3.2 Commonsense Reasoning
+    ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent Communication for Problem Solving")。单一智能体
+    GPT-3 的准确率为77%，而多智能体 GPT-3 的表现稍好，准确率为78%。然而，我们的多智能体方法显著提高了准确率，超越了另外两个方法，达到了约83%的准确率。值得注意的是，这一准确率是在Few-Shot训练下取得的，表明还有进一步提升的空间。Few-Shot训练是通过向大语言模型提供少量特定问题类型的例子，使其能够在无需重新训练整个模型的情况下，学习正确答案。示例可以在这里找到
+    [3.2.1](#S3.SS2.SSS1 "3.2.1 Example 1 ‣ 3.2 Commonsense Reasoning ‣ 3 Experiments
+    ‣ LLM Harmony: Multi-Agent Communication for Problem Solving") 和这里 [3.2.2](#S3.SS2.SSS2
+    "3.2.2 Example 2 ‣ 3.2 Commonsense Reasoning ‣ 3 Experiments ‣ LLM Harmony: Multi-Agent
+    Communication for Problem Solving")。'
+- en: 'In instances where the model provided incorrect answers, it often stemmed from
+    making inaccurate correlations within the provided options. This incorrect correlation
+    is a result of the underlying data set on which this particular model was trained.
+    While retraining the model could improve the accuracy of this experiment, it’s
+    considered a costly option. This poses an open question for future researchers
+    to address: How can the model be trained with enough context to establish accurate
+    correlations in commonsense word problems?'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在模型提供错误答案的情况下，问题通常出在对提供选项之间的关联进行错误推断。这种错误关联是由该模型训练所用的底层数据集所导致的。尽管通过重新训练模型可以提高该实验的准确性，但这被认为是一种成本较高的选择。因此，未来的研究者面临一个待解答的开放性问题：如何通过足够的上下文训练模型，以便在常识性问题中建立准确的关联？
+- en: 'Table 3: CSQA Data set Evaluation'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格 3: CSQA 数据集评估'
+- en: '| Agent | Solve Rate |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| 智能体 | 解题率 |'
+- en: '| --- | --- |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Single GPT3.5-turbo | 77% |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单一 GPT3.5-turbo | 77% |'
+- en: '| Multi-Agent GPT3.5-turbo | 78% |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多智能体 GPT3.5-turbo | 78% |'
+- en: '| Multi-Agent GPT3.5-turbo (Our approach) | 83% |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多智能体 GPT3.5-turbo （我们的方法） | 83% |'
+- en: 4 Limitations
+  id: totrans-82
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 限制
+- en: While we recognize that our framework addresses numerous challenges, there are
+    still a few aspects that remain unaddressed. Some of the reasoning capabilities
+    may not see improvement unless the dataset used to train OpenAI’s "gpt3.5-turbo"
+    is sufficiently diverse to comprehend the entirety of our surroundings. Additionally,
+    the framework requires the capability to incorporate new information to stay updated
+    with the constantly evolving data. Another necessary step involves implementing
+    a data processing mechanism to filter out redundant information and prevent the
+    inclusion of duplicate data.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '虽然我们认识到我们的框架解决了许多挑战，但仍有一些方面尚未解决。一些推理能力可能不会得到改善，除非用于训练OpenAI的“gpt3.5-turbo”模型的数据集足够多样化，能够理解我们周围的所有事物。此外，框架需要具备整合新信息的能力，以便与不断变化的数据保持同步。另一个必要的步骤是实施数据处理机制，以过滤冗余信息并防止重复数据的出现。  '
+- en: Another limitation pertains to the context limit of each agent in multi-agent
+    communication. Each agent is constrained by the maximum context, defined by the
+    underlying model; for instance, the "gpt3-turbo" model has a context limit of
+    4096 tokens.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '另一个局限性涉及到多代理通信中每个代理的上下文限制。每个代理都受到最大上下文的限制，这一限制由底层模型定义；例如，“gpt3-turbo”模型的上下文限制为4096个标记。  '
+- en: We intend to address these limitations in our future work and strive to find
+    effective solutions.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们计划在未来的工作中解决这些局限性，并努力找到有效的解决方案。  '
+- en: 5 Conclusion
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '5 结论  '
+- en: In conclusion, our exploration into the realm of multi-agent communication for
+    Large Language Models (LLMs) has unveiled promising avenues for overcoming inherent
+    limitations. While LLMs have revolutionized natural language processing, their
+    efficacy is not without challenges, particularly in addressing novel problems,
+    reasoning, and commonsense understanding. Our proposed approach leverages personas
+    and chain-of-thought prompts, inspired by industry best practices and cognitive
+    processes. By assigning distinct personalities and thoughtful prompts to each
+    agent, we mitigate issues like hallucination and enhance the overall performance
+    of multi-agent communication.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '总之，我们对大型语言模型（LLMs）多代理通信领域的探索揭示了克服固有局限性的有希望的途径。虽然LLMs已经彻底改变了自然语言处理，但它们的效果并非没有挑战，特别是在解决新问题、推理和常识理解方面。我们提出的方法利用了人物角色和思维链提示，灵感来自行业最佳实践和认知过程。通过为每个代理分配不同的个性和周到的提示，我们减轻了幻觉问题，并提升了多代理通信的整体表现。  '
+- en: Through a series of experiments, we demonstrated the effectiveness of our approach,
+    showcasing improvements in arithmetic reasoning and commonsense understanding.
+    Our strategy of employing multiple agents, each with a specific role and reasoning
+    prompt, facilitates collaborative problem-solving, providing a feasible alternative
+    to the costly retraining of LLMs for novel challenges.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '通过一系列实验，我们展示了我们方法的有效性，展示了在算术推理和常识理解方面的改进。我们采用多个代理的策略，每个代理有特定的角色和推理提示，促进了协作问题解决，为昂贵的LLMs重新训练以应对新挑战提供了一种可行的替代方案。  '
+- en: By reducing reliance on human intervention, our approach paves the way for LLMs
+    to tackle a myriad of tasks independently. The scalability and adaptability of
+    our role-playing framework position it as a valuable asset in various domains,
+    from software development to complex decision-making scenarios.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过减少对人工干预的依赖，我们的方法为LLMs独立处理各种任务铺平了道路。我们角色扮演框架的可扩展性和适应性使其成为各个领域中的宝贵资产，从软件开发到复杂的决策场景。
+- en: In an era where artificial intelligence continues to evolve, our research contributes
+    a novel perspective on enhancing the capabilities of LLMs through cooperative
+    multi-agent communication. The journey from understanding limitations to proposing
+    effective solutions marks a significant step forward, opening doors to future
+    advancements in autonomous, context-aware language models.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在人工智能不断发展的时代，我们的研究为通过合作的多代理通信增强LLMs的能力提供了新的视角。从理解局限性到提出有效的解决方案，这一过程标志着向前迈出了重要一步，为未来自主、具有上下文意识的语言模型的进步打开了大门。  '
+- en: References
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '参考文献  '
+- en: '[Amini et al., 2019] Amini, A., Gabriel, S., Lin, P., Koncel-Kedziorski, R.,
+    Choi, Y., and Hajishirzi, H. (2019). Mathqa: Towards interpretable math word problem
+    solving with operation-based formalisms. arXiv preprint arXiv:1905.13319.'
+  id: totrans-92
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Amini et al., 2019] Amini, A., Gabriel, S., Lin, P., Koncel-Kedziorski, R.,
+    Choi, Y., 和 Hajishirzi, H. (2019)。Mathqa：通过基于操作的形式化方法解决可解释的数学文字问题。arXiv预印本arXiv:1905.13319。  '
+- en: '[Azamfirei et al., 2023] Azamfirei, R., Kudchadkar, S. R., and Fackler, J.
+    (2023). Large language models and the perils of their hallucinations. Critical
+    Care, 27(1):1–2.'
+  id: totrans-93
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Azamfirei 等, 2023] Azamfirei, R., Kudchadkar, S. R., 和 Fackler, J. (2023).
+    大型语言模型及其幻觉的危害。危重病护理, 27(1):1–2。'
+- en: '[Brown et al., 2020] Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D.,
+    Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. (2020).
+    Language models are few-shot learners. Advances in neural information processing
+    systems, 33:1877–1901.'
+  id: totrans-94
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Brown 等, 2020] Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D.,
+    Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., 等. (2020). 语言模型是少样本学习者。神经信息处理系统进展,
+    33:1877–1901。'
+- en: '[Bubeck et al., 2023] Bubeck, S., Chandrasekaran, V., Eldan, R., Gehrke, J.,
+    Horvitz, E., Kamar, E., Lee, P., Lee, Y. T., Li, Y., Lundberg, S., et al. (2023).
+    Sparks of artificial general intelligence: Early experiments with gpt-4. arXiv
+    preprint arXiv:2303.12712.'
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Bubeck 等, 2023] Bubeck, S., Chandrasekaran, V., Eldan, R., Gehrke, J., Horvitz,
+    E., Kamar, E., Lee, P., Lee, Y. T., Li, Y., Lundberg, S., 等. (2023). 人工通用智能的火花：与
+    GPT-4 的早期实验。arXiv 预印本 arXiv:2303.12712。'
+- en: '[Callison-Burch, 2009] Callison-Burch, C. (2009). Fast, cheap, and creative:
+    Evaluating translation quality using amazon’s mechanical turk. In Proceedings
+    of the 2009 conference on empirical methods in natural language processing, pages
+    286–295.'
+  id: totrans-96
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Callison-Burch, 2009] Callison-Burch, C. (2009). 快速、廉价且富有创意：使用亚马逊的机械土耳其评估翻译质量。2009年自然语言处理实证方法会议论文集,
+    页286–295。'
+- en: '[Celikyilmaz et al., 2020] Celikyilmaz, A., Clark, E., and Gao, J. (2020).
+    Evaluation of text generation: A survey. corr abs/2006.14799 (2020). arXiv preprint
+    arXiv:2006.14799.'
+  id: totrans-97
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Celikyilmaz 等, 2020] Celikyilmaz, A., Clark, E., 和 Gao, J. (2020). 文本生成评估：一项调查。corr
+    abs/2006.14799 (2020)。arXiv 预印本 arXiv:2006.14799。'
+- en: '[Chen et al., 2021] Chen, M., Tworek, J., Jun, H., Yuan, Q., Pinto, H. P. d. O.,
+    Kaplan, J., Edwards, H., Burda, Y., Joseph, N., Brockman, G., et al. (2021). Evaluating
+    large language models trained on code. arXiv preprint arXiv:2107.03374.'
+  id: totrans-98
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Chen 等, 2021] Chen, M., Tworek, J., Jun, H., Yuan, Q., Pinto, H. P. d. O.,
+    Kaplan, J., Edwards, H., Burda, Y., Joseph, N., Brockman, G., 等. (2021). 评估训练在代码上的大型语言模型。arXiv
+    预印本 arXiv:2107.03374。'
+- en: '[Chen et al., 2019] Chen, X., Liang, C., Yu, A. W., Zhou, D., Song, D., and
+    Le, Q. V. (2019). Neural symbolic reader: Scalable integration of distributed
+    and symbolic representations for reading comprehension. In International Conference
+    on Learning Representations.'
+  id: totrans-99
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Chen 等, 2019] Chen, X., Liang, C., Yu, A. W., Zhou, D., Song, D., 和 Le, Q.
+    V. (2019). 神经符号阅读器：可扩展集成分布式和符号表示用于阅读理解。国际学习表示会议。'
+- en: '[Chiang and Lee, 2023] Chiang, C.-H. and Lee, H.-y. (2023). Can large language
+    models be an alternative to human evaluations? arXiv preprint arXiv:2305.01937.'
+  id: totrans-100
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Chiang 和 Lee, 2023] Chiang, C.-H. 和 Lee, H.-y. (2023). 大型语言模型能否作为人类评估的替代方案？arXiv
+    预印本 arXiv:2305.01937。'
+- en: '[Chiang and Chen, 2018] Chiang, T.-R. and Chen, Y.-N. (2018). Semantically-aligned
+    equation generation for solving and reasoning math word problems. arXiv preprint
+    arXiv:1811.00720.'
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Chiang 和 Chen, 2018] Chiang, T.-R. 和 Chen, Y.-N. (2018). 为解决和推理数学文字题生成语义对齐方程。arXiv
+    预印本 arXiv:1811.00720。'
+- en: '[Cobbe et al., 2021a] Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun,
+    H., Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, R., et al. (2021a).
+    Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168.'
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Cobbe 等, 2021a] Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun, H.,
+    Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, R., 等. (2021a). 训练验证器解决数学文字题。arXiv
+    预印本 arXiv:2110.14168。'
+- en: '[Cobbe et al., 2021b] Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun,
+    H., Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, R., Hesse, C., and
+    Schulman, J. (2021b). Training verifiers to solve math word problems. arXiv preprint
+    arXiv:2110.14168.'
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Cobbe 等, 2021b] Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun, H.,
+    Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, R., Hesse, C., 和 Schulman,
+    J. (2021b). 训练验证器解决数学文字题。arXiv 预印本 arXiv:2110.14168。'
+- en: '[Cohen et al., 2023] Cohen, R., Hamri, M., Geva, M., and Globerson, A. (2023).
+    Lm vs lm: Detecting factual errors via cross examination. arXiv preprint arXiv:2305.13281.'
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Cohen 等, 2023] Cohen, R., Hamri, M., Geva, M., 和 Globerson, A. (2023). LM
+    对抗 LM：通过交叉检验检测事实错误。arXiv 预印本 arXiv:2305.13281。'
+- en: '[Dafoe et al., 2021] Dafoe, A., Bachrach, Y., Hadfield, G., Horvitz, E., Larson,
+    K., and Graepel, T. (2021). Cooperative ai: machines must learn to find common
+    ground. Nature, 593(7857):33–36.'
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Dafoe 等, 2021] Dafoe, A., Bachrach, Y., Hadfield, G., Horvitz, E., Larson,
+    K., 和 Graepel, T. (2021). 合作 AI：机器必须学会找到共同立场。自然, 593(7857):33–36。'
+- en: '[Dafoe et al., 2020] Dafoe, A., Hughes, E., Bachrach, Y., Collins, T., McKee,
+    K. R., Leibo, J. Z., Larson, K., and Graepel, T. (2020). Open problems in cooperative
+    ai. arXiv preprint arXiv:2012.08630.'
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Dafoe等，2020] Dafoe, A., Hughes, E., Bachrach, Y., Collins, T., McKee, K. R.,
+    Leibo, J. Z., Larson, K., 和 Graepel, T. (2020). 协作AI中的开放问题. arXiv预印本 arXiv:2012.08630.'
+- en: '[Devlin et al., 2018] Devlin, J., Chang, M.-W., Lee, K., and Toutanova, K.
+    (2018). Bert: Pre-training of deep bidirectional transformers for language understanding.
+    arXiv preprint arXiv:1810.04805.'
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Devlin等，2018] Devlin, J., Chang, M.-W., Lee, K., 和 Toutanova, K. (2018). Bert:
+    深度双向变换器的预训练用于语言理解. arXiv预印本 arXiv:1810.04805.'
+- en: '[Du et al., 2023] Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., and Mordatch,
+    I. (2023). Improving factuality and reasoning in language models through multiagent
+    debate. arXiv preprint arXiv:2305.14325.'
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Du等，2023] Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., 和 Mordatch, I. (2023).
+    通过多代理辩论提高语言模型的事实性和推理能力. arXiv预印本 arXiv:2305.14325.'
+- en: '[Gao et al., 2023] Gao, M., Ruan, J., Sun, R., Yin, X., Yang, S., and Wan,
+    X. (2023). Human-like summarization evaluation with chatgpt. arXiv preprint arXiv:2304.02554.'
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Gao等，2023] Gao, M., Ruan, J., Sun, R., Yin, X., Yang, S., 和 Wan, X. (2023).
+    使用chatgpt进行类人摘要评估. arXiv预印本 arXiv:2304.02554.'
+- en: '[Graesser et al., 2020] Graesser, L., Cho, K., and Kiela, D. (2020). Emergent
+    linguistic phenomena in multi-agent communication games.'
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Graesser等，2020] Graesser, L., Cho, K., 和 Kiela, D. (2020). 多代理通信游戏中的语言现象的涌现.'
+- en: '[Hendrycks et al., 2021] Hendrycks, D., Mazeika, M., Zou, A., Patel, S., Zhu,
+    C., Navarro, J., Song, D., Li, B., and Steinhardt, J. (2021). What would jiminy
+    cricket do? towards agents that behave morally. arXiv preprint arXiv:2110.13136.'
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Hendrycks等，2021] Hendrycks, D., Mazeika, M., Zou, A., Patel, S., Zhu, C.,
+    Navarro, J., Song, D., Li, B., 和 Steinhardt, J. (2021). 吉米尼·克里基特会做什么？朝着具有道德行为的代理迈进.
+    arXiv预印本 arXiv:2110.13136.'
+- en: '[Karpinska et al., 2021] Karpinska, M., Akoury, N., and Iyyer, M. (2021). The
+    perils of using mechanical turk to evaluate open-ended text generation. arXiv
+    preprint arXiv:2109.06835.'
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Karpinska等，2021] Karpinska, M., Akoury, N., 和 Iyyer, M. (2021). 使用Mechanical
+    Turk评估开放式文本生成的风险. arXiv预印本 arXiv:2109.06835.'
+- en: '[Kondrak, 2005] Kondrak, G. (2005). N-gram similarity and distance. In International
+    symposium on string processing and information retrieval, pages 115–126\. Springer.'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Kondrak, 2005] Kondrak, G. (2005). N-gram相似性与距离. 在国际字符串处理与信息检索研讨会上，第115-126页.
+    Springer.'
+- en: '[Kramár et al., 2022] Kramár, J., Eccles, T., Gemp, I., Tacchetti, A., McKee,
+    K. R., Malinowski, M., Graepel, T., and Bachrach, Y. (2022). Negotiation and honesty
+    in artificial intelligence methods for the board game of diplomacy. Nature Communications,
+    13(1):7214.'
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Kramár等，2022] Kramár, J., Eccles, T., Gemp, I., Tacchetti, A., McKee, K. R.,
+    Malinowski, M., Graepel, T., 和 Bachrach, Y. (2022). 人工智能在《外交》桌面游戏中的谈判与诚实方法. 自然通讯,
+    13(1):7214.'
+- en: '[Lazaridou et al., 2020] Lazaridou, A., Potapenko, A., and Tieleman, O. (2020).
+    Multi-agent communication meets natural language: Synergies between functional
+    and structural language learning.'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Lazaridou等，2020] Lazaridou, A., Potapenko, A., 和 Tieleman, O. (2020). 多代理通信与自然语言：功能性与结构性语言学习的协同作用.'
+- en: '[Lee et al., 2018] Lee, J., Cho, K., Weston, J., and Kiela, D. (2018). Emergent
+    translation in multi-agent communication.'
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Lee等，2018] Lee, J., Cho, K., Weston, J., 和 Kiela, D. (2018). 多代理通信中的语言翻译涌现.'
+- en: '[Li et al., 2023] Li, G., Hammoud, H. A. A. K., Itani, H., Khizbullin, D.,
+    and Ghanem, B. (2023). Camel: Communicative agents for" mind" exploration of large
+    scale language model society. arXiv preprint arXiv:2303.17760.'
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Li等，2023] Li, G., Hammoud, H. A. A. K., Itani, H., Khizbullin, D., 和 Ghanem,
+    B. (2023). Camel: 用于“大规模语言模型社会”思想探索的交流代理. arXiv预印本 arXiv:2303.17760.'
+- en: '[Liang et al., 2023] Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang,
+    R., Yang, Y., Tu, Z., and Shi, S. (2023). Encouraging divergent thinking in large
+    language models through multi-agent debate. arXiv preprint arXiv:2305.19118.'
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Liang等，2023] Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang, R., Yang,
+    Y., Tu, Z., 和 Shi, S. (2023). 通过多代理辩论鼓励大规模语言模型中的发散性思维. arXiv预印本 arXiv:2305.19118.'
+- en: '[Ling et al., 2017] Ling, W., Yogatama, D., Dyer, C., and Blunsom, P. (2017).
+    Program induction by rationale generation: Learning to solve and explain algebraic
+    word problems. arXiv preprint arXiv:1705.04146.'
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Ling等，2017] Ling, W., Yogatama, D., Dyer, C., 和 Blunsom, P. (2017). 通过推理生成程序：学习解决并解释代数文字问题.
+    arXiv预印本 arXiv:1705.04146.'
+- en: '[Liu et al., 2023a] Liu, J., Xia, C. S., Wang, Y., and Zhang, L. (2023a). Is
+    your code generated by chatgpt really correct? rigorous evaluation of large language
+    models for code generation. arXiv preprint arXiv:2305.01210.'
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Liu等，2023a] Liu, J., Xia, C. S., Wang, Y., 和 Zhang, L. (2023a). 你的代码真的是由chatgpt生成的吗？对大规模语言模型生成代码的严格评估.
+    arXiv预印本 arXiv:2305.01210.'
+- en: '[Liu et al., 2023b] Liu, Y., Iter, D., Xu, Y., Wang, S., Xu, R., and Zhu, C.
+    (2023b). Gpteval: Nlg evaluation using gpt-4 with better human alignment. arXiv
+    preprint arXiv:2303.16634.'
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Liu 等人, 2023b] Liu, Y., Iter, D., Xu, Y., Wang, S., Xu, R., 和 Zhu, C. (2023b).
+    GPTeval: 使用 GPT-4 和更好的人类对齐进行自然语言生成评估. arXiv 预印本 arXiv:2303.16634.'
+- en: '[Lu et al., 2023] Lu, P., Peng, B., Cheng, H., Galley, M., Chang, K.-W., Wu,
+    Y. N., Zhu, S.-C., and Gao, J. (2023). Chameleon: Plug-and-play compositional
+    reasoning with large language models. arXiv preprint arXiv:2304.09842.'
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Lu 等人, 2023] Lu, P., Peng, B., Cheng, H., Galley, M., Chang, K.-W., Wu, Y.
+    N., Zhu, S.-C., 和 Gao, J. (2023). Chameleon: 可插拔的大型语言模型组合推理. arXiv 预印本 arXiv:2304.09842.'
+- en: '[Luppi et al., 2022] Luppi, A. I., Mediano, P. A., Rosas, F. E., Holland, N.,
+    Fryer, T. D., O’Brien, J. T., Rowe, J. B., Menon, D. K., Bor, D., and Stamatakis,
+    E. A. (2022). A synergistic core for human brain evolution and cognition. Nature
+    Neuroscience, 25(6):771–782.'
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Luppi 等人, 2022] Luppi, A. I., Mediano, P. A., Rosas, F. E., Holland, N., Fryer,
+    T. D., O’Brien, J. T., Rowe, J. B., Menon, D. K., Bor, D., 和 Stamatakis, E. A.
+    (2022). 人脑进化与认知的协同核心. 《自然神经科学》, 25(6):771–782.'
+- en: '[Novikova et al., 2017] Novikova, J., Dušek, O., Curry, A. C., and Rieser,
+    V. (2017). Why we need new evaluation metrics for nlg. arXiv preprint arXiv:1707.06875.'
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Novikova 等人, 2017] Novikova, J., Dušek, O., Curry, A. C., 和 Rieser, V. (2017).
+    为什么我们需要新的自然语言生成评估指标. arXiv 预印本 arXiv:1707.06875.'
+- en: '[OpenAI, 2023] OpenAI (2023). Gpt-4 technical report. arxiv 2303.08774. View
+    in Article, 2:13.'
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[OpenAI, 2023] OpenAI (2023). GPT-4 技术报告. arxiv 2303.08774. 查看文章, 2:13.'
+- en: '[Ouyang et al., 2022] Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright,
+    C. L., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., et al. (2022).
+    Training language models to follow instructions with human feedback, 2022. URL
+    https://arxiv. org/abs/2203.02155, 13.'
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Ouyang 等人, 2022] Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C.
+    L., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., 等人. (2022). 通过人类反馈训练语言模型遵循指令,
+    2022. URL https://arxiv.org/abs/2203.02155, 13.'
+- en: '[Pan et al., 2023] Pan, A., Chan, J. S., Zou, A., Li, N., Basart, S., Woodside,
+    T., Zhang, H., Emmons, S., and Hendrycks, D. (2023). Do the rewards justify the
+    means? measuring trade-offs between rewards and ethical behavior in the machiavelli
+    benchmark. In International Conference on Machine Learning, pages 26837–26867\.
+    PMLR.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Pan 等人, 2023] Pan, A., Chan, J. S., Zou, A., Li, N., Basart, S., Woodside,
+    T., Zhang, H., Emmons, S., 和 Hendrycks, D. (2023). 奖励是否能证明手段的正当性? 测量奖励与道德行为之间的权衡，在国际机器学习会议上，页码
+    26837–26867. PMLR.'
+- en: '[Patel et al., 2021] Patel, A., Bhattamishra, S., and Goyal, N. (2021). Are
+    nlp models really able to solve simple math word problems? arXiv preprint arXiv:2103.07191.'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Patel 等人, 2021] Patel, A., Bhattamishra, S., 和 Goyal, N. (2021). NLP 模型真的能够解决简单的数学文字问题吗?
+    arXiv 预印本 arXiv:2103.07191.'
+- en: '[Patil et al., 2023] Patil, S. G., Zhang, T., Wang, X., and Gonzalez, J. E.
+    (2023). Gorilla: Large language model connected with massive apis. arXiv preprint
+    arXiv:2305.15334.'
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Patil 等人, 2023] Patil, S. G., Zhang, T., Wang, X., 和 Gonzalez, J. E. (2023).
+    Gorilla: 连接大规模 API 的大型语言模型. arXiv 预印本 arXiv:2305.15334.'
+- en: '[Qian et al., 2023] Qian, C., Cong, X., Yang, C., Chen, W., Su, Y., Xu, J.,
+    Liu, Z., and Sun, M. (2023). Communicative agents for software development. arXiv
+    preprint arXiv:2307.07924.'
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Qian 等人, 2023] Qian, C., Cong, X., Yang, C., Chen, W., Su, Y., Xu, J., Liu,
+    Z., 和 Sun, M. (2023). 软件开发中的交流代理. arXiv 预印本 arXiv:2307.07924.'
+- en: '[Rajani et al., 2019] Rajani, N. F., McCann, B., Xiong, C., and Socher, R.
+    (2019). Explain yourself! leveraging language models for commonsense reasoning.
+    arXiv preprint arXiv:1906.02361.'
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Rajani 等人, 2019] Rajani, N. F., McCann, B., Xiong, C., 和 Socher, R. (2019).
+    解释你自己! 利用语言模型进行常识推理. arXiv 预印本 arXiv:1906.02361.'
+- en: '[Rasal and Boddhu, 2023] Rasal, S. and Boddhu, S. K. (2023). Beyond segmentation:
+    Road network generation with multi-modal llms. arXiv preprint arXiv:2310.09755.'
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Rasal 和 Boddhu, 2023] Rasal, S. 和 Boddhu, S. K. (2023). 超越分割：利用多模态大型语言模型生成道路网络.
+    arXiv 预印本 arXiv:2310.09755.'
+- en: '[ROUGE, 2004] ROUGE, L. C. (2004). A package for automatic evaluation of summaries.
+    In Proceedings of Workshop on Text Summarization of ACL, Spain, volume 5.'
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[ROUGE, 2004] ROUGE, L. C. (2004). 用于自动评估摘要的工具包. 收录于 ACL 会议西班牙的文本摘要工作坊论文集，第
+    5 卷.'
+- en: '[Roy and Roth, 2016] Roy, S. and Roth, D. (2016). Solving general arithmetic
+    word problems. arXiv preprint arXiv:1608.01413.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Roy 和 Roth, 2016] Roy, S. 和 Roth, D. (2016). 解决一般算术文字问题. arXiv 预印本 arXiv:1608.01413.'
+- en: '[Sanh et al., 2021] Sanh, V., Webson, A., Raffel, C., Bach, S. H., Sutawika,
+    L., Alyafeai, Z., Chaffin, A., Stiegler, A., Scao, T. L., Raja, A., et al. (2021).
+    Multitask prompted training enables zero-shot task generalization. arXiv preprint
+    arXiv:2110.08207.'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Sanh 等人, 2021] Sanh, V., Webson, A., Raffel, C., Bach, S. H., Sutawika, L.,
+    Alyafeai, Z., Chaffin, A., Stiegler, A., Scao, T. L., Raja, A., 等人. (2021). 多任务提示训练实现零-shot
+    任务泛化. arXiv 预印本 arXiv:2110.08207.'
+- en: '[Sap et al., 2022] Sap, M., LeBras, R., Fried, D., and Choi, Y. (2022). Neural
+    theory-of-mind? on the limits of social intelligence in large lms. arXiv preprint
+    arXiv:2210.13312.'
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Sap 等, 2022] Sap, M., LeBras, R., Fried, D., 和 Choi, Y. (2022). 神经理论心智？关于大规模语言模型社会智能的局限性。arXiv
+    预印本 arXiv:2210.13312。'
+- en: '[Sap et al., 2019] Sap, M., Rashkin, H., Chen, D., LeBras, R., and Choi, Y.
+    (2019). Socialiqa: Commonsense reasoning about social interactions. arXiv preprint
+    arXiv:1904.09728.'
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Sap 等, 2019] Sap, M., Rashkin, H., Chen, D., LeBras, R., 和 Choi, Y. (2019).
+    Socialiqa：关于社会互动的常识推理。arXiv 预印本 arXiv:1904.09728。'
+- en: '[Saunders et al., 2022] Saunders, W., Yeh, C., Wu, J., Bills, S., Ouyang, L.,
+    Ward, J., and Leike, J. (2022). Self-critiquing models for assisting human evaluators.
+    arXiv preprint arXiv:2206.05802.'
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Saunders 等, 2022] Saunders, W., Yeh, C., Wu, J., Bills, S., Ouyang, L., Ward,
+    J., 和 Leike, J. (2022). 自我批评模型：协助人工评估员。arXiv 预印本 arXiv:2206.05802。'
+- en: '[Schick et al., 2023] Schick, T., Dwivedi-Yu, J., Dessì, R., Raileanu, R.,
+    Lomeli, M., Zettlemoyer, L., Cancedda, N., and Scialom, T. (2023). Toolformer:
+    Language models can teach themselves to use tools. arXiv preprint arXiv:2302.04761.'
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Schick 等, 2023] Schick, T., Dwivedi-Yu, J., Dessì, R., Raileanu, R., Lomeli,
+    M., Zettlemoyer, L., Cancedda, N., 和 Scialom, T. (2023). Toolformer：语言模型可以自我学习使用工具。arXiv
+    预印本 arXiv:2302.04761。'
+- en: '[Sclar et al., 2023] Sclar, M., Kumar, S., West, P., Suhr, A., Choi, Y., and
+    Tsvetkov, Y. (2023). Minding language models’(lack of) theory of mind: A plug-and-play
+    multi-character belief tracker. arXiv preprint arXiv:2306.00924.'
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Sclar 等, 2023] Sclar, M., Kumar, S., West, P., Suhr, A., Choi, Y., 和 Tsvetkov,
+    Y. (2023). 关注语言模型（缺乏）心智理论：即插即用的多角色信念追踪器。arXiv 预印本 arXiv:2306.00924。'
+- en: '[Shen et al., 2023] Shen, C., Cheng, L., You, Y., and Bing, L. (2023). Are
+    large language models good evaluators for abstractive summarization? arXiv preprint
+    arXiv:2305.13091.'
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Shen 等, 2023] Shen, C., Cheng, L., You, Y., 和 Bing, L. (2023). 大规模语言模型是否适合评估抽象总结？arXiv
+    预印本 arXiv:2305.13091。'
+- en: '[Susskind, 1985] Susskind, L. E. (1985). Scorable games: A better way to teach
+    negotiation. Negot. J., 1:205.'
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Susskind, 1985] Susskind, L. E. (1985). 可评分的游戏：一种更好的谈判教学方法。《谈判期刊》，1:205。'
+- en: '[Susskind and Corburn, 2000] Susskind, L. E. and Corburn, J. (2000). Using
+    simulations to teach negotiation: Pedagogical theory and practice. Teaching negotiation:
+    Ideas and innovations, pages 285–310.'
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Susskind 和 Corburn, 2000] Susskind, L. E. 和 Corburn, J. (2000). 使用仿真教学谈判：教学理论与实践。《谈判教学：思想与创新》，第285–310页。'
+- en: '[Talmor et al., 2018] Talmor, A., Herzig, J., Lourie, N., and Berant, J. (2018).
+    Commonsenseqa: A question answering challenge targeting commonsense knowledge.
+    arXiv preprint arXiv:1811.00937.'
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Talmor 等, 2018] Talmor, A., Herzig, J., Lourie, N., 和 Berant, J. (2018). Commonsenseqa：一个针对常识知识的问答挑战。arXiv
+    预印本 arXiv:1811.00937。'
+- en: '[Thoppilan et al., 2022] Thoppilan, R., De Freitas, D., Hall, J., Shazeer,
+    N., Kulshreshtha, A., Cheng, H.-T., Jin, A., Bos, T., Baker, L., Du, Y., et al.
+    (2022). Lamda: Language models for dialog applications. arXiv preprint arXiv:2201.08239.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Thoppilan 等, 2022] Thoppilan, R., De Freitas, D., Hall, J., Shazeer, N., Kulshreshtha,
+    A., Cheng, H.-T., Jin, A., Bos, T., Baker, L., Du, Y., 等 (2022). Lamda：对话应用的语言模型。arXiv
+    预印本 arXiv:2201.08239。'
+- en: '[Touvron et al., 2023] Touvron, H., Lavril, T., Izacard, G., Martinet, X.,
+    Lachaux, M.-A., Lacroix, T., Rozière, B., Goyal, N., Hambro, E., Azhar, F., et al.
+    (2023). Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971.'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Touvron 等, 2023] Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux,
+    M.-A., Lacroix, T., Rozière, B., Goyal, N., Hambro, E., Azhar, F., 等 (2023). Llama：开放和高效的基础语言模型。arXiv
+    预印本 arXiv:2302.13971。'
+- en: '[Van Der Lee et al., 2019] Van Der Lee, C., Gatt, A., Van Miltenburg, E., Wubben,
+    S., and Krahmer, E. (2019). Best practices for the human evaluation of automatically
+    generated text. In Proceedings of the 12th International Conference on Natural
+    Language Generation, pages 355–368.'
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Van Der Lee 等, 2019] Van Der Lee, C., Gatt, A., Van Miltenburg, E., Wubben,
+    S., 和 Krahmer, E. (2019). 自动生成文本的人类评估最佳实践。第12届国际自然语言生成会议论文集，第355–368页。'
+- en: '[Wei et al., 2022a] Wei, J., Tay, Y., Bommasani, R., Raffel, C., Zoph, B.,
+    Borgeaud, S., Yogatama, D., Bosma, M., Zhou, D., Metzler, D., et al. (2022a).
+    Emergent abilities of large language models. arXiv preprint arXiv:2206.07682.'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Wei 等, 2022a] Wei, J., Tay, Y., Bommasani, R., Raffel, C., Zoph, B., Borgeaud,
+    S., Yogatama, D., Bosma, M., Zhou, D., Metzler, D., 等 (2022a). 大规模语言模型的涌现能力。arXiv
+    预印本 arXiv:2206.07682。'
+- en: '[Wei et al., 2022b] Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F.,
+    Chi, E., Le, Q. V., Zhou, D., et al. (2022b). Chain-of-thought prompting elicits
+    reasoning in large language models. Advances in Neural Information Processing
+    Systems, 35:24824–24837.'
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Wei 等, 2022b] Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi,
+    E., Le, Q. V., Zhou, D., 等 (2022b). 思维链提示激发大规模语言模型推理。《神经信息处理系统进展》，35:24824–24837。'
+- en: '[Woolley et al., 2010] Woolley, A. W., Chabris, C. F., Pentland, A., Hashmi,
+    N., and Malone, T. W. (2010). Evidence for a collective intelligence factor in
+    the performance of human groups. science, 330(6004):686–688.'
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Woolley 等, 2010] Woolley, A. W., Chabris, C. F., Pentland, A., Hashmi, N.,
+    和 Malone, T. W. (2010). 证据表明人类群体表现中的集体智能因素。科学，330(6004):686–688。'
+- en: '[Wu et al., 2023] Wu, N., Gong, M., Shou, L., Liang, S., and Jiang, D. (2023).
+    Large language models are diverse role-players for summarization evaluation. arXiv
+    preprint arXiv:2303.15078.'
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Wu 等, 2023] Wu, N., Gong, M., Shou, L., Liang, S., 和 Jiang, D. (2023). 大型语言模型作为多样化角色扮演者用于摘要评估。arXiv
+    预印本 arXiv:2303.15078。'
+- en: '[Yao et al., 2022] Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan,
+    K., and Cao, Y. (2022). React: Synergizing reasoning and acting in language models.
+    arXiv preprint arXiv:2210.03629.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Yao 等, 2022] Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K.,
+    和 Cao, Y. (2022). React: 在语言模型中协同推理与行动。arXiv 预印本 arXiv:2210.03629。'
+- en: '[Zheng et al., 2023] Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z.,
+    Zhuang, Y., Lin, Z., Li, Z., Li, D., Xing, E., et al. (2023). Judging llm-as-a-judge
+    with mt-bench and chatbot arena. arXiv preprint arXiv:2306.05685.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Zheng 等, 2023] Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang,
+    Y., Lin, Z., Li, Z., Li, D., Xing, E., 等. (2023). 使用 mt-bench 和聊天机器人竞技场评估 LLM
+    作为法官的表现。arXiv 预印本 arXiv:2306.05685。'
+- en: '[Zhou et al., 2023] Zhou, P., Zhu, A., Hu, J., Pujara, J., Ren, X., Callison-Burch,
+    C., Choi, Y., and Ammanabrolu, P. (2023). I cast detect thoughts: Learning to
+    converse and guide with intents and theory-of-mind in dungeons and dragons. In
+    Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
+    (Volume 1: Long Papers), pages 11136–11155.'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Zhou 等, 2023] Zhou, P., Zhu, A., Hu, J., Pujara, J., Ren, X., Callison-Burch,
+    C., Choi, Y., 和 Ammanabrolu, P. (2023). 我施法侦测思维：在《龙与地下城》中学习通过意图和心智理论进行对话和引导。载于第61届计算语言学协会年会论文集（第1卷：长篇论文），第11136–11155页。'

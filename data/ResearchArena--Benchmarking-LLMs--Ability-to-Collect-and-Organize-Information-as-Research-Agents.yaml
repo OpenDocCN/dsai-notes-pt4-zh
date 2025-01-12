@@ -1,0 +1,1706 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:33:09'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:33:09
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize Information
+    as Research Agents'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'ResearchArena: 基准测试LLM在作为研究代理进行信息收集和组织的能力'
+- en: 来源：[https://arxiv.org/html/2406.10291/](https://arxiv.org/html/2406.10291/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2406.10291/](https://arxiv.org/html/2406.10291/)
+- en: Hao Kang
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 康浩
+- en: haok@andrew.cmu.edu School of Computer Science
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: haok@andrew.cmu.edu 计算机科学学院
+- en: Carnegie Mellon University
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 卡内基梅隆大学
+- en: Pittsburgh, PA, 15213 &Chenyan Xiong
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 美国宾夕法尼亚州匹兹堡市，15213 & 熊晨燕
+- en: cx@cs.cmu.edu Language Technologies Institute
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: cx@cs.cmu.edu 语言技术研究所
+- en: Carnegie Mellon University
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 卡内基梅隆大学
+- en: Pittsburgh, PA, 15213
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 美国宾夕法尼亚州匹兹堡市，15213
+- en: Abstract
+  id: totrans-13
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'Large language models (LLMs) have exhibited remarkable performance across various
+    tasks in natural language processing. Nevertheless, challenges still arise when
+    these tasks demand domain-specific expertise and advanced analytical skills, such
+    as conducting research surveys on a designated topic. In this research, we develop
+    ResearchArena, a benchmark that measures LLM agents’ ability to conduct academic
+    surveys, an initial step of academic research process. Specifically, we deconstructs
+    the surveying process into three stages 1) information discovery: locating relevant
+    papers, 2) information selection: assessing papers’ importance to the topic, and
+    3) information organization: organizing papers into meaningful structures. In
+    particular, we establish an offline environment comprising 12.0M full-text academic
+    papers and 7.9K survey papers, which evaluates agents’ ability to locate supporting
+    materials for composing the survey on a topic, rank the located papers based on
+    their impact, and organize these into a hierarchical knowledge mind-map. With
+    this benchmark, we conduct preliminary evaluations of existing techniques and
+    find that all LLM-based methods under-performing when compared to basic keyword-based
+    retrieval techniques, highlighting substantial opportunities for future research.'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）在自然语言处理的各类任务中展现出了显著的表现。然而，当这些任务需要领域特定的专业知识和高级分析技能时，仍然会遇到挑战，尤其是在对特定主题进行研究调查时。在本研究中，我们开发了ResearchArena，这是一个基准测试，用于衡量LLM代理进行学术调查的能力，这是学术研究过程的初步步骤。具体来说，我们将调查过程分解为三个阶段：1）信息发现：寻找相关论文；2）信息选择：评估论文与主题的相关性；3）信息组织：将论文组织成有意义的结构。特别地，我们建立了一个离线环境，包含1200万篇全文学术论文和7900篇调查论文，评估代理在特定主题的调查中，如何定位支持材料，基于影响对找到的论文进行排名，并将这些论文组织成层级化的知识思维导图。通过这个基准测试，我们对现有技术进行了初步评估，结果发现，与基本的基于关键词的检索技术相比，所有基于LLM的方法表现不佳，突显了未来研究的巨大潜力。
+- en: 1 Introduction
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Large language models (LLMs) have demonstrated exceptional performance across
+    tasks related to natural language understanding, generation, and various other
+    domains [[1](https://arxiv.org/html/2406.10291v1#bib.bib1), [2](https://arxiv.org/html/2406.10291v1#bib.bib2),
+    [3](https://arxiv.org/html/2406.10291v1#bib.bib3), [4](https://arxiv.org/html/2406.10291v1#bib.bib4)].
+    The capabilities of LLMs can be significantly augmented through integration with
+    external tools such as code interpreters, gaming simulators, and search engines.
+    This integration facilitates the development of sophisticated autonomous agents
+    capable of receiving feedback and executing tasks in a manner akin to human behavior
+    [[5](https://arxiv.org/html/2406.10291v1#bib.bib5), [6](https://arxiv.org/html/2406.10291v1#bib.bib6),
+    [7](https://arxiv.org/html/2406.10291v1#bib.bib7), [8](https://arxiv.org/html/2406.10291v1#bib.bib8)].
+    Nevertheless, there remains uncertainty regarding the extent to which LLMs can
+    perform tasks necessitating domain-specific expertise and advanced analytical
+    skills, particularly in the context of conducting research on designated topics.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）在自然语言理解、生成以及其他多个领域的任务中展现出了卓越的性能[[1](https://arxiv.org/html/2406.10291v1#bib.bib1),
+    [2](https://arxiv.org/html/2406.10291v1#bib.bib2), [3](https://arxiv.org/html/2406.10291v1#bib.bib3),
+    [4](https://arxiv.org/html/2406.10291v1#bib.bib4)]。通过与外部工具如代码解释器、游戏模拟器和搜索引擎的集成，LLMs的能力可以得到显著增强。这种集成促进了复杂自主代理的开发，使其能够接受反馈并以类似人类行为的方式执行任务[[5](https://arxiv.org/html/2406.10291v1#bib.bib5),
+    [6](https://arxiv.org/html/2406.10291v1#bib.bib6), [7](https://arxiv.org/html/2406.10291v1#bib.bib7),
+    [8](https://arxiv.org/html/2406.10291v1#bib.bib8)]。然而，仍然存在不确定性，尤其是在执行需要领域特定知识和高级分析技能的任务时，LLMs能达到什么程度，特别是在进行特定主题的研究时。
+- en: The potential of LLMs to conduct research would be profoundly impactful, particularly
+    in light of the rapid development of numerous fields and the accompanying information
+    explosion. In these contexts, learning a topic and composing an academic survey
+    report often necessitates several months of effort by multiple researchers. On
+    the LLM side, it is imperative to acquire the capability to conduct independent
+    research on topics not encompassed within their pre-training datasets. Possessing
+    such an ability would eliminate the necessity for continuous updates and re-training
+    of the entire model, thereby significantly enhancing its practical utility across
+    diverse domains.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM在进行研究方面的潜力将产生深远的影响，特别是考虑到众多领域的快速发展和随之而来的信息爆炸。在这些背景下，学习一个主题并撰写学术调查报告通常需要多个研究者花费几个月的时间。而在LLM方面，必须具备在其预训练数据集之外的主题上进行独立研究的能力。拥有这种能力将消除对整个模型持续更新和再训练的需求，从而显著提高其在不同领域的实际应用价值。
+- en: Previous research involving autonomous agents in tasks that are relatively straightforward
+    and executable by the general public, such as online shopping or playing card
+    games, has demonstrated notable success, particularly when utilizing models like
+    GPT-4 [[6](https://arxiv.org/html/2406.10291v1#bib.bib6), [9](https://arxiv.org/html/2406.10291v1#bib.bib9)].
+    However, more challenging categories, such as research tasks that require domain-specific
+    expertise, represent the next frontier for potential advancements by LLM agents.
+    Admittedly, there is a paucity of research in this area, and one of the primary
+    challenges is the absence of standardized benchmarks.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以前涉及自治代理的研究任务，如在线购物或打扑克牌等相对简单且普通人也能执行的任务，已取得显著成功，特别是当使用像GPT-4这样的模型时[[6](https://arxiv.org/html/2406.10291v1#bib.bib6),
+    [9](https://arxiv.org/html/2406.10291v1#bib.bib9)]。然而，更具挑战性的任务，如需要领域专门知识的研究任务，代表了LLM代理潜在进展的下一个前沿。诚然，这方面的研究相对稀缺，其中一个主要挑战是缺乏标准化的基准测试。
+- en: 'To advance the development of research agents capable of conducting comprehensive
+    surveys, we introduce the ResearchArena benchmark, which is rooted in rigorous
+    scholarly content. This benchmark specifically leverages academic papers due to
+    their depth of research, peer-reviewed accuracy, and formal structure—attributes
+    often lacking in other sources such as web pages. The ResearchArena provides an
+    offline environment where autonomous agents can collect and organize information
+    to conduct research across various topics. It comprises three sub-tasks for evaluation:
+    Information Discovery, Information Selection, and Information Organization. These
+    three sub-tasks emulate the general methodology employed by human researchers
+    during literature surveys, which are discussed further below.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为推动能够进行全面调查的研究代理的发展，我们引入了ResearchArena基准测试，它根植于严格的学术内容。该基准测试特别利用学术论文，因为它们具有深入的研究、同行评审的准确性和正式的结构——这些特点通常在其他来源（如网页）中缺乏。ResearchArena提供了一个离线环境，自治代理可以在其中收集和组织信息，以便在各种主题上进行研究。它包含三个评估子任务：信息发现、信息选择和信息组织。这三个子任务模拟了人类研究人员在文献调查过程中采用的一般方法，下面将进一步讨论。
+- en: 'Researchers typically conduct literature surveys by defining the scope of their
+    inquiry, developing a search protocol, and iteratively reading and organizing
+    papers into an evolving schema. This process culminates in a synthesis of findings
+    to draw conclusions and highlight future research directions [[10](https://arxiv.org/html/2406.10291v1#bib.bib10)].
+    Based on this methodology, our benchmark delineates the surveying process into
+    three specific tasks: Information Discovery, Information Selection, and Information
+    Organization. Notably, we do not include the generation of text as part of the
+    evaluation. This exclusion stems from the premise that a comprehensive understanding
+    of the topic, established during the pre-writing stage through research, should
+    already provide a robust foundation for composing a full-length article [[11](https://arxiv.org/html/2406.10291v1#bib.bib11)].
+    Furthermore, evaluating a complete article is inherently challenging due to variations
+    in individual writing styles. Consequently, we reserve such assessments for future
+    investigations and potentially other benchmarks targeting long-text natural language
+    generation.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 研究人员通常通过定义研究范围、制定搜索协议，并反复阅读和组织文献，将文献整理成一个不断发展的框架，来进行文献调查。这个过程最终会将研究结果进行综合，以得出结论并突出未来的研究方向[[10](https://arxiv.org/html/2406.10291v1#bib.bib10)]。基于这一方法论，我们的基准测试将调查过程划分为三个具体任务：信息发现、信息选择和信息组织。值得注意的是，我们并未将文本生成纳入评估范围。这一排除的前提是，通过研究在写作前阶段建立的对主题的全面理解，应该已经为撰写一篇完整文章提供了坚实的基础[[11](https://arxiv.org/html/2406.10291v1#bib.bib11)]。此外，由于个体写作风格的差异，评估完整的文章本身具有挑战性。因此，我们将此类评估留待未来的研究，并可能在其他针对长文本自然语言生成的基准测试中进行。
+- en: The Information Discovery task requires LLMs to identify and retrieve relevant
+    academic papers that are foundational to the survey topic, leveraging their ability
+    to navigate and understand vast scholarly corpus. The Information Selection task
+    then challenges the LLMs to critically evaluate these papers based on their scholarly
+    impact and relevance, mimicking the peer review process to ensure only the most
+    significant studies are considered. Lastly, the Information Organization task
+    assesses the LLMs’ ability to synthesize the selected research into a coherent
+    narrative, offering a structured and insightful overview of the topic, through
+    the use of knowledge mind-maps.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 信息发现任务要求LLM（大型语言模型）识别并检索与调查主题相关的基础学术论文，利用其在导航和理解庞大学术语料库中的能力。信息选择任务则挑战LLM基于学术影响力和相关性来批判性地评估这些论文，模拟同行评审过程，确保只考虑最重要的研究。最后，信息组织任务评估LLM将所选研究合成成一个连贯叙事的能力，提供通过知识思维导图呈现的结构化和有见地的主题概览。
+- en: 'Our assessments indicate that LLMs frequently underperform when compared to
+    simpler keyword-based search methods, particularly in tasks requiring deep analytical
+    skills. For example, traditional techniques such as utilizing a survey title as
+    a retrieval query consistently outperform LLMs in both Information Discovery and
+    Information Selection, as demonstrated by superior recall and precision metrics.
+    Furthermore, during the Information Organization phase, particularly in the absence
+    of oracle guidance¹¹1The term ”oracle” refers to the distinction between intermediate
+    and end-to-end versions in the task of Information Organization, as discussed
+    in Section [5](https://arxiv.org/html/2406.10291v1#S5 "5 Benchmark Tasks ‣ ResearchArena:
+    Benchmarking LLMs’ Ability to Collect and Organize Information as Research Agents").,
+    LLMs encounter significant challenges in constructing coherent and accurate knowledge
+    structures. This underscores a critical need for enhancements in their ability
+    to manage complex organizational tasks independently.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们的评估结果表明，LLM在与简单的基于关键词的检索方法相比时，表现常常不尽如人意，特别是在需要深度分析技能的任务中。例如，传统技术如使用调查标题作为检索查询，在信息发现和信息选择任务中始终优于LLM，体现在更高的召回率和精准度指标上。此外，在信息组织阶段，尤其是在缺乏预设指导¹¹1“预设指导”是指信息组织任务中间版本与端到端版本的区别，具体讨论见[5](https://arxiv.org/html/2406.10291v1#S5
+    "5 Benchmark Tasks ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and
+    Organize Information as Research Agents")，LLM在构建连贯和准确的知识结构时遇到显著挑战。这凸显了LLM在独立管理复杂组织任务方面亟需改进的关键需求。'
+- en: The constructed environment includes 12.0M full-text academic papers and 7.9K
+    survey papers, meticulously curated from the Semantic Scholar Open Research Corpus
+    (S2ORC) [[12](https://arxiv.org/html/2406.10291v1#bib.bib12)]. This rigorous selection
+    process ensures a high standard of reliability and scholarly relevance, rendering
+    the dataset ideal for evaluating LLMs designed to execute complex, domain-specific
+    research. By focusing on such a rich and diverse academic base, the dataset supports
+    a robust analysis of LLM capabilities across multiple scientific domains, providing
+    a realistic and challenging environment for benchmarking. Furthermore, the S2ORC
+    is updated on a weekly basis, allowing for the inclusion and evaluation of newer
+    content that extends beyond the LLMs’ knowledge cutoff.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构建的环境包括12.0M篇全文学术论文和7.9K篇调查论文，这些论文是从Semantic Scholar开放研究语料库（S2ORC）中精心挑选的[[12](https://arxiv.org/html/2406.10291v1#bib.bib12)]。这一严格的筛选过程确保了数据集在可靠性和学术相关性方面的高标准，使得该数据集非常适合用于评估旨在执行复杂、领域特定研究的LLM（大型语言模型）。通过聚焦于如此丰富多样的学术基础，该数据集支持对LLM能力的强有力分析，涵盖多个科学领域，为基准测试提供了一个真实且具有挑战性的环境。此外，S2ORC每周更新一次，允许包含并评估超出LLM知识截止日期的新内容。
+- en: 'The remainder of this paper is structured as follows: After reviewing related
+    work in Section [2](https://arxiv.org/html/2406.10291v1#S2 "2 Related Work ‣ ResearchArena:
+    Benchmarking LLMs’ Ability to Collect and Organize Information as Research Agents"),
+    Section [3](https://arxiv.org/html/2406.10291v1#S3 "3 Collection Methodology ‣
+    ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize Information
+    as Research Agents") details our dataset collection process. Subsequently, Section
+    [4](https://arxiv.org/html/2406.10291v1#S4 "4 Dataset Composition ‣ ResearchArena:
+    Benchmarking LLMs’ Ability to Collect and Organize Information as Research Agents")
+    provides a thorough analysis of the dataset composition and its various statistical
+    properties. Each task within the benchmark, along with their corresponding metrics,
+    is introduced in Section [5](https://arxiv.org/html/2406.10291v1#S5 "5 Benchmark
+    Tasks ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize Information
+    as Research Agents"). Finally, the evaluations across various baselines are presented
+    in Section [6](https://arxiv.org/html/2406.10291v1#S6 "6 Experiments ‣ ResearchArena:
+    Benchmarking LLMs’ Ability to Collect and Organize Information as Research Agents").'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本文的其余部分结构如下：在第[2](https://arxiv.org/html/2406.10291v1#S2 "2 Related Work ‣
+    ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize Information
+    as Research Agents")节回顾相关工作后，第[3](https://arxiv.org/html/2406.10291v1#S3 "3 Collection
+    Methodology ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize
+    Information as Research Agents")节详细介绍了我们的数据集收集过程。随后，第[4](https://arxiv.org/html/2406.10291v1#S4
+    "4 Dataset Composition ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect
+    and Organize Information as Research Agents")节对数据集的组成及其各项统计特性进行了全面分析。每个基准测试任务及其相应的度量指标在第[5](https://arxiv.org/html/2406.10291v1#S5
+    "5 Benchmark Tasks ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and
+    Organize Information as Research Agents")节中进行了介绍。最后，第[6](https://arxiv.org/html/2406.10291v1#S6
+    "6 Experiments ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize
+    Information as Research Agents")节展示了在不同基准下的评估结果。'
+- en: 2 Related Work
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Previous research has employed diverse methodologies to compile datasets featuring
+    academic survey papers. For instance, BigSurvey dataset [[13](https://arxiv.org/html/2406.10291v1#bib.bib13)]
+    aggregates over 7K survey papers from arXiv and includes approximately 434K eferences
+    from Microsoft Academic Service and Semantic Scholar. This dataset underwent rigorous
+    preprocessing by removing duplicates, unprocessable files, and normalizing text.
+    On the other hand, Surfer100 dataset [[14](https://arxiv.org/html/2406.10291v1#bib.bib14)]
+    includes 100 surveys emulating Wikipedia page structures, compiled by eight annotators
+    who summarized content from web pages. Each survey contains predefined sections
+    such as Introduction, History, Key Ideas, Variations, and Applications, summarized
+    concisely in 50 to 150 words.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以往的研究采用了多种方法来编制包含学术调查论文的数据集。例如，BigSurvey数据集[[13](https://arxiv.org/html/2406.10291v1#bib.bib13)]从arXiv收集了超过7K篇调查论文，并包括约434K条来自Microsoft
+    Academic Service和Semantic Scholar的引用。这一数据集经过了严格的预处理，包括去除重复项、无法处理的文件以及文本规范化。另一方面，Surfer100数据集[[14](https://arxiv.org/html/2406.10291v1#bib.bib14)]包括100篇模仿维基百科页面结构的调查论文，由八位注释员根据网页内容进行总结。每篇调查论文包含预定义的章节，如引言、历史、关键思想、变种和应用，内容简明扼要地总结为50到150字。
+- en: BigSurvey dataset provides references in an abstract-only format, offering a
+    concise overview of documents. Surfer100 utilizes Google search results to compile
+    references for each survey topic, reflecting a broad spectrum of web-based information.
+    In contrast, our dataset emphasizes full-text academic papers for a deeper understanding
+    and leverages bibliographic references from original survey papers for enhanced
+    authority and accuracy.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: BigSurvey 数据集提供了仅包含摘要的参考文献格式，简明地概述了文档内容。Surfer100 利用 Google 搜索结果为每个调查主题汇总参考文献，反映了广泛的网络信息。相比之下，我们的数据集强调全篇学术论文，以便更深入理解，并利用原始调查论文中的文献参考来增强权威性和准确性。
+- en: The most related LLM agents task in previous research focuses on generating
+    Wikipedia articles. Liu et al. proposed a method for generating English Wikipedia
+    articles by framing the task as a multi-document summarization challenge [[15](https://arxiv.org/html/2406.10291v1#bib.bib15)].
+    Their approach employs a combination of extractive and abstractive summarization
+    techniques. It involves identifying salient information using methods such as
+    TF-IDF and TextRank [[16](https://arxiv.org/html/2406.10291v1#bib.bib16)]. In
+    another study, Shao et al. introduced the STORM system [[17](https://arxiv.org/html/2406.10291v1#bib.bib17)],
+    which addresses pre-writing challenges such as research and outline preparation.
+    STORM enhances the article generation process by simulating multi-perspective
+    conversations, wherein an LLM poses questions and aggregates responses from reliable
+    sources to develop detailed outlines.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以往研究中最相关的 LLM 代理任务集中在生成维基百科文章。Liu 等人提出了一种通过将任务框定为多文档摘要挑战来生成英语维基百科文章的方法 [[15](https://arxiv.org/html/2406.10291v1#bib.bib15)]。他们的方法结合了提取式和抽象式摘要技术，采用
+    TF-IDF 和 TextRank 等方法来识别重要信息 [[16](https://arxiv.org/html/2406.10291v1#bib.bib16)]。另一项研究中，Shao
+    等人介绍了 STORM 系统 [[17](https://arxiv.org/html/2406.10291v1#bib.bib17)]，该系统解决了写作前的挑战，如研究和大纲准备。STORM
+    通过模拟多角度对话来增强文章生成过程，其中 LLM 提出问题并从可靠来源收集回答，以制定详细的大纲。
+- en: While Wikipedia is a valuable resource for obtaining an introductory understanding
+    of a subject, it is inherently limited by the user-authored nature of its content,
+    which does not always guarantee expert oversight. In contrast, rigorous academic
+    research requires a more in-depth and systematic investigation of a topic, often
+    peer-reviewed by experts within the same domain.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然维基百科是获取某一主题入门性理解的宝贵资源，但其内容由用户编写，这本身就存在局限性，无法始终确保专家的审查。相比之下，严格的学术研究需要对一个主题进行更深入、系统的调查，且通常会经过该领域专家的同行评审。
+- en: 3 Collection Methodology
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 数据收集方法
+- en: 'This section delineates our methodology for assembling the dataset, which contains
+    three primary stages: survey selection, reference linking, and mind-map extraction.
+    Each stage is indispensable for ensuring the the relevance and accuracy of the
+    dataset, thereby facilitating its application across various benchmark tasks.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节描述了我们组建数据集的方法论，该数据集包含三个主要阶段：调查选择、参考文献链接和思维导图提取。每个阶段对确保数据集的相关性和准确性至关重要，从而促进其在各类基准任务中的应用。
+- en: We begin with the survey selection stage, which concentrates on identifying
+    relevant survey papers. Following this, we proceed to the reference linking stage,
+    where we incorporate bibliographic references from each selected survey. Finally,
+    we address the mind-map extraction stage, detailing the criteria employed to identify
+    knowledge mind-maps from the surveys. Each of these stages and their respective
+    methodologies are presented in the corresponding subsections. At the very end,
+    we provide a quick overview of the dataset.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从调查选择阶段开始，专注于识别相关的调查论文。接着，我们进入参考文献链接阶段，在此阶段我们将每篇选定的调查论文中的文献参考整合进来。最后，我们进入思维导图提取阶段，详细说明了用于从调查中识别知识思维导图的标准。每个阶段及其相应的方法都将在相应的小节中呈现。在最后，我们提供了数据集的简要概述。
+- en: 3.1 Survey Selection
+  id: totrans-33
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 调查选择
+- en: To evaluate the research capabilities on designated topics, it is essential
+    first to identify these topics. This was achieved by extracting every survey paper
+    from the S2ORC dataset, based on a combination of keyword-based filtration and
+    rigorous textual analysis. In general, the titles of survey papers encapsulate
+    the topics discussed therein.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估在指定主题上的研究能力，首先必须确定这些主题。我们通过从 S2ORC 数据集中提取每篇调查论文，结合基于关键词的过滤和严格的文本分析来实现这一目标。一般来说，调查论文的标题概括了其中讨论的主题。
+- en: To compile all relevant survey topics, we first need to identify research surveys
+    from the corpus. We assume that titles of all the topic-specific survey papers
+    contain the term “survey”, but not every paper satisfying this criteria is an
+    actual survey pertaining to our research theme. In particular, some papers, despite
+    incorporating the keyword, rely heavily on information outside the corpus. This
+    includes population-based survey questionnaires from Medical domains or Redshift
+    surveys using telescope observations in the field of Physics.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了编制所有相关的调查主题，我们首先需要从语料库中识别出研究调查文献。我们假设所有主题特定的调查文献标题都包含“survey”一词，但并非每篇符合这一标准的文献都是与我们的研究主题相关的实际调查。特别是，尽管有些文献包含了关键词，但它们在很大程度上依赖于语料库之外的信息。这些包括来自医学领域的基于人群的调查问卷或物理学领域通过望远镜观测进行的红移调查。
+- en: 'As a result, the identification was accomplished by a combination of keyword-based
+    filtration and rigorous textual analysis. We first excluded those papers whose
+    titles did not contain “survey” as a keyword. Afterwards, we instructed GPT-4
+    ²²2GPT-4 refers to gpt-4-0613 as documented in [https://platform.openai.com/docs/models](https://platform.openai.com/docs/models).
+    to discern the scope and content of each document based on its title and abstract.
+    We included only those papers that provide an organized view on the current state
+    of field concerning a specific topic. The exact wording of the prompts can be
+    found in Figure [1](https://arxiv.org/html/2406.10291v1#S3.F1 "Figure 1 ‣ 3.1
+    Survey Selection ‣ 3 Collection Methodology ‣ ResearchArena: Benchmarking LLMs’
+    Ability to Collect and Organize Information as Research Agents"), where approximately
+    85% of the papers identified through the initial keyword search were discarded.'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '因此，文献的识别是通过关键词筛选与严格的文本分析相结合完成的。我们首先排除了标题中未包含“survey”作为关键词的文献。随后，我们指示GPT-4²²2GPT-4指的是[https://platform.openai.com/docs/models](https://platform.openai.com/docs/models)中记录的gpt-4-0613，以根据标题和摘要判断每篇文献的范围和内容。我们只纳入那些提供关于特定主题的当前领域状态的组织化视角的文献。提示的具体措辞可以在图[1](https://arxiv.org/html/2406.10291v1#S3.F1
+    "Figure 1 ‣ 3.1 Survey Selection ‣ 3 Collection Methodology ‣ ResearchArena: Benchmarking
+    LLMs’ Ability to Collect and Organize Information as Research Agents")中找到，约85%的初始关键词搜索所识别的文献被舍弃。'
+- en: 'As presented in Appendix [B](https://arxiv.org/html/2406.10291v1#A2 "Appendix
+    B Quality of Collection Methodology ‣ ResearchArena: Benchmarking LLMs’ Ability
+    to Collect and Organize Information as Research Agents"), a manual inspection
+    of 25 samples from the final collection of survey papers revealed that our selection
+    method yielded a 92% accuracy rate. The selection process is certainly not a perfect
+    recall since survey papers may not explicitly include the term “survey” in their
+    title. However, we believe that the selected papers are sufficiently representative
+    of the broader distribution of survey literature in the field.'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如附录[B](https://arxiv.org/html/2406.10291v1#A2 "Appendix B Quality of Collection
+    Methodology ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize
+    Information as Research Agents")所示，对最终收集的25篇文献样本进行手动检查，结果表明我们的选择方法达到了92%的准确率。选择过程显然不是完美的回忆，因为有些文献的标题中可能并未明确包含“survey”这一词。然而，我们相信这些选定的文献能够充分代表该领域中调查文献的广泛分布。'
+- en: '[⬇](data:text/plain;base64,VGhlIHBvaW50IG9mIGEgc3VydmV5IHBhcGVyIGlzIHRvIHByb3ZpZGUgYW4gb3JnYW5pemVkIHZpZXcgb24gdGhlIGN1cnJlbnQgc3RhdGUgb2YgdGhlIGZpZWxkLiBJZiBpdCByZWxpZXMgaGVhdmlseSBvbiBleHRlcm5hbCBpbmZvcm1hdGlvbiwgc3VjaCBhcyB0aGUgcmVzdWx0cyBvZiBhIHBvcHVsYXRpb24gcXVlc3Rpb25uYWlyZSwgZG8gbm90IGluY2x1ZGUgaXQuIFVzaW5nIHRoZSBhYm92ZSBjcml0ZXJpYSwgaXMgdGhlIGZvbGxvd2luZyBhcnRpY2xlIGEgc3VydmV5IHBhcGVyPyBSZXNwb25kIGVpdGhlciAiVHJ1ZSIgb3IgIkZhbHNlIi4=)The  point  of  a  survey  paper  is  to  provide  an  organized  view  on  the  current  state  of  the  field.  If  it  relies  heavily  on  external  information,  such  as  the  results  of  a  population  questionnaire,  do  not  include  it.  Using  the  above  criteria,  is  the  following  article  a  survey  paper?  Respond  either  "True"  or  "False".'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,VGhlIHBvaW50IG9mIGEgc3VydmV5IHBhcGVyIGlzIHRvIHByb3ZpZGUgYW4gb3JnYW5pemVkIHZpZXcgb24gdGhlIGN1cnJlbnQgc3RhdGUgb2YgdGhlIGZpZWxkLiBJZiBpdCByZWxpZXMgaGVhdmlseSBvbiBleHRlcm5hbCBpbmZvcm1hdGlvbiwgc3VjaCBhcyB0aGUgcmVzdWx0cyBvZiBhIHBvcHVsYXRpb24gcXVlc3Rpb25uYWlyZSwgZG8gbm90IGluY2x1ZGUgaXQuIFVzaW5nIHRoZSBhYm92ZSBjcml0ZXJpYSwgaXMgdGhlIGZvbGxvd2luZyBhcnRpY2xlIGEgc3VydmV5IHBhcGVyPyBSZXNwb25kIGVpdGhlciAiVHJ1ZSIgb3IgIkZhbHNlIi4=)调查论文的目的是提供对该领域当前状态的组织化视角。如果它严重依赖外部信息，如人口问卷的结果，就不要将其纳入。根据上述标准，以下文章是否为调查论文？请回答“True”或“False”。'
+- en: 'Figure 1: Instruction with GPT-4 on survey selection.'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：使用GPT-4进行调查选择的指令。
+- en: The corpus for conducting these research surveys is limited to papers with full-text
+    access in S2ORC. Unlike previous works, we believe relying solely on abstract
+    might omit crucial details present in the full text which could contribute to
+    a deeper understanding of the topic. Enforcing this accessibility constraint reduced
+    the number of papers in S2ORC to 12.0 million.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于进行这些研究综述的语料库仅限于S2ORC中可以访问全文的论文。与以往的研究不同，我们认为仅依赖摘要可能会忽略全文中一些关键细节，而这些细节可能有助于更深入地理解主题。因此，强制这一访问限制将S2ORC中的论文数量减少到1200万篇。
+- en: 3.2 Reference Linking
+  id: totrans-41
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 参考文献链接
+- en: To evaluate performance in Information Discovery, it is essential to identify
+    the fundamental sources for these surveys. These sources are derived from the
+    bibliographic references cited within each survey paper. We relied on S2ORC for
+    the extracted bibliographies and enforced additional post-processing to discard
+    any papers unsuitable for evaluations.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估信息发现的表现，识别这些综述的基本来源至关重要。这些来源来自于每篇综述论文中引用的参考文献。我们依赖S2ORC来提取参考书目，并进行额外的后处理，剔除任何不适合评估的论文。
+- en: Following the selection of relevant survey papers, we proceeded to compile their
+    bibliographic references. Despite the general reliability of the S2ORC bibliographic
+    resolution system, we encountered discrepancies, such as missing references. These
+    issues were particularly prevalent in documents where the reference header was
+    indistinguishable from the main body text. To address these problems, we excluded
+    any survey papers without references, totaling 406, deeming them unsuitable due
+    to the failure of bibliography extraction. Furthermore, survey papers with no
+    accessible citations were filtered out, amounting to 1,635, as such papers offer
+    no evaluative utility.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在选择相关的综述论文后，我们开始编制它们的参考文献。尽管S2ORC的文献分辨系统总体上是可靠的，但我们仍然遇到了一些差异，比如缺失参考文献。这些问题在参考文献标题与正文无法区分的文献中尤为突出。为了解决这些问题，我们排除了没有参考文献的综述论文，共计406篇，认为这些文献由于无法提取参考文献而不适合使用。此外，我们还排除了无法访问引文的综述论文，共计1,635篇，因为此类文献缺乏评估价值。
+- en: 'For references that were successfully extracted, we documented the publication
+    dates for each one. In cases where a reference listed only the year, we assigned
+    the last day of that year as its date to mitigate the risk of information leakage,
+    as discussed in Section [5](https://arxiv.org/html/2406.10291v1#S5 "5 Benchmark
+    Tasks ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize Information
+    as Research Agents"). Furthermore, citations from S2ORC were categorized based
+    on their contribution to the topic, as outlined by Valenzuela et al. [[18](https://arxiv.org/html/2406.10291v1#bib.bib18)]
+    with a supervised classification approach. This categorization involved distinguishing
+    between influential and non-influential references, which is a prerequisite for
+    evaluating the task of Information Selection.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于成功提取的参考文献，我们记录了每个文献的出版日期。如果参考文献仅列出了年份，我们将该年的最后一天作为日期，以减少信息泄露的风险，具体方法详见第[5](https://arxiv.org/html/2406.10291v1#S5
+    "5 基准任务 ‣ ResearchArena：基准测试LLMs在收集和组织信息作为研究代理能力中的表现")节。此外，从S2ORC提取的引用根据它们对主题的贡献进行了分类，参考Valenzuela等人[[18](https://arxiv.org/html/2406.10291v1#bib.bib18)]提出的监督分类方法。这一分类方法涉及区分有影响力和无影响力的参考文献，这是评估信息选择任务的前提。
+- en: 3.3 Mind-Map Extraction
+  id: totrans-45
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 思维导图提取
+- en: A common method for organizing information in academic surveys is the utilization
+    of mind-map style typologies, which promote a systematic understanding of the
+    subject under review. Due to the exclusive text-based nature of the S2ORC corpus,
+    we employed an approach to extract such typologies by collecting every figure-caption
+    pair directly from the Semantic Scholar website. Through the analysis of these
+    captions using GPT-4, we identified relevant mind-map figures and transformed
+    the graphical representations into JSON-encoded trees that preserve their hierarchical
+    structure.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在学术综述中，常见的组织信息方法是使用思维导图式的类型学，它有助于系统性地理解所审阅的主题。由于S2ORC语料库的独特文本性质，我们采用了一种方法，通过直接从Semantic
+    Scholar网站收集每一对图表标题，来提取这些类型学。通过使用GPT-4分析这些标题，我们识别了相关的思维导图图形，并将图形表示转化为JSON编码的树结构，以保持其层级结构。
+- en: 'This process is illustrated in Figure [2](https://arxiv.org/html/2406.10291v1#S3.F2
+    "Figure 2 ‣ 3.3 Mind-Map Extraction ‣ 3 Collection Methodology ‣ ResearchArena:
+    Benchmarking LLMs’ Ability to Collect and Organize Information as Research Agents"),
+    with the prompt provided in Figure [3](https://arxiv.org/html/2406.10291v1#S3.F3
+    "Figure 3 ‣ 3.3 Mind-Map Extraction ‣ 3 Collection Methodology ‣ ResearchArena:
+    Benchmarking LLMs’ Ability to Collect and Organize Information as Research Agents").
+    The extraction performed by GPT-4 is deemed accurate if the hierarchical structure
+    of the figure is adequately represented by the JSON-encoded tree. Furthermore,
+    relevance is determined if the figure authentically represents a knowledge mind-map
+    pertinent to the survey topic. As detailed in Appendix [B](https://arxiv.org/html/2406.10291v1#A2
+    "Appendix B Quality of Collection Methodology ‣ ResearchArena: Benchmarking LLMs’
+    Ability to Collect and Organize Information as Research Agents"), a manual inspection
+    of 25 samples from the final collection of mind-maps revealed that our extraction
+    method achieved an accuracy score of 80% and a relevance score of 60%.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该过程在图[2](https://arxiv.org/html/2406.10291v1#S3.F2 "图 2 ‣ 3.3 思维导图提取 ‣ 3 收集方法
+    ‣ ResearchArena：基准测试LLM收集和组织信息作为研究代理的能力")中有所说明，图[3](https://arxiv.org/html/2406.10291v1#S3.F3
+    "图 3 ‣ 3.3 思维导图提取 ‣ 3 收集方法 ‣ ResearchArena：基准测试LLM收集和组织信息作为研究代理的能力")中给出了提示。如果图中的层级结构能够通过JSON编码的树准确表示，则GPT-4执行的提取被视为准确。此外，如果该图真实地反映了与调查主题相关的知识思维导图，则认为其具有相关性。正如附录[B](https://arxiv.org/html/2406.10291v1#A2
+    "附录 B 收集方法的质量 ‣ ResearchArena：基准测试LLM收集和组织信息作为研究代理的能力")中所述，我们对最终收集的25个思维导图样本进行了人工检查，结果表明我们的提取方法达到了80%的准确率和60%的相关性得分。
+- en: '![Refer to caption](img/fd3a9c0a206c1ad28c00ddc95ba08580.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/fd3a9c0a206c1ad28c00ddc95ba08580.png)'
+- en: '[PRE0]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Figure 2: Mind-map extraction from a figure [[19](https://arxiv.org/html/2406.10291v1#bib.bib19)]
+    to its JSON representation.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：从图[ [19](https://arxiv.org/html/2406.10291v1#bib.bib19) ]到其JSON表示形式的思维导图提取。
+- en: '[⬇](data:text/plain;base64,SWRlbnRpZnkgdGhlIGZpZ3VyZSB0aGF0IG1vc3QgbGlrZWx5IGlsbHVzdHJhdGVzIGEgdGF4b25vbXkgb3Igb3ZlcnZpZXcuIFlvdXIgcmVzcG9uc2Ugc2hvdWxkIGJlIGxpbWl0ZWQgdG8gdGhlIGZpbGVuYW1lLCBvciBOVUxMIGlmIG5vdCBmb3VuZC4gVGhlIHByb3ZpZGVkIGZpZ3VyZSBwcmVzZW50cyBhIGhpZXJhcmNoeS4gRXh0cmFjdCBhcyBKU09OLWVuY29kZWQgdHJlZSB3aG9zZSBjaGlsZHJlbiBhcmUgTlVMTC10ZXJtaW5hdGVkLg==)Identify  the  figure  that  most  likely  illustrates  a  taxonomy  or  overview.  Your  response  should  be  limited  to  the  filename,  or  NULL  if  not  found.  The  provided  figure  presents  a  hierarchy.  Extract  as  JSON-encoded  tree  whose  children  are  NULL-terminated.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,SWRlbnRpZnkgdGhlIGZpZ3VyZSB0aGF0IG1vc3QgbGlrZWx5IGlsbHVzdHJhdGVzIGEgdGF4b25vbXkgb3Igb3ZlcnZpZXcuIFlvdXIgcmVzcG9uc2Ugc2hvdWxkIGJlIGxpbWl0ZWQgdG8gdGhlIGZpbGVuYW1lLCBvciBOVUxMIGlmIG5vdCBmb3VuZC4gVGhlIHByb3ZpZGVkIGZpZ3VyZSBwcmVzZW50cyBhIGhpZXJhcmNoeS4gRXh0cmFjdCBhcyBKU09OLWVuY29kZWQgdHJlZSB3aG9zZSBjaGlsZHJlbiBhcmUgTlVMTC10ZXJtaW5hdGVkLg==)识别最有可能说明分类法或概述的图。您的回答应限制为文件名，若未找到则回答NULL。提供的图呈现了一个层次结构。将其提取为JSON编码的树，树的子节点以NULL结束。'
+- en: 'Figure 3: Instruction with GPT-4 on mind-map extraction.'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：关于思维导图提取的GPT-4指令。
+- en: 3.4 ResearchArena Dataset
+  id: totrans-53
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 ResearchArena数据集
+- en: To ensure the reproducibility of our work and compliance with copyright standards,
+    we developed the dataset from S2ORC, which provides access to 81.1 million academic
+    papers in English from various disciplines. These documents are meticulously structured
+    in a machine-readable format with resolved bibliographic references and annotated
+    inline citations. We used the February 06, 2024 release of S2ORC, which was the
+    most recent version at the start of our project.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了确保我们工作的可重复性并符合版权标准，我们从S2ORC开发了该数据集，S2ORC提供了来自各学科的8110万篇英文学术论文。这些文献被精心组织为机器可读的格式，解决了书目信息并注释了内联引用。我们使用了S2ORC
+    2024年2月6日发布的版本，这是我们项目开始时的最新版本。
+- en: For a concise summary of our dataset, it consists of approximately 12 million
+    academic papers, each with full-text access, sourced from the Semantic Scholar
+    Open Research Corpus. From this vast repository, we have successfully identified
+    7,952 survey papers. These surveys have been meticulously analyzed to derive 1,884
+    mind-maps, which provide structured summaries of the topics covered.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们数据集的简要总结是，它由大约1200万篇学术论文组成，每篇论文均可访问全文，来源于Semantic Scholar Open Research Corpus。在这个庞大的资料库中，我们成功地筛选出了7952篇调查论文。这些调查论文经过精心分析，提炼出了1884个思维导图，这些思维导图提供了主题的结构化总结。
+- en: 4 Dataset Composition
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 数据集组成
+- en: Understanding the composition of our dataset is essential for ensuring the reliability
+    and comprehensiveness of the benchmark used to evaluate LLMs in academic survey
+    tasks. This section details the makeup of our dataset in terms of disciplinary
+    diversity, reference coverage, and the structural complexity of derived typologies,
+    reflecting on how these factors contribute to the robustness and applicability
+    across various domains.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理解我们数据集的组成对于确保基准的可靠性和全面性至关重要，以评估LLM在学术调查任务中的表现。本节详细介绍了我们数据集在学科多样性、引用覆盖率和派生类型学的结构复杂性方面的构成，反思这些因素如何促进其在各个领域中的稳健性和适用性。
+- en: 'Disciplinary Distribution. We classified each of the 12.0M papers in our public
+    corpus and 7.9K survey papers by the top-5 most popular academic disciplines.
+    This classification was based on the indexing information provided by S2ORC. Frequencies
+    of papers per discipline were then aggregated and visualized to identify trends
+    and imbalances. Figure [4(a)](https://arxiv.org/html/2406.10291v1#S4.F4.sf1 "In
+    Figure 4 ‣ 4 Dataset Composition ‣ ResearchArena: Benchmarking LLMs’ Ability to
+    Collect and Organize Information as Research Agents") and [4(b)](https://arxiv.org/html/2406.10291v1#S4.F4.sf2
+    "In Figure 4 ‣ 4 Dataset Composition ‣ ResearchArena: Benchmarking LLMs’ Ability
+    to Collect and Organize Information as Research Agents") revealed significant
+    disparities in the frequency of disciplines between the public corpus and the
+    survey subset. Notably, Computer Science is the most prevalent discipline within
+    surveys but less common in the broader corpus. This could reflect the dynamic
+    nature of the CS field, which often necessitates comprehensive reviews to synthesize
+    rapid advancements and emerging trends.'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 学科分布。我们将公共语料库中的1200万篇论文和7900篇调查论文按照最受欢迎的五大学术学科进行了分类。这一分类基于S2ORC提供的索引信息。然后，我们汇总了各学科的论文频次并进行了可视化，以识别趋势和不平衡情况。图[4(a)](https://arxiv.org/html/2406.10291v1#S4.F4.sf1
+    "在图4 ‣ 4 数据集组成 ‣ ResearchArena：基准测试LLM收集和组织信息作为研究代理的能力")和[4(b)](https://arxiv.org/html/2406.10291v1#S4.F4.sf2
+    "在图4 ‣ 4 数据集组成 ‣ ResearchArena：基准测试LLM收集和组织信息作为研究代理的能力")揭示了公共语料库与调查子集之间学科频率的显著差异。特别是，计算机科学是调查中最为普遍的学科，但在更广泛的语料库中则较为罕见。这可能反映了计算机科学领域的动态特性，通常需要通过全面评审来整合快速发展的成果和新兴趋势。
+- en: 'Reference Coverage. For each survey paper, we calculated the coverage ratio
+    as the proportion of its references that were also available within our full-text
+    corpus. We plotted cumulative density functions for each discipline to analyze
+    how extensively the surveys’ references are represented in the broader corpus.
+    As illustrated with Figure [4(c)](https://arxiv.org/html/2406.10291v1#S4.F4.sf3
+    "In Figure 4 ‣ 4 Dataset Composition ‣ ResearchArena: Benchmarking LLMs’ Ability
+    to Collect and Organize Information as Research Agents"), similar patterns were
+    observed across all disciplines, where the density experienced exponential decay
+    as the coverage increases. Approximately 17.18% of the survey subset (i.e., 1.3K
+    survey papers) have at least 50% of their references available. This limitation
+    is mainly attributed to copyright restrictions, where full-text is not permitted
+    by the publisher.'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 引用覆盖率。对于每篇调查论文，我们计算了其引用的覆盖率，即该论文引用的文献在我们完整文本语料库中也可用的比例。我们为每个学科绘制了累积分布函数，以分析调查论文引用在更广泛语料库中的覆盖程度。如图[4(c)](https://arxiv.org/html/2406.10291v1#S4.F4.sf3
+    "在图4 ‣ 4 数据集组成 ‣ ResearchArena：基准测试LLM收集和组织信息作为研究代理的能力")所示，各学科的模式相似，随着覆盖率的提高，密度呈指数衰减。大约17.18%的调查子集（即1300篇调查论文）至少有50%的引用在语料库中可用。这一限制主要归因于版权限制，即出版商不允许提供完整文本。
+- en: 'Mind-Map Complexity. We analyzed the structural complexity of the mind-maps
+    extracted from survey papers by counting the number of nodes and measuring the
+    maximal depth. These measures provide insights into the conceptual breadth and
+    hierarchical depth of the topics covered. The scatter plot from Figure [4(d)](https://arxiv.org/html/2406.10291v1#S4.F4.sf4
+    "In Figure 4 ‣ 4 Dataset Composition ‣ ResearchArena: Benchmarking LLMs’ Ability
+    to Collect and Organize Information as Research Agents") showed that typologies
+    in general have shallow depths but a broad range of nodes, suggesting that while
+    survey topics are extensively branched, they do not delve deeply into sub-topics.
+    In particular, most typologies have a maximum depth ranging from 3 to 7 levels,
+    where the coefficient of the regression line in the scatter plot is approximately
+    2.04.'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 思维导图复杂度。我们通过计算节点数量并测量最大深度，分析了从调查论文中提取的思维导图的结构复杂度。这些指标提供了对所涵盖主题的概念广度和层级深度的洞察。从图
+    [4(d)](https://arxiv.org/html/2406.10291v1#S4.F4.sf4 "图 4 ‣ 4 数据集组成 ‣ ResearchArena：基准测试
+    LLM 在收集和组织信息作为研究代理方面的能力") 中的散点图可以看出，一般来说，类型学的深度较浅，但节点范围较广，这表明尽管调查主题有广泛的分支，但它们并未深入探讨子主题。特别是，大多数类型学的最大深度介于
+    3 到 7 层之间，散点图中回归线的系数约为 2.04。
+- en: '![Refer to caption](img/d2808b9e9a5a3d588e43503264f57a61.png)'
+  id: totrans-61
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图例](img/d2808b9e9a5a3d588e43503264f57a61.png)'
+- en: (a) Disciplinary distribution of the public corpus.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 公共语料库的学科分布。
+- en: '![Refer to caption](img/eedff29e8dc573717da7acbab751c2ab.png)'
+  id: totrans-63
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图例](img/eedff29e8dc573717da7acbab751c2ab.png)'
+- en: (b) Disciplinary distribution of the survey subset.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 调查子集的学科分布。
+- en: '![Refer to caption](img/e574e41e245e75690c320fa4e3b2fcbe.png)'
+  id: totrans-65
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图例](img/e574e41e245e75690c320fa4e3b2fcbe.png)'
+- en: (c) Reference coverage of the survey subset.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 调查子集的参考文献覆盖情况。
+- en: '![Refer to caption](img/8d449da2d5556a0c69880cc9b5a3c881.png)'
+  id: totrans-67
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图例](img/8d449da2d5556a0c69880cc9b5a3c881.png)'
+- en: (d) Complexity with the extracted mind-maps.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (d) 提取的思维导图的复杂度。
+- en: 'Figure 4: Dataset composition analysis with disciplinary distribution, reference
+    coverage, and mind-map complexity. Each of these aspects is critical for benchmark
+    evaluation. Fields of studies like Medicine (Med), Biology (Bio), Physics (Phy),
+    Environmental Science (ES), Computer Science (CS), Engineering (Eng), and Mathematics
+    (Math) are denoted with their abbreviations in the figures.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：数据集组成分析，包括学科分布、参考文献覆盖情况和思维导图复杂度。每个方面对于基准评估都至关重要。医学（Med）、生物学（Bio）、物理学（Phy）、环境科学（ES）、计算机科学（CS）、工程学（Eng）和数学（Math）等学科的缩写在图中表示。
+- en: 5 Benchmark Tasks
+  id: totrans-70
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 基准任务
+- en: This section presents a comprehensive overview of the benchmark tasks designed
+    to evaluate the capabilities of research agents in discovering, selecting, and
+    organizing information. Each task targets a specific aspect of research proficiency,
+    with rigorous constraints and evaluation metrics to ensure thorough and unbiased
+    assessment.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节提供了一个全面的概述，介绍了旨在评估研究代理在发现、选择和组织信息方面能力的基准任务。每个任务针对研究能力的特定方面，具有严格的约束条件和评估标准，以确保全面且公正的评估。
+- en: Information Discovery. Provided a topic extracted from survey title, the task
+    of information discovery requires research agents to identify a subset of documents
+    $R$ from a broader collection $D$. These documents in $R$ should serve as supporting
+    materials for the topic. Ideally, $R$ should encompass all references cited in
+    the original survey $S$.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 信息发现。给定一个从调查标题中提取的主题，信息发现任务要求研究代理从更广泛的文献集合 $D$ 中识别一个子集 $R$。$R$ 中的文献应作为该主题的支持材料。理想情况下，$R$
+    应包括原始调查 $S$ 中引用的所有参考文献。
+- en: However, within the collection $D$, there may exist another survey $S^{\prime}$
+    that delves into the same topic. If research agents were to use the references
+    from $S^{\prime}$ directly, it would circumvent the need for a thorough discovery,
+    defeating the purpose of this task. To prevent information leakage, we impose
+    the additional constraint such that documents in $D$ must be non-survey and published
+    before $S$.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，在集合 $D$ 中，可能还存在另一个调查 $S^{\prime}$，它深入探讨相同的主题。如果研究代理直接使用 $S^{\prime}$ 中的参考文献，这将绕过彻底发现的需要，违背了该任务的目的。为了防止信息泄露，我们增加了额外的约束，要求
+    $D$ 中的文献必须是非调查文献，并且在 $S$ 发布之前已发布。
+- en: To evaluate performance, we employ standard information retrieval metrics, Recall
+    and Precision, to measure the proportion of relevant documents successfully retrieved
+    and the proportion of retrieved documents that are relevant. Together, these metrics
+    determine the effectiveness and accuracy of the discovery process. For this task,
+    the cutoff parameter $K$ is set at 10 and 100.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估性能，我们使用标准的信息检索指标：召回率（Recall）和精准率（Precision），分别衡量成功检索到的相关文档的比例以及检索到的文档中相关文档的比例。综合这两个指标，可以评估发现过程的有效性和准确性。对于此任务，截止参数$K$设置为10和100。
+- en: 'Information Selection. The task of information selection requires research
+    agents to rank the discovered documents based on their importance to the topic.
+    The labels are distinctions between influential and non-influential citations,
+    as elaborated in Section [3](https://arxiv.org/html/2406.10291v1#S3 "3 Collection
+    Methodology ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize
+    Information as Research Agents"). Normalized Discounted Cumulative Gain (nDCG)
+    [[20](https://arxiv.org/html/2406.10291v1#bib.bib20)] and Mean Reciprocal Rank
+    (MRR) [[21](https://arxiv.org/html/2406.10291v1#bib.bib21)] are used for evaluation.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '信息选择。信息选择任务要求研究代理根据文献与主题的相关性对发现的文档进行排名。标签区分了有影响力和没有影响力的引用，详细内容可参见第[3](https://arxiv.org/html/2406.10291v1#S3
+    "3 Collection Methodology ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect
+    and Organize Information as Research Agents")节。评估采用了标准化折扣累积增益（nDCG）[[20](https://arxiv.org/html/2406.10291v1#bib.bib20)]和均值倒数排名（MRR）[[21](https://arxiv.org/html/2406.10291v1#bib.bib21)]。'
+- en: These measures are crucial because conducting research involves more than merely
+    summarizing retrieved documents; it requires the presentation of key insights
+    from the most significant sources. Furthermore, both human researchers and autonomous
+    agents are limited by their processing capacities. Therefore, it is essential
+    to prioritize and focus on the most critical information first.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些度量是至关重要的，因为开展研究不仅仅是总结检索到的文档；还需要呈现来自最重要来源的关键信息。此外，无论是人类研究者还是自主代理，其处理能力都是有限的。因此，必须优先考虑并集中精力处理最关键的信息。
+- en: Information Organization. For information organization, research agents are
+    required to construct a hierarchical knowledge mind-map $M$ based on $R$. This
+    mind-map should provide a systematic overview of research work developed on topic
+    $T$. As an intermediate step, references $R$ from the original survey paper could
+    be provided to the agents, who would then focus exclusively on constructing $M$.
+    In contrast, for an end-to-end version, $R$ is the set of discovered documents
+    from the previous task.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 信息组织。对于信息组织，研究代理需要根据$R$构建一个层次化的知识心智图$M$。该心智图应提供关于主题$T$的研究工作的系统性概述。作为一个中间步骤，研究代理可以提供来自原始调查论文的参考文献$R$，然后专注于构建$M$。相比之下，对于端到端的版本，$R$是前一个任务中发现的文档集合。
+- en: 'For evaluation, two primary metrics are employed: Heading Soft Recall [[22](https://arxiv.org/html/2406.10291v1#bib.bib22)]
+    and Heading Entity Recall [[17](https://arxiv.org/html/2406.10291v1#bib.bib17)].
+    These metrics compare the set of node labels from the original and the constructed
+    knowledge mind-maps, referred to as $A$ and $B$, respectively. To measure similarity
+    of these labels, Heading Soft Recall leverages Sentence-Bert [[23](https://arxiv.org/html/2406.10291v1#bib.bib23)]
+    embedding, while Heading Entity Recall employs Named Entity Recognition from FLAIR
+    [[24](https://arxiv.org/html/2406.10291v1#bib.bib24)] for extraction. The formal
+    definitions for each metric are as follows, where $S$ is the set of labels extracted
+    from the mind-maps.'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估时，采用了两个主要指标：标题软召回率（Heading Soft Recall）[[22](https://arxiv.org/html/2406.10291v1#bib.bib22)]和标题实体召回率（Heading
+    Entity Recall）[[17](https://arxiv.org/html/2406.10291v1#bib.bib17)]。这两个指标比较了原始和构建的知识心智图中节点标签的集合，分别称为$A$和$B$。为了衡量这些标签的相似性，标题软召回率使用了Sentence-Bert
+    [[23](https://arxiv.org/html/2406.10291v1#bib.bib23)]嵌入，而标题实体召回率则利用FLAIR [[24](https://arxiv.org/html/2406.10291v1#bib.bib24)]的命名实体识别进行提取。每个指标的正式定义如下，其中$S$为从心智图中提取的标签集合。
+- en: '|  | $\displaystyle\text{Cardinality}(S)$ | $\displaystyle=\sum_{i=1}^{&#124;S&#124;}\frac{1}{\sum_{j=1}^{&#124;S&#124;}\text{Similarity}(S_{i}%
+    ,S_{j})}$ |  |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\text{Cardinality}(S)$ | $\displaystyle=\sum_{i=1}^{&#124;S&#124;}\frac{1}{\sum_{j=1}^{&#124;S&#124;}\text{Similarity}(S_{i}%
+    ,S_{j})}$ |  |'
+- en: '|  | $\displaystyle\text{Heading Soft Recall}(A,B)$ | $\displaystyle=\frac{\text{Cardinality}(A)+\text{Cardinality}(B)-\text{%
+    Cardinality}(A\cup B)}{\text{Cardinality}(B)}$ |  |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\text{标题软召回}(A,B)$ | $\displaystyle=\frac{\text{基数}(A)+\text{基数}(B)-\text{基数}(A\cup
+    B)}{\text{基数}(B)}$ |  |'
+- en: '|  | $\displaystyle\text{Heading Entity Recall}(A,B)$ | $\displaystyle=\frac{&#124;\text{EntitiesFrom}(A)\cap\text{EntitiesFrom}(B)&#124;}{&#124;\text%
+    {EntitiesFrom}(A)&#124;}$ |  |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\text{标题实体召回}(A,B)$ | $\displaystyle=\frac{|\text{EntitiesFrom}(A)\cap\text{EntitiesFrom}(B)|}{|\text{EntitiesFrom}(A)|}$
+    |  |'
+- en: While these metrics provide a measure of content similarity, they do not account
+    for structural alignment. Tree Editing Distance [[25](https://arxiv.org/html/2406.10291v1#bib.bib25)]
+    solves this concern by calculating the minimal number of operations (i.e., relabeling,
+    deleting, and inserting nodes) required to transform one tree into another. Nonetheless,
+    relying on Tree Editing Distance alone might overlook the potential for non-exact
+    label matches. To address this, we propose Tree Semantic Distance, which assigns
+    no cost to editing operations involving nodes whose cosine similarity exceeds
+    $0.8$.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然这些度量提供了内容相似度的衡量标准，但它们并未考虑结构对齐的问题。树编辑距离 [[25](https://arxiv.org/html/2406.10291v1#bib.bib25)]
+    通过计算将一棵树转换为另一棵树所需的最小操作次数（即重新标记、删除和插入节点）来解决这个问题。然而，单独依赖树编辑距离可能会忽视非精确标签匹配的潜力。为了解决这个问题，我们提出了树语义距离，它对涉及余弦相似度超过$0.8$的节点的编辑操作不收取成本。
+- en: 6 Experiments
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 实验
+- en: 'In this section, we present preliminary evaluations of existing techniques,
+    describing their configurations and performance metrics. These techniques encompass
+    both naive keyword-based methods, such as Title, and advanced LLM-based methods,
+    including STORM. The exact wording of the prompts used in each baseline can be
+    found in Appendix [C](https://arxiv.org/html/2406.10291v1#A3 "Appendix C Prompts
+    with Experiments ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize
+    Information as Research Agents").'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在本节中，我们展示了现有技术的初步评估，描述了它们的配置和性能指标。这些技术包括基于关键字的简单方法，如标题方法，以及基于LLM的高级方法，包括STORM。每个基线中使用的提示语的确切措辞可以在附录[C](https://arxiv.org/html/2406.10291v1#A3
+    "附录C 提示与实验 ‣ ResearchArena: 基准评估LLM作为研究代理收集和组织信息的能力")中找到。'
+- en: 6.1 Baselines
+  id: totrans-85
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1 基线
+- en: Information Discovery. For information discovery, research agents are equipped
+    with retrieval tools that enable interaction with the public corpus by submitting
+    queries to retrievers such as BM25 and BGE [[26](https://arxiv.org/html/2406.10291v1#bib.bib26)].
+    These agents are evaluated based on their ability to effectively leverage these
+    tools by generating relevant queries. Since exploration is limited to previously
+    published non-survey literature, retrievers retry with exponential back-off until
+    the cutoff parameter $K$ is satisfied.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 信息发现。为了进行信息发现，研究代理配备了检索工具，可以通过向检索器（如BM25和BGE）提交查询来与公共语料库进行交互 [[26](https://arxiv.org/html/2406.10291v1#bib.bib26)]。这些代理根据其有效利用这些工具生成相关查询的能力进行评估。由于探索仅限于已发布的非综述文献，检索器会在直到满足截止参数$K$时，以指数退避的方式进行重试。
+- en: •
+  id: totrans-87
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Title: Assuming that research topics are encapsulated within survey titles,
+    this method directly employs the title from each survey paper as a query to retrieve
+    relevant materials that support research on the topic. It is important to note
+    that title extraction using S2ORC exhibits variable capitalization across different
+    documents. As a result, we normalize by converting titles to lowercase.'
+  id: totrans-88
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 标题：假设研究主题包含在综述标题中，该方法直接使用每篇综述论文的标题作为查询，检索支持该主题研究的相关材料。需要注意的是，使用S2ORC提取标题时，不同文档之间的大小写存在差异。因此，我们通过将标题转换为小写来进行归一化处理。
+- en: •
+  id: totrans-89
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Zero-Shot: Assuming that existing LLMs possess prior knowledge relevant to
+    a survey topic, this method extends the Title method by instructing GPT-4 to derive
+    a query from the survey title. This approach leverages the inherent capabilities
+    of LLMs to generate more sophisticated and contextually appropriate queries.'
+  id: totrans-90
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 零-shot：假设现有的LLM具备与某一综述主题相关的先验知识，该方法通过指示GPT-4从综述标题中推导出查询来扩展标题方法。这种方法利用LLM的内在能力，生成更复杂且符合上下文的查询。
+- en: •
+  id: totrans-91
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Decomposer: As discovered by Tushar et al. [[27](https://arxiv.org/html/2406.10291v1#bib.bib27)],
+    decomposed prompting is more effective when individual reasoning steps of a task
+    are difficult to learn. This principle is applicable to our case, as a survey
+    topic may consist of multiple sub-topics, making it challenging to directly generate
+    a single query that retrieves all relevant papers. Consequently, we instruct GPT-4
+    to first deconstruct the research topic into several sub-questions. Each sub-question
+    then generates a corresponding sub-query. These sub-queries are retrieved in batches,
+    and the results are amalgamated using reciprocal rank fusion [[28](https://arxiv.org/html/2406.10291v1#bib.bib28)].'
+  id: totrans-92
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Decomposer：正如Tushar等人所发现的[[27](https://arxiv.org/html/2406.10291v1#bib.bib27)]，当任务的各个推理步骤难以学习时，分解式提示法更为有效。这个原则适用于我们的情况，因为一个调查主题可能由多个子主题组成，这使得直接生成一个单一查询来检索所有相关论文变得具有挑战性。因此，我们指示GPT-4首先将研究主题分解为若干个子问题。每个子问题生成相应的子查询。这些子查询被批量检索，并通过互惠排序融合（reciprocal
+    rank fusion）[[28](https://arxiv.org/html/2406.10291v1#bib.bib28)]合并结果。
+- en: •
+  id: totrans-93
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Self-RAG: As proposed by Asai et al. [[29](https://arxiv.org/html/2406.10291v1#bib.bib29)],
+    Self-RAG adaptively retrieves passages on demand and utilizes reflection tokens
+    to determine which retrieved documents are relevant to the instruction, thus continuing
+    the generation based on the pertinent information. It serves as an enhanced version
+    of Zero-Shot, where the model is instructed to generate a query from the topic.
+    Because the model refines its final query generation based on the discovered information
+    from intermediate retrievals, it operates as a research agent.'
+  id: totrans-94
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Self-RAG：正如Asai等人所提出的[[29](https://arxiv.org/html/2406.10291v1#bib.bib29)]，Self-RAG根据需求自适应地检索段落，并利用反射令牌来确定哪些检索到的文档与指令相关，从而基于相关信息继续生成。这是Zero-Shot的增强版本，其中模型被指示从主题生成查询。由于模型根据从中间检索到的信息优化最终的查询生成，它作为一个研究代理运作。
+- en: •
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'STORM: As presented in Section [2](https://arxiv.org/html/2406.10291v1#S2 "2
+    Related Work ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect and Organize
+    Information as Research Agents"), STORM conducts research through multi-perspective
+    conversations to compose Wikipedia articles on particular topics from scratch.
+    It closely resembles our scenario, except that the environment involves more rigorous
+    academic papers. We record the retrieval history as STORM continues to probe for
+    additional papers. Upon concluding the final round of conversations, every article
+    within the retrieval history is considered part of the discovered information.'
+  id: totrans-96
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'STORM：正如在第[2](https://arxiv.org/html/2406.10291v1#S2 "2 Related Work ‣ ResearchArena:
+    Benchmarking LLMs’ Ability to Collect and Organize Information as Research Agents")节中所述，STORM通过多角度的对话进行研究，从头开始编写有关特定主题的维基百科文章。它与我们的场景非常相似，区别在于环境涉及的是更为严格的学术论文。我们记录检索历史，当STORM继续寻找额外的论文时，所有检索到的文章都被视为已发现的信息的一部分，直到完成最后一轮对话。'
+- en: Information Selection. For information selection, documents are ranked based
+    on the similarity scores obtained during the discovery phase. For BGE retriever,
+    we rely on FAISS [[30](https://arxiv.org/html/2406.10291v1#bib.bib30)] to retrieve
+    based on L2 distance in the embedding space, which is negated to determine similarity.
+    On the other hand, STORM does not explicitly rank the retrieved documents. It
+    is assumed that documents discovered earlier in the conversations are of higher
+    relevance.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 信息选择。在信息选择方面，文档根据在发现阶段获得的相似度分数进行排名。对于BGE检索器，我们依赖于FAISS [[30](https://arxiv.org/html/2406.10291v1#bib.bib30)]，通过在嵌入空间中的L2距离来进行检索，负值用于确定相似性。另一方面，STORM并未明确对检索到的文档进行排名。假设在对话中较早发现的文档具有更高的相关性。
+- en: Information Organization. For information organization, the Clustering approach
+    employs Ward’s method for hierarchical clustering on the BGE embedding of every
+    reference article, and the final dendrogram is extracted as typology. The label
+    in each node is computed as the most important TF-IDF word, with ngrams ranging
+    from 1 to 3\. Few-Shot is achieved by providing a few random examples of extracted
+    typologies and instructing GPT-4 to generate another topic-oriented mind-map.
+    Lastly, the article outline generated by STORM is converted to typology, with
+    headings and their nested sub-headings representing the hierarchy.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 信息组织。对于信息组织，聚类方法采用Ward方法对每篇参考文章的BGE嵌入进行层次聚类，最终的树状图被提取为类型学。每个节点中的标签是通过计算最重要的TF-IDF词汇得到的，ngrams范围从1到3。Few-Shot通过提供一些随机提取的类型学示例并指示GPT-4生成另一个主题导向的思维导图来实现。最后，通过STORM生成的文章大纲被转换为类型学，标题及其嵌套的子标题表示层次结构。
+- en: 6.2 Evaluation Results
+  id: totrans-99
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2 评估结果
+- en: The baseline experiments were conducted on a single machine equipped with 8
+    NVIDIA RTX A6000 GPUs, 96 CPU cores, and 128GB RAM. Discussion on the performance
+    metrics is presented below.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基线实验在一台配备8个NVIDIA RTX A6000 GPU、96个CPU核心和128GB内存的单一机器上进行。关于性能指标的讨论如下所示。
+- en: 'Information Discovery. As demonstrated in Table [1](https://arxiv.org/html/2406.10291v1#S6.T1
+    "Table 1 ‣ 6.2 Evaluation Results ‣ 6 Experiments ‣ ResearchArena: Benchmarking
+    LLMs’ Ability to Collect and Organize Information as Research Agents"), the task
+    of information discovery remains challenging for all baseline models. This is
+    illustrated by the Recall@100 metric, which falls below 0.15 for BM25 and 0.27
+    for BGE. Moreover, agent baselines such as Self-RAG and STORM consistently achieve
+    the lowest rankings, irrespective of the retrievers employed. This limitation
+    highlights the critical need for more advanced retrieval mechanisms to manage
+    large volumes of documents effectively during information discovery.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '信息发现。如表[1](https://arxiv.org/html/2406.10291v1#S6.T1 "Table 1 ‣ 6.2 Evaluation
+    Results ‣ 6 Experiments ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect
+    and Organize Information as Research Agents")所示，信息发现任务对于所有基线模型仍然具有挑战性。这一点通过Recall@100指标体现出来，BM25的Recall@100低于0.15，而BGE的Recall@100为0.27。此外，像Self-RAG和STORM这样的代理基线始终排名最低，无论使用何种检索器。这一局限性突显了在信息发现过程中，管理大量文档所需的更先进检索机制的关键性。'
+- en: 'Table 1: Baseline performance on discovery task, evaluated with Recall@10,
+    Recall@100, Precision@10, and Precision@100, where the retrievers include BM25
+    and BGE.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：发现任务的基线性能，使用Recall@10、Recall@100、Precision@10和Precision@100进行评估，其中检索器包括BM25和BGE。
+- en: '|  | Recall@10 | Recall@100 | Precision@10 | Precision@100 |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | Recall@10 | Recall@100 | Precision@10 | Precision@100 |'
+- en: '| Baseline | BM25 | BGE | BM25 | BGE | BM25 | BGE | BM25 | BGE |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基线 | BM25 | BGE | BM25 | BGE | BM25 | BGE | BM25 | BGE |'
+- en: '| Title | 0.0424 | 0.1012 | 0.1338 | 0.2697 | 0.0669 | 0.1541 | 0.0286 | 0.0586
+    |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 标题 | 0.0424 | 0.1012 | 0.1338 | 0.2697 | 0.0669 | 0.1541 | 0.0286 | 0.0586
+    |'
+- en: '| Zero-Shot | 0.0382 | 0.0832 | 0.1253 | 0.2287 | 0.0602 | 0.1232 | 0.0256
+    | 0.0464 |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| Zero-Shot | 0.0382 | 0.0832 | 0.1253 | 0.2287 | 0.0602 | 0.1232 | 0.0256
+    | 0.0464 |'
+- en: '| Decomposer | 0.0434 | 0.0879 | 0.1431 | 0.2554 | 0.0717 | 0.1304 | 0.0312
+    | 0.0536 |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| Decomposer | 0.0434 | 0.0879 | 0.1431 | 0.2554 | 0.0717 | 0.1304 | 0.0312
+    | 0.0536 |'
+- en: '| Self-RAG | 0.0380 | 0.0815 | 0.1210 | 0.2260 | 0.0595 | 0.1215 | 0.0256 |
+    0.0461 |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| Self-RAG | 0.0380 | 0.0815 | 0.1210 | 0.2260 | 0.0595 | 0.1215 | 0.0256 |
+    0.0461 |'
+- en: '| STORM | 0.0281 | 0.0979 | 0.0693 | 0.1441 | 0.0446 | 0.1041 | 0.0130 | 0.0208
+    |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| STORM | 0.0281 | 0.0979 | 0.0693 | 0.1441 | 0.0446 | 0.1041 | 0.0130 | 0.0208
+    |'
+- en: 'Information Selection. The performance with information selection is presented
+    in Table [2](https://arxiv.org/html/2406.10291v1#S6.T2 "Table 2 ‣ 6.2 Evaluation
+    Results ‣ 6 Experiments ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect
+    and Organize Information as Research Agents"). The results indicate a consistent
+    trend wherein agent baselines underperform compared to keyword-based methods.
+    The evaluation of nDCG at various levels of document retrieval, such as nDCG@10,
+    nDCG@30, and nDCG@100, provides a quantitative assessment of the ranking performance.
+    Notably, for the Title method using the BGE retriever, the nDCG@100 score is 0.2019,
+    which significantly surpasses the score of STORM, which stands at 0.1267\. Improvements
+    during the information discovery phase have the potential to enhance overall performance
+    in the selection phase, as evidenced by Decomposer, which ranks the second behind
+    Title in discovery and selection tasks.'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '信息选择。信息选择的表现展示在表[2](https://arxiv.org/html/2406.10291v1#S6.T2 "Table 2 ‣ 6.2
+    Evaluation Results ‣ 6 Experiments ‣ ResearchArena: Benchmarking LLMs’ Ability
+    to Collect and Organize Information as Research Agents")中。结果表明，代理基线在与基于关键词的方法的比较中表现较差。通过在不同文档检索级别（如nDCG@10、nDCG@30和nDCG@100）对nDCG的评估，提供了对排名表现的定量评估。值得注意的是，对于使用BGE检索器的标题方法，nDCG@100得分为0.2019，显著高于STORM的得分0.1267。信息发现阶段的改进有潜力提升选择阶段的整体表现，正如Decomposer在发现和选择任务中排名仅次于标题所证明的那样。'
+- en: 'Table 2: Baseline performance on selection task, evaluated with nDCG@10, nDCG@30,
+    nDCG@100, and Precision@100, where the retrievers include BM25 and BGE.'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：选择任务的基线表现，使用nDCG@10、nDCG@30、nDCG@100和Precision@100进行评估，其中检索器包括BM25和BGE。
+- en: '|  | nDCG@10 | nDCG@30 | nDCG@100 | MRR |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | nDCG@10 | nDCG@30 | nDCG@100 | MRR |'
+- en: '| Baseline | BM25 | BGE | BM25 | BGE | BM25 | BGE | BM25 | BGE |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基线 | BM25 | BGE | BM25 | BGE | BM25 | BGE | BM25 | BGE |'
+- en: '| Title | 0.0711 | 0.1678 | 0.0775 | 0.1754 | 0.0941 | 0.2019 | 0.1903 | 0.3816
+    |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| Title | 0.0711 | 0.1678 | 0.0775 | 0.1754 | 0.0941 | 0.2019 | 0.1903 | 0.3816
+    |'
+- en: '| Zero-Shot | 0.0634 | 0.1346 | 0.0692 | 0.1417 | 0.0856 | 0.1657 | 0.1743
+    | 0.3246 |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| Zero-Shot | 0.0634 | 0.1346 | 0.0692 | 0.1417 | 0.0856 | 0.1657 | 0.1743
+    | 0.3246 |'
+- en: '| Decomposer | 0.0735 | 0.1445 | 0.0803 | 0.1554 | 0.0986 | 0.1838 | 0.1959
+    | 0.3510 |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| Decomposer | 0.0735 | 0.1445 | 0.0803 | 0.1554 | 0.0986 | 0.1838 | 0.1959
+    | 0.3510 |'
+- en: '| Self-RAG | 0.0627 | 0.1341 | 0.0679 | 0.1415 | 0.0837 | 0.1646 | 0.1705 |
+    0.3233 |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| Self-RAG | 0.0627 | 0.1341 | 0.0679 | 0.1415 | 0.0837 | 0.1646 | 0.1705 |
+    0.3233 |'
+- en: '| STORM | 0.0445 | 0.1275 | 0.0507 | 0.1322 | 0.0524 | 0.1267 | 0.1271 | 0.3206
+    |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| STORM | 0.0445 | 0.1275 | 0.0507 | 0.1322 | 0.0524 | 0.1267 | 0.1271 | 0.3206
+    |'
+- en: 'Information Organization. The evaluation on task of information organization
+    under intermediate (i.e., with oracle) and end-to-end (i.e., without oracle) conditions
+    are documented in Table [3](https://arxiv.org/html/2406.10291v1#S6.T3 "Table 3
+    ‣ 6.2 Evaluation Results ‣ 6 Experiments ‣ ResearchArena: Benchmarking LLMs’ Ability
+    to Collect and Organize Information as Research Agents"). Notably, the metrics
+    exhibit discrepancies across each other, which contrasts with the uniformity observed
+    in previous discovery and selection tasks. This divergence is expected due to
+    the distinct nature of the metrics: Heading Soft Recall and Heading Entity Recall
+    assess content similarity, whereas Tree Semantic Distance evaluates structural
+    alignment.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '信息组织。在表[3](https://arxiv.org/html/2406.10291v1#S6.T3 "Table 3 ‣ 6.2 Evaluation
+    Results ‣ 6 Experiments ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect
+    and Organize Information as Research Agents")中记录了在中间条件（即有oracle）和端到端条件（即无oracle）下，信息组织任务的评估结果。值得注意的是，这些指标之间存在差异，这与先前发现和选择任务中的一致性形成对比。预计这种差异是由于指标的性质不同：标题软召回和标题实体召回评估的是内容相似性，而树语义距离则评估的是结构对齐。'
+- en: In the intermediate version, where references are provided to LLMs, the proportion
+    of correctly included entities, as measured by Heading Entity Recall, is slightly
+    higher. Specifically, STORM achieved a recall rate of 0.3098, outperforming the
+    end-to-end condition. Conversely, when it comes to constructing the hierarchy,
+    Clustering outperforms advanced LLM-based agents, as evidenced by its attainment
+    of the lowest Tree Semantic Distance of 45.69 among all baseline methods.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在中间版本中，当LLM提供参考时，通过标题实体召回度量的正确包含实体的比例略有提高。具体而言，STORM达到了0.3098的召回率，超越了端到端条件。相反，在构建层次结构方面，聚类方法优于先进的基于LLM的代理，正如它在所有基线方法中获得最低的树语义距离45.69所证明的那样。
+- en: 'Table 3: Baseline performance on organization task, evaluated with Heading
+    Soft Recall, Heading Entity Recall, and Tree Semantic Distance, across intermediate
+    and end-to-end conditions.'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：在组织任务上的基准性能评估，使用标题软召回、标题实体召回和树形语义距离，涵盖中间条件和端到端条件。
+- en: '| Oracle | Baseline | Heading Soft Recall ($\uparrow$) | Heading Entity Recall
+    ($\uparrow$) | Tree Semantic Distance ($\downarrow$) |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| Oracle | 基准 | 标题软召回 ($\uparrow$) | 标题实体召回 ($\uparrow$) | 树形语义距离 ($\downarrow$)
+    |'
+- en: '| Yes | Clustering | 0.6074 | 0.2104 | 45.69 |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| Yes | 聚类 | 0.6074 | 0.2104 | 45.69 |'
+- en: '| STORM | 0.7325 | 0.3098 | 60.04 |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| STORM | 0.7325 | 0.3098 | 60.04 |'
+- en: '| No | Few-Shot | 0.8408 | 0.2446 | 49.83 |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| No | 少样本 | 0.8408 | 0.2446 | 49.83 |'
+- en: '| STORM.BM25 | 0.7940 | 0.2938 | 66.65 |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| STORM.BM25 | 0.7940 | 0.2938 | 66.65 |'
+- en: '| STORM.BGE | 0.7842 | 0.2693 | 65.93 |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| STORM.BGE | 0.7842 | 0.2693 | 65.93 |'
+- en: 7 Limitation
+  id: totrans-128
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 局限性
+- en: Despite the robust framework and extensive dataset provided by ResearchArena,
+    this study has several limitations. Firstly, the offline environment, though comprehensive,
+    may not accurately represent the dynamic and interconnected nature of live databases
+    and the internet. This discrepancy could potentially limit the applicability of
+    the findings in real-world research settings. Additionally, due to copyright constraints,
+    not every full-text reference of the survey papers could be included. This omission
+    could affect the comprehensive understanding of the survey topics under investigation.
+    Finally, there is no evaluation on text generation but mostly the surveying process.
+    However, even if this is just the first step of conducting research, LLM agents
+    have already shown deficiencies. Future iterations of ResearchArena should address
+    this issue, particularly as these agents improve.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 ResearchArena 提供了强大的框架和广泛的数据集，但本研究仍存在一些局限性。首先，尽管离线环境非常全面，但可能无法准确代表实时数据库和互联网的动态和互联特性。这种差异可能限制了研究结果在实际研究环境中的适用性。此外，由于版权限制，并非每篇调查论文的全文参考文献都能被包含。这一遗漏可能影响对所研究调查主题的全面理解。最后，虽然本研究没有对文本生成进行评估，而主要关注调查过程，但即便这是进行研究的第一步，LLM代理已经显示出一定的不足。未来
+    ResearchArena 的版本应解决这一问题，特别是随着这些代理的改进。
+- en: 8 Conclusion
+  id: totrans-130
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 结论
+- en: In conclusion, ResearchArena introduces a rigorous benchmark designed to evaluate
+    LLMs in conducting research surveys on designated topics. By systematically decomposing
+    the survey process into distinct tasks like information discovery, selection,
+    and organization, this benchmark provides a detailed framework for evaluating
+    autonomus research agents. Our findings underscore the potential of LLMs to revolutionize
+    academic research, provided that future advancements can bridge the existing performance
+    gaps. Grounded in Semantic Scholar Open Research Corpus, this work establishes
+    a robust foundation for the future, aiming to improve the ability of LLMs to autonomously
+    conduct expertise-level, domain-specific research.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，ResearchArena 提出了一个严格的基准，旨在评估 LLM 在指定主题的研究调查中的表现。通过系统地将调查过程分解为信息发现、选择和组织等不同任务，这一基准为评估自主研究代理提供了详细的框架。我们的研究结果强调了
+    LLM 在学术研究中的潜力，前提是未来的进展能够弥合现有的性能差距。基于 Semantic Scholar Open Research Corpus，本工作为未来奠定了坚实的基础，旨在提升
+    LLM 在领域特定、专家级研究中的自主能力。
+- en: References
+  id: totrans-132
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] Percy Liang, Rishi Bommasani, Tony Lee, Dimitris Tsipras, Dilara Soylu,
+    Michihiro Yasunaga, Yian Zhang, Deepak Narayanan, Yuhuai Wu, Ananya Kumar, et al.
+    Holistic evaluation of language models. arXiv preprint arXiv:2211.09110, 2022.'
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] Percy Liang, Rishi Bommasani, Tony Lee, Dimitris Tsipras, Dilara Soylu,
+    Michihiro Yasunaga, Yian Zhang, Deepak Narayanan, Yuhuai Wu, Ananya Kumar 等. 语言模型的整体评估.
+    arXiv 预印本 arXiv:2211.09110, 2022年。'
+- en: '[2] Yejin Bang, Samuel Cahyawijaya, Nayeon Lee, Wenliang Dai, Dan Su, Bryan
+    Wilie, Holy Lovenia, Ziwei Ji, Tiezheng Yu, Willy Chung, et al. A multitask, multilingual,
+    multimodal evaluation of chatgpt on reasoning, hallucination, and interactivity.
+    arXiv preprint arXiv:2302.04023, 2023.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] Yejin Bang, Samuel Cahyawijaya, Nayeon Lee, Wenliang Dai, Dan Su, Bryan
+    Wilie, Holy Lovenia, Ziwei Ji, Tiezheng Yu, Willy Chung 等. 关于推理、幻觉和交互性的 ChatGPT
+    多任务、多语言、多模态评估. arXiv 预印本 arXiv:2302.04023, 2023年。'
+- en: '[3] Chengwei Qin, Aston Zhang, Zhuosheng Zhang, Jiaao Chen, Michihiro Yasunaga,
+    and Diyi Yang. Is chatgpt a general-purpose natural language processing task solver?
+    arXiv preprint arXiv:2302.06476, 2023.'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] Chengwei Qin, Aston Zhang, Zhuosheng Zhang, Jiaao Chen, Michihiro Yasunaga,
+    和 Diyi Yang. ChatGPT 是一种通用的自然语言处理任务求解器吗？arXiv 预印本 arXiv:2302.06476, 2023年。'
+- en: '[4] Md Tahmid Rahman Laskar, M Saiful Bari, Mizanur Rahman, Md Amran Hossen
+    Bhuiyan, Shafiq Joty, and Jimmy Xiangji Huang. A systematic study and comprehensive
+    evaluation of chatgpt on benchmark datasets. arXiv preprint arXiv:2305.18486,
+    2023.'
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] Md Tahmid Rahman Laskar, M Saiful Bari, Mizanur Rahman, Md Amran Hossen
+    Bhuiyan, Shafiq Joty 和 Jimmy Xiangji Huang. ChatGPT 在基准数据集上的系统性研究与综合评估. arXiv
+    预印本 arXiv:2305.18486, 2023 年。'
+- en: '[5] Opendevin: Code less, make more. [https://github.com/OpenDevin/OpenDevin](https://github.com/OpenDevin/OpenDevin),
+    2024.'
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Opendevin: 少写代码，做更多. [https://github.com/OpenDevin/OpenDevin](https://github.com/OpenDevin/OpenDevin),
+    2024 年。'
+- en: '[6] Shuyan Zhou, Frank F Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar,
+    Xianyi Cheng, Yonatan Bisk, Daniel Fried, Uri Alon, et al. Webarena: A realistic
+    web environment for building autonomous agents. arXiv preprint arXiv:2307.13854,
+    2023.'
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] Shuyan Zhou, Frank F Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar,
+    Xianyi Cheng, Yonatan Bisk, Daniel Fried, Uri Alon 等. Webarena：构建自主代理的真实 web 环境.
+    arXiv 预印本 arXiv:2307.13854, 2023 年。'
+- en: '[7] Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan, Yaxi Lu, Yankai
+    Lin, Xin Cong, Xiangru Tang, Bill Qian, et al. Toolllm: Facilitating large language
+    models to master 16000+ real-world apis. arXiv preprint arXiv:2307.16789, 2023.'
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan, Yaxi Lu, Yankai
+    Lin, Xin Cong, Xiangru Tang, Bill Qian 等. Toolllm：帮助大型语言模型掌握 16000 多个现实世界 API.
+    arXiv 预印本 arXiv:2307.16789, 2023 年。'
+- en: '[8] Chen Qian, Xin Cong, Cheng Yang, Weize Chen, Yusheng Su, Juyuan Xu, Zhiyuan
+    Liu, and Maosong Sun. Communicative agents for software development. arXiv preprint
+    arXiv:2307.07924, 2023.'
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] Chen Qian, Xin Cong, Cheng Yang, Weize Chen, Yusheng Su, Juyuan Xu, Zhiyuan
+    Liu 和 Maosong Sun. 用于软件开发的交流型代理. arXiv 预印本 arXiv:2307.07924, 2023 年。'
+- en: '[9] Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu Lei, Hanyu Lai, Yu Gu,
+    Hangliang Ding, Kaiwen Men, Kejuan Yang, et al. Agentbench: Evaluating llms as
+    agents. arXiv preprint arXiv:2308.03688, 2023.'
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu Lei, Hanyu Lai, Yu Gu,
+    Hangliang Ding, Kaiwen Men, Kejuan Yang 等. Agentbench：评估大型语言模型作为代理的表现. arXiv 预印本
+    arXiv:2308.03688, 2023 年。'
+- en: '[10] literature review - how to write a survey paper? - academia stack exchange.
+    [https://academia.stackexchange.com/questions/43371/how-to-write-a-survey-paper](https://academia.stackexchange.com/questions/43371/how-to-write-a-survey-paper),
+    2015.'
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] 文献综述 - 如何写一篇调查论文？ - academia stack exchange. [https://academia.stackexchange.com/questions/43371/how-to-write-a-survey-paper](https://academia.stackexchange.com/questions/43371/how-to-write-a-survey-paper),
+    2015 年。'
+- en: '[11] Laura Dietz and John Foley. Trec car y3: Complex answer retrieval overview.
+    In Proceedings of Text REtrieval Conference (TREC), 2019.'
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] Laura Dietz 和 John Foley. Trec car y3：复杂答案检索概述. 见于文本检索会议（TREC）论文集，2019
+    年。'
+- en: '[12] Kyle Lo, Lucy Lu Wang, Mark Neumann, Rodney Kinney, and Dan S Weld. S2orc:
+    The semantic scholar open research corpus. arXiv preprint arXiv:1911.02782, 2019.'
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] Kyle Lo, Lucy Lu Wang, Mark Neumann, Rodney Kinney 和 Dan S Weld. S2orc：语义学者开放研究语料库.
+    arXiv 预印本 arXiv:1911.02782, 2019 年。'
+- en: '[13] Shuaiqi Liu, Jiannong Cao, Ruosong Yang, and Zhiyuan Wen. Generating a
+    structured summary of numerous academic papers: Dataset and method. arXiv preprint
+    arXiv:2302.04580, 2023.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] Shuaiqi Liu, Jiannong Cao, Ruosong Yang 和 Zhiyuan Wen. 生成大量学术论文的结构化摘要：数据集与方法.
+    arXiv 预印本 arXiv:2302.04580, 2023 年。'
+- en: '[14] Irene Li, Alexander Fabbri, Rina Kawamura, Yixin Liu, Xiangru Tang, Jaesung
+    Tae, Chang Shen, Sally Ma, Tomoe Mizutani, and Dragomir Radev. Surfer100: Generating
+    surveys from web resources, wikipedia-style. arXiv preprint arXiv:2112.06377,
+    2021.'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] Irene Li, Alexander Fabbri, Rina Kawamura, Yixin Liu, Xiangru Tang, Jaesung
+    Tae, Chang Shen, Sally Ma, Tomoe Mizutani 和 Dragomir Radev. Surfer100：从 web 资源生成调查问卷，类似维基百科风格.
+    arXiv 预印本 arXiv:2112.06377, 2021 年。'
+- en: '[15] Peter J Liu, Mohammad Saleh, Etienne Pot, Ben Goodrich, Ryan Sepassi,
+    Lukasz Kaiser, and Noam Shazeer. Generating wikipedia by summarizing long sequences.
+    arXiv preprint arXiv:1801.10198, 2018.'
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] Peter J Liu, Mohammad Saleh, Etienne Pot, Ben Goodrich, Ryan Sepassi,
+    Lukasz Kaiser 和 Noam Shazeer. 通过总结长序列生成维基百科条目. arXiv 预印本 arXiv:1801.10198, 2018
+    年。'
+- en: '[16] Rada Mihalcea and Paul Tarau. Textrank: Bringing order into text. In Proceedings
+    of the 2004 conference on empirical methods in natural language processing, pages
+    404–411, 2004.'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] Rada Mihalcea 和 Paul Tarau. Textrank：为文本带来秩序. 见于 2004 年自然语言处理实证方法会议论文集，404–411
+    页，2004 年。'
+- en: '[17] Yijia Shao, Yucheng Jiang, Theodore A Kanell, Peter Xu, Omar Khattab,
+    and Monica S Lam. Assisting in writing wikipedia-like articles from scratch with
+    large language models. arXiv preprint arXiv:2402.14207, 2024.'
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] Yijia Shao, Yucheng Jiang, Theodore A Kanell, Peter Xu, Omar Khattab 和
+    Monica S Lam. 使用大型语言模型从零开始辅助撰写类似维基百科的文章. arXiv 预印本 arXiv:2402.14207, 2024 年。'
+- en: '[18] Marco Valenzuela, Vu Ha, and Oren Etzioni. Identifying meaningful citations.
+    In Workshops at the twenty-ninth AAAI conference on artificial intelligence, 2015.'
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] Marco Valenzuela, Vu Ha 和 Oren Etzioni. 识别有意义的引用. 见于第二十九届 AAAI 人工智能大会研讨会，2015
+    年。'
+- en: '[19] Pengfei Liu, Weizhe Yuan, Jinlan Fu, Zhengbao Jiang, Hiroaki Hayashi,
+    and Graham Neubig. Pre-train, prompt, and predict: A systematic survey of prompting
+    methods in natural language processing. ACM Computing Surveys, 55(9):1–35, 2023.'
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[19] Pengfei Liu、Weizhe Yuan、Jinlan Fu、Zhengbao Jiang、Hiroaki Hayashi 和 Graham
+    Neubig. 预训练、提示和预测：自然语言处理中的提示方法系统综述。ACM计算机调查，55(9)：1–35，2023年。'
+- en: '[20] Kalervo Järvelin and Jaana Kekäläinen. Cumulated gain-based evaluation
+    of ir techniques. ACM Transactions on Information Systems (TOIS), 20(4):422–446,
+    2002.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[20] Kalervo Järvelin 和 Jaana Kekäläinen. 基于累积增益的IR技术评估。ACM信息系统学报（TOIS），20(4)：422–446，2002年。'
+- en: '[21] EM Voorhees. Proceedings of the 8th text retrieval conference. TREC-8
+    Question Answering Track Report, pages 77–82, 1999.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[21] EM Voorhees. 第八届文本检索会议论文集。TREC-8问答轨道报告，第77–82页，1999年。'
+- en: '[22] Pasi Fränti and Radu Mariescu-Istodor. Soft precision and recall. Pattern
+    Recognition Letters, 167:115–121, 2023.'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[22] Pasi Fränti 和 Radu Mariescu-Istodor. 软精度与召回率。模式识别学报，167：115–121，2023年。'
+- en: '[23] Nils Reimers and Iryna Gurevych. Sentence-BERT: Sentence embeddings using
+    Siamese BERT-networks. In Kentaro Inui, Jing Jiang, Vincent Ng, and Xiaojun Wan,
+    editors, Proceedings of the 2019 Conference on Empirical Methods in Natural Language
+    Processing and the 9th International Joint Conference on Natural Language Processing
+    (EMNLP-IJCNLP), pages 3982–3992, Hong Kong, China, November 2019\. Association
+    for Computational Linguistics.'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[23] Nils Reimers 和 Iryna Gurevych. Sentence-BERT：使用Siamese BERT网络的句子嵌入。载于
+    Kentaro Inui、Jing Jiang、Vincent Ng 和 Xiaojun Wan 主编的《2019年自然语言处理经验方法会议及第九届国际自然语言处理联合会议论文集》（EMNLP-IJCNLP），第3982–3992页，香港，中国，2019年11月。计算语言学协会。'
+- en: '[24] Alan Akbik, Tanja Bergmann, Duncan Blythe, Kashif Rasul, Stefan Schweter,
+    and Roland Vollgraf. FLAIR: An easy-to-use framework for state-of-the-art NLP.
+    In Waleed Ammar, Annie Louis, and Nasrin Mostafazadeh, editors, Proceedings of
+    the 2019 Conference of the North American Chapter of the Association for Computational
+    Linguistics (Demonstrations), pages 54–59, Minneapolis, Minnesota, June 2019\.
+    Association for Computational Linguistics.'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[24] Alan Akbik, Tanja Bergmann, Duncan Blythe, Kashif Rasul, Stefan Schweter,
+    和 Roland Vollgraf. FLAIR：一个易于使用的最先进自然语言处理框架。载于 Waleed Ammar、Annie Louis 和 Nasrin
+    Mostafazadeh 主编的《2019年北美计算语言学协会年会论文集》（演示部分），第54–59页，明尼阿波利斯，明尼苏达州，2019年6月。计算语言学协会。'
+- en: '[25] Kaizhong Zhang and Dennis Shasha. Simple fast algorithms for the editing
+    distance between trees and related problems. SIAM journal on computing, 18(6):1245–1262,
+    1989.'
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[25] Kaizhong Zhang 和 Dennis Shasha. 计算树之间编辑距离及相关问题的简单快速算法。SIAM计算学报，18(6)：1245–1262，1989年。'
+- en: '[26] Shitao Xiao, Zheng Liu, Peitian Zhang, and Niklas Muennighof. C-pack:
+    Packaged resources to advance general chinese embedding. arXiv preprint arXiv:2309.07597,
+    2023.'
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[26] Shitao Xiao、Zheng Liu、Peitian Zhang 和 Niklas Muennighof. C-pack：推动通用中文嵌入的打包资源。arXiv预印本arXiv:2309.07597，2023年。'
+- en: '[27] Tushar Khot, Harsh Trivedi, Matthew Finlayson, Yao Fu, Kyle Richardson,
+    Peter Clark, and Ashish Sabharwal. Decomposed prompting: A modular approach for
+    solving complex tasks. arXiv preprint arXiv:2210.02406, 2022.'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[27] Tushar Khot、Harsh Trivedi、Matthew Finlayson、Yao Fu、Kyle Richardson、Peter
+    Clark 和 Ashish Sabharwal. 分解式提示：解决复杂任务的模块化方法。arXiv预印本arXiv:2210.02406，2022年。'
+- en: '[28] Gordon V Cormack, Charles LA Clarke, and Stefan Buettcher. Reciprocal
+    rank fusion outperforms condorcet and individual rank learning methods. In Proceedings
+    of the 32nd international ACM SIGIR conference on Research and development in
+    information retrieval, pages 758–759, 2009.'
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[28] Gordon V Cormack、Charles LA Clarke 和 Stefan Buettcher. 互惠排名融合优于Condorcet方法和单一排名学习方法。载于第32届国际ACM
+    SIGIR信息检索研究与发展会议论文集，第758–759页，2009年。'
+- en: '[29] Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi.
+    Self-rag: Learning to retrieve, generate, and critique through self-reflection.
+    arXiv preprint arXiv:2310.11511, 2023.'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[29] Akari Asai、Zeqiu Wu、Yizhong Wang、Avirup Sil 和 Hannaneh Hajishirzi. Self-rag：通过自我反思学习检索、生成和评论。arXiv预印本arXiv:2310.11511，2023年。'
+- en: '[30] Jeff Johnson, Matthijs Douze, and Hervé Jégou. Billion-scale similarity
+    search with GPUs. IEEE Transactions on Big Data, 7(3):535–547, 2019.'
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[30] Jeff Johnson、Matthijs Douze 和 Hervé Jégou. 基于GPU的十亿规模相似性搜索。IEEE大数据学报，7(3)：535–547，2019年。'
+- en: '[31] Corby Rosset, Ho-Lam Chung, Guanghui Qin, Ethan C Chau, Zhuo Feng, Ahmed
+    Awadallah, Jennifer Neville, and Nikhil Rao. Researchy questions: A dataset of
+    multi-perspective, decompositional questions for llm web agents. arXiv preprint
+    arXiv:2402.17896, 2024.'
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[31] Corby Rosset、Ho-Lam Chung、Guanghui Qin、Ethan C Chau、Zhuo Feng、Ahmed Awadallah、Jennifer
+    Neville 和 Nikhil Rao. 研究性问题：一个多角度、分解性问题的数据集，用于大型语言模型网页代理。arXiv预印本arXiv:2402.17896，2024年。'
+- en: Appendix A Parameters with Collection Methodology
+  id: totrans-164
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 收集方法学中的参数
+- en: In order to ensure deterministic behavior during dataset construction, the temperature
+    is set to 0, and the seed is fixed at 42 when utilizing GPT-4 for chat completions.
+    The choice of the number 42 is arbitrary; other numbers could be equally effective,
+    provided that the seed remains constant throughout the dataset collection process
+    to maintain reproducibility.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为确保数据集构建过程中的确定性行为，当使用 GPT-4 进行聊天完成时，温度设置为 0，种子固定为 42。选择数字 42 是任意的，其他数字也可以同样有效，只要种子在整个数据集收集过程中保持不变，以保证可重复性。
+- en: Appendix B Quality of Collection Methodology
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B 收集方法学的质量
+- en: 'Records of manual inspection over 25 samples from surveys and typologies are
+    presented in Table [4](https://arxiv.org/html/2406.10291v1#A2.T4 "Table 4 ‣ Appendix
+    B Quality of Collection Methodology ‣ ResearchArena: Benchmarking LLMs’ Ability
+    to Collect and Organize Information as Research Agents").'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 [4](https://arxiv.org/html/2406.10291v1#A2.T4 "Table 4 ‣ Appendix B Quality
+    of Collection Methodology ‣ ResearchArena: Benchmarking LLMs’ Ability to Collect
+    and Organize Information as Research Agents") 中展示了对 25 个样本的人工检查记录。'
+- en: 'Table 4: Evaluation on the quality of survey selection and mind-map extraction.'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：对调查选择和思维导图提取质量的评估。
+- en: '| Corpus ID | Accurate Selection | Corpus ID | Object ID | Accurate Extraction
+    | Relevant Extraction |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| 语料库 ID | 精准选择 | 语料库 ID | 对象 ID | 精准提取 | 相关提取 |'
+- en: '| 1359411 | Yes | 3373610 | 2-Figure1-1.png | Yes | Yes |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1359411 | 是 | 3373610 | 2-Figure1-1.png | 是 | 是 |'
+- en: '| 2197301 | No | 10837932 | 6-TableII-1.png | Yes | Yes |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2197301 | 否 | 10837932 | 6-TableII-1.png | 是 | 是 |'
+- en: '| 3638888 | Yes | 20774863 | 2-Figure1-1.png | Yes | No |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3638888 | 是 | 20774863 | 2-Figure1-1.png | 是 | 否 |'
+- en: '| 3799929 | Yes | 21265344 | 4-Figure3-1.png | No | No |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3799929 | 是 | 21265344 | 4-Figure3-1.png | 否 | 否 |'
+- en: '| 4470807 | Yes | 52986472 | 4-Figure1-1.png | Yes | Yes |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4470807 | 是 | 52986472 | 4-Figure1-1.png | 是 | 是 |'
+- en: '| 7972041 | Yes | 54437297 | 6-Figure1-1.png | No | Yes |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7972041 | 是 | 54437297 | 6-Figure1-1.png | 否 | 是 |'
+- en: '| 44951320 | Yes | 59407515 | 4-Figure1-1.png | Yes | No |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| 44951320 | 是 | 59407515 | 4-Figure1-1.png | 是 | 否 |'
+- en: '| 56895486 | Yes | 67855323 | 3-Figure1-1.png | Yes | No |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| 56895486 | 是 | 67855323 | 3-Figure1-1.png | 是 | 否 |'
+- en: '| 115156611 | Yes | 201532876 | 6-Figure1-1.png | Yes | No |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| 115156611 | 是 | 201532876 | 6-Figure1-1.png | 是 | 否 |'
+- en: '| 126187216 | Yes | 204080064 | 5-Figure1-1.png | No | No |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| 126187216 | 是 | 204080064 | 5-Figure1-1.png | 否 | 否 |'
+- en: '| 134642625 | Yes | 218487045 | 7-Figure4-1.png | Yes | Yes |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| 134642625 | 是 | 218487045 | 7-Figure4-1.png | 是 | 是 |'
+- en: '| 209386804 | Yes | 221938634 | 6-Figure1-1.png | Yes | Yes |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| 209386804 | 是 | 221938634 | 6-Figure1-1.png | 是 | 是 |'
+- en: '| 214566304 | Yes | 226300094 | 2-Figure2-1.png | Yes | Yes |'
+  id: totrans-182
+  prefs: []
+  type: TYPE_TB
+  zh: '| 214566304 | 是 | 226300094 | 2-Figure2-1.png | 是 | 是 |'
+- en: '| 229474407 | Yes | 227259882 | 6-Figure2-1.png | No | Yes |'
+  id: totrans-183
+  prefs: []
+  type: TYPE_TB
+  zh: '| 229474407 | 是 | 227259882 | 6-Figure2-1.png | 否 | 是 |'
+- en: '| 233241600 | No | 232126642 | 3-Figure1-1.png | Yes | No |'
+  id: totrans-184
+  prefs: []
+  type: TYPE_TB
+  zh: '| 233241600 | 否 | 232126642 | 3-Figure1-1.png | 是 | 否 |'
+- en: '| 234790465 | Yes | 233677020 | 6-Figure2-1.png | No | No |'
+  id: totrans-185
+  prefs: []
+  type: TYPE_TB
+  zh: '| 234790465 | 是 | 233677020 | 6-Figure2-1.png | 否 | 否 |'
+- en: '| 235794880 | Yes | 237291802 | 2-Figure1-1.png | Yes | Yes |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| 235794880 | 是 | 237291802 | 2-Figure1-1.png | 是 | 是 |'
+- en: '| 245433612 | Yes | 237327839 | 6-Figure1-1.png | Yes | No |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| 245433612 | 是 | 237327839 | 6-Figure1-1.png | 是 | 否 |'
+- en: '| 253735066 | Yes | 240011970 | 5-Figure4-1.png | Yes | Yes |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| 253735066 | 是 | 240011970 | 5-Figure4-1.png | 是 | 是 |'
+- en: '| 254563889 | Yes | 246599122 | 2-Figure1-1.png | Yes | No |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| 254563889 | 是 | 246599122 | 2-Figure1-1.png | 是 | 否 |'
+- en: '| 258060212 | Yes | 248227736 | 2-Figure1-1.png | Yes | Yes |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| 258060212 | 是 | 248227736 | 2-Figure1-1.png | 是 | 是 |'
+- en: '| 258541526 | Yes | 248717714 | 4-Figure2-1.png | Yes | Yes |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| 258541526 | 是 | 248717714 | 4-Figure2-1.png | 是 | 是 |'
+- en: '| 258841314 | Yes | 252089272 | 4-Figure1-1.png | Yes | Yes |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| 258841314 | 是 | 252089272 | 4-Figure1-1.png | 是 | 是 |'
+- en: '| 259855591 | Yes | 258212628 | 6-Figure1-1.png | Yes | Yes |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| 259855591 | 是 | 258212628 | 6-Figure1-1.png | 是 | 是 |'
+- en: '| 262464721 | Yes | 260887757 | 4-Figure2-1.png | Yes | Yes |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| 262464721 | 是 | 260887757 | 4-Figure2-1.png | 是 | 是 |'
+- en: Appendix C Prompts with Experiments
+  id: totrans-195
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 C 带有实验的提示词
+- en: C.1 Prompt to Decomposer for Information Discovery
+  id: totrans-196
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.1 提示词给解构者用于信息发现
+- en: Adopted from the Researchy Questions by Rosset et al. [[31](https://arxiv.org/html/2406.10291v1#bib.bib31)].
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 引自 Rosset 等人提出的研究问题 [[31](https://arxiv.org/html/2406.10291v1#bib.bib31)]。
+- en: '[⬇](data:text/plain;base64,IiIiCiMjIyBCZWxvdyBpcyBhbiBleGFtcGxlIG9uIGhvdyB0byBkZWNvbXBvc2UgYSBjb21wbGV4IHF1ZXN0aW9uIGludG8gc3ViLXF1ZXN0aW9ucyBhbmQgc2VhcmNoIHF1ZXJpZXMuCgpRdWVzdGlvbjogc2hvdWxkIHRoZSBkZWF0aCBwZW5hbHR5IGJlIGxlZ2FsaXplZD8KCjxEZWNvbXBvc2l0aW9uPgogICAgLSBXaGF0IGFyZSB0aGUgYXJndW1lbnRzIGluIGZhdm9yIG9mIHRoZSBkZWF0aCBwZW5hbHR5PwogICAgICAgIC0gRG9lcyB0aGUgZGVhdGggcGVuYWx0eSBzZXJ2ZSBhcyBhIGRldGVycmVudCB0byBjcmltZT8KICAgICAgICAtIElzIHRoZSBkZWF0aCBwZW5hbHR5IGEganVzdCBwdW5pc2htZW50IGZvciBjZXJ0YWluIGNyaW1lcz8KICAgICAgICAtIEhvdyBkb2VzIHRoZSBkZWF0aCBwZW5hbHR5IGNvbXBhcmUgdG8gb3RoZXIgZm9ybXMgb2YgcHVuaXNobWVudCBpbiB0ZXJtcyBvZiBjb3N0IGFuZCBlZmZlY3RpdmVuZXNzPwogICAgLSBXaGF0IGFyZSB0aGUgYXJndW1lbnRzIGFnYWluc3QgdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAgICAgLSBXaGF0IGlzIHRoZSByaXNrIG9mIGV4ZWN1dGluZyBpbm5vY2VudCBwZW9wbGUgd2l0aCBhIGRlYXRoIHBlbmFsdHk/CiAgICAgICAgLSBBcmUgdGhlcmUgYW55IGV0aGljYWwgY29uY2VybnMgc3Vycm91bmRpbmcgdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAgICAgLSBUbyB3aGF0IGV4dGVudCBpcyB0aGUgZGVhdGggcGVuYWx0eSBhcHBsaWVkIGZhaXJseSBhbmQgd2l0aG91dCBiaWFzPwogICAgICAgIC0gSW4gcHJhY3RpY2UsIGhvdyBleHBlbnNpdmUgaXMgdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAtIFdoYXQgaXMgdGhlIGN1cnJlbnQgbGVnYWwgc3RhdHVzIG9mIHRoZSBkZWF0aCBwZW5hbHR5IGluIHZhcmlvdXMganVyaXNkaWN0aW9ucz8KICAgICAgICAtIEluIHdoaWNoIGNvdW50cmllcyBvciBzdGF0ZXMgaXMgdGhlIGRlYXRoIHBlbmFsdHkgY3VycmVudGx5IGxlZ2FsPwogICAgICAgIC0gV2hhdCBhcmUgdGhlIHRyZW5kcyBpbiBkZWF0aCBwZW5hbHR5IGxlZ2lzbGF0aW9uIGFuZCBwdWJsaWMgb3Bpbmlvbj8KICAgIC0gV2hhdCBhcmUgdGhlIGFsdGVybmF0aXZlcyB0byB0aGUgZGVhdGggcGVuYWx0eT8KICAgICAgICAtIEhvdyBlZmZlY3RpdmUgYXJlIGFsdGVybmF0aXZlIHB1bmlzaG1lbnRzIHRvIHRoZSBkZWF0aCBwZW5hbHR5LCBlLmcuIGxpZmUgaW1wcmlzb25tZW50PwogICAgICAgIC0gV2hhdCBhcmUgdGhlIGNvc3RzIGFuZCBiZW5lZml0cyBvZiBhbHRlcm5hdGl2ZXMgdG8gdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAtIEhvdyBkbyB0aGUgcHJvcyBhbmQgY29ucyBvZiB0aGUgZGVhdGggcGVuYWx0eSBjb21wYXJlIHRvIGl0cyBhbHRlcm5hdGl2ZXM/CjwvRGVjb21wb3NpdGlvbj4KCjxRdWVyaWVzPgogICAgLSBhcmd1bWVudHMgaW4gZmF2b3Igb2YgdGhlIGRlYXRoIHBlbmFsdHkKICAgIC0gZGVhdGggcGVuYWx0eSBhcyBhIGRldGVycmVudCB0byBjcmltZQogICAgLSBkZWF0aCBwZW5hbHR5IGFzIGEganVzdCBwdW5pc2htZW50CiAgICAtIGRlYXRoIHBlbmFsdHkgY29zdCBhbmQgZWZmZWN0aXZlbmVzcyBjb21wYXJpc29uCiAgICAtIGFyZ3VtZW50cyBhZ2FpbnN0IHRoZSBkZWF0aCBwZW5hbHR5CiAgICAtIHJpc2sgb2YgZXhlY3V0aW5nIGlubm9jZW50IHBlb3BsZSB3aXRoIGRlYXRoIHBlbmFsdHkKICAgIC0gZXRoaWNhbCBjb25jZXJucyBzdXJyb3VuZGluZyB0aGUgZGVhdGggcGVuYWx0eQogICAgLSBmYWlybmVzcyBhbmQgYmlhcyBpbiBkZWF0aCBwZW5hbHR5IGFwcGxpY2F0aW9uCiAgICAtIGN1cnJlbnQgbGVnYWwgc3RhdHVzIG9mIHRoZSBkZWF0aCBwZW5hbHR5IHdvcmxkd2lkZQogICAgLSB0cmVuZHMgaW4gZGVhdGggcGVuYWx0eSBsZWdpc2xhdGlvbiBhbmQgcHVibGljIG9waW5pb24KICAgIC0gYWx0ZXJuYXRpdmVzIHRvIHRoZSBkZWF0aCBwZW5hbHR5CiAgICAtIGVmZmVjdGl2ZW5lc3Mgb2YgbGlmZSBpbXByaXNvbm1lbnQgd2l0aG91dCBwYXJvbGUKICAgIC0gY29zdHMgYW5kIGJlbmVmaXRzIG9mIGRlYXRoIHBlbmFsdHkgYWx0ZXJuYXRpdmVzCjwvUXVlcmllcz4KClF1ZXN0aW9uOiB7eH0KCiMjIyBJbnN0cnVjdGlvbnM6CgoxLiBXaGF0IHN1Yi1xdWVzdGlvbnMgZG8gSSBuZWVkIHRvIGtub3cgaW4gb3JkZXIgdG8gZnVsbHkgdW5kZXJzdGFuZCBhbmQgYW5zd2VyIHRoZSBhYm92ZSBRdWVzdGlvbi4KICAgIC0gRm9ybWF0IHlvdXIgcmVzcG9uc2UgYXMgYSBidWxsZXQtcG9pbnQgc3R5bGUgb3V0bGluZSBvZiBxdWVzdGlvbnMgYW5kIHN1Yi1xdWVzdGlvbnMgaW4gdGhlIDxEZWNvbXBvc2l0aW9uPiB0YWcuCiAgICAtIE9yZGVyIHlvdXIgc3ViLXF1ZXN0aW9ucyBzdWNoIHRoYXQgb25lIHF1ZXN0aW9uIGNvbWVzIGFmdGVyIGFub3RoZXIgaWYgaXQgbmVlZHMgdG8gdXNlIHRoZSBhbnN3ZXIgdG8gdGhlIHByZXZpb3VzIG9uZS4KICAgIC0gRG8gbm90IGFzayB1bm5lY2Vzc2FyeSBvciB0YW5nZW50aWFsIHN1Yi1xdWVzdGlvbnMsIG9ubHkgdGhvc2UgdGhhdCBhcmUgY3JpdGljYWwgdG8gZmluZGluZyBpbXBvcnRhbnQgaW5mb3JtYXRpb24uCjIpIE5leHQsIHdyaXRlIGEgbGlzdCBvZiBzZWFyY2ggcXVlcmllcyB0aGF0IHdvdWxkIGxpa2VseSBsZWFkIHRvIHJlc3VsdHMgYWRkcmVzc2luZyBhbGwgdGhlIHN1Yi1xdWVzdGlvbnMuCiAgICAtIEVudW1lcmF0ZSB5b3VyIHF1ZXJpZXMgaW4gYSBidWxsZXQtcG9pbnQgc3R5bGUgbGlzdCBpbnNpZGUgdGhlIDxRdWVyaWVzPiB0YWcuCgpZb3UgbWF5IHJlZmVyIHRvIHRoZSBleGFtcGxlIGFib3ZlIGZvciBndWlkYW5jZS4KIiIi)"""###  Below  is  an  example  on  how  to  decompose  a  complex  question  into  sub-questions  and  search  queries.Question:  should  the  death  penalty  be  legalized?<Decomposition>-  What  are  the  arguments  in  favor  of  the  death  penalty?-  Does  the  death  penalty  serve  as  a  deterrent  to  crime?-  Is  the  death  penalty  a  just  punishment  for  certain  crimes?-  How  does  the  death  penalty  compare  to  other  forms  of  punishment  in  terms  of  cost  and  effectiveness?-  What  are  the  arguments  against  the  death  penalty?-  What  is  the  risk  of  executing  innocent  people  with  a  death  penalty?-  Are  there  any  ethical  concerns  surrounding  the  death  penalty?-  To  what  extent  is  the  death  penalty  applied  fairly  and  without  bias?-  In  practice,  how  expensive  is  the  death  penalty?-  What  is  the  current  legal  status  of  the  death  penalty  in  various  jurisdictions?-  In  which  countries  or  states  is  the  death  penalty  currently  legal?-  What  are  the  trends  in  death  penalty  legislation  and  public  opinion?-  What  are  the  alternatives  to  the  death  penalty?-  How  effective  are  alternative  punishments  to  the  death  penalty,  e.g.  life  imprisonment?-  What  are  the  costs  and  benefits  of  alternatives  to  the  death  penalty?-  How  do  the  pros  and  cons  of  the  death  penalty  compare  to  its  alternatives?</Decomposition><Queries>-  arguments  in  favor  of  the  death  penalty-  death  penalty  as  a  deterrent  to  crime-  death  penalty  as  a  just  punishment-  death  penalty  cost  and  effectiveness  comparison-  arguments  against  the  death  penalty-  risk  of  executing  innocent  people  with  death  penalty-  ethical  concerns  surrounding  the  death  penalty-  fairness  and  bias  in  death  penalty  application-  current  legal  status  of  the  death  penalty  worldwide-  trends  in  death  penalty  legislation  and  public  opinion-  alternatives  to  the  death  penalty-  effectiveness  of  life  imprisonment  without  parole-  costs  and  benefits  of  death  penalty  alternatives</Queries>Question:  {x}###  Instructions:1.  What  sub-questions  do  I  need  to  know  in  order  to  fully  understand  and  answer  the  above  Question.-  Format  your  response  as  a  bullet-point  style  outline  of  questions  and  sub-questions  in  the  <Decomposition>  tag.-  Order  your  sub-questions  such  that  one  question  comes  after  another  if  it  needs  to  use  the  answer  to  the  previous  one.-  Do  not  ask  unnecessary  or  tangential  sub-questions,  only  those  that  are  critical  to  finding  important  information.2)  Next,  write  a  list  of  search  queries  that  would  likely  lead  to  results  addressing  all  the  sub-questions.-  Enumerate  your  queries  in  a  bullet-point  style  list  inside  the  <Queries>  tag.You  may  refer  to  the  example  above  for  guidance."""'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,IiIiCiMjIyBCZWxvdyBpcyBhbiBleGFtcGxlIG9uIGhvdyB0byBkZWNvbXBvc2UgYSBjb21wbGV4IHF1ZXN0aW9uIGludG8gc3ViLXF1ZXN0aW9ucyBhbmQgc2VhcmNoIHF1ZXJpZXMuCgpRdWVzdGlvbjogc2hvdWxkIHRoZSBkZWF0aCBwZW5hbHR5IGJlIGxlZ2FsaXplZD8KCjxEZWNvbXBvc2l0aW9uPgogICAgLSBXaGF0IGFyZSB0aGUgYXJndW1lbnRzIGluIGZhdm9yIG9mIHRoZSBkZWF0aCBwZW5hbHR5PwogICAgICAgIC0gRG9lcyB0aGUgZGVhdGggcGVuYWx0eSBzZXJ2ZSBhcyBhIGRldGVycmVudCB0byBjcmltZT8KICAgICAgICAtIElzIHRoZSBkZWF0aCBwZW5hbHR5IGEganVzdCBwdW5pc2htZW50IGZvciBjZXJ0YWluIGNyaW1lcz8KICAgICAgICAtIEhvdyBkb2VzIHRoZSBkZWF0aCBwZW5hbHR5IGNvbXBhcmUgdG8gb3RoZXIgZm9ybXMgb2YgcHVuaXNobWVudCBpbiB0ZXJtcyBvZiBjb3N0IGFuZCBlZmZlY3RpdmVuZXNzPwogICAgLSBXaGF0IGFyZSB0aGUgYXJndW1lbnRzIGFnYWluc3QgdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAgICAgLSBXaGF0IGlzIHRoZSByaXNrIG9mIGV4ZWN1dGluZyBpbm5vY2VudCBwZW9wbGUgd2l0aCBhIGRlYXRoIHBlbmFsdHk/CiAgICAgICAgLSBBcmUgdGhlcmUgYW55IGV0aGljYWwgY29uY2VybnMgc3Vycm91bmRpbmcgdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAgICAgLSBUbyB3aGF0IGV4dGVudCBpcyB0aGUgZGVhdGggcGVuYWx0eSBhcHBsaWVkIGZhaXJseSBhbmQgd2l0aG91dCBiaWFzPwogICAgICAgIC0gSW4gcHJhY3RpY2UsIGhvdyBleHBlbnNpdmUgaXMgdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAtIFdoYXQgaXMgdGhlIGN1cnJlbnQgbGVnYWwgc3RhdHVzIG9mIHRoZSBkZWF0aCBwZW5hbHR5IGluIHZhcmlvdXMganVyaXNkaWN0aW9ucz8KICAgICAgICAtIEluIHdoaWNoIGNvdW50cmllcyBvciBzdGF0ZXMgaXMgdGhlIGRlYXRoIHBlbmFsdHkgY3VycmVudGx5IGxlZ2FsPwogICAgICAgIC0gV2hhdCBhcmUgdGhlIHRyZW5kcyBpbiBkZWF0aCBwZW5hbHR5IGxlZ2lzbGF0aW9uIGFuZCBwdWJsaWMgb3Bpbmlvbj8KICAgIC0gV2hhdCBhcmUgdGhlIGFsdGVybmF0aXZlcyB0byB0aGUgZGVhdGggcGVuYWx0eT8KICAgICAgICAtIEhvdyBlZmZlY3RpdmUgYXJlIGFsdGVybmF0aXZlIHB1bmlzaG1lbnRzIHRvIHRoZSBkZWF0aCBwZW5hbHR5LCBlLmcuIGxpZmUgaW1wcmlzb25tZW50PwogICAgICAgIC0gV2hhdCBhcmUgdGhlIGNvc3RzIGFuZCBiZW5lZml0cyBvZiBhbHRlcm5hdGl2ZXMgdG8gdGhlIGRlYXRoIHBlbmFsdHk/CiAgICAtIEhvdyBkbyB0aGUgcHJvcyBhbmQgY29ucyBvZiB0aGUgZGVhdGggcGVuYWx0eSBjb21wYXJlIHRvIGl0cyBhbHRlcm5hdGl2ZXM/CjwvRGVjb21wb3NpdGlvbj4KCjxRdWVyaWVzPgogICAgLSBhcmd1bWVudHMgaW4gZmF2b3Igb2YgdGhlIGRlYXRoIHBlbmFsdHkKICAgIC0gZGVhdGggcGVuYWx0eSBhcyBhIGRldGVycmVudCB0byBjcmltZQogICAgLSBkZWF0aCBwZW5hbHR5IGFzIGEganVzdCBwdW5pc2htZW50CiAgICAtIGRlYXRoIHBlbmFsdHkgY29zdCBhbmQgZWZmZWN0aXZlbmVzcyBjb21wYXJpc29uCiAgICAtIGFyZ3VtZW50cyBhZ2FpbnN0IHRoZSBkZWF0aCBwZW5hbHR5CiAgICAtIHJpc2sgb2YgZXhlY3V0aW5nIGlubm9jZW50IHBlb3BsZSB3aXRoIGRlYXRoIHBlbmFsdHkKICAgIC0gZXRoaWNhbCBjb25jZXJucyBzdXJyb3VuZGluZyB0aGUgZGVhdGggcGVuYWx0eQogICAgLSBmYWlybmVzcyBhbmQgYmlhcyBpbiBkZWF0aCBwZW5hbHR5IGFwcGxpY2F0aW9uCiAgICAtIGN1cnJlbnQgbGVnYWwgc3RhdHVzIG9mIHRoZSBkZWF0aCBwZW5hbHR5IHdvcmxkd2lkZQogICAgLSB0cmVuZHMgaW4gZGVhdGggcGVuYWx0eSBsZWdpc2xhdGlvbiBhbmQgcHVibGljIG9waW5pb24KICAgIC0gYWx0ZXJuYXRpdmVzIHRvIHRoZSBkZWF0aCBwZW5hbHR5CiAgICAtIGVmZmVjdGl2ZW5lc3Mgb2YgbGlmZSBpbXByaXNvbm1lbnQgd2l0aG91dCBwYXJvbGUKICAgIC0gY29zdHMgYW5kIGJlbmVmaXRzIG9mIGRlYXRoIHBlbmFsdHkgYWx0ZXJuYXRpdmVzCjwvUXVlcmllcz4KClF1ZXN0aW9uOiB7eH0KCiMjIyBJbnN0cnVjdGlvbnM6CgoxLiBXaGF0IHN1Yi1xdWVzdGlvbnMgZG8gSSBuZWVkIHRvIGtub3cgaW4gb3JkZXIgdG8gZnVsbHkgdW5kZXJzdGFuZCBhbmQgYW5zd2VyIHRoZSBhYm92ZSBRdWVzdGlvbi4KICAgIC0gRm9ybWF0IHlvdXIgcmVzcG9uc2UgYXMgYSBidWxsZXQtcG9pbnQgc3R5bGUgb3V0bGluZSBvZiBxdWVzdGlvbnMgYW5kIHN1Yi1xdWVzdGlvbnMgaW4gdGhlIDxEZWNvbXBvc2l0aW9uPiB0YWcuCiAgICAtIE9yZGVyIHlvdXIgc3ViLXF1ZXN0aW9ucyBzdWNoIHRoYXQgb25lIHF1ZXN0aW9uIGNvbWVzIGFmdGVyIGFub3RoZXIgaWYgaXQgbmVlZHMgdG8gdXNl'
+- en: C.2 Prompt to Zero-Shot / Self-RAG for Information Discovery
+  id: totrans-199
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.2 提示到零样本/自我RAG用于信息发现
+- en: '[⬇](data:text/plain;base64,Q3JlYXRlIGEgc2VhcmNoIHF1ZXJ5IHRoYXQgZ2F0aGVycyBzdXBwb3J0aW5nIG1hdGVyaWFscyBmb3Igd3JpdGluZyBhIHN1cnZleSBwYXBlciBvbiB0aGUgZm9sbG93aW5nIHRvcGljOiB7eH0u)Create  a  search  query  that  gathers  supporting  materials  for  writing  a  survey  paper  on  the  following  topic:  {x}.'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,Q3JlYXRlIGEgc2VhcmNoIHF1ZXJ5IHRoYXQgZ2F0aGVycyBzdXBwb3J0aW5nIG1hdGVyaWFscyBmb3Igd3JpdGluZyBhIHN1cnZleSBwYXBlciBvbiB0aGUgZm9sbG93aW5nIHRvcGljOiB7eH0u)创建一个搜索查询，用于收集支持材料，以编写关于以下主题的调查论文：{x}。'
+- en: C.3 Prompt to Few-Shot for Information Organization
+  id: totrans-201
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.3 提示到少样本用于信息组织
+- en: '[⬇](data:text/plain;base64,IiIiCiMjIyBFeGFtcGxlcwoKPHRvcGljPgpBIFN1cnZleSBvbiBMaURBUiBTY2FubmluZyBNZWNoYW5pc21zCjwvdG9waWM+Cgo8dHlwb2xvZ3k+CnsiT3B0by1NZWNoYW5pY2FsIEJlYW0gRGVmbGVjdGlvbiBNZWNoYW5pc21zIjogeyJMaW5lIFNjYW5uZXIiOiB7IlNsYW50ZWQgUGxhaW4gTWlycm9yIjogbnVsbCwgIk9mZi1heGlzIFBhcmFib2xpYyBNaXJyb3IiOiBudWxsLCAiUG9seWdvbiBNaXJyb3IiOiBudWxsfSwgIkFyZWEgU2Nhbm5lciI6IHsiU2luZ2xlIEdhbHZhbm9tZXRlciBTY2FubmluZyBNaXJyb3IiOiBudWxsLCAiRG91YmxlIEdhbHZhbm9tZXRlciBTY2FubmluZyBNaXJyb3IiOiBudWxsLCAiR3lyb3Njb3BpYyBNaXJyb3IiOiBudWxsLCAiUmlzbGV5IFNjYW5uZXIiOiBudWxsfX19CjwvdHlwb2xvZ3k+Cgo8dG9waWM+CkEgU3VydmV5IG9uIExhcmdlIExhbmd1YWdlIE1vZGVscyBmb3IgUmVjb21tZW5kYXRpb24KPC90b3BpYz4KCjx0eXBvbG9neT4KeyJMTE00UmVjIjogeyJEaXNjcmltaW5hdGl2ZSBMTE00UmVjIjogeyJGaW5lLXR1bmluZyI6IHsiUHJvbXB0IFR1bmluZyI6IG51bGx9fSwgIkdlbmVyYXRpdmUgTExNNFJlYyI6IHsiTm9uLXR1bmluZyI6IHsiUHJvbXB0aW5nIjogbnVsbCwgIkluLWNvbnRleHQgTGVhcm5pbmciOiBudWxsfSwgIlR1bmluZyI6IHsiRmluZS10dW5pbmciOiBudWxsLCAiUHJvbXB0IFR1bmluZyI6IG51bGwsICJJbnN0cnVjdGlvbiBUdW5pbmciOiBudWxsfX19fQo8L3R5cG9sb2d5PgoKIyMjIEluc3RydWN0aW9ucwoKLSBQcm92aWRlZCBhIHRvcGljLCB5b3VyIHRhc2sgaXMgdG8gY29uc3RydWN0IGEgbWluZC1tYXAgc3R5bGUgdHlwb2xvZ3kgdGhhdCBwcmVzZW50cyBhIHN5c3RlbWF0aWMgdW5kZXJzdGFuZGluZyBvZiB0aGUgdG9waWMuCi0gUHV0IHlvdXIgSlNPTi1lbmNvZGVkIHJlc3BvbnNlIGluIHRoZSB0YWcgYDx0eXBvbG9neT4uLi48L3R5cG9sb2d5PmAuIFlvdSBtYXkgcmVmZXIgdG8gdGhlIGV4YW1wbGVzIGFib3ZlIGZvciBndWlkYW5jZS4KCjx0b3BpYz4Ke3h9CjwvdG9waWM+CiIiIg==)"""###  Examples<topic>A  Survey  on  LiDAR  Scanning  Mechanisms</topic><typology>{"Opto-Mechanical  Beam  Deflection  Mechanisms":  {"Line  Scanner":  {"Slanted  Plain  Mirror":  null,  "Off-axis  Parabolic  Mirror":  null,  "Polygon  Mirror":  null},  "Area  Scanner":  {"Single  Galvanometer  Scanning  Mirror":  null,  "Double  Galvanometer  Scanning  Mirror":  null,  "Gyroscopic  Mirror":  null,  "Risley  Scanner":  null}}}</typology><topic>A  Survey  on  Large  Language  Models  for  Recommendation</topic><typology>{"LLM4Rec":  {"Discriminative  LLM4Rec":  {"Fine-tuning":  {"Prompt  Tuning":  null}},  "Generative  LLM4Rec":  {"Non-tuning":  {"Prompting":  null,  "In-context  Learning":  null},  "Tuning":  {"Fine-tuning":  null,  "Prompt  Tuning":  null,  "Instruction  Tuning":  null}}}}</typology>###  Instructions-  Provided  a  topic,  your  task  is  to  construct  a  mind-map  style  typology  that  presents  a  systematic  understanding  of  the  topic.-  Put  your  JSON-encoded  response  in  the  tag  ‘<typology>...</typology>‘.  You  may  refer  to  the  examples  above  for  guidance.<topic>{x}</topic>"""'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[⬇](data:text/plain;base64,IiIiCiMjIyBFeGFtcGxlcwoKPHRvcGljPgpBIFN1cnZleSBvbiBMaURBUiBTY2FubmluZyBNZWNoYW5pc21zCjwvdG9waWM+Cgo8dHlwb2xvZ3k+CnsiT3B0by1NZWNoYW5pY2FsIEJlYW0gRGVmbGVjdGlvbiBNZWNoYW5pc21zIjogeyJMaW5lIFNjYW5uZXIiOiB7IlNsYW50ZWQgUGxhaW4gTWlycm9yIjogbnVsbCwgIk9mZi1heGlzIFBhcmFib2xpYyBNaXJyb3IiOiBudWxsLCAiUG9seWdvbiBNaXJyb3IiOiBudWxsfSwgIkFyZWEgU2Nhbm5lciI6IHsiU2luZ2xlIEdhbHZhbm9tZXRlciBTY2FubmluZyBNaXJyb3IiOiBudWxsLCAiRG91YmxlIEdhbHZhbm9tZXRlciBTY2FubmluZyBNaXJyb3IiOiBudWxsLCAiR3lyb3Njb3BpYyBNaXJyb3IiOiBudWxsLCAiUmlzbGV5IFNjYW5uZXIiOiBudWxsfX19CjwvdHlwb2xvZ3k+Cgo8dG9waWM+CkEgU3VydmV5IG9uIExhcmdlIExhbmd1YWdlIE1vZGVscyBmb3IgUmVjb21tZW5kYXRpb24KPC90b3BpYz4KCjx0eXBvbG9neT4KeyJMTE00UmVjIjogeyJEaXNjcmltaW5hdGl2ZSBMTE00UmVjIjogeyJGaW5lLXR1bmluZyI6IHsiUHJvbXB0IFR1bmluZyI6IG51bGx9fSwgIkdlbmVyYXRpdmUgTExNNFJlYyI6IHsiTm9uLXR1bmluZyI6IHsiUHJvbXB0aW5nIjogbnVsbCwgIkluLWNvbnRleHQgTGVhcm5pbmciOiBudWxsfSwgIlR1bmluZyI6IHsiRmluZS10dW5pbmciOiBudWxsLCAiUHJvbXB0IFR1bmluZyI6IG51bGwsICJJbnN0cnVjdGlvbiBUdW5pbmciOiBudWxsfX19fQo8L3R5cG9sb2d5PgoKIyMjIEluc3RydWN0aW9ucwoKLSBQcm92aWRlZCBhIHRvcGljLCB5b3VyIHRhc2sgaXMgdG8gY29uc3RydWN0IGEgbWluZC1tYXAgc3R5bGUgdHlwb2xvZ3kgdGhhdCBwcmVzZW50cyBhIHN5c3RlbWF0aWMgdW5kZXJzdGFuZGluZyBvZiB0aGUgdG9waWMuCi0gUHV0IHlvdXIgSlNPTi1lbmNvZGVkIHJlc3BvbnNlIGluIHRoZSB0YWcgYDx0eXBvbG9neT4uLi48L3R5cG9sb2d5PmAuIFlvdSBtYXkgcmVmZXIgdG8gdGhlIGV4YW1wbGVzIGFib3ZlIGZvciBndWlkYW5jZS4KCjx0b3BpYz4Ke3h9CjwvdG9waWM+CiIiIg==)"""###
+    例子<topic>激光雷达扫描机制调查</topic><typology>{"光学机械光束偏转机制":  {"线扫描仪":  {"倾斜平面镜":  null,  "离轴抛物面镜":  null,  "多边形镜":  null},  "面扫描仪":  {"单光圈扫描镜":  null,  "双光圈扫描镜":  null,  "陀螺仪镜":  null,  "瑞士扫描仪":  null}}}</typology><topic>基于大语言模型的推荐系统研究</topic><typology>{"LLM4Rec":  {"判别式LLM4Rec":  {"微调":  {"提示调优":  null}},  "生成式LLM4Rec":  {"无调优":  {"提示输入":  null,  "上下文学习":  null},  "调优":  {"微调":  null,  "提示调优":  null,  "指令调优":  null}}}}</typology>###
+    指示-  提供一个主题后，您的任务是构建一个思维导图样式的类型学，以系统化地呈现该主题的理解。-  将您的JSON编码响应放入标签‘<typology>...</typology>’中。
+    你可以参考上面的例子来获取指导。<topic>{x}</topic>"""'

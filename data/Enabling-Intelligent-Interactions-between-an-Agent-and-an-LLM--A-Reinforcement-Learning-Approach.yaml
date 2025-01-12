@@ -1,0 +1,1837 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 13:08:47'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:08:47
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Enabling Intelligent Interactions between an Agent and an LLM: A Reinforcement
+    Learning Approach'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使代理与LLM之间的智能互动成为可能：一种强化学习方法
+- en: 来源：[https://arxiv.org/html/2306.03604/](https://arxiv.org/html/2306.03604/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2306.03604/](https://arxiv.org/html/2306.03604/)
+- en: Bin Hu
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 胡斌
+- en: hubin@@zhejianglab.com
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: hubin@@zhejianglab.com
+- en: Zhejiang Lab &Chenyang Zhao^∗
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浙江实验室 &赵晨阳^∗
+- en: c.zhao@zhejianglab.com
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: c.zhao@zhejianglab.com
+- en: Zhejiang Lab &Pu Zhang^∗
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浙江实验室 &张谱^∗
+- en: puz@zhejianglab.com
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: puz@zhejianglab.com
+- en: Zhejiang Lab &Zihao Zhou^∗
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浙江实验室 &周子豪^∗
+- en: zhouzihao@zhejianglab.com
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: zhouzihao@zhejianglab.com
+- en: Zhejiang Lab &Yuanhang Yang
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浙江实验室 &杨元航
+- en: ysngkil@gmail.com
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ysngkil@gmail.com
+- en: Harbin Institute of Technology (Shenzhen) &Zenglin Xu
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 哈尔滨工业大学（深圳）&许增林
+- en: zenglin@gmail.com
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: zenglin@gmail.com
+- en: AI Innovation and Incubation Institute, Fudan University &Bin Liu
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AI创新与孵化研究院，复旦大学 &刘斌
+- en: bins@ieee.org
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: bins@ieee.org
+- en: Zhejiang Lab Equal contributionsY. Yang did this work during internship at Zhejiang
+    Lab.Corresponding author
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浙江实验室 平等贡献：杨阳在浙江实验室实习期间完成了这项工作。通讯作者
+- en: Abstract
+  id: totrans-21
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'Large language models (LLMs) encode a vast amount of world knowledge acquired
+    from massive text datasets. Recent studies have demonstrated that LLMs can assist
+    an embodied agent in solving complex sequential decision making tasks by providing
+    high-level instructions. However, interactions with LLMs can be time-consuming.
+    In many practical scenarios, it requires a significant amount of storage space
+    that can only be deployed on remote cloud servers. Additionally, using commercial
+    LLMs can be costly since they may charge based on usage frequency. In this paper,
+    we explore how to enable intelligent cost-effective interactions between a down
+    stream task oriented agent and an LLM. We find that this problem can be naturally
+    formulated by a Markov decision process (MDP), and propose When2Ask, a reinforcement
+    learning based approach that learns when it is necessary to query LLMs for high-level
+    instructions to accomplish a target task. On one side, When2Ask discourages unnecessary
+    redundant interactions, while on the other side, it enables the agent to identify
+    and follow useful instructions from the LLM. This enables the agent to halt an
+    ongoing plan and transition to a more suitable one based on new environmental
+    observations. Experiments on MiniGrid and Habitat environments that entail planning
+    sub-goals demonstrate that When2Ask learns to solve target tasks with only a few
+    necessary interactions with the LLM, significantly reducing interaction costs
+    in testing environments compared with baseline methods. Our code is available
+    at: https://github.com/ZJLAB-AMMI/LLM4RL.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）编码了从海量文本数据集中获得的世界知识。最近的研究表明，LLMs可以通过提供高层次的指令来帮助具身体代理解决复杂的序列决策任务。然而，与LLMs的互动可能是耗时的。在许多实际场景中，它需要大量的存储空间，这只能部署在远程云服务器上。此外，使用商业LLMs可能是昂贵的，因为它们可能根据使用频率收费。在本文中，我们探讨了如何使下游任务导向代理与LLMs之间进行智能且具有成本效益的互动。我们发现这个问题可以自然地通过马尔可夫决策过程（MDP）来公式化，并提出了When2Ask，这是一种基于强化学习的方法，可以学习何时需要查询LLMs以获得高层次的指令来完成目标任务。一方面，When2Ask可以抑制不必要的冗余互动；另一方面，它使代理能够识别并遵循LLM中的有用指令。这使得代理能够停止当前计划，并根据新的环境观察过渡到更合适的计划。在涉及规划子目标的MiniGrid和Habitat环境中的实验表明，When2Ask学会了通过仅与LLM进行少量必要的互动来解决目标任务，与基线方法相比，显著降低了在测试环境中的互动成本。我们的代码可在以下网址获取：https://github.com/ZJLAB-AMMI/LLM4RL。
+- en: 1 Introduction
+  id: totrans-23
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: 'To empower embodied agents with the capability to effectively handle demanding
+    sequential decision-making tasks, it is essential for them to possess reasoning
+    abilities that enable them to plan for the long-term consequences of their actions
+    Deitke et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib8)). Reinforcement
+    learning (RL), particularly deep RL, has emerged as a popular paradigm for addressing
+    these challenges. Deep RL involves agents interacting with the environment and
+    learning from feedback to improve their decision-making over time. Despite recent
+    advancements, several challenges still remains and limits its vast applications
+    in real world scenarios. For instance, solving complex problems using deep RL
+    often requires significant computational resources. Additionally, safety concerns
+    can arise during the learning phase, especially in scenarios where the agent’s
+    exploration might interact with the real world or other sensitive environments
+    Das et al. ([2018](https://arxiv.org/html/2306.03604v8#bib.bib6)); Chevalier-Boisvert
+    et al. ([2018](https://arxiv.org/html/2306.03604v8#bib.bib4)). As an alternative,
+    the emergence of large language models (LLMs) has shown promise in tackling these
+    issues. Previous studies have demonstrated that LLMs possess reasoning capabilities
+    Radford et al. ([2019](https://arxiv.org/html/2306.03604v8#bib.bib13)); Brown
+    et al. ([2020](https://arxiv.org/html/2306.03604v8#bib.bib2)); Wei et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib22)).
+    Researchers have explored leveraging LLMs’ reasoning abilities to solve various
+    embodied tasks, including robot manipulation tasks Ahn et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib1));
+    Huang et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib9)); Jiang et al.
+    ([2022](https://arxiv.org/html/2306.03604v8#bib.bib10)) and playing video games
+    Dasgupta et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)); Wang et al.
+    ([2023a](https://arxiv.org/html/2306.03604v8#bib.bib19); [c](https://arxiv.org/html/2306.03604v8#bib.bib21)).
+    As depicted in Fig. [1](https://arxiv.org/html/2306.03604v8#S1.F1 "Figure 1 ‣
+    1 Introduction ‣ Enabling Intelligent Interactions between an Agent and an LLM:
+    A Reinforcement Learning Approach"), the embodied agent interacts with the environment,
+    gathering information ralated to the target task, and utilizes LLMs as explicit
+    reasoners to make high-level plans using natural language instructions, such as
+    instructing a robot to “pick up a can of coke” or “place an apple on the table”.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了赋予具身智能体有效处理复杂顺序决策任务的能力，至关重要的是它们需要具备推理能力，使其能够规划行动的长期后果（Deitke 等人，[2022](https://arxiv.org/html/2306.03604v8#bib.bib8)）。强化学习（RL），特别是深度强化学习，已经成为应对这些挑战的热门范式。深度
+    RL 涉及智能体与环境的互动，并通过反馈不断学习，以改进其决策能力。尽管最近取得了显著进展，但仍然存在许多挑战，限制了其在现实世界场景中的广泛应用。例如，使用深度
+    RL 解决复杂问题通常需要大量的计算资源。此外，在学习阶段，尤其是在智能体的探索可能与现实世界或其他敏感环境发生交互的情况下，安全问题可能会出现（Das 等人，[2018](https://arxiv.org/html/2306.03604v8#bib.bib6)）；Chevalier-Boisvert
+    等人，[2018](https://arxiv.org/html/2306.03604v8#bib.bib4)）。作为一种替代方案，大型语言模型（LLMs）的出现已在解决这些问题上展现出前景。先前的研究表明，LLMs
+    具有推理能力（Radford 等人，[2019](https://arxiv.org/html/2306.03604v8#bib.bib13)）；Brown
+    等人，[2020](https://arxiv.org/html/2306.03604v8#bib.bib2)）；Wei 等人，[2022](https://arxiv.org/html/2306.03604v8#bib.bib22)）。研究人员已探索利用
+    LLMs 的推理能力来解决各种具身任务，包括机器人操作任务（Ahn 等人，[2022](https://arxiv.org/html/2306.03604v8#bib.bib1)）；Huang
+    等人，[2022](https://arxiv.org/html/2306.03604v8#bib.bib9)）；Jiang 等人，[2022](https://arxiv.org/html/2306.03604v8#bib.bib10)）以及玩电子游戏（Dasgupta
+    等人，[2023](https://arxiv.org/html/2306.03604v8#bib.bib7)）；Wang 等人，[2023a](https://arxiv.org/html/2306.03604v8#bib.bib19)；[c](https://arxiv.org/html/2306.03604v8#bib.bib21)）。如图[1](https://arxiv.org/html/2306.03604v8#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ Enabling Intelligent Interactions between an Agent
+    and an LLM: A Reinforcement Learning Approach")所示，具身智能体与环境互动，收集与目标任务相关的信息，并利用
+    LLMs 作为显式推理器，通过自然语言指令制定高级计划，例如指示机器人“拿起一罐可乐”或“将一个苹果放在桌子上”。'
+- en: '![Refer to caption](img/0bdf77881260388f02a986014605204a.png)'
+  id: totrans-25
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图例](img/0bdf77881260388f02a986014605204a.png)'
+- en: 'Figure 1: A general framework of using LLMs for solving complex embodied tasks.
+    The LLMs provide high-level instructions based on state descriptions, and the
+    agent generates low-level actions following these instructions and interacts with
+    the target environment to collect further feedback.'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：使用 LLMs 解决复杂具身任务的通用框架。LLMs 根据状态描述提供高级指令，智能体按照这些指令生成低级行动，并与目标环境互动以收集更多反馈。
+- en: While the integration of pre-trained LLMs as explicit planners in embodied agents
+    has demonstrated promising results, enabling efficient interaction between these
+    agents and LLMs to solve real-world problems remains challenging. Frequent queries
+    to LLMs can result in unnecessary resource wastage, including fees (if a commercial
+    LLM is used), communication overhead and reasoning time. Whereas insufficient
+    queries to LLMs prevent the agent from obtaining useful instructions in time to
+    adjust its plan to respond to the complex and changing environment.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管将预训练的LLM集成作为具身代理的显式规划器已经展示了有前景的结果，但使这些代理与LLM之间进行高效的互动，以解决现实世界问题，仍然是一个挑战。频繁向LLM查询可能导致不必要的资源浪费，包括费用（如果使用商业LLM）、通信开销和推理时间。而向LLM查询不足则会导致代理未能及时获得有效指令，从而无法调整其计划，以应对复杂多变的环境。
+- en: Determining an appropriate guideline for querying LLMs requires expert knowledge
+    of the target task. Consider a scenario where a robot is instructed to collect
+    a can of coke but encounters a locked door on its way to the kitchen. Ideally,
+    the agent should recognize this incident and adjust its plan accordingly by consulting
+    the LLM on how to deal with the locked door. In such cases, timely decision-making
+    regarding when to consult the LLM planner becomes crucial. Failure to interrupt
+    the ongoing action plan and request a new one in time can hinder task completion
+    progress or even lead to safety issues, such as damaging the door or the robot
+    itself. Conversely, frequent requests for plans from the LLM can be time-consuming
+    and costly, particularly when using commercial LLMs deployed on remote cloud servers
+    that charge based on usage frequency.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确定查询LLM的合适指导方针需要对目标任务有专家级的知识。假设有一个场景，一个机器人被指示去收集一罐可乐，但在前往厨房的路上遇到了一扇锁住的门。理想情况下，代理应能识别这一事件，并通过咨询LLM来调整计划，了解如何应对这扇锁住的门。在这种情况下，何时向LLM咨询的及时决策变得至关重要。如果未能及时中断当前的行动计划并请求新的计划，可能会妨碍任务完成的进展，甚至引发安全问题，比如损坏门或机器人本身。相反，频繁请求LLM的计划可能会消耗大量时间和成本，尤其是当使用部署在远程云服务器上的商业LLM时，这些服务器通常按使用频率收费。
+- en: In this paper, we propose When2Ask, a general approach that trains the agent
+    to make intelligent cost-effective interactions between itself and an LLM remotely
+    deployed. Our objective is to facilitate effective completion of a target task
+    while reducing unnecessary non-informative interactions with the LLM. Specifically,
+    we adopt a Planner-Actor-Mediator framework, similar to Dasgupta et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)),
+    where the planner is a pre-trained LLM used for making plans, the actor contains
+    policies for executing the plans, and the mediator serves as an interface in between
+    by deciding when to request a new plan and generating observation representations
+    for the planner (which are text descriptions). With a focus on optimizing interacting
+    timings, we use RL to learn an asking policy that instructs the agent to either
+    adhere to the current plan or request a new plan from the LLM.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文中，我们提出了When2Ask，这是一种通用方法，训练代理在与远程部署的LLM进行智能且具成本效益的互动。我们的目标是促进目标任务的有效完成，同时减少与LLM的无效互动。具体来说，我们采用了类似于Dasgupta等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib7)）的Planner-Actor-Mediator框架，其中规划器是用于制定计划的预训练LLM，演员包含执行计划的策略，而中介则作为两者之间的接口，通过决定何时请求新计划并为规划器生成观察表示（即文本描述）来进行调节。我们通过强化学习优化互动时机，学习一种提问策略，指导代理是坚持当前计划还是向LLM请求新计划。
+- en: 'To summarize, our *main contributions* include:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，我们的*主要贡献*包括：
+- en: •
+  id: totrans-31
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We propose an RL approach termed When2Ask to coordinate the interaction between
+    a down stream task oriented agent and a pre-trained LLM based on the Planner-Actor-Mediator
+    framework Dasgupta et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)).
+    Specifically, we propose to introduce an explicit asking policy in the mediator
+    and train it using an RL approach to determine when to query the LLM planner.
+  id: totrans-32
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出了一种名为When2Ask的强化学习（RL）方法，用于协调下游任务导向代理与基于预训练LLM的规划器之间的互动，基于Planner-Actor-Mediator框架（Dasgupta等人，[2023](https://arxiv.org/html/2306.03604v8#bib.bib7)）。具体来说，我们建议在中介层引入显式的提问策略，并使用强化学习方法训练它，以决定何时查询LLM规划器。
+- en: •
+  id: totrans-33
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We conducted a comprehensive evaluation of When2Ask against baseline methods
+    based on simulation platforms MiniGrid Chevalier-Boisvert et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib5))
+    and Habitat Szot et al. ([2021](https://arxiv.org/html/2306.03604v8#bib.bib17)).
+    The results demonstrate that the learned asking policy is able to make intelligent
+    decisions on when to query LLMs, resulting in high success rates with only a few
+    necessary LLM interactions in the testing phase. In contrast to conventional interaction
+    strategies that rely on predetermined termination criteria, When2Ask offers a
+    significant advantage by enabling the interruption of an ongoing plan in favor
+    of a new plan that addresses emerging observations.
+  id: totrans-34
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们对When2Ask在仿真平台MiniGrid（Chevalier-Boisvert等人，[2023](https://arxiv.org/html/2306.03604v8#bib.bib5)）和Habitat（Szot等人，[2021](https://arxiv.org/html/2306.03604v8#bib.bib17)）上的基准方法进行了全面评估。结果表明，学习到的提问策略能够在何时查询LLM做出智能决策，从而在测试阶段实现了高成功率，同时只需要少量的LLM交互。与依赖预设终止标准的传统交互策略相比，When2Ask通过允许中断正在进行的计划并启动一个新的计划来应对新出现的观察，提供了显著的优势。
+- en: 2 Preliminary
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 初步
+- en: 2.1 The Options Framework
+  id: totrans-36
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 选项框架
+- en: We consider sequential decision-making in embodied environments, which is commonly
+    formalized as a Markov decision process (MDP), denoted as $\mathcal{M}=\langle\mathcal{S},\mathcal{A},p,r,\gamma\rangle$.
+    Here $\mathcal{S}$ represents the state space, $\mathcal{A}$ represents the action
+    spaces, $p(s^{\prime}|s,a)$ denotes the state transition probability function,
+    $r(s,a)$ represents the reward function, and $\gamma$ is the discount factor.
+    The objective is to learn an optimal policy that maximizes the cumulative reward
+    over time $\sum_{t}\gamma^{t}r(s_{t},a_{t})$, where $t$ denotes the time index.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们考虑在具身环境中进行的顺序决策，这通常形式化为马尔可夫决策过程（MDP），表示为$\mathcal{M}=\langle\mathcal{S},\mathcal{A},p,r,\gamma\rangle$。这里$\mathcal{S}$表示状态空间，$\mathcal{A}$表示动作空间，$p(s^{\prime}|s,a)$表示状态转移概率函数，$r(s,a)$表示奖励函数，$\gamma$是折扣因子。目标是学习一个最优策略，最大化随着时间的累积奖励$\sum_{t}\gamma^{t}r(s_{t},a_{t})$，其中$t$表示时间索引。
+- en: The options framework extends the traditional notion of action in an MDP to
+    include options, which are essentially closed-loop policies that encompass a sequence
+    of actions over a period of time Sutton et al. ([1999](https://arxiv.org/html/2306.03604v8#bib.bib16));
+    Precup ([2000](https://arxiv.org/html/2306.03604v8#bib.bib12)). Options can range
+    from higher-level tasks such as picking up an object or going to lunch, to more
+    primitive actions like muscle twitches and joint torques. The introduction of
+    options allows for the incorporation of temporally abstract knowledge and action
+    within the RL framework in a natural and general manner, thus provides a flexible
+    and intuitive approach to handle complex tasks with varying levels of granularity.
+    Formally, an option $\omega$ is defined as a 3-tuple $\langle\mathcal{I_{\omega}},\pi_{\omega},\beta_{\omega}\rangle,$
+    where $\mathcal{I}_{\omega}$ represents the initial state set, $\pi_{\omega}$
+    denotes the acting policy, and $\beta_{\omega}$ represents the termination condition
+    for this option. Given a state $s$, a policy-over-options would select an option
+    $\omega$ from the set of available options $\Omega$. The agent would then plan
+    low-level actions by following its current option policy $a\sim\pi(\cdot|s,\omega)$
+    until the termination condition $\beta_{\omega}$ is satisfied. In our work, we
+    use pre-defined skills as options and a pre-trained LLM as the policy-over-options
+    to generate high-level options.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选项框架扩展了MDP中传统的动作概念，包含了选项，选项本质上是封闭回路策略，涵盖了在一段时间内的动作序列（Sutton等人，[1999](https://arxiv.org/html/2306.03604v8#bib.bib16)；Precup，[2000](https://arxiv.org/html/2306.03604v8#bib.bib12)）。选项可以从较高级的任务（如捡起物体或去吃午餐）到更原始的动作（如肌肉抽搐和关节扭矩）不等。引入选项使得在RL框架内以一种自然且通用的方式结合了时间抽象的知识和动作，从而提供了一种灵活直观的方法来处理具有不同粒度的复杂任务。形式上，一个选项$\omega$被定义为一个三元组$\langle\mathcal{I_{\omega}},\pi_{\omega},\beta_{\omega}\rangle$，其中$\mathcal{I}_{\omega}$表示初始状态集，$\pi_{\omega}$表示执行策略，$\beta_{\omega}$表示该选项的终止条件。给定一个状态$s$，一个策略-选项将从可用选项集合$\Omega$中选择一个选项$\omega$。然后，代理将通过遵循当前选项策略$a\sim\pi(\cdot|s,\omega)$来规划低级动作，直到终止条件$\beta_{\omega}$得到满足。在我们的工作中，我们使用预定义的技能作为选项，并使用预训练的LLM作为策略-选项来生成高级选项。
+- en: 2.2 LLM as a Planner
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 LLM作为规划器
+- en: Recent research has shown that LLMs have achieved significant success in various
+    tasks within embodied environments Wang et al. ([2023b](https://arxiv.org/html/2306.03604v8#bib.bib20);
+    [c](https://arxiv.org/html/2306.03604v8#bib.bib21)); Ahn et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib1)).
+    Taking inspiration from these works, we employ a pre-trained LLM to act as a planner,
+    generating a sequence of options using descriptions of observations and tasks.
+    The generated plan, represented as a list of options $[\omega_{k}]_{k=1,...,K}$,
+    is then executed by following the corresponding option policies. Formally, with
+    text descriptions as input prompts, the LLM outputs a plan in the form of a sequence
+    of options. An actor module subsequently generates low-level actions at each time
+    step, following the option policy $\pi(a|s;\omega_{k})$. The policies for the
+    actor module, $\pi_{\omega}$, can either be hard-coded or learned from data.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的研究表明，大型语言模型（LLMs）在具身环境中的各类任务中取得了显著成功（Wang等人，[2023b](https://arxiv.org/html/2306.03604v8#bib.bib20);
+    [c](https://arxiv.org/html/2306.03604v8#bib.bib21)）；Ahn等人（[2022](https://arxiv.org/html/2306.03604v8#bib.bib1)）也有类似的研究。受这些工作的启发，我们采用了一个预训练的LLM作为规划器，利用观察和任务的描述生成一系列选项。生成的计划，以选项序列$[\omega_{k}]_{k=1,...,K}$表示，随后通过遵循相应的选项策略来执行。形式上，使用文本描述作为输入提示，LLM输出一个以选项序列为形式的计划。然后，一个演员模块在每个时间步骤生成低级动作，按照选项策略$\pi(a|s;\omega_{k})$执行。演员模块的策略$\pi_{\omega}$可以是硬编码的，也可以从数据中学习得来。
+- en: 3 Related work
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 相关工作
+- en: LLMs have emerged as powerful tools for plan generation. There are some research
+    works focusing on designing effective interfaces between planners and actors.
+    In Ahn et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib1)), LLMs are
+    employed to plan the entire sequence of options at the beginning of each task,
+    enabling the agent to complete the task without further interaction with the planner.
+    In Wang et al. ([2023c](https://arxiv.org/html/2306.03604v8#bib.bib21)), the authors
+    introduce a feedback system where the agent requests the LLM to generate an updated
+    plan based on environmental feedback when the execution of the previous plan fails.
+    This approach enhances the robustness of the acting agent in the face of environmental
+    uncertainties. However, these methods often rely on hard-coded failure detectors
+    or apply a threshold to limit the number of permissible MDP state-transition timesteps
+    for an option. In Ren et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib14)),
+    a framework is proposed for measuring and aligning the uncertainty of LLM-based
+    planners, allowing them to seek assistance from humans when necessary. In addition,
+    Dasgupta et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)) introduce
+    the Planner-Actor-Reporter framework, which includes a reporter module to enhance
+    information exchange between the actor and the LLM-based planner. In this framework,
+    the agent interacts with the LLM at each timestep, regardless of whether new information
+    is acquired or not. While this approach eliminates the need for hard-coded termination
+    conditions and reduces uncertainties during option execution, it leads to excessive
+    resource consumption, especially when utilizing a large-scale and expensive LLM
+    as the planner.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLMs已经成为强大的计划生成工具。有一些研究专注于设计规划者和演员之间的有效接口。在Ahn等人（[2022](https://arxiv.org/html/2306.03604v8#bib.bib1)）的研究中，LLMs被用于在每个任务开始时规划整个选项序列，使得代理能够在不与规划者进一步交互的情况下完成任务。在Wang等人（[2023c](https://arxiv.org/html/2306.03604v8#bib.bib21)）的研究中，作者提出了一个反馈系统，其中代理在执行前一个计划失败时，要求LLM根据环境反馈生成更新的计划。这种方法增强了演员在面对环境不确定性时的鲁棒性。然而，这些方法通常依赖于硬编码的故障检测器，或应用阈值限制选项允许的MDP状态转换时间步数。在Ren等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib14)）的研究中，提出了一个框架，用于衡量和对齐基于LLM的规划者的不确定性，使它们在必要时可以寻求人类的帮助。此外，Dasgupta等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib7)）提出了规划者-演员-报告者（Planner-Actor-Reporter）框架，其中包括一个报告者模块，增强了演员与基于LLM的规划者之间的信息交换。在这个框架中，代理在每个时间步与LLM进行交互，无论是否获得了新的信息。尽管这种方法消除了硬编码的终止条件需求，并减少了选项执行中的不确定性，但它导致了过度的资源消耗，尤其是在使用大规模且昂贵的LLM作为规划者时。
+- en: In this paper, we propose learning an interaction policy that enables the agent
+    to interact with a remote LLM in an autonomous and “smarter” way. We empirically
+    demonstrate that our approach overcomes the limitations of previously mentioned
+    hard-coded rule-based interaction protocols or protocols that entail querying
+    the LLM at each timestep.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们提出学习一种交互策略，使代理能够以自主和“更智能”的方式与远程LLM进行交互。我们通过实验证明，我们的方法克服了之前提到的基于硬编码规则的交互协议或需要在每个时间步查询LLM的协议的局限性。
+- en: 4 Our Approach When2Ask
+  id: totrans-44
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 我们的When2Ask方法
+- en: We design When2Ask based on the Planner-Actor-Mediator framework Dasgupta et al.
+    ([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)). In particular, we enhance
+    this framework by incorporating an mediator model that learns to facilitate intelligent
+    and cost-effective interactions between the agent and the LLM using RL.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们基于规划者-行动者-调解者框架（Dasgupta 等人，([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)））设计了When2Ask方法。特别地，我们通过引入一个调解者模型来增强该框架，使其能够通过强化学习（RL）促进代理与LLM之间的智能且高效的互动。
+- en: 4.1 The Planner-Actor-Mediator Framework
+  id: totrans-46
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 规划者-行动者-调解者框架
+- en: 'This framework consists of three components, as illustrated in Fig. [2](https://arxiv.org/html/2306.03604v8#S4.F2
+    "Figure 2 ‣ 4.1 The Planner-Actor-Mediator Framework ‣ 4 Our Approach When2Ask
+    ‣ Enabling Intelligent Interactions between an Agent and an LLM: A Reinforcement
+    Learning Approach"): the planner, the actor and the mediator. The planner component
+    is responsible for providing high-level instructions to guide the agent’s actions.
+    The actor component generates low-level actions based on these instructions. Lastly,
+    the mediator acts as an interface between the planner and the actor, facilitating
+    communication and coordination between them.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该框架由三个组成部分构成，如图[2](https://arxiv.org/html/2306.03604v8#S4.F2 "图 2 ‣ 4.1 规划者-行动者-调解者框架
+    ‣ 4 我们的When2Ask方法 ‣ 启用智能代理与LLM之间的交互：一种强化学习方法")所示：规划者、行动者和调解者。规划者组件负责提供高层次的指令，以指导代理的行动。行动者组件根据这些指令生成低层次的动作。最后，调解者充当规划者与行动者之间的接口，促进它们之间的沟通和协调。
+- en: '![Refer to caption](img/dee0d880a287779b56b28e01a072a0ab.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考图注](img/dee0d880a287779b56b28e01a072a0ab.png)'
+- en: 'Figure 2: An overview of the Planner-Actor-Mediator paradigm and an example
+    of the interactions. At each time step, the mediator takes the observation $o_{t}$
+    as input and decides whether to ask the LLM planner for new instructions or not.
+    When the asking policy decides to ask, as demonstrated with a red dashed line,
+    the translator converts $o_{t}$ into text descriptions, and the planner outputs
+    a new plan accordingly for the actor to follow. On the other hand, when the mediator
+    decides to not ask, as demonstrated with a green dashed line, the mediator returns
+    to the actor directly, telling it to continue with the current plan.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：规划者-行动者-调解者范式的概览及其交互示例。在每个时间步，调解者将观察$o_{t}$作为输入，并决定是否向LLM规划者请求新的指令。当询问策略决定提问时，如红色虚线所示，翻译器将$o_{t}$转换为文本描述，规划者则根据此生成新的计划供行动者遵循。另一方面，当调解者决定不提问时，如绿色虚线所示，调解者直接返回给行动者，告诉它继续当前计划。
+- en: Planner  The planner component reads text-based descriptions of the current
+    state and generates a plan for the next high-level option or a sequence of options
+    to perform. In our framework, we utilize a pre-trained LLM as the planner. The
+    LLM receives the descriptions of the current observation and is asked to generate
+    high-level skill instructions for the actor. Whenever the planner is activated,
+    the LLM generates an option plan given the descriptions provided with appropriately
+    designed prompts.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规划者 规划者组件读取当前状态的基于文本的描述，并生成下一个高层次选项或一系列要执行的选项的计划。在我们的框架中，我们利用预训练的LLM作为规划者。LLM接收当前观察的描述，并被要求为行动者生成高层次的技能指令。每当规划者被激活时，LLM根据提供的描述并通过适当设计的提示生成选项计划。
+- en: Actor  The actor component is responsible for planning the low-level actions
+    that align with the instructed option, such as “go to the red door” or “pick up
+    the yellow key”. In our approach, we consider these option policies to be hard-coded
+    using human expert knowledge. It is also possible to pre-train these policies
+    using option-conditioned reward functions to achieve more complex skills.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 行动者 行动者组件负责规划与指令选项相一致的低层次动作，例如“走到红门”或“拿起黄色钥匙”。在我们的方法中，我们将这些选项策略视为通过人工专家知识硬编码的。也可以通过使用选项条件奖励函数预训练这些策略，以实现更复杂的技能。
+- en: 'Mediator  In this work, our primary focus is on designing an intelligent mediator
+    component within the Planner-Actor-Mediator framework. Our approach involves training
+    an explicit asking policy using RL to determine when to interact with the planner.
+    The mediator component consists of two sub-components: an asking policy that decides
+    whether to request a new plan from the planner based on observations and the current
+    option, and a translator module that converts observations into text descriptions
+    readable by the LLM. Following Ahn et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib1));
+    Carta et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib3)), we assume
+    the availability of an expert translator here. In our experiments, the translator
+    is designed with two stages. Firstly, we extract the IDs of objects, such as keys,
+    doors, and boxes, observed within the field of view of the agent using the built-in
+    interface of the simulation platform. Next, we input this information into our
+    predefined prompt template and output it to LLM in a fixed format. An example
+    of the format can be seen in the green box of Fig.[4](https://arxiv.org/html/2306.03604v8#S5.F4
+    "Figure 4 ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach"). The translator
+    can also be learned from data Wang et al. ([2023c](https://arxiv.org/html/2306.03604v8#bib.bib21));
+    Dasgupta et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)).'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 中介组件  在本研究中，我们的主要关注点是设计一个智能中介组件，作为规划者-行动者-中介框架中的一部分。我们的方法涉及使用强化学习（RL）训练一个明确的询问策略，以决定何时与规划者交互。中介组件由两个子组件组成：一个询问策略，它根据观察和当前选项决定是否请求新的计划；以及一个翻译模块，它将观察转化为LLM可读的文本描述。根据Ahn等人（[2022](https://arxiv.org/html/2306.03604v8#bib.bib1)）和Carta等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib3)）的研究，我们假设这里有一个专家翻译器。在我们的实验中，翻译器设计了两个阶段。首先，我们通过仿真平台的内建接口提取代理视野内的物体ID，例如钥匙、门和盒子。然后，我们将这些信息输入到我们预定义的提示模板中，并以固定格式输出给LLM。该格式的示例可以在图[4](https://arxiv.org/html/2306.03604v8#S5.F4
+    "图4 ‣ 5.2 MiniGrid实验 ‣ 5 实验 ‣ 使代理与LLM之间的智能交互成为可能：一种强化学习方法")的绿色框中看到。翻译器也可以通过数据进行学习，参见Wang等人（[2023c](https://arxiv.org/html/2306.03604v8#bib.bib21)）和Dasgupta等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib7)）。
+- en: 4.2 Learning asking policy with RL
+  id: totrans-53
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 使用强化学习学习询问策略
+- en: Here we introduce our proposed approach to learn an asking policy for use in
+    the mediator component.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们介绍了我们提出的用于学习询问策略的方式，旨在用于中介组件。
+- en: 'As mentioned earlier, interacting with the LLM can be costly. Ideally, the
+    asking policy should be trained to enable the agent to request a new plan from
+    the LLM only when it discovers new and informative observations. The expectation
+    is that the LLM will provide a different plan in response to these new observations.
+    To address this, we formulate the problem as an MDP, where the state includes
+    information about the agent’s observation and current option in action. The action
+    space consists of two actions: “Ask” and “Not Ask”. In this formulation, the LLM
+    planner is considered as part of the environment that can influence state transitions.
+    The reward function consists of both the task-related return, denoted as $r$,
+    and an additional penalty term that penalizes unnecessary interactions. Specifically,
+    when the asking policy decides to ask the LLM for a new plan, but the plan provided
+    by the LLM remains the same as the current one, the agent incurs a penalty. This
+    penalty encourages the asking policy to avoid unnecessary interactions and ensures
+    that requesting a new plan is primarily motivated by the discovery of new informative
+    observations.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如前所述，与大语言模型（LLM）交互可能会很昂贵。理想情况下，询问策略应当训练使代理只有在发现新的、有价值的观察时才向LLM请求新的计划。预期的是，LLM会对这些新的观察提供不同的计划。为了解决这个问题，我们将问题表述为一个马尔可夫决策过程（MDP），其中状态包含代理的观察信息和当前行动选项。行动空间包括两种行动：“询问”和“不询问”。在这个表述中，LLM规划器被视为环境的一部分，能够影响状态转移。奖励函数由任务相关的回报（记作$r$）和一个额外的惩罚项组成，后者对不必要的交互进行惩罚。具体来说，当询问策略决定向LLM请求新计划时，如果LLM提供的计划与当前计划相同，代理将遭受惩罚。这个惩罚促使询问策略避免不必要的交互，确保请求新计划的主要动机是发现了新的、有价值的观察。
+- en: 'Denote the asking policy as $\pi^{\text{ask}}$ with its parameters represented
+    by $\theta$. We train this policy using standard on-policy RL methods, specifically
+    Proximal Policy Optimization (PPO) Schulman et al. ([2017](https://arxiv.org/html/2306.03604v8#bib.bib15)).
+    The objective function for training the asking policy is defined as follows:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将询问策略表示为 $\pi^{\text{ask}}$，其参数由 $\theta$ 表示。我们使用标准的基于策略的强化学习（RL）方法来训练该策略，特别是近端策略优化（PPO）Schulman等人（[2017](https://arxiv.org/html/2306.03604v8#bib.bib15)）。训练询问策略的目标函数定义如下：
+- en: '|  | $\max_{\theta}\sum_{t=1}\big{[}\gamma^{t}r_{t}-\lambda\mathbbm{1}(y_{t}==%
+    \textit{Ask}\land\omega_{t}==\omega_{t-1})\big{]},$ |  | (1) |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\max_{\theta}\sum_{t=1}\big{[}\gamma^{t}r_{t}-\lambda\mathbbm{1}(y_{t}==%
+    \textit{Ask}\land\omega_{t}==\omega_{t-1})\big{]},$ |  | (1) |'
+- en: where $y_{t}\in\{\textit{Ask},\textit{Not Ask}\}$ represents the decision made
+    by the asking policy at timestep $t$, $r_{t}$ denotes the task reward obtained
+    at $t$, and $\omega_{t}$ is the planned option provided by the LLM at $t$. The
+    penalty factor $\lambda$ is used to balance the importance of avoiding unnecessary
+    interactions. Note that if the decision made by the asking policy is “Not Ask”
+    ($y_{t}==\textit{Not Ask}$), we set $\omega_{t}$ to be the plan executed at the
+    previous timestep, namely let $\omega_{t}=\omega_{t-1}$. This ensures that if
+    the agent decides not to ask for a new plan, it continues executing the same plan
+    as before. During each iteration, data is collected on-policy using the model
+    $\pi^{\text{ask}}_{\theta}$.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中 $y_{t}\in\{\textit{Ask},\textit{Not Ask}\}$ 表示询问策略在时间步 $t$ 做出的决策，$r_{t}$
+    表示在 $t$ 时刻获得的任务奖励，$\omega_{t}$ 是LLM在 $t$ 时刻提供的规划选项。惩罚因子 $\lambda$ 用于平衡避免不必要交互的重要性。请注意，如果询问策略做出的决策是“Not
+    Ask” ($y_{t}==\textit{Not Ask}$)，我们将 $\omega_{t}$ 设置为前一个时间步执行的计划，即让 $\omega_{t}=\omega_{t-1}$。这确保了如果智能体决定不请求新的计划，它将继续执行之前的相同计划。在每次迭代过程中，数据是通过基于策略的方式使用模型
+    $\pi^{\text{ask}}_{\theta}$ 收集的。
+- en: 5 Experiments
+  id: totrans-59
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 实验
+- en: 'We seek to address the following questions by experiments, : can our agent
+    effectively reduce interaction costs while maintaining a high target task completion
+    rate, compared with baseline methods? Can our agent proactively seek assistance
+    from an LLM in exploratory environments? The experimental results indicate that
+    the answer to both questions is yes. As a byproduct, we find that our approach
+    is able to tolerate the imperfection of a crucial component, the translator in
+    the mediator module, which is used to convert observed images into textual descriptions
+    (refer details to the Appendix). We employ two versions of the Vicuna model (Vicuna-7b
+    and Vicuna-13b) Touvron et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib18))
+    as LLM planners.'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过实验来回答以下问题：我们的智能体是否能够有效地降低交互成本，同时保持较高的目标任务完成率，相较于基准方法？我们的智能体是否能够在探索性环境中主动寻求来自大语言模型（LLM）的帮助？实验结果表明，两个问题的答案都是肯定的。作为副产品，我们发现我们的方法能够容忍一个关键组件的
+    imperfection——即中介模块中的翻译器，该翻译器用于将观察到的图像转换为文本描述（具体细节请参见附录）。我们采用了两种版本的Vicuna模型（Vicuna-7b和Vicuna-13b）Touvron等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib18)）作为LLM规划器。
+- en: 5.1 Baselines
+  id: totrans-61
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 基准线
+- en: 'In our experiments, we considered four baseline interaction methods as follows:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们考虑了以下四种基准交互方法：
+- en: Hard-coded  The timing and conditions for requesting new instructions from LLMs
+    are manually determined by human experts for each option Wang et al. ([2023c](https://arxiv.org/html/2306.03604v8#bib.bib21)).
+    The agent will only request a new plan from the LLM planner when specific termination
+    conditions for the option are met. These conditions involve a goal-finishing detector
+    and a constraint on the maximum number of allowed timesteps. For example, let’s
+    consider the option “go to the red door.” The termination condition for this option
+    specifies that the agent should reach the target door location or exceed 100 timesteps
+    spent on this option.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 硬编码 从LLM请求新指令的时机和条件由人工专家手动为每个选项确定Wang等人（[2023c](https://arxiv.org/html/2306.03604v8#bib.bib21)）。智能体只有在满足选项的特定终止条件时，才会从LLM规划器请求新的计划。这些条件涉及目标完成检测器以及允许的最大步数限制。例如，考虑选项“去红门”。该选项的终止条件指定智能体应到达目标门位置或在该选项上花费超过100个时间步。
+- en: Always  The agent queries the LLM planner at every timestep, ensuring that any
+    newly acquired information is immediately relayed to the planner Dasgupta et al.
+    ([2023](https://arxiv.org/html/2306.03604v8#bib.bib7)). This strategy theoretically
+    leads to better task performance as there is no delay between gathering new information
+    and requesting a re-plan. However, it comes with the drawback of consuming significantly
+    more interaction resources.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 始终  代理在每个时间步都向LLM规划器查询，确保任何新获取的信息立即传递给规划器，Dasgupta等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib7)）。这种策略理论上会带来更好的任务执行性能，因为收集新信息与请求重新规划之间没有延迟。然而，它的缺点是会消耗更多的交互资源。
+- en: Random  At each timestep, the agent has a fixed probability of 50% to query
+    the LLM for instructions.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随机  在每个时间步，代理有50%的固定概率向LLM查询指令。
+- en: Never  The agent never interacts with the LLM. Instead, the policy-over-options
+    (i.e., the planner) is learned using RL techniques based on data collected during
+    interactions with the environment Sutton et al. ([1999](https://arxiv.org/html/2306.03604v8#bib.bib16));
+    Precup ([2000](https://arxiv.org/html/2306.03604v8#bib.bib12)). This means that
+    the agent learns to make decisions and generate plans without actively querying
+    the LLM in real-time decision-making. By comparing this method with other approaches,
+    we can assess the contribution of using an LLM as the planner. This comparison
+    helps evaluate the effectiveness and advantages of incorporating a pre-trained
+    LLM into the planning process.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从不  代理从不与LLM互动。相反，选项策略（即规划器）是通过基于与环境互动过程中收集的数据，使用强化学习（RL）技术进行学习的，Sutton等人（[1999](https://arxiv.org/html/2306.03604v8#bib.bib16)）；Precup（[2000](https://arxiv.org/html/2306.03604v8#bib.bib12)）。这意味着代理学会在没有实时查询LLM的情况下做出决策并生成计划。通过将这种方法与其他方法进行比较，我们可以评估使用LLM作为规划器的贡献。这种比较有助于评估将预训练LLM纳入规划过程的有效性和优势。
+- en: 5.2 MiniGrid Experiments
+  id: totrans-67
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 MiniGrid 实验
+- en: The MiniGrid environment consists of a collection of 2D grid-world environments
+    with goal-oriented tasks Chevalier-Boisvert et al. ([2023](https://arxiv.org/html/2306.03604v8#bib.bib5)).
+    In these environments, the agent must navigate within a 2D grid room and interact
+    with specific objects to complete various tasks, such as “open the red door” or
+    “put the green ball next to the yellow box”.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MiniGrid环境由一系列2D网格世界环境组成，具有目标导向的任务，Chevalier-Boisvert等人（[2023](https://arxiv.org/html/2306.03604v8#bib.bib5)）。在这些环境中，代理必须在一个2D网格房间内导航，并与特定对象互动以完成各种任务，如“打开红色门”或“将绿色球放到黄色箱子旁边”。
+- en: 'One important characteristic of this environment is that the agent’s view range
+    is limited. This means that the agent needs to explore the environment and gather
+    useful information to plan its actions effectively. The environment returns observations
+    in the form of a full grid, but with unexplored areas occluded, similar to the
+    concept of “fog of war” in games like StarCraft. Technically, the observation
+    returned by the environment has a shape of $o\in\mathbb{R}^{W\times H\times 4}$,
+    where $W$ and $H$ represent the width and height of the grid, respectively. For
+    an unexplored grid at location $[w,h]$, the observation returns the vector $[-1,-1,-1,-1]$.
+    For an explored grid, the corresponding 4D vector contains information about the
+    object ID, color ID, state ID (e.g., closed or locked for a door), and the agent’s
+    direction ID (indicating the agent’s orientation if it is present at this location,
+    or 4 otherwise). This design allows us to focus on the agent’s reasoning ability
+    and exclude potential influences from factors like memorization. Fig. [3](https://arxiv.org/html/2306.03604v8#S5.F3
+    "Figure 3 ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach") provides an example
+    of the environment setup in the SimpleDoorKey scenario.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个环境的一个重要特点是智能体的视野范围有限。这意味着智能体需要探索环境并收集有用的信息，以有效地规划其行动。环境以完整网格的形式返回观测值，但未探索的区域被遮蔽，类似于《星际争霸》等游戏中的“战争迷雾”概念。从技术上讲，环境返回的观测值形状为$o\in\mathbb{R}^{W\times
+    H\times 4}$，其中$W$和$H$分别表示网格的宽度和高度。对于位置$[w,h]$处的未探索网格，观测值返回向量$[-1,-1,-1,-1]$。对于已探索的网格，相应的4D向量包含有关对象ID、颜色ID、状态ID（例如门是否关闭或锁定）和智能体方向ID的信息（如果智能体位于该位置，则表示智能体的方向，否则为4）。这一设计使我们能够专注于智能体的推理能力，并排除记忆等因素的潜在影响。[图3](https://arxiv.org/html/2306.03604v8#S5.F3
+    "图3 ‣ 5.2 MiniGrid实验 ‣ 5 实验 ‣ 使智能体与LLM之间的智能互动成为可能：一种强化学习方法")展示了SimpleDoorKey场景中环境设置的示例。
+- en: <svg class="ltx_picture ltx_centering" height="171.34" id="S5.F3.pic1" overflow="visible"
+    version="1.1" width="560.77"><g transform="translate(0,171.34) matrix(1 0 0 -1
+    0 0) translate(50.17,0) translate(0,121.65)"><g fill="#000000" stroke="#000000"
+    stroke-width="0.1pt" transform="matrix(1.0 0.0 0.0 1.0 -45 -45)"><foreignobject
+    height="90" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="90">![Refer
+    to caption](img/3ff78d0125512ef12a63ff496ca8b352.png)</foreignobject></g><g fill="#000000"
+    stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0 0.0 1.0 70.11
+    -45)"><foreignobject height="90" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="90">![Refer to caption](img/7c89a97cae2024a034d7ab046711f67f.png)</foreignobject></g><g
+    fill="#000000" stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0
+    0.0 1.0 185.22 -45)"><foreignobject height="90" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">![Refer to caption](img/f276296a98ca986208df9daae0411e48.png)</foreignobject></g><g
+    fill="#000000" stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0
+    0.0 1.0 300.33 -45)"><foreignobject height="90" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">![Refer to caption](img/eb82c6f7418e3a67f7b3cae618333b38.png)</foreignobject></g><g
+    fill="#000000" stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0
+    0.0 1.0 415.44 -45)"><foreignobject height="90" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">![Refer to caption](img/729504ab76cafd21f8d8b7ab31bfab80.png)</foreignobject></g>
+    <g fill="#000000" stroke="#000000" stroke-width="0.8pt" transform="matrix(1.0
+    0.0 0.0 1.0 -45 -96.89)"><foreignobject height="16.6" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">observed nothing <g fill="#F2FFF2" stroke="#66FF66"
+    stroke-width="0.8pt"><path d="M 159.19 -69.92 L 71.03 -69.92 C 67.98 -69.92 65.5
+    -72.4 65.5 -75.45 L 65.5 -115.57 C 65.5 -118.62 67.98 -121.1 71.03 -121.1 L 159.19
+    -121.1 C 162.24 -121.1 164.72 -118.62 164.72 -115.57 L 164.72 -75.45 C 164.72
+    -72.4 162.24 -69.92 159.19 -69.92 Z M 65.5 -121.1"></path></g> <g fill="#000000"
+    stroke="#000000" stroke-width="0.8pt" transform="matrix(1.0 0.0 0.0 1.0 70.11
+    -96.89)"><foreignobject height="16.6" overflow="visible" transform="matrix(1 0
+    0 -1 0 16.6)" width="90">observed green key</foreignobject></g> <g fill="#F2FFF2"
+    stroke="#66FF66" stroke-width="0.8pt"><path d="M 274.3 -69.92 L 186.14 -69.92
+    C 183.09 -69.92 180.61 -72.4 180.61 -75.45 L 180.61 -115.57 C 180.61 -118.62 183.09
+    -121.1 186.14 -121.1 L 274.3 -121.1 C 277.35 -121.1 279.83 -118.62 279.83 -115.57
+    L 279.83 -75.45 C 279.83 -72.4 277.35 -69.92 274.3 -69.92 Z M 180.61 -121.1"></path></g>
+    <g fill="#000000" stroke="#000000" stroke-width="0.8pt" transform="matrix(1.0
+    0.0 0.0 1.0 185.22 -96.89)"><foreignobject height="16.6" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">observed green key</foreignobject></g> <g fill="#F2FFF2"
+    stroke="#66FF66" stroke-width="0.8pt"><path d="M 389.41 -69.92 L 301.25 -69.92
+    C 298.2 -69.92 295.72 -72.4 295.72 -75.45 L 295.72 -115.57 C 295.72 -118.62 298.2
+    -121.1 301.25 -121.1 L 389.41 -121.1 C 392.46 -121.1 394.94 -118.62 394.94 -115.57
+    L 394.94 -75.45 C 394.94 -72.4 392.46 -69.92 389.41 -69.92 Z M 295.72 -121.1"></path></g>
+    <g fill="#000000" stroke="#000000" stroke-width="0.8pt" transform="matrix(1.0
+    0.0 0.0 1.0 300.33 -96.89)"><foreignobject height="16.6" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">observed green door, carrying green key</foreignobject></g>
+    <g fill="#FFF9F2" stroke="#FFB366" stroke-width="0.8pt"><path d="M 410.83 -121.1
+    h 99.22 v 51.18 h -99.22 Z"></path></g> <g fill="#000000" stroke="#000000" stroke-width="0.8pt"
+    transform="matrix(1.0 0.0 0.0 1.0 415.44 -100.35)"><foreignobject height="9.69"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="90">Finished!</foreignobject></g>
+    <g fill="#000000" stroke="#000000"><g stroke-width="0.4pt"><path d="M 49.68 0
+    L 64.79 0" style="fill:none"><g stroke-dasharray="none" stroke-dashoffset="0.0pt"
+    stroke-linecap="round" stroke-linejoin="round" stroke-width="0.32pt" transform="matrix(1.0
+    0.0 0.0 1.0 64.79 0)"><path d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14
+    -1.52 -1.38 -1.66 -2.21" style="fill:none"></path></g><path d="M 164.79 0 L 179.9
+    0" style="fill:none"><g stroke-dasharray="none" stroke-dashoffset="0.0pt" stroke-linecap="round"
+    stroke-linejoin="round" stroke-width="0.32pt" transform="matrix(1.0 0.0 0.0 1.0
+    179.9 0)"><path d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14 -1.52 -1.38
+    -1.66 -2.21" style="fill:none"></path></g><path d="M 279.9 0 L 295.01 0" style="fill:none"><g
+    stroke-dasharray="none" stroke-dashoffset="0.0pt" stroke-linecap="round" stroke-linejoin="round"
+    stroke-width="0.32pt" transform="matrix(1.0 0.0 0.0 1.0 295.01 0)"><path d="M
+    -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14 -1.52 -1.38 -1.66 -2.21" style="fill:none"></path></g><path
+    d="M 395.01 0 L 410.12 0" style="fill:none"><g stroke-dasharray="none" stroke-dashoffset="0.0pt"
+    stroke-linecap="round" stroke-linejoin="round" stroke-width="0.32pt" transform="matrix(1.0
+    0.0 0.0 1.0 410.12 0)"><path d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14
+    -1.52 -1.38 -1.66 -2.21" style="fill:none"></path></g><g stroke-dasharray="3.0pt,3.0pt"
+    stroke-dashoffset="0.0pt"><path d="M 0 -49.68 L 0 -68.73" style="fill:none"></path></g><g
+    stroke-dasharray="none" stroke-dashoffset="0.0pt" stroke-linecap="round" stroke-linejoin="round"
+    stroke-width="0.32pt" transform="matrix(0.0 -1.0 1.0 0.0 0 -68.73)"><path d="M
+    -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14 -1.52 -1.38 -1.66 -2.21" style="fill:none"></path></g><g
+    stroke-dasharray="3.0pt,3.0pt" stroke-dashoffset="0.0pt"><path d="M 115.11 -49.68
+    L 115.11 -68.73" style="fill:none"></path></g><g stroke-dasharray="none" stroke-dashoffset="0.0pt"
+    stroke-linecap="round" stroke-linejoin="round" stroke-width="0.32pt" transform="matrix(0.0
+    -1.0 1.0 0.0 115.11 -68.73)"><path d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0
+    C 0 -0.14 -1.52 -1.38 -1.66 -2.21" style="fill:none"></path></g><g stroke-dasharray="3.0pt,3.0pt"
+    stroke-dashoffset="0.0pt"><path d="M 230.22 -49.68 L 230.22 -68.73" style="fill:none"></path></g><g
+    stroke-dasharray="none" stroke-dashoffset="0.0pt" stroke-linecap="round" stroke-linejoin="round"
+    stroke-width="0.32pt" transform="matrix(0.0 -1.0 1.0 0.0 230.22 -68.73)"><path
+    d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14 -1.52 -1.38 -1.66 -2.21"
+    style="fill:none"></path></g><g stroke-dasharray="3.0pt,3.0pt" stroke-dashoffset="0.0pt"><path
+    d="M 345.33 -49.68 L 345.33 -68.73" style="fill:none"></path></g></path></path></path></path></g><g
+    stroke-dasharray="none" stroke-dashoffset="0.0pt" stroke-linecap="round" stroke-linejoin="round"
+    stroke-width="0.32pt" transform="matrix(0.0 -1.0 1.0 0.0 345.33 -68.73)"><path
+    d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14 -1.52 -1.38 -1.66 -2.21"
+    style="fill:none"></path></g></g>
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture ltx_centering" height="171.34" id="S5.F3.pic1" overflow="visible"
+    version="1.1" width="560.77"><g transform="translate(0,171.34) matrix(1 0 0 -1
+    0 0) translate(50.17,0) translate(0,121.65)"><g fill="#000000" stroke="#000000"
+    stroke-width="0.1pt" transform="matrix(1.0 0.0 0.0 1.0 -45 -45)"><foreignobject
+    height="90" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="90">![参见说明](img/3ff78d0125512ef12a63ff496ca8b352.png)</foreignobject></g><g
+    fill="#000000" stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0
+    0.0 1.0 70.11 -45)"><foreignobject height="90" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">![参见说明](img/7c89a97cae2024a034d7ab046711f67f.png)</foreignobject></g><g
+    fill="#000000" stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0
+    0.0 1.0 185.22 -45)"><foreignobject height="90" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">![参见说明](img/f276296a98ca986208df9daae0411e48.png)</foreignobject></g><g
+    fill="#000000" stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0
+    0.0 1.0 300.33 -45)"><foreignobject height="90" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">![参见说明](img/eb82c6f7418e3a67f7b3cae618333b38.png)</foreignobject></g><g
+    fill="#000000" stroke="#000000" stroke-width="0.1pt" transform="matrix(1.0 0.0
+    0.0 1.0 415.44 -45)"><foreignobject height="90" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">![参见说明](img/729504ab76cafd21f8d8b7ab31bfab80.png)</foreignobject></g>
+    <g fill="#000000" stroke="#000000" stroke-width="0.8pt" transform="matrix(1.0
+    0.0 0.0 1.0 -45 -96.89)"><foreignobject height="16.6" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="90">观察到无物体 <g fill="#F2FFF2" stroke="#66FF66" stroke-width="0.8pt"><path
+    d="M 159.19 -69.92 L 71.03 -69.92 C 67.98 -69.92 65.5 -72.4 65.5 -75.45 L 65.5
+    -115.57 C 65.5 -118.62 67.98 -121.1 71.03 -121.1 L 159.19 -121.1 C 162.24 -121.1
+    164.72 -118.62 164.72 -115.57 L 164.72 -75.45 C 164.72 -72.4 162.24 -69.92 159.19
+    -69.92 Z M 65.5 -121.1"></path></g> <g fill="#000000" stroke="#000000" stroke-width="0.8pt"
+    transform="matrix(1.0 0.0 0.0 1.0 70.11 -96.89)"><foreignobject height="16.6"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="90">观察到绿色钥匙</foreignobject></g>
+    <g fill="#F2FFF2" stroke="#66FF66" stroke-width="0.8pt"><path d="M 274.3 -69.92
+    L 186.14 -69.92 C 183.09 -69.92 180.61 -72.4 180.61 -75.45 L 180.61 -115.57 C
+    180.61 -118.62 183.09 -121.1 186.14 -121.1 L 274.3 -121.1 C 277.35 -121.1 279.83
+    -118.62 279.83 -115.57 L 279.83 -75.45 C 279.83 -72.4 277.35 -69.92 274.3 -69.92
+    Z M 180.61 -121.1"></path></g> <g fill="#000000" stroke="#000000" stroke-width="0.8pt"
+    transform="matrix(1.0 0.0 0.0 1.0 185.22 -96.89)"><foreignobject height="16.6"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="90">观察到绿色钥匙</foreignobject></g>
+    <g fill="#F2FFF2" stroke="#66FF66" stroke-width="0.8pt"><path d="M 389.41 -69.92
+    L 301.25 -69.92 C 298.2 -69.92 295.72 -72.4 295.72 -75.45 L 295.72 -115.57 C 295.72
+    -118.62 298.2 -121.1 301.25 -121.1 L 389.41 -121.1 C 392.46 -121.1 394.94 -118.62
+    394.94 -115.57 L 394.94 -75.45 C 394.94 -72.4 392.46 -69.92 389.41 -69.92 Z M
+    295.72 -121.1"></path></g> <g fill="#000000" stroke="#000000" stroke-width="0.8pt"
+    transform="matrix(1.0 0.0 0.0 1.0 300.33 -96.89)"><foreignobject height="16.6"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="90">观察到绿色门，携带绿色钥匙</foreignobject></g>
+    <g fill="#FFF9F2" stroke="#FFB366" stroke-width="0.8pt"><path d="M 410.83 -121.1
+    h 99.22 v 51.18 h -99.22 Z"></path></g> <g fill="#000000" stroke="#000000" stroke-width="0.8pt"
+    transform="matrix(1.0 0.0 0.0 1.0 415.44 -100.35)"><foreignobject height="9.69"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="90">完成！</foreignobject></g>
+    <g fill="#000000" stroke="#000000"><g stroke-width="0.4pt"><path d="M 49.68 0
+    L 64.79 0" style="fill:none"><g stroke-dasharray="none" stroke-dashoffset="0.0pt"
+    stroke-linecap="round" stroke-linejoin="round" stroke-width="0.32pt" transform="matrix(1.0
+    0.0 0.0 1.0 64.79 0)"><path d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14
+    -1.52 -1.38 -1.66 -2.21" style="fill:none"></path></g><path d="M 164.79 0 L 179.9
+    0" style="fill:none"><g stroke-dasharray="none" stroke-dashoffset="0.0pt" stroke-linecap="round"
+    stroke-linejoin="round" stroke-width="0.32pt" transform="matrix(1.0 0.0 0.0 1.0
+    179.9 0)"><path d="M -1.66 2.21 C -1.52 1.38 0 0.14 0.42 0 C 0 -0.14 -1.52 -1.38
+    -1.66 -2.21" style="fill:none"></path></g><path d="M
+- en: 'Figure 3: An illustrative example of the partial observations and their corresponding
+    text descriptions in environment SimpleDoorKey. The agent is illustrated with
+    a red triangle, and the path it takes is illustrated with red dots. At the start
+    of each episode, the agent is provided with only limited information, with the
+    unexplored area masked (light grey). As the agent progresses in this room, it
+    reveals more information about the room layout for the planner, until it successfully
+    opens the locked door.'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：在环境SimpleDoorKey中，部分观察及其对应的文本描述的示例。代理以红色三角形表示，代理行走的路径以红色圆点表示。在每个回合开始时，代理只提供有限的信息，未探索的区域被遮盖（浅灰色）。随着代理在这个房间中的推进，它为规划者揭示更多关于房间布局的信息，直到成功打开锁住的门。
+- en: '![Refer to caption](img/892edde324d59d470935c87c8eca983f.png)'
+  id: totrans-72
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/892edde324d59d470935c87c8eca983f.png)'
+- en: 'Figure 4: An example of the prefix prompt and one interaction for the ColoredDoorKey
+    environment. Prefix prompt consists of task instruction and few-shot examples.
+    In Chain-of-Thought-style prompts, we add inference processes within the examples.
+    Note that these few-shot examples are only provided for grounding a few but not
+    all task-related knowledge to, and constraining the output formats, of the LLM.
+    We do not need to exhaustively enumerate all knowledge and rules to construct
+    prompts, as a qualified LLM can do logical reasoning based on a limited number
+    of prompts, then provide proper plans (instructions) that are adaptable to new
+    scenarios encountered in the environment.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：ColoredDoorKey环境的前缀提示和一次交互的示例。前缀提示包括任务说明和少量示例。在连锁思维风格的提示中，我们在示例中加入了推理过程。请注意，这些少量示例仅用于为LLM提供一些任务相关的知识的基础，而不是全部知识，并且约束LLM的输出格式。我们不需要穷举所有知识和规则来构建提示，因为合格的LLM可以基于有限的提示进行逻辑推理，然后提供适应环境中新场景的适当计划（指令）。
+- en: 'In our experiments, we focus on the task of opening a locked door in five distinct
+    environments: SimpleDoorKey, KeyInBox, RandomBoxKey, ColoredDoorKey, and MovingObstacle.
+    All of these environments are procedurally generated, i.e., the grid layout (including
+    room size, key and door locations) is randomly determined each time the environment
+    is reset. To evaluate generalization, a held-out test set consisting of 100 randomly
+    selected seeds is predefined for each environment. Refer to the Appendix for more
+    details.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们集中于在五个不同环境中打开一扇锁住的门的任务：SimpleDoorKey、KeyInBox、RandomBoxKey、ColoredDoorKey
+    和 MovingObstacle。这些环境都是程序生成的，即每次重置环境时，网格布局（包括房间大小、钥匙和门的位置）都是随机决定的。为了评估泛化能力，为每个环境预先定义了一个由100个随机选择的种子组成的留出测试集。更多细节请参考附录。
+- en: 'We use the Vicuna-7b model for the SimpleDoorKey, KeyInBox, RandomBoxKey, and
+    MovingObstacle environments, while for the more complex ColoredDoorKey environment
+    we use the Vicuna-13b model. As demonstrated in previous work Min et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib11)),
+    language models like LLMs require carefully designed prompts and few-shot demonstrations
+    to generalize to different tasks. In our experiments, we provide task instructions
+    and few-shot examples as in-context prompts for each environment. These prompts
+    serve to guide the LLM to understand the task. For the challenging reasoning task
+    in the ColoredDoorKey environment, we utilize Chain-of-Thought prompts proposed
+    by Wei et al. ([2022](https://arxiv.org/html/2306.03604v8#bib.bib22)). These prompts
+    help the LLM to deal with complex reasoning tasks specific to the ColoredDoorKey
+    environment. The few-shot examples in the prompts are used to constraint the output
+    formats. The LLM planner must utilize its ability to generalize and reason in
+    order to comprehend the target task and adjust to situations that deviate from
+    the few-shot examples, such as variations in objects’ colors. Fig. [4](https://arxiv.org/html/2306.03604v8#S5.F4
+    "Figure 4 ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach") provides an example
+    of the prefix prompts and an interaction example in the ColoredDoorKey environment.
+    It shows the effective performance of the LLM planner in producing an accurate
+    plan in response to new observations.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们在SimpleDoorKey、KeyInBox、RandomBoxKey和MovingObstacle环境中使用Vicuna-7b模型，而对于更复杂的ColoredDoorKey环境，我们使用Vicuna-13b模型。正如Min等人（[2022](https://arxiv.org/html/2306.03604v8#bib.bib11)）在之前的研究中所示，像LLMs这样的语言模型需要精心设计的提示和少量示例来推广到不同的任务。在我们的实验中，我们为每个环境提供任务说明和少量示例作为上下文提示。这些提示有助于引导LLM理解任务。对于ColoredDoorKey环境中的复杂推理任务，我们采用了Wei等人（[2022](https://arxiv.org/html/2306.03604v8#bib.bib22)）提出的Chain-of-Thought提示。这些提示帮助LLM处理ColoredDoorKey环境中特定的复杂推理任务。提示中的少量示例用于约束输出格式。LLM规划器必须利用其概括和推理能力，以理解目标任务，并适应与少量示例不同的情况，例如物体颜色的变化。图[4](https://arxiv.org/html/2306.03604v8#S5.F4
+    "Figure 4 ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach")展示了ColoredDoorKey环境中的前缀提示和交互示例，展示了LLM规划器在响应新观察时生成准确计划的有效表现。'
+- en: 5.2.1 Can our agent complete target tasks with less interaction costs?
+  id: totrans-76
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 5.2.1 我们的智能体能否以更少的交互成本完成目标任务？
+- en: 'We compare our approach When2Ask with baseline methods to evaluate its effectiveness.
+    We analyze the learning curves for both interaction costs (Fig. [5](https://arxiv.org/html/2306.03604v8#S5.F5
+    "Figure 5 ‣ 5.2.1 Can our agent complete target tasks with less interaction costs?
+    ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach")) and task performances
+    (Fig. [6](https://arxiv.org/html/2306.03604v8#S5.F6 "Figure 6 ‣ 5.2.1 Can our
+    agent complete target tasks with less interaction costs? ‣ 5.2 MiniGrid Experiments
+    ‣ 5 Experiments ‣ Enabling Intelligent Interactions between an Agent and an LLM:
+    A Reinforcement Learning Approach")) across all five environments. Additionally,
+    we provide asymptotic performances in Table [1](https://arxiv.org/html/2306.03604v8#S5.T1
+    "Table 1 ‣ 5.2.1 Can our agent complete target tasks with less interaction costs?
+    ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach"). As is shown,
+    our approach successfully reduces the number of interactions with the LLM while
+    maintaining task performance across all environments. This reduction in interaction
+    cost indicates that our method effectively learns to reduce non-informative interactions
+    with the LLM. Furthermore, our approach maintains consistently high success rates
+    throughout the learning process. This observation indicates that the asking policy
+    learns to filter out unnecessary interactions while still engaging in essential
+    ones to achieve successful task completion.'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将我们的方法When2Ask与基线方法进行比较，以评估其有效性。我们分析了在所有五个环境中，交互成本（图[5](https://arxiv.org/html/2306.03604v8#S5.F5
+    "图 5 ‣ 5.2.1 我们的智能体是否能够以更少的交互成本完成目标任务？ ‣ 5.2 MiniGrid 实验 ‣ 5 实验 ‣ 使智能体与大语言模型（LLM）之间的交互更智能：一种强化学习方法")）和任务表现（图[6](https://arxiv.org/html/2306.03604v8#S5.F6
+    "图 6 ‣ 5.2.1 我们的智能体是否能够以更少的交互成本完成目标任务？ ‣ 5.2 MiniGrid 实验 ‣ 5 实验 ‣ 使智能体与大语言模型（LLM）之间的交互更智能：一种强化学习方法")）的学习曲线。此外，我们在表[1](https://arxiv.org/html/2306.03604v8#S5.T1
+    "表 1 ‣ 5.2.1 我们的智能体是否能够以更少的交互成本完成目标任务？ ‣ 5.2 MiniGrid 实验 ‣ 5 实验 ‣ 使智能体与大语言模型（LLM）之间的交互更智能：一种强化学习方法")中提供了渐进的性能。如图所示，我们的方法成功地减少了与LLM的交互次数，同时在所有环境中保持了任务表现。这种交互成本的减少表明，我们的方法有效地学习到了如何减少与LLM的无意义交互。此外，我们的方法在整个学习过程中保持了
+    consistently 高的成功率。这一观察表明，询问策略学会了过滤掉不必要的交互，同时仍然与LLM进行必要的交互以完成任务。
+- en: '![Refer to caption](img/ec09f2e98840b2964b77d23e0937735f.png)![Refer to caption](img/b9d7ddd990cd9e7676f0bb268e7a4aa6.png)![Refer
+    to caption](img/381d045d6c684e62f63162be3d72e7df.png)![Refer to caption](img/326579436b438e285a9dedf7fbf2ef8d.png)![Refer
+    to caption](img/424923fab1ca0ffab9aeb357da29b76d.png)'
+  id: totrans-78
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅标题](img/ec09f2e98840b2964b77d23e0937735f.png)![请参阅标题](img/b9d7ddd990cd9e7676f0bb268e7a4aa6.png)![请参阅标题](img/381d045d6c684e62f63162be3d72e7df.png)![请参阅标题](img/326579436b438e285a9dedf7fbf2ef8d.png)![请参阅标题](img/424923fab1ca0ffab9aeb357da29b76d.png)'
+- en: 'Figure 5: The number of interactions with the LLM vs. the number of RL iterations
+    used for learning the asking policy. It shows that, for every environment, the
+    more thoroughly the asking policy is trained, the fewer interactions with the
+    LLM planner (i.e., the less interaction costs) are required to complete the task.
+    The shaded areas within the curves represent confidence intervals based on three
+    standard errors.'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：与LLM的交互次数与用于学习询问策略的RL迭代次数之间的关系。结果表明，对于每个环境，询问策略训练得越充分，完成任务所需的与LLM规划器的交互次数（即交互成本）就越少。曲线中的阴影区域代表基于三个标准误差的置信区间。
+- en: '![Refer to caption](img/5ad8327d6d80b6f2aed9486f6551e92e.png)![Refer to caption](img/4f03cdefbcf9ad7a3f5dae9a5f1dbc6f.png)![Refer
+    to caption](img/9de37be60119b4b3c15b59c6f4fab494.png)![Refer to caption](img/2b742a1e8421f6fc20073d79312a4b82.png)![Refer
+    to caption](img/07b741c9bf5742eec7969ac0b3084ee1.png)'
+  id: totrans-80
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅标题](img/5ad8327d6d80b6f2aed9486f6551e92e.png)![请参阅标题](img/4f03cdefbcf9ad7a3f5dae9a5f1dbc6f.png)![请参阅标题](img/9de37be60119b4b3c15b59c6f4fab494.png)![请参阅标题](img/2b742a1e8421f6fc20073d79312a4b82.png)![请参阅标题](img/07b741c9bf5742eec7969ac0b3084ee1.png)'
+- en: 'Figure 6: Success rate of completing target tasks vs. the number of RL iterations
+    used for learning the asking policy. It demonstrates that our approach consistently
+    maintains a high success rate across all environments, and outperforms baseline
+    methods in ColoredDoorKey.'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：完成目标任务的成功率与用于学习询问策略的RL迭代次数之间的关系。结果表明，我们的方法在所有环境中始终保持较高的成功率，并且在ColoredDoorKey环境中优于基线方法。
+- en: 'Table 1: Asymptotic performance comparison on five MiniGrid environments. The
+    performance metrics include the total number of interactions with the LLM, the
+    number of MDP state-transition timesteps, and the success rate for completing
+    a task. These results show that our approach achieves competitive task performance
+    in terms of success rate while significantly reducing interaction costs (indicated
+    by the number of interactions) compared to Always and Random. Hard-coded requires
+    the fewest LLM interactions but often fails to complete tasks. All results are
+    averaged over 500 test trials (We use 5 training seeds to initialize the policy
+    network, and conduct 100 independent tests per seed).'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：在五个MiniGrid环境中的渐近性能比较。性能指标包括与LLM的总交互次数、MDP状态转换的时间步数，以及完成任务的成功率。这些结果表明，我们的方法在成功率上取得了具有竞争力的任务表现，同时在与Always和Random方法的比较中，显著减少了交互成本（通过交互次数表示）。硬编码方法需要最少的LLM交互，但通常未能完成任务。所有结果是基于500次测试试验的平均值（我们使用5个训练种子初始化策略网络，并对每个种子进行100次独立测试）。
+- en: '| Environment | Performance metric | Hard-Coded | Always | Random | Our approach
+    |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| 环境 | 性能指标 | 硬编码 | 始终 | 随机 | 我们的方法 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| SimpleDoorKey | Number of interactions $\downarrow$ | 1.58 | 25.78 | 12.75
+    | 4.24 |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| SimpleDoorKey | 交互次数 $\downarrow$ | 1.58 | 25.78 | 12.75 | 4.24 |'
+- en: '| Number of timesteps $\downarrow$ | 64.9 | 25.78 | 26.55 | 29.20 |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间步数 $\downarrow$ | 64.9 | 25.78 | 26.55 | 29.20 |'
+- en: '| Task success rate $\uparrow$ | 59% | 100% | 100% | 100% |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务成功率 $\uparrow$ | 59% | 100% | 100% | 100% |'
+- en: '| KeyInBox | Number of interactions $\downarrow$ | 1.58 | 26.78 | 15.3 | 4.33
+    |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| KeyInBox | 交互次数 $\downarrow$ | 1.58 | 26.78 | 15.3 | 4.33 |'
+- en: '| Number of task timesteps $\downarrow$ | 65.49 | 26.78 | 27.46 | 29.01 |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务时间步数 $\downarrow$ | 65.49 | 26.78 | 27.46 | 29.01 |'
+- en: '| Task success rate $\uparrow$ | 59% | 100% | 100% | 100% |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务成功率 $\uparrow$ | 59% | 100% | 100% | 100% |'
+- en: '| RandomBoxKey | Number of interactions $\downarrow$ | 1.93 | 30.26 | 16.09
+    | 3.61 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| RandomBoxKey | 交互次数 $\downarrow$ | 1.93 | 30.26 | 16.09 | 3.61 |'
+- en: '| Number of task timesteps $\downarrow$ | 61.71 | 30.26 | 30.2 | 34.41 |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务时间步数 $\downarrow$ | 61.71 | 30.26 | 30.2 | 34.41 |'
+- en: '| Task success rate $\uparrow$ | 56% | 94% | 95% | 95% |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务成功率 $\uparrow$ | 56% | 94% | 95% | 95% |'
+- en: '| ColoredDoorKey | Number of interactions $\downarrow$ | 2.01 | 61.96 | 23.75
+    | 3.29 |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| ColoredDoorKey | 交互次数 $\downarrow$ | 2.01 | 61.96 | 23.75 | 3.29 |'
+- en: '| Number of timesteps $\downarrow$ | 75.54 | 61.96 | 44.64 | 47.87 |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间步数 $\downarrow$ | 75.54 | 61.96 | 44.64 | 47.87 |'
+- en: '| Task success rate $\uparrow$ | 43% | 49% | 81% | 83% |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务成功率 $\uparrow$ | 43% | 49% | 81% | 83% |'
+- en: '| MovingObstacle | Number of interactions $\downarrow$ | 2.29 | 39.49 | 20.70
+    | 6.94 |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| MovingObstacle | 交互次数 $\downarrow$ | 2.29 | 39.49 | 20.70 | 6.94 |'
+- en: '| Number of timesteps $\downarrow$ | 82.36 | 39.49 | 44.90 | 48.63 |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间步数 $\downarrow$ | 82.36 | 39.49 | 44.90 | 48.63 |'
+- en: '| Task success rate $\uparrow$ | 43% | 94% | 93% | 92% |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务成功率 $\uparrow$ | 43% | 94% | 93% | 92% |'
+- en: 5.2.2 Can our agent proactively seek assistance from an LLM in exploratory environments?
+  id: totrans-100
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 5.2.2 我们的代理能否在探索性环境中主动寻求LLM的帮助？
+- en: Upon analyzing the agent’s performance in situations where it is expected to
+    ask the LLM planner for help, we observe that the baseline method with a hard-coded
+    asking policy exhibited significantly lower success rates compared to other approaches.
+    This discrepancy occurs because the agent continues executing every option until
+    its termination condition is met, even when it has already gathered sufficient
+    information to complete the task. Consequently, this inefficient approach results
+    in wasted time on each option and ultimately leads to failure in completing the
+    task within the given time limit. In contrast, When2Ask, along with other baseline
+    methods, demonstrates the ability to early-stop options when necessary. As a result,
+    they achieve 100 percent success rates in SimpleDoorKey and KeyInBox.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在分析代理在需要向LLM规划器寻求帮助的情况下的表现时，我们观察到，使用硬编码询问策略的基准方法相比其他方法表现出显著较低的成功率。这个差异的出现是因为代理会继续执行每一个选项，直到其终止条件满足，即使它已经收集到足够的信息来完成任务。因此，这种低效的方法导致每个选项都浪费时间，最终未能在给定的时间限制内完成任务。相比之下，When2Ask以及其他基准方法能够在必要时及早停止选项。因此，它们在SimpleDoorKey和KeyInBox任务中达到了100%的成功率。
+- en: 'In a specific scenario within the ColoredDoorKey environment, as illustrated
+    in Fig. [7(a)](https://arxiv.org/html/2306.03604v8#S5.F7.sf1 "In Figure 7 ‣ 5.2.2
+    Can our agent proactively seek assistance from an LLM in exploratory environments?
+    ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach"), we see an interesting
+    phenomenon. The agent has chosen to take the Explore option and acquired information
+    about the location of the yellow key (frame 2). With use of the Hard-coded baseline
+    approach, the agent shall continue with the Explore option until it has fully
+    explored the entire room. In contrast, using our proposed approach, the agent
+    can recognize the value of asking the LLM planner for guidance given the current
+    information, and immediately propose querying the LLM planner for an updated plan
+    while ceasing further exploration. The LLM would instruct the agent to efficiently
+    pick up the yellow key without wasting additional time. This example highlights
+    the effectiveness of our approach in recognizing when to seek assistance from
+    the LLM planner and making more efficient decisions based on the available information.
+    By leveraging the power of the LLM planner, our approach enables the agent to
+    make informed choices that expedite task completion and improve overall performance.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 ColoredDoorKey 环境中的特定场景，如图 [7(a)](https://arxiv.org/html/2306.03604v8#S5.F7.sf1
+    "在图 7 ‣ 5.2.2 我们的代理能否在探索性环境中主动寻求 LLM 的帮助？ ‣ 5.2 MiniGrid 实验 ‣ 5 实验 ‣ 使代理与 LLM
+    之间的智能互动成为可能：一种强化学习方法") 所示，我们看到一个有趣的现象。代理选择了“探索”选项，并获取了关于黄色钥匙位置的信息（第 2 帧）。使用硬编码基线方法时，代理将继续执行“探索”选项，直到它完全探索整个房间。相比之下，使用我们提出的方法，代理可以认识到在当前信息的基础上向
+    LLM 规划器寻求指导的价值，并立即提出查询 LLM 规划器以获取更新的计划，同时停止进一步的探索。LLM 将指示代理有效地捡起黄色钥匙，而不会浪费额外的时间。这个例子突出了我们的方法在识别何时向
+    LLM 规划器寻求帮助以及基于现有信息做出更有效决策方面的有效性。通过利用 LLM 规划器的力量，我们的方法使代理能够做出明智的选择，加速任务完成并提高整体性能。
+- en: '![Refer to caption](img/5ffc1398d33f16906a4c195068ed6878.png)'
+  id: totrans-103
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/5ffc1398d33f16906a4c195068ed6878.png)'
+- en: (a) An example scenario where the agent discovers new information during option
+    explore.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （a）代理人在选项探索过程中发现新信息的示例场景。
+- en: '![Refer to caption](img/886cebc6fea8e11590adc1c70c2cf255.png)'
+  id: totrans-105
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/886cebc6fea8e11590adc1c70c2cf255.png)'
+- en: (b) An example scenario where the hard-coded translator fails to encode all
+    information.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （b）硬编码翻译器未能编码所有信息的示例场景。
+- en: 'Figure 7: Two example scenarios where the agent is expected: (a) to ask the
+    LLM planner for help as it has collected useful information for the planner to
+    adjust its plan; and (b) to not ask the LLM, as the LLM may propose wrong options
+    due to an imperfect translator.'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：两个示例场景，其中代理人被期望：（a）向 LLM 规划器寻求帮助，因为它已经收集了有助于规划器调整计划的有用信息；（b）不向 LLM 寻求帮助，因为
+    LLM 可能会由于翻译器不完善而提出错误的选项。
+- en: '![Refer to caption](img/e7412c840ca6b0be2bfb204da733a28d.png)![Refer to caption](img/7b3dd8e50abeb65477ed6aad1f616f17.png)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/e7412c840ca6b0be2bfb204da733a28d.png)![参考说明](img/7b3dd8e50abeb65477ed6aad1f616f17.png)'
+- en: 'Figure 8: The number of interactions with the LLM (left) and the stage success
+    rates (right) vs. the number of training iterations used for learning the asking
+    policy on the Pick&Place task.'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 8：与 LLM 的互动次数（左）和阶段成功率（右）与用于学习请求策略的训练迭代次数的关系，针对 Pick&Place 任务。
+- en: '![Refer to caption](img/9840ecc4426ef27e43a3f02f8160a4e4.png)![Refer to caption](img/5aa33c820aa0d9e57b1ea5e4644db88f.png)'
+  id: totrans-110
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/9840ecc4426ef27e43a3f02f8160a4e4.png)![参考说明](img/5aa33c820aa0d9e57b1ea5e4644db88f.png)'
+- en: 'Figure 9: An illustrative example demonstrating the “hand-off” problem in Habitat.
+    The robot’s objective is to navigate to the living room and pick up the apple
+    from the table. With the Hard-Coded baseline in use (left), according to preset
+    hard-coded rules, the agent must first complete the Navigate option before executing
+    the Pick option. Consequently, the agent stops at a location where the apple is
+    not visible at the end of Navigate, resulting in its future failure in the Pick
+    option. With our approach (right), in the middle of Navigate, the agent finds
+    itself at a suitable location where the apple can be spotted. The learned mediator
+    interrupts the ongoing Navigate and query the LLM planner, which returns the Pick
+    option. This helps the agent subsequently pick up the apple successfully. This
+    example demonstrates the effectiveness of our approach in bypassing the “hand-off”
+    issue.'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图9：一个示例，展示了栖息地中的“交接”问题。机器人的目标是导航到客厅并从桌子上拿起苹果。在使用硬编码基准（左图）时，根据预设的硬编码规则，代理必须先完成导航选项，然后才能执行拿取选项。因此，代理停留在一个苹果不可见的位置，导致在拿取选项时失败。而在我们的方法下（右图），代理在导航过程中发现自己处于一个能够看到苹果的合适位置。学习到的中介打断了正在进行的导航，并向LLM规划器发起查询，后者返回了拿取选项。这帮助代理成功地拿到了苹果。此示例展示了我们的方法在绕过“交接”问题中的有效性。
+- en: 5.3 Habitat Experiments
+  id: totrans-112
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3 栖息地实验
+- en: We further evaluate our approach with the Habitat environment Szot et al. ([2021](https://arxiv.org/html/2306.03604v8#bib.bib17)).
+    The results indicate the potential of our approach to function effectively in
+    visually realistic domains. The details on the experiment setting are referred
+    to the Appendix.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进一步在栖息地环境中评估了我们的方法，参考了Szot等人（[2021](https://arxiv.org/html/2306.03604v8#bib.bib17)）的研究。结果表明，我们的方法在视觉真实的领域中具有有效的潜力。实验设置的详细信息请参见附录。
+- en: 'Table 2: Success rate of each stage completions and total number of interactions
+    with the LLM planner in the Habitat during testing.'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：测试过程中栖息地中每个阶段的成功率和与LLM规划器的总交互次数。
+- en: '| Performance metric | Hard-Coded | Random | Our approach |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 性能指标 | 硬编码 | 随机 | 我们的方法 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Stage1 success rate$\uparrow$ | 10.8% | 7.6% | 53.6% |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第一阶段成功率$\uparrow$ | 10.8% | 7.6% | 53.6% |'
+- en: '| Stage2 success rate$\uparrow$ | 2.4% | 1.6% | 46.4% |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第二阶段成功率$\uparrow$ | 2.4% | 1.6% | 46.4% |'
+- en: '| Stage3 success rate$\uparrow$ | 2.0% | 1.2% | 35.6% |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| 第三阶段成功率$\uparrow$ | 2.0% | 1.2% | 35.6% |'
+- en: '| Total # of interactions$\downarrow$ | 1.00 | 295.60 | 7.99 |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总交互次数$\downarrow$ | 1.00 | 295.60 | 7.99 |'
+- en: 'We compare our approach against baselines on the Pick&Place task. To ensure
+    reliability of experimental results, we utilize 10 training seeds to initialize
+    the policy network. This allows us to explore different initializations and avoid
+    biased results. Subsequently, we select the best policy obtained from these training
+    runs to run 250 independent testing trials. As presented in Table [2](https://arxiv.org/html/2306.03604v8#S5.T2
+    "Table 2 ‣ 5.3 Habitat Experiments ‣ 5 Experiments ‣ Enabling Intelligent Interactions
+    between an Agent and an LLM: A Reinforcement Learning Approach") and Fig. [8](https://arxiv.org/html/2306.03604v8#S5.F8
+    "Figure 8 ‣ 5.2.2 Can our agent proactively seek assistance from an LLM in exploratory
+    environments? ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent
+    Interactions between an Agent and an LLM: A Reinforcement Learning Approach"),
+    our approach significantly outperforms baselines across all three stages. Particularly,
+    compared to the hard-coded baseline where the preset plan is executed step-by-step,
+    our approach is significantly better at addressing the “hand-off problem” Szot
+    et al. ([2021](https://arxiv.org/html/2306.03604v8#bib.bib17)) that can arise
+    when the preceding option terminates at a state that makes it challenging for
+    the succeeding option to initiate. This issue is depicted in Fig. [9](https://arxiv.org/html/2306.03604v8#S5.F9
+    "Figure 9 ‣ 5.2.2 Can our agent proactively seek assistance from an LLM in exploratory
+    environments? ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling Intelligent
+    Interactions between an Agent and an LLM: A Reinforcement Learning Approach"),
+    where the robot stops at an unfavorable location at the end of the Navigate option,
+    resulting in a failure to execute the subsequent Pick option. Our approach effectively
+    bypasses this problem by seeking guidance from the LLM planner.'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在Pick&Place任务中将我们的方法与基准方法进行了比较。为了确保实验结果的可靠性，我们使用了10个训练种子来初始化策略网络。这使我们能够探索不同的初始化方式，并避免偏倚的结果。随后，我们从这些训练运行中选择最好的策略，并进行了250次独立的测试试验。如表[2](https://arxiv.org/html/2306.03604v8#S5.T2
+    "表 2 ‣ 5.3 Habitat实验 ‣ 5 实验 ‣ 使智能体与LLM之间能够进行智能互动：一种强化学习方法")和图[8](https://arxiv.org/html/2306.03604v8#S5.F8
+    "图 8 ‣ 5.2.2 我们的智能体能否在探索环境中主动寻求LLM的帮助？ ‣ 5.2 MiniGrid实验 ‣ 5 实验 ‣ 使智能体与LLM之间能够进行智能互动：一种强化学习方法")所示，我们的方法在所有三个阶段的表现均显著优于基准方法。特别是，与硬编码基准方法（该方法按步骤执行预设计划）相比，我们的方法在解决“交接问题”方面表现得显著更好。Szot等人（[2021](https://arxiv.org/html/2306.03604v8#bib.bib17)）提出的这一问题可能会在前一个选项结束时，进入一个使后续选项难以启动的状态。这个问题在图[9](https://arxiv.org/html/2306.03604v8#S5.F9
+    "图 9 ‣ 5.2.2 我们的智能体能否在探索环境中主动寻求LLM的帮助？ ‣ 5.2 MiniGrid实验 ‣ 5 实验 ‣ 使智能体与LLM之间能够进行智能互动：一种强化学习方法")中得到了体现，在该图中，机器人在Navigate选项结束时停在了一个不利的位置，导致无法执行后续的Pick选项。我们的方法通过寻求LLM规划器的指导，有效地绕过了这个问题。
+- en: The obtained results demonstrate that the RL learned asking policy effectively
+    establishes a connection between the world knowledge embedded within the LLMs
+    and the downstream fine-grained knowledge embedded within the agent. This connection
+    leads to a superior overall performance of our approach compared to the baselines
+    that do not involve any learning. These findings align with the main observations
+    from our experiments associated with the MiniGrid environments, particularly in
+    the ColoredDoorKey scenario, where the RL learned asking policy enables the agent
+    to outperform all baselines in terms of task completion success rate.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 获得的结果表明，RL学习到的提问策略有效地建立了LLM中嵌入的世界知识与智能体中嵌入的下游精细化知识之间的联系。这一联系使得我们的方法相比不涉及任何学习的基准方法在整体表现上更为优越。这些发现与我们在MiniGrid环境中的实验主要观察结果一致，特别是在ColoredDoorKey场景中，RL学习到的提问策略使得智能体在任务完成成功率方面超越了所有基准方法。
+- en: 6 Concluding Remarks
+  id: totrans-123
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论
+- en: 'We examine the application of RL in acquiring “mediator” policies for instruction-following
+    agents powered by LLMs. Prior research has indicated that LLMs, when coupled with
+    well-constructed prompts, can effectively generate high-level instructions conditional
+    on state descriptions to devise detailed plans for task completion. Recent frameworks
+    for LLM-driven planning have explored two primary strategies: 1) generating an
+    updated plan at each timestep, and 2) requesting an update only after each plan
+    (option) concludes based on predefined termination criteria. The former method
+    is computationally intensive due to the expense of generating a new response from
+    the LLM, while the latter may encounter challenges as an ongoing plan executed
+    cannot be interrupted in time to respond to new observations.'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们研究了强化学习（RL）在为由大规模语言模型（LLM）驱动的指令跟随代理获取“中介”策略中的应用。先前的研究表明，当与精心设计的提示词结合时，LLM能够根据状态描述有效地生成条件性高层指令，从而为任务完成制定详细的计划。最近的LLM驱动规划框架探讨了两种主要策略：1）在每个时间步生成更新的计划；2）仅在每个计划（选项）基于预定义的终止标准完成后请求更新。前一种方法在计算上很密集，因为生成LLM的新响应成本较高，而后一种方法可能面临挑战，因为正在执行的计划无法及时中断以响应新的观察。
+- en: To this end, we propose When2Ask, which involves training a mediator policy
+    to determine when to prompt the LLM to generate an appropriate plan for the present
+    moment. When2Ask trains the mediator policy to optimize task-oriented rewards
+    while penalizing cases where the planner was invoked but returned the same plan
+    the agent was already following. Experiment results across different embodied
+    environments illustrate that the learned mediator policies achieve comparable
+    task success rates to fixed policies that query the LLM at each timestep, while
+    significantly reducing the number of queries to the LLM and consequently lowering
+    the computational burden on the agent.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们提出了When2Ask，它涉及训练一个中介策略来决定何时提示LLM生成适合当前时刻的计划。When2Ask训练中介策略以优化任务导向的奖励，同时惩罚在已调用规划器但返回与代理当前执行的计划相同的情况。跨不同具身环境的实验结果表明，所学习的中介策略在任务成功率上与在每个时间步查询LLM的固定策略相当，同时显著减少了对LLM的查询次数，从而降低了代理的计算负担。
+- en: The utilization of LLMs to furnish robots and other autonomous agents with general-purpose
+    reasoning and planning capabilities has shown great potential. However, this potential
+    is somewhat limited by the quality of the mapping between low-level observations
+    and actions, and the high-level LLM-based planner. A long-term goal would be to
+    learn this mapping in an end-to-end way. In the interim, however, it is worth
+    to investigate how different elements of this mapping can be learned, and how
+    much benefit can be gained from such an endeavor, as demonstrated in this study.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用LLM为机器人和其他自主代理提供通用推理和规划能力展现出了巨大的潜力。然而，这一潜力在一定程度上受限于低层次观察与动作与高层次基于LLM的规划器之间映射的质量。长期目标是以端到端的方式学习这种映射。然而，在此期间，值得研究如何学习该映射的不同元素，以及通过这一努力能够获得多少益处，正如本研究所示。
+- en: Acknowledgments
+  id: totrans-127
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 致谢
+- en: We appreciate anonymous reviewers for valuable comments that helped us to improve
+    the quality of this paper. This work was primarily supported by Exploratory Research
+    Project (No.2022RC0AN02) of Zhejiang Lab, and partly supported by China Postdoctoral
+    Science Foundation (No.2023M743266), and Zhejiang Provincial Postdoctoral Research
+    Project (No.ZJ2023067). Z. Xu was partly supported by Fudan University (No.JIH2325015Y).
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们感谢匿名评审人提供的宝贵意见，这些意见帮助我们提高了本文的质量。此项工作主要得到了浙江实验室探索性研究项目（编号：2022RC0AN02）的资助，并部分得到了中国博士后科学基金（编号：2023M743266）和浙江省博士后研究项目（编号：ZJ2023067）的资助。徐震受到复旦大学（编号：JIH2325015Y）的部分资助。
+- en: References
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Ahn et al. (2022) Michael Ahn, Anthony Brohan, Noah Brown, Yevgen Chebotar,
+    Omar Cortes, Byron David, Chelsea Finn, Keerthana Gopalakrishnan, Karol Hausman,
+    Alex Herzog, et al. Do as i can, not as i say: Grounding language in robotic affordances.
+    *arXiv preprint arXiv:2204.01691*, 2022.'
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ahn 等人（2022）Michael Ahn, Anthony Brohan, Noah Brown, Yevgen Chebotar, Omar Cortes,
+    Byron David, Chelsea Finn, Keerthana Gopalakrishnan, Karol Hausman, Alex Herzog
+    等人。**“做我做的，而不是我说的”**：将语言与机器人可行性联系起来。*arXiv 预印本 arXiv:2204.01691*，2022年。
+- en: Brown et al. (2020) Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
+    Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+    Askell, et al. Language models are few-shot learners. *Advances in neural information
+    processing systems*, 33:1877–1901, 2020.
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown 等人（2020）Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
+    Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+    Askell 等人. 语言模型是少样本学习者。*神经信息处理系统进展*, 33:1877-1901, 2020。
+- en: Carta et al. (2023) Thomas Carta, Clément Romac, Thomas Wolf, Sylvain Lamprier,
+    Olivier Sigaud, and Pierre-Yves Oudeyer. Grounding large language models in interactive
+    environments with online reinforcement learning. *arXiv preprint arXiv:2302.02662*,
+    2023.
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Carta 等人（2023）Thomas Carta, Clément Romac, Thomas Wolf, Sylvain Lamprier, Olivier
+    Sigaud, 和 Pierre-Yves Oudeyer. 通过在线强化学习在交互环境中为大规模语言模型赋能。*arXiv 预印本 arXiv:2302.02662*,
+    2023。
+- en: 'Chevalier-Boisvert et al. (2018) Maxime Chevalier-Boisvert, Dzmitry Bahdanau,
+    Salem Lahlou, Lucas Willems, Chitwan Saharia, Thien Huu Nguyen, and Yoshua Bengio.
+    Babyai: A platform to study the sample efficiency of grounded language learning.
+    *arXiv preprint arXiv:1810.08272*, 2018.'
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chevalier-Boisvert 等人（2018）Maxime Chevalier-Boisvert, Dzmitry Bahdanau, Salem
+    Lahlou, Lucas Willems, Chitwan Saharia, Thien Huu Nguyen, 和 Yoshua Bengio. Babyai:
+    一个研究基础语言学习样本效率的平台。*arXiv 预印本 arXiv:1810.08272*, 2018。'
+- en: 'Chevalier-Boisvert et al. (2023) Maxime Chevalier-Boisvert, Bolun Dai, Mark
+    Towers, Rodrigo de Lazcano, Lucas Willems, Salem Lahlou, Suman Pal, Pablo Samuel
+    Castro, and Jordan Terry. Minigrid & miniworld: Modular & customizable reinforcement
+    learning environments for goal-oriented tasks. *CoRR*, abs/2306.13831, 2023.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chevalier-Boisvert 等人（2023）Maxime Chevalier-Boisvert, Bolun Dai, Mark Towers,
+    Rodrigo de Lazcano, Lucas Willems, Salem Lahlou, Suman Pal, Pablo Samuel Castro,
+    和 Jordan Terry. Minigrid & miniworld: 模块化与可定制的强化学习环境，用于目标导向任务。*CoRR*, abs/2306.13831,
+    2023。'
+- en: Das et al. (2018) Abhishek Das, Samyak Datta, Georgia Gkioxari, Stefan Lee,
+    Devi Parikh, and Dhruv Batra. Embodied question answering. In *Proceedings of
+    the IEEE conference on computer vision and pattern recognition*, pp.  1–10, 2018.
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Das 等人（2018）Abhishek Das, Samyak Datta, Georgia Gkioxari, Stefan Lee, Devi Parikh,
+    和 Dhruv Batra. 体现式问答。收录于 *IEEE 计算机视觉与模式识别会议论文集*，第 1-10 页，2018。
+- en: Dasgupta et al. (2023) Ishita Dasgupta, Christine Kaeser-Chen, Kenneth Marino,
+    Arun Ahuja, Sheila Babayan, Felix Hill, and Rob Fergus. Collaborating with language
+    models for embodied reasoning. *arXiv preprint arXiv:2302.00763*, 2023.
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dasgupta 等人（2023）Ishita Dasgupta, Christine Kaeser-Chen, Kenneth Marino, Arun
+    Ahuja, Sheila Babayan, Felix Hill, 和 Rob Fergus. 与语言模型协作进行体现式推理。*arXiv 预印本 arXiv:2302.00763*,
+    2023。
+- en: Deitke et al. (2022) Matt Deitke, Dhruv Batra, Yonatan Bisk, Tommaso Campari,
+    Angel X Chang, Devendra Singh Chaplot, Changan Chen, Claudia Pérez D’Arpino, Kiana
+    Ehsani, Ali Farhadi, et al. Retrospectives on the embodied ai workshop. *arXiv
+    preprint arXiv:2210.06849*, 2022.
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Deitke 等人（2022）Matt Deitke, Dhruv Batra, Yonatan Bisk, Tommaso Campari, Angel
+    X Chang, Devendra Singh Chaplot, Changan Chen, Claudia Pérez D’Arpino, Kiana Ehsani,
+    Ali Farhadi 等人. 关于体现式 AI 研讨会的回顾。*arXiv 预印本 arXiv:2210.06849*, 2022。
+- en: 'Huang et al. (2022) Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang,
+    Pete Florence, Andy Zeng, Jonathan Tompson, Igor Mordatch, Yevgen Chebotar, et al.
+    Inner monologue: Embodied reasoning through planning with language models. *arXiv
+    preprint arXiv:2207.05608*, 2022.'
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang 等人（2022）Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang, Pete
+    Florence, Andy Zeng, Jonathan Tompson, Igor Mordatch, Yevgen Chebotar 等人. 内心独白：通过规划与语言模型进行体现式推理。*arXiv
+    预印本 arXiv:2207.05608*, 2022。
+- en: 'Jiang et al. (2022) Yunfan Jiang, Agrim Gupta, Zichen Zhang, Guanzhi Wang,
+    Yongqiang Dou, Yanjun Chen, Li Fei-Fei, Anima Anandkumar, Yuke Zhu, and Linxi
+    Fan. Vima: General robot manipulation with multimodal prompts. *arXiv preprint
+    arXiv:2210.03094*, 2022.'
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Jiang 等人（2022）Yunfan Jiang, Agrim Gupta, Zichen Zhang, Guanzhi Wang, Yongqiang
+    Dou, Yanjun Chen, Li Fei-Fei, Anima Anandkumar, Yuke Zhu, 和 Linxi Fan. Vima: 基于多模态提示的通用机器人操作。*arXiv
+    预印本 arXiv:2210.03094*, 2022。'
+- en: 'Min et al. (2022) Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis,
+    Hannaneh Hajishirzi, and Luke Zettlemoyer. Rethinking the role of demonstrations:
+    What makes in-context learning work? *arXiv preprint arXiv:2202.12837*, 2022.'
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Min 等人（2022）Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis, Hannaneh
+    Hajishirzi, 和 Luke Zettlemoyer. 重新思考示范的作用：是什么使得上下文学习有效？*arXiv 预印本 arXiv:2202.12837*,
+    2022。
+- en: Precup (2000) Doina Precup. *Temporal abstraction in reinforcement learning*.
+    University of Massachusetts Amherst, 2000.
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Precup（2000）Doina Precup. *强化学习中的时间抽象*。马萨诸塞大学阿默斯特分校，2000年。
+- en: Radford et al. (2019) Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario
+    Amodei, Ilya Sutskever, et al. Language models are unsupervised multitask learners.
+    *OpenAI blog*, 1(8):9, 2019.
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Radford 等人（2019）Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei,
+    Ilya Sutskever 等人. 语言模型是无监督的多任务学习者。*OpenAI 博客*, 1(8):9, 2019。
+- en: 'Ren et al. (2023) Allen Z Ren, Anushri Dixit, Alexandra Bodrova, Sumeet Singh,
+    Stephen Tu, Noah Brown, Peng Xu, Leila Takayama, Fei Xia, and Jake Varley. Robots
+    that ask for help: Uncertainty alignment for large language model planners. In
+    *7th Annual Conference on Robot Learning*, 2023.'
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ren et al. (2023) Allen Z Ren, Anushri Dixit, Alexandra Bodrova, Sumeet Singh,
+    Stephen Tu, Noah Brown, Peng Xu, Leila Takayama, Fei Xia, 和 Jake Varley. 会求助的机器人：大型语言模型规划者的不确定性对齐。发表于*第7届年度机器人学习会议*，2023年。
+- en: Schulman et al. (2017) John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+    Radford, and Oleg Klimov. Proximal policy optimization algorithms. *arXiv preprint
+    arXiv:1707.06347*, 2017.
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schulman et al. (2017) John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+    Radford, 和 Oleg Klimov. 近端策略优化算法。*arXiv 预印本 arXiv:1707.06347*，2017年。
+- en: 'Sutton et al. (1999) Richard S Sutton, Doina Precup, and Satinder Singh. Between
+    mdps and semi-mdps: A framework for temporal abstraction in reinforcement learning.
+    *Artificial intelligence*, 112(1-2):181–211, 1999.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sutton et al. (1999) Richard S Sutton, Doina Precup, 和 Satinder Singh. 在mdp和semi-mdp之间：强化学习中时间抽象的框架。*人工智能*，112(1-2):181–211，1999年。
+- en: 'Szot et al. (2021) Andrew Szot, Alexander Clegg, Eric Undersander, Erik Wijmans,
+    Yili Zhao, John Turner, Noah Maestre, Mustafa Mukadam, Devendra Singh Chaplot,
+    Oleksandr Maksymets, et al. Habitat 2.0: Training home assistants to rearrange
+    their habitat. *Advances in Neural Information Processing Systems*, 34:251–266,
+    2021.'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Szot et al. (2021) Andrew Szot, Alexander Clegg, Eric Undersander, Erik Wijmans,
+    Yili Zhao, John Turner, Noah Maestre, Mustafa Mukadam, Devendra Singh Chaplot,
+    Oleksandr Maksymets，等。Habitat 2.0：训练家庭助手重新布置其栖息地。*神经信息处理系统进展*，34:251–266，2021年。
+- en: 'Touvron et al. (2023) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, Aurelien Rodriguez, Armand Joulin, Edouard Grave, and
+    Guillaume Lample. Llama: Open and efficient foundation language models. *arXiv
+    preprint arXiv:2302.13971*, 2023.'
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Touvron et al. (2023) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, Aurelien Rodriguez, Armand Joulin, Edouard Grave, 和
+    Guillaume Lample. Llama：开放且高效的基础语言模型。*arXiv 预印本 arXiv:2302.13971*，2023年。
+- en: 'Wang et al. (2023a) Guanzhi Wang, Yuqi Xie, Yunfan Jiang, Ajay Mandlekar, Chaowei
+    Xiao, Yuke Zhu, Linxi Fan, and Anima Anandkumar. Voyager: An open-ended embodied
+    agent with large language models. *arXiv preprint arXiv:2305.16291*, 2023a.'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023a) Guanzhi Wang, Yuqi Xie, Yunfan Jiang, Ajay Mandlekar, Chaowei
+    Xiao, Yuke Zhu, Linxi Fan, 和 Anima Anandkumar. Voyager：一个开放式的具身代理与大型语言模型。*arXiv
+    预印本 arXiv:2305.16291*，2023年。
+- en: Wang et al. (2023b) Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao Yang, Jingsen
+    Zhang, Zhiyuan Chen, Jiakai Tang, Xu Chen, Yankai Lin, et al. A survey on large
+    language model based autonomous agents. *arXiv preprint arXiv:2308.11432*, 2023b.
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023b) Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao Yang, Jingsen
+    Zhang, Zhiyuan Chen, Jiakai Tang, Xu Chen, Yankai Lin，等。基于大型语言模型的自主代理调查。*arXiv
+    预印本 arXiv:2308.11432*，2023年。
+- en: 'Wang et al. (2023c) Zihao Wang, Shaofei Cai, Anji Liu, Xiaojian Ma, and Yitao
+    Liang. Describe, explain, plan and select: Interactive planning with large language
+    models enables open-world multi-task agents. *arXiv preprint arXiv:2302.01560*,
+    2023c.'
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023c) Zihao Wang, Shaofei Cai, Anji Liu, Xiaojian Ma, 和 Yitao
+    Liang. 描述、解释、规划与选择：与大型语言模型的交互式规划使得开放世界多任务代理成为可能。*arXiv 预印本 arXiv:2302.01560*，2023年。
+- en: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Ed Chi,
+    Quoc Le, and Denny Zhou. Chain of thought prompting elicits reasoning in large
+    language models. *arXiv preprint arXiv:2201.11903*, 2022.
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Ed
+    Chi, Quoc Le, 和 Denny Zhou. 思维链提示在大型语言模型中引发推理。*arXiv 预印本 arXiv:2201.11903*，2022年。
+- en: Zhou et al. (2024) Zihao Zhou, Bin Hu, Chenyang Zhao, Pu Zhang, and Bin Liu.
+    Large language model as a policy teacher for training reinforcement learning agents.
+    In *33rd International Joint Conference on Artificial Intelligence (IJCAI)*, 2024.
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhou et al. (2024) Zihao Zhou, Bin Hu, Chenyang Zhao, Pu Zhang, 和 Bin Liu. 大型语言模型作为强化学习代理的策略教师。发表于*第33届国际人工智能联合会议（IJCAI）*，2024年。
+- en: Appendix A Appendix
+  id: totrans-153
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 附录
+- en: A.1 Experimental settings on MiniGrid
+  id: totrans-154
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 MiniGrid上的实验设置
+- en: In the basic setups of SimpleDoorKey and KeyInBox, each room contains only one
+    key and one locked door. In SimpleDoorKey, the key is placed on the floor, while
+    in KeyInBox, the key is inside a box. The agent needs to explore the room to locate
+    the target door and the key/box, pick up the key, and finally use the key to unlock
+    the target door.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在SimpleDoorKey和KeyInBox的基本设置中，每个房间只包含一把钥匙和一扇锁住的门。在SimpleDoorKey中，钥匙放在地板上，而在KeyInBox中，钥匙放在一个盒子里。代理需要探索房间，找到目标门和钥匙/盒子，捡起钥匙，最后使用钥匙解锁目标门。
+- en: In the RandomBoxKey environment, the placement of the key is randomized, either
+    on the floor or inside a box. The agent needs to actively plan its actions based
+    on the feedback from the environment, adjusting its plan depending on whether
+    it observes a key or a box.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在RandomBoxKey环境中，钥匙的位置是随机的，可能在地板上或一个箱子里。智能体需要根据来自环境的反馈积极规划自己的动作，并根据是否观察到钥匙或箱子调整计划。
+- en: ColoredDoorKey introduces multiple keys and only one exit door. Each key and
+    its corresponding door are color-coded, requiring a matching-colored key to unlock
+    the door. This environment tests the agent’s ability to identify and utilize color
+    information for successful task completion.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ColoredDoorKey引入了多个钥匙和只有一个出口的门。每把钥匙和对应的门都有颜色编码，需要匹配相同颜色的钥匙才能打开门。这个环境测试了智能体识别和利用颜色信息完成任务的能力。
+- en: MovingObstacle adds another layer of complexity by introducing obstacles that
+    move randomly within the room, potentially blocking the agent’s path. The agent
+    needs to navigate in this dynamically changing environment and adapt its plans
+    accordingly based on new observations.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MovingObstacle通过引入在房间内随机移动的障碍物增加了另一个复杂性层次，可能会阻碍智能体的路径。智能体需要在这个动态变化的环境中导航，并根据新的观察结果调整其计划。
+- en: A.1.1 More details on the design of our agent
+  id: totrans-159
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.1.1 关于我们智能体设计的更多细节
+- en: 'Actor  In our experiments, the actor comprises a set of pre-defined option
+    policies. The available options are as follows:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Actor  在我们的实验中，演员由一组预定义的选项策略组成。可用的选项如下：
+- en: •
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Explore: This option is implemented using preset rules. The specific procedure
+    is as follows: first, the agent is instructed to move to the top-left corner of
+    the task environment, and then proceed to traverse each row alternately while
+    scanning, until all information within the environment becomes visible. This option
+    enables the agent to uncover unexplored areas for discovering new information.'
+  id: totrans-162
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 探索：此选项是通过预设规则实现的。具体过程如下：首先，指示智能体移动到任务环境的左上角，然后按行交替扫描，直到环境中的所有信息变得可见。此选项使智能体能够发现未探索的区域，从而获取新信息。
+- en: •
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Go to [an object]: With this option, the agent can navigate to an object within
+    the environment. The object can be any interactable element, such as a key, box,
+    or door.'
+  id: totrans-164
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 去 [an object]：通过此选项，智能体可以导航到环境中的某个物体。该物体可以是任何可互动的元素，如钥匙、箱子或门。
+- en: •
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Pickup [an object]: This option enables the agent to pick up a specified object.
+    It is useful when the agent needs to acquire an item to progress in the task,
+    like grabbing a key to unlock a door.'
+  id: totrans-166
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 拾取 [an object]：此选项使智能体能够拾取指定的物体。当智能体需要获取某个物品以推动任务进展时，例如抓取钥匙来解锁门，此选项非常有用。
+- en: •
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Toggle [an object]: Using this option, the agent can the state of a particular
+    object. Examples include opening or closing a door, use a key to unlock a door
+    or open a box.'
+  id: totrans-168
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 切换 [an object]：使用此选项，智能体可以切换某个物体的状态。例如，打开或关闭门，使用钥匙解锁门或打开箱子。
+- en: These pre-defined options provide the agent with a repertoire of high-level
+    actions to choose from during its decision-making process. By selecting the appropriate
+    option based on its current objective and observations, the agent can efficiently
+    navigate and interact with the environment to accomplish the given task. For more
+    details, refer to the supplement materials.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些预定义的选项为智能体提供了一系列高层次的动作，可以在决策过程中选择。通过根据当前目标和观察情况选择合适的选项，智能体可以高效地导航并与环境互动，从而完成给定任务。有关更多细节，请参阅补充材料。
+- en: How to train the asking policy?  In our experiments, we train a neural network
+    to serve as the asking policy. Specifically, this neural network receives observations
+    from the current and previous frames as input. Before passing these observations
+    to the network, we compute the difference between the two frames. This encourages
+    the asking policy to generate an “ask" action only when there are noticeable changes
+    in the environment compared to the previous frame. The network architecture for
+    the asking policy comprises three convolutional neural network (CNN) layers followed
+    by two multilayer perceptron (MLP) layers. The output of the network consists
+    of logits for each option, indicating the probability of selecting the “ask" or
+    “not ask" action for each option. Therefore, the dimensionality of the network’s
+    output is $2\times K$, where the (2$k$-1)-th and 2$k$-th entries collectively
+    determine the action distribution for option $k$. Here, $K$ represents the size
+    of the option set used in our approach. By training the asking policy network
+    with this architecture, we enhance the agent’s ability to make informed decisions
+    regarding whether it should pose a query to the LLM planner or not, based on changes
+    observed in the environment between consecutive frames.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何训练提问策略？在我们的实验中，我们训练了一个神经网络来作为提问策略。具体来说，这个神经网络接收来自当前帧和前一帧的观测作为输入。在将这些观测传递给网络之前，我们计算这两帧之间的差异。这鼓励提问策略仅在与前一帧相比环境发生显著变化时才生成“提问”动作。提问策略的网络架构包含三层卷积神经网络（CNN）层，后面跟着两层多层感知器（MLP）层。网络的输出包括每个选项的logits，表示每个选项选择“提问”或“不提问”动作的概率。因此，网络输出的维度是$2\times
+    K$，其中第(2$k$-1)和第2$k$个条目共同决定了选项$k$的动作分布。这里，$K$表示我们方法中使用的选项集的大小。通过使用这种架构训练提问策略网络，我们增强了智能体在基于连续帧之间观察到的环境变化时，决定是否向LLM规划器提出查询的能力。
+- en: A.2 Our approach can tolerate the imperfection of the translator in the mediator
+    module
+  id: totrans-171
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 我们的方法可以容忍中介模块中翻译器的不完美
+- en: 'In the complex environment of ColoredDoorKey in MiniGrid, the baseline interaction
+    method Always has been observed to fail in certain corner cases due to flaws of
+    other components within the framework. Fig. [7(b)](https://arxiv.org/html/2306.03604v8#S5.F7.sf2
+    "In Figure 7 ‣ 5.2.2 Can our agent proactively seek assistance from an LLM in
+    exploratory environments? ‣ 5.2 MiniGrid Experiments ‣ 5 Experiments ‣ Enabling
+    Intelligent Interactions between an Agent and an LLM: A Reinforcement Learning
+    Approach") presents an example scenario in ColoredDoorKey that showcases such
+    a case. In the first frame, the agent is instructed to go to then pick up the
+    key. After taking a left turn to drop the carried purple key (frame 2), the LLM
+    instructs the agent once again with go to then pick up the key, where the agent
+    should proceed to pick up the yellow key. However, the Always baseline fails in
+    this case because the translator does not encode information about the relative
+    position between the agent and the target object accurately. Consequently, the
+    translator returns the same observation [observed yellow key, observed yellow
+    door, carrying purple key] for both frames 1 and 2. In contrast, our approach
+    learns “not to ask" for assistance in this particular case, allowing the agent
+    to complete the action of picking up the yellow key before requesting further
+    instructions. This highlights a significant advantage of our approach over baseline
+    methods: it can adapt to situations where the translator’s translation process
+    loses a lot of information. The learned asking policy enables the agent to make
+    more informed decisions based on its observations and context, leading to robust
+    performance in scenarios where baseline methods may fail due to flaws of the translator.'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在MiniGrid的ColoredDoorKey复杂环境中，基础的交互方法**Always**已被观察到在某些特殊情况下失败，这些失败是由于框架内其他组件的缺陷所致。图[7(b)](https://arxiv.org/html/2306.03604v8#S5.F7.sf2
+    "图7 ‣ 5.2.2 我们的智能体能否在探索性环境中主动寻求LLM的帮助？ ‣ 5.2 MiniGrid实验 ‣ 5 实验 ‣ 实现智能体与LLM之间的智能交互：一种强化学习方法")展示了在ColoredDoorKey中的一个示例场景，展示了这种情况。在第一个画面中，智能体被指示去拿钥匙。转向左侧并丢下紫色钥匙后（画面2），LLM再次指示智能体去拿钥匙，智能体应当继续去拿黄色钥匙。然而，**Always**基准方法在这种情况下失败，因为翻译器未能准确编码智能体与目标物体之间的相对位置。因此，翻译器返回了相同的观察值[观察到的黄色钥匙，观察到的黄色门，携带的紫色钥匙]，用于画面1和画面2。相比之下，我们的方法学会了在这种特定情况下“无需请求”帮助，从而使智能体能够在请求进一步指示之前完成捡起黄色钥匙的动作。这突显了我们方法相较于基准方法的一个重要优势：它可以适应翻译器翻译过程中丧失大量信息的情况。所学的询问策略使智能体能够基于其观察和上下文做出更明智的决策，从而在基准方法因翻译器的缺陷而失败的场景中表现得更加稳健。
+- en: A.3 Experimental setting on Habitat
+  id: totrans-173
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 Habitat实验设置
+- en: Habitat is a simulation platform specifically designed for end-to-end development
+    of embodied AI Szot et al. ([2021](https://arxiv.org/html/2306.03604v8#bib.bib17)).
+    It provides a framework for defining various embodied AI tasks such as navigation,
+    object rearrangement, and question answering. Additionally, it allows for the
+    configuration of embodied agents with specific physical forms and sensors. Agents
+    can be trained using either imitation or reinforcement learning techniques. In
+    our experiments, we demonstrate that our approach can generalize effectively to
+    visually realistic domains by conducting experiments within the Habitat environment.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Habitat是一个专为端到端开发具身AI而设计的模拟平台Szot等人（[2021](https://arxiv.org/html/2306.03604v8#bib.bib17)）。它提供了一个框架，用于定义各种具身AI任务，如导航、物体重新排列和问答。此外，它还允许配置具身智能体，具有特定的物理形态和传感器。智能体可以使用模仿学习或强化学习技术进行训练。在我们的实验中，我们通过在Habitat环境中进行实验，展示了我们的方法可以有效地推广到视觉逼真的领域。
+- en: In our experiments, we focus on the manipulation task known as Pick&Place. In
+    this task, the robot agent’s objective is to pick up an object from a desk and
+    precisely place it into a designated target receptacle, which in this case is
+    the kitchen sink. The task setting is the same as in the Habitat experiment in
+    Zhou et al. ([2024](https://arxiv.org/html/2306.03604v8#bib.bib23)).
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们专注于被称为Pick&Place的操作任务。在此任务中，机器人智能体的目标是从桌子上捡起一个物体，并将其精确放入指定的目标容器中，在这个案例中是厨房水槽。任务设置与Zhou等人的Habitat实验相同（[2024](https://arxiv.org/html/2306.03604v8#bib.bib23)）。
+- en: The robot agent is equipped with a wheeled base, a 7-degree-of-freedom (DoF)
+    arm manipulator, and a parallel-jaw gripper. Additionally, it features a camera
+    mounted on its “head" that provides a field of view of $90^{\circ}$ and captures
+    visual data at a resolution of $256\times 256$ pixels. As a result, the observation
+    space of the environment comprises a visual observation denoted as $o_{v}\in\mathbb{R}^{256\times
+    256\times 1}$ from the depth camera. It also includes a sensor observation $o_{s}\in\mathbb{R}^{24}$
+    sourced from various sensors such as joint sensors, gripping sensors, the end
+    effector of the arm, object and target GPS sensors, among others. The action space
+    in our setup is 11-dimensional, consisting of 3 actions controlling the robot
+    positions, 7 actions controlling the robot arm and one action indicating termination.
+    This action space enables the agent to execute precise movements and manipulations
+    necessary for accomplishing the target task.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 机器人智能体配备了一个带轮底座、一个具有 7 自由度 (DoF) 的机械臂和一个平行夹爪。此外，机器人还配有安装在“头部”上的相机，提供 $90^{\circ}$
+    的视野，并以 $256\times 256$ 像素的分辨率捕捉视觉数据。因此，环境的观察空间包含来自深度相机的视觉观察，表示为 $o_{v}\in\mathbb{R}^{256\times
+    256\times 1}$。它还包括一个传感器观察 $o_{s}\in\mathbb{R}^{24}$，该数据来自多种传感器，如关节传感器、夹持传感器、机械臂的末端执行器、物体和目标
+    GPS 传感器等。我们设置的动作空间为 11 维，包括 3 个控制机器人位置的动作、7 个控制机器人臂的动作以及一个指示终止的动作。这个动作空间使得智能体能够执行精确的动作和操作，完成目标任务所需的动作。
+- en: To effectively train each option, we design the rewards based on rearrangement
+    measures. These measures take into account various factors such as the force exerted
+    by the articulated agent, the distance between the object and the goal, and the
+    angle between the agent and the goal. The specific details of these measures can
+    be found in the Habitat documentations Szot et al. ([2021](https://arxiv.org/html/2306.03604v8#bib.bib17)).
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了有效训练每个选项，我们基于重新排列度量来设计奖励。这些度量考虑了多种因素，例如关节化智能体施加的力、物体与目标之间的距离、以及智能体与目标之间的角度。这些度量的具体细节可以在
+    Habitat 文档 Szot 等人（[2021](https://arxiv.org/html/2306.03604v8#bib.bib17)）中找到。
+- en: In the Pick&Place environment, as solving the task requires progressively achieving
+    several sub-goals, we use a composite stage reward system. More specifically,
+    picking up the object successfully is referred to as Stage1 Completion and rewards
+    a value of 1\. Achieving navigation to the sink with the object is referred to
+    as Stage2 Completion and also rewards a value of 1\. Finally, successfully placing
+    the apple into the target sink is referred to as Stage3 Completion and grants
+    a higher reward value of 5\. It is important to note that if any of the high-level
+    options exceed their designated time limit, the task may terminate prematurely.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Pick&Place 环境中，由于解决任务需要逐步实现多个子目标，我们使用了一个复合阶段奖励系统。更具体地说，成功拾取物体被称为 Stage1 完成，并奖励
+    1 的值。将物体成功导航到水槽则称为 Stage2 完成，并同样奖励 1 的值。最后，成功将苹果放入目标水槽被称为 Stage3 完成，并奖励更高的奖励值
+    5。需要特别注意的是，如果任何高阶选项超过了指定的时间限制，任务可能会提前终止。
+- en: A.3.1 Implementation details of our approach on Habitat
+  id: totrans-179
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.3.1 我们方法在 Habitat 上的实现细节
+- en: 'Planner  We employ the pre-trained Vicuna-7b model as the LLM planner in our
+    approach. In terms of prompt design, we begin by furnishing a concise instruction
+    that conveys information about the target task. Subsequently, we provide a description
+    of the current observation in the form of a Python list. An example of the dialogue
+    generated by the LLM planner can be found in Fig. [10](https://arxiv.org/html/2306.03604v8#A1.F10
+    "Figure 10 ‣ A.3.1 Implementation details of our approach on Habitat ‣ A.3 Experimental
+    setting on Habitat ‣ Appendix A Appendix ‣ Enabling Intelligent Interactions between
+    an Agent and an LLM: A Reinforcement Learning Approach").'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规划器 我们在方法中采用预训练的 Vicuna-7b 模型作为 LLM 规划器。在提示设计方面，我们首先提供简洁的指令，传达目标任务的信息。然后，我们以
+    Python 列表的形式提供当前观察的描述。LLM 规划器生成的对话示例可以在图 [10](https://arxiv.org/html/2306.03604v8#A1.F10
+    "图 10 ‣ A.3.1 我们方法在 Habitat 上的实现细节 ‣ A.3 Habitat 上的实验设置 ‣ 附录 A 附录 ‣ 使智能体与 LLM
+    之间的互动智能化：一种强化学习方法") 中找到。
+- en: '![Refer to caption](img/bce4d7b39ea76a53501a515bcb159c39.png)'
+  id: totrans-181
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/bce4d7b39ea76a53501a515bcb159c39.png)'
+- en: 'Figure 10: An example of the prompts and interactions for the habitat environment.
+    Prefix prompt only contains a short task instruction.'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 10：Habitat 环境中的提示和互动示例。前缀提示仅包含简短的任务指令。
+- en: 'Actor  In our experiments, we use three high-level options: {Navigate, Pick,
+    Place}, each pre-trained with RL independently. Whenever there is a transition
+    between these options, an automatic execution of the default action Reset Arm
+    occurs. To ensure effective training of these options, we use 32 distinct training
+    environment specifications with different object locations and target locations.
+    Additionally, the agent’s initial positions are randomly generated each time the
+    environment is reset, guaranteeing variability in training scenarios. For each
+    option, we employ a ResNet18 backbone combined with a 2-layer LSTM architecture
+    to train the corresponding models. During testing, the success rates of Navigate,
+    Pick, and Place are 84%, 92%, and 91% respectively. These pre-trained models remain
+    fixed throughout the task, ensuring consistency and stability during execution.'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Actor 在我们的实验中，我们使用三种高级选项：{导航、拾取、放置}，每种选项都独立地通过RL进行预训练。每当这些选项之间发生转换时，都会自动执行默认动作“重置手臂”。为了确保这些选项的有效训练，我们使用32个不同的训练环境规格，环境中有不同的物体位置和目标位置。此外，代理的初始位置在每次环境重置时随机生成，确保训练场景的多样性。对于每个选项，我们采用ResNet18骨干网络，并结合2层LSTM架构来训练相应的模型。在测试过程中，导航、拾取和放置的成功率分别为84%、92%和91%。这些预训练模型在任务执行过程中保持固定，确保执行的一致性和稳定性。
+- en: Training of the asking policy  Similar to our Minigrid experiment, we stack
+    five consecutive frames of observations as inputs to the asking policy. This enables
+    the network to capture temporal information and make informed decisions based
+    on past observations. The network architecture for the asking policy consists
+    of three CNN layers for embedding visual observations, one MLP layer for embedding
+    sensor observations, and two additional MLP layers to output the logits for the
+    binary question of whether to ask or not ask.</foreignobject></g></g></svg>
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提问策略的训练 类似于我们的Minigrid实验，我们将五个连续的观测帧堆叠在一起，作为提问策略的输入。这使得网络能够捕捉到时间信息，并根据过去的观测做出明智的决策。提问策略的网络架构由三层CNN层用于嵌入视觉观测，一个MLP层用于嵌入传感器观测，另外两层MLP层用于输出是否提问的二分类logits。

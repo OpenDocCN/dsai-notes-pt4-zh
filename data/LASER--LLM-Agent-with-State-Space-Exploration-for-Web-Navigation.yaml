@@ -1,0 +1,1900 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 13:06:59'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:06:59
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'LASER: LLM Agent with State-Space Exploration for Web Navigation'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'LASER: 基于状态空间探索的网页导航大语言模型代理'
+- en: 来源：[https://arxiv.org/html/2309.08172/](https://arxiv.org/html/2309.08172/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2309.08172/](https://arxiv.org/html/2309.08172/)
+- en: Kaixin Ma  Hongming Zhang  Hongwei Wang  Xiaoman Pan  Wenhao Yu  Dong Yu
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 马凯欣  张宏铭  王宏伟  潘晓曼  于文昊  余东
+- en: Tencent AI Lab, Bellevue, WA
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 腾讯AI实验室，美国华盛顿贝尔维尤
+- en: '{kaixinma,hongmingzhang,hongweiw,xiaomanpan,wenhaowyu,dyu@global.tencent.com}'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{kaixinma,hongmingzhang,hongweiw,xiaomanpan,wenhaowyu,dyu@global.tencent.com}'
+- en: Abstract
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Large language models (LLMs) have been successfully adapted for interactive
+    decision-making tasks like web navigation. While achieving decent performance,
+    previous methods implicitly assume a forward-only execution mode for the model,
+    where they only provide oracle trajectories as in-context examples to guide the
+    model on how to reason in the environment. Consequently, the model could not handle
+    more challenging scenarios not covered in the in-context examples, e.g., mistakes,
+    leading to sub-optimal performance. To address this issue, we propose to model
+    the interactive task as state space exploration, where the LLM agent transitions
+    among a pre-defined set of states by performing actions to complete the task.
+    This formulation enables flexible backtracking, allowing the model to recover
+    from errors easily. We evaluate our proposed LLM Agent with State-Space ExploRation
+    (LASER) on both the WebShop task and [amazon.com](amazon.com). Experimental results
+    show that LASER significantly outperforms previous methods and closes the gap
+    with human performance on the web navigation task.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大语言模型（LLMs）已成功适应于诸如网页导航等互动决策任务。尽管取得了不错的表现，之前的方法隐式假设模型仅采用前向执行模式，在这种模式下，它们只提供像上下文示例中的预设轨迹作为指导，帮助模型理解如何在环境中进行推理。因此，模型无法处理更具挑战性的场景，尤其是那些未在上下文示例中覆盖的场景，如错误，导致性能不理想。为了解决这个问题，我们提出将互动任务建模为状态空间探索，在该模型中，LLM代理通过执行一系列预定义的动作来在一组状态之间转移，以完成任务。这种建模方式支持灵活的回溯，允许模型轻松从错误中恢复。我们在WebShop任务和[amazon.com](amazon.com)上评估了我们提出的基于状态空间探索的LLM代理（LASER）。实验结果表明，LASER显著优于之前的方法，并缩小了与人类在网页导航任务上的性能差距。
+- en: 1 Introduction
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Large language models (LLMs) such as GPT-4 OpenAI ([2023](https://arxiv.org/html/2309.08172v2#bib.bib18))
+    have achieved remarkable performance on a wide range of natural language understanding
+    (NLU) tasks Brown et al. ([2020](https://arxiv.org/html/2309.08172v2#bib.bib1));
+    Ouyang et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib19)); Wei et al.
+    ([2022](https://arxiv.org/html/2309.08172v2#bib.bib23)). Recently, they have been
+    adapted to interactive decision-making tasks such as virtual home navigation Yang
+    et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib24)), text-based games
+    Lin et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib13)) or web-navigation
+    Yao et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26)); Zhou et al.
+    ([2024](https://arxiv.org/html/2309.08172v2#bib.bib30)). Previous methods that
+    utilize LLMs to solve interactive tasks often implicitly assume a forward-only
+    execution mode for the model, where they only provide a few oracle trajectories
+    as in-context examples to teach the model how to reason step-by-step Yao et al.
+    ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26)); Lo et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15)).
+    In other words, the correct action is selected at every step in those oracle trajectories.
+    This might lead to sub-optimal performance because when the model makes an unexpected
+    mistake at test time, it would not know how to recover from it. At the same time,
+    including many in-context examples to cover all possible scenarios is costly or
+    unrealistic. Moreover, previous methods assume a global action space where the
+    model is free to take any action at any step because they either define the possible
+    actions at the beginning of the prompt or expect the LLM to figure out the possible
+    action from in-context examples automatically. This might further increase the
+    task’s difficulty, and the LLM may perform invalid actions in certain cases.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs），例如 GPT-4 OpenAI ([2023](https://arxiv.org/html/2309.08172v2#bib.bib18))，在广泛的自然语言理解（NLU）任务上取得了显著的表现
+    Brown 等人 ([2020](https://arxiv.org/html/2309.08172v2#bib.bib1)); Ouyang 等人 ([2022](https://arxiv.org/html/2309.08172v2#bib.bib19));
+    Wei 等人 ([2022](https://arxiv.org/html/2309.08172v2#bib.bib23))。最近，它们已被应用于交互式决策任务，例如虚拟家居导航
+    Yang 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib24))、基于文本的游戏 Lin 等人
+    ([2023](https://arxiv.org/html/2309.08172v2#bib.bib13)) 或网络导航 Yao 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26));
+    Zhou 等人 ([2024](https://arxiv.org/html/2309.08172v2#bib.bib30))。以往利用 LLMs 解决交互任务的方法通常隐式假设模型采用仅向前执行模式，在这种模式下，它们只提供少量的
+    oracle 轨迹作为上下文示例，以教导模型如何逐步推理 Yao 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26));
+    Lo 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15))。换句话说，在这些 oracle
+    轨迹中，每一步都会选择正确的动作。这可能导致次优的表现，因为当模型在测试时犯下意外错误时，它将不知道如何从中恢复。同时，包含许多上下文示例以涵盖所有可能的场景是昂贵的或不切实际的。此外，之前的方法假设了一个全局动作空间，其中模型可以在任何步骤自由采取任何动作，因为它们要么在提示的开头定义了可能的动作，要么期望
+    LLM 从上下文示例中自动推断出可能的动作。这可能进一步增加任务的难度，且 LLM 在某些情况下可能执行无效的动作。
+- en: '![Refer to caption](img/e2b455bfb7d0b5fa22772efaba581ef8.png)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/e2b455bfb7d0b5fa22772efaba581ef8.png)'
+- en: 'Figure 1: LASER’s state transition diagram on the Webshop Task. Solid circle
+    represent states, and the arrows represent possible state transitions. This formulation
+    enables flexible backtracking and relieves the limitation of forward-only examples,
+    allowing the model to better handle unfamiliar scenarios and recover from errors.'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：LASER 在 Webshop 任务中的状态转换图。实心圆表示状态，箭头表示可能的状态转换。这种形式化方法使得灵活的回溯成为可能，并缓解了仅向前示例的局限，允许模型更好地处理不熟悉的场景并从错误中恢复。
+- en: 'To address the aforementioned issues, we propose to model the interactive tasks
+    as state-space exploration. We first define a set of high-level possible states
+    the LLM agent might encounter during the task execution. Then, we identify the
+    possible action space in each state and the resulting states after performing
+    each action. This formulation effectively converts the LLM agent’s exploration
+    in the interactive task as state transitions, where each action takes the agent
+    from one state to another. Naturally, this allows the agent to easily recover
+    from a wrong action: taking another action that would send it back to the previous
+    state. Moreover, our proposed formulation associates the action space with each
+    individual state, which reduces the task’s difficulty and allows the agent to
+    always select the valid action at any step. We evaluated our proposed LASER on
+    the Webshop Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25))
+    task and conducted sim-to-real transfer experiments where we directly applied
+    LASER to [amazon.com](amazon.com). We show that our proposed setup enables the
+    agent to complete complex user instructions without using in-context examples,
+    and LASER significantly outperforms all previous baselines and closes the gap
+    with human performance.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决前述问题，我们提出将交互任务建模为状态空间探索。我们首先定义一组LLM代理在任务执行过程中可能遇到的高层次状态。然后，我们识别每个状态中的可能动作空间以及执行每个动作后的结果状态。这种表述有效地将LLM代理在交互任务中的探索转化为状态转移，其中每个动作将代理从一个状态带到另一个状态。自然地，这使得代理能够轻松从错误的动作中恢复：采取另一个动作将其带回到先前的状态。此外，我们提出的表述将动作空间与每个独立的状态关联起来，从而降低任务的难度，并允许代理在任何步骤中始终选择有效的动作。我们在Webshop
+    Yao等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib25)）任务上评估了我们提出的LASER，并进行了模拟到真实的转移实验，我们直接将LASER应用于[amazon.com](amazon.com)。我们展示了我们提出的设置使得代理能够在不使用上下文示例的情况下完成复杂的用户指令，并且LASER显著优于所有先前的基准，并缩小了与人类表现的差距。
+- en: 2 Methods
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 方法
+- en: 2.1 Problem Formulation
+  id: totrans-17
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 问题表述
+- en: Given a web environment $\mathbf{E}$ and a user instruction $\mathbf{I}$, the
+    agent is instantiated in the environment and provided with an initial observation
+    $\mathbf{O_{0}}$. The agent is expected to perform a series of actions {$a_{0}$,
+    $a_{1}$, …$a_{n}$} to complete the user instruction, where each $a_{i}$ produces
+    a new observation $\mathbf{O_{i}}$ when executed in the environment. $S$ denotes
+    the stopping state where the agent produces an output and stops exploration after
+    reaching it. Finally, the agent’s output is compared with the target to compute
+    the metrics.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定一个网络环境$\mathbf{E}$和用户指令$\mathbf{I}$，代理被实例化在该环境中并提供初始观察$\mathbf{O_{0}}$。代理需要执行一系列动作{$a_{0}$,
+    $a_{1}$, …$a_{n}$}来完成用户指令，其中每个$a_{i}$在环境中执行时会产生一个新的观察$\mathbf{O_{i}}$。$S$表示停止状态，当代理到达该状态时，会产生输出并停止探索。最后，代理的输出与目标进行比较以计算指标。
+- en: 2.2 LLM Agent
+  id: totrans-19
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 LLM代理
+- en: 'As previously discussed, we would like the agent to be able to handle any novel
+    situations or mistakes that might occur during execution without exhaustively
+    describing them via a large number of in-context examples. Thus, we propose to
+    equip LLM agents with the state-tracking capability. A diagram of the state transitions
+    of our agent is shown in [Figure 1](https://arxiv.org/html/2309.08172v2#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ LASER: LLM Agent with State-Space Exploration for
+    Web Navigation"). We start by defining a set of possible high-level states the
+    agent might encounter in the environment (§[2.3](https://arxiv.org/html/2309.08172v2#S2.SS3
+    "2.3 State Description ‣ 2 Methods ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation")). The LLM agent takes the user input as the overall goal
+    and is initialized in the starting state. At every step, the agent receives state-specific
+    system instruction, current observation, a set of permissible actions in the current
+    states, and the history of past thoughts and actions as inputs. Then, it selects
+    one of the actions as output, which either transitions the agent to a different
+    state or remains in the same state (§[2.4](https://arxiv.org/html/2309.08172v2#S2.SS4
+    "2.4 Action Space ‣ 2 Methods ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation")). The agent repeats the process until the stopping state
+    or the maximum step is reached.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如前所述，我们希望智能体能够处理在执行过程中可能出现的任何新情况或错误，而不需要通过大量的上下文示例来详尽描述这些情况。因此，我们提议为LLM智能体配备状态跟踪能力。我们智能体的状态转换示意图见[图1](https://arxiv.org/html/2309.08172v2#S1.F1
+    "图1 ‣ 1 引言 ‣ LASER：具有状态空间探索的LLM智能体用于网页导航")。我们从定义智能体在环境中可能遇到的一组高层状态开始（§[2.3](https://arxiv.org/html/2309.08172v2#S2.SS3
+    "2.3 状态描述 ‣ 2 方法 ‣ LASER：具有状态空间探索的LLM智能体用于网页导航")）。LLM智能体将用户输入作为整体目标，并在初始状态下进行初始化。在每一步中，智能体接收状态特定的系统指令、当前观察、当前状态下可执行的动作集合以及过去思想和动作的历史作为输入。然后，智能体从中选择一个动作作为输出，该动作要么将智能体转移到不同的状态，要么保持在当前状态（§[2.4](https://arxiv.org/html/2309.08172v2#S2.SS4
+    "2.4 动作空间 ‣ 2 方法 ‣ LASER：具有状态空间探索的LLM智能体用于网页导航")）。智能体重复这个过程，直到达到停止状态或最大步数。
+- en: 'Notice that with our formulation, we can provide detailed instructions to inform
+    the agent of the possible situations in every state and how to handle them. For
+    example, as shown in [Figure 1](https://arxiv.org/html/2309.08172v2#S1.F1 "Figure
+    1 ‣ 1 Introduction ‣ LASER: LLM Agent with State-Space Exploration for Web Navigation"),
+    at the results state, the current results may or may not be good enough, and we
+    instruct the agent to either select an item, go to the next page, or go back to
+    search depending on its judgment. Hence, these instructions can be very informative
+    to guide the agent while being much more efficient than in-context examples. Next,
+    we describe in detail how we design the state and action spaces.'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，通过我们的公式化方法，我们可以提供详细的指令，告知智能体每个状态下可能出现的情况及如何处理它们。例如，如[图1](https://arxiv.org/html/2309.08172v2#S1.F1
+    "图1 ‣ 1 引言 ‣ LASER：具有状态空间探索的LLM智能体用于网页导航")所示，在结果状态下，当前的结果可能足够好，也可能不足够好，我们会指示智能体根据判断选择一个项目、进入下一页或返回搜索。因此，这些指令可以为智能体提供非常有用的信息，引导其行动，同时比上下文示例更为高效。接下来，我们将详细描述我们如何设计状态和动作空间。
+- en: 2.3 State Description
+  id: totrans-22
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.3 状态描述
+- en: In our work, we use the term state to describe the current environment the agent
+    is in, and we consider an agent to be in two different states only if the structure
+    of the current environment observation is different. This allows us to define
+    only a handful of states to support an agent’s exploration in a complex environment
+    fully.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的工作中，我们使用“状态”这个术语来描述智能体所处的当前环境，我们认为只有当当前环境观察的结构不同，智能体才处于不同的状态。这使得我们能够仅定义少数几个状态，以充分支持智能体在复杂环境中的探索。
+- en: 'After manually categorizing all possible states in the interactive task, for
+    each state, we write a generic instruction that describes the state in detail.
+    Specifically, we provide a sample layout of the observation the agent would receive
+    in that state and replace all specifications in the layout with placeholders.
+    We also provide a high-level goal and detailed instructions to act in that state.
+    The sample layout combined with state-specific instructions allows us to inform
+    the agent of possible observations it might receive and how to act accordingly.
+    Therefore we no longer need to provide in-context examples to guide the agent.
+    For the WebShop task, we define a total of four states, and the full prompts for
+    search, results, and item states can be found in [Table 4](https://arxiv.org/html/2309.08172v2#A4.T4
+    "Table 4 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM Agent with
+    State-Space Exploration for Web Navigation"), [Table 5](https://arxiv.org/html/2309.08172v2#A4.T5
+    "Table 5 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM Agent with
+    State-Space Exploration for Web Navigation") and [Table 6](https://arxiv.org/html/2309.08172v2#A4.T6
+    "Table 6 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM Agent with
+    State-Space Exploration for Web Navigation") in the appendix.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在手动分类所有可能的交互任务状态后，对于每个状态，我们编写了一条通用指令，详细描述该状态。具体来说，我们提供了该状态下代理可能接收到的观察布局样本，并将布局中的所有规格替换为占位符。我们还提供了一个高层次的目标和详细的指令，用于在该状态下采取行动。布局样本与特定状态的指令相结合，使我们能够告知代理它可能接收到的观察内容以及如何相应地采取行动。因此，我们不再需要提供上下文示例来指导代理。在WebShop任务中，我们定义了四个状态，搜索、结果和项目状态的完整提示可以在附录中的[表4](https://arxiv.org/html/2309.08172v2#A4.T4
+    "Table 4 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM Agent with
+    State-Space Exploration for Web Navigation")、[表5](https://arxiv.org/html/2309.08172v2#A4.T5
+    "Table 5 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM Agent with
+    State-Space Exploration for Web Navigation")和[表6](https://arxiv.org/html/2309.08172v2#A4.T6
+    "Table 6 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM Agent with
+    State-Space Exploration for Web Navigation")中找到。'
+- en: 2.4 Action Space
+  id: totrans-25
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.4 动作空间
+- en: 'Previous methods often implicitly assume a global action space for the model,
+    i.e. the model is free to take any action without further constraints. Although
+    the LLM is able to figure out valid actions to take most of the time, it might
+    still attempt to take invalid actions in certain cases. Thus after defining all
+    possible states for the task, we further identify the action space for each state
+    to rule out such possibilities. Specifically, we define a set of permissible actions
+    that the agent can choose from for each state, which ensures that the agent always
+    performs valid actions. The state-action mapping for our agent is shown in [footnote 3](https://arxiv.org/html/2309.08172v2#footnote3
+    "footnote 3 ‣ Table 8 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM
+    Agent with State-Space Exploration for Web Navigation") in the appendix. In practice,
+    permissible actions can also be determined heuristically, e.g., identifying all
+    clickable buttons on a webpage.'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '以往的方法通常隐含地假设模型有一个全局动作空间，即模型可以自由地采取任何动作而不受进一步的约束。尽管LLM通常能够找出有效的动作，但在某些情况下，它仍然可能尝试采取无效的动作。因此，在定义了任务的所有可能状态后，我们进一步为每个状态识别动作空间，以排除这种可能性。具体来说，我们为每个状态定义了一组代理可以选择的允许动作，这确保了代理始终执行有效的动作。我们代理的状态-动作映射可以在附录中的[脚注3](https://arxiv.org/html/2309.08172v2#footnote3
+    "footnote 3 ‣ Table 8 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM
+    Agent with State-Space Exploration for Web Navigation")中找到。在实际操作中，允许的动作也可以通过启发式方法来确定，例如，识别网页上所有可点击的按钮。'
+- en: Inspired by the ReAct method Yao et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26)),
+    we also ask the agent to produce a thought at every step and then select an action
+    based on its thought. The agent keeps repeating the thought-and-action process
+    until it reaches the stopping state or the maximum step is reached. We also define
+    a memory buffer to store the intermediate results (the items examined but considered
+    non-matching) during the exploration. This is similar to human behavior in that
+    people typically find a few backup options before finding the desired item. When
+    the agent is forced to stop after the maximum number of steps, it selects one
+    of the intermediate results as the final output, and we call this the backup strategy.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 受 ReAct 方法的启发，Yao 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26))，我们也要求智能体在每一步生成一个思考，然后根据这个思考选择一个行动。智能体不断重复思考与行动的过程，直到达到停止状态或达到最大步数。我们还定义了一个记忆缓冲区来存储探索过程中的中间结果（即被检查但认为不匹配的项目）。这类似于人类行为，因为人们通常会在找到所需项目之前先找到一些备选项。当智能体在达到最大步数后被迫停止时，它从中间结果中选择一个作为最终输出，我们称之为备份策略。
+- en: '|  | Success Rate | Reward |'
+  id: totrans-28
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 成功率 | 奖励 |'
+- en: '| ASH Lo et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15)) | 30.2
+    | 56.7 |'
+  id: totrans-29
+  prefs: []
+  type: TYPE_TB
+  zh: '| ASH Lo 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15)) | 30.2
+    | 56.7 |'
+- en: '| ReAct Yao et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26))*
+    | 40.0 | 66.6 |'
+  id: totrans-30
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct Yao 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26)) * |
+    40.0 | 66.6 |'
+- en: '| ReAct (ours rerun) | 34.0 | 59.7 |'
+  id: totrans-31
+  prefs: []
+  type: TYPE_TB
+  zh: '| ReAct（我们的重跑） | 34.0 | 59.7 |'
+- en: '| WebGUM Furuta et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib5))
+    | 45.0 | 67.5 |'
+  id: totrans-32
+  prefs: []
+  type: TYPE_TB
+  zh: '| WebGUM Furuta 等人 ([2023](https://arxiv.org/html/2309.08172v2#bib.bib5)) |
+    45.0 | 67.5 |'
+- en: '| LASER - backup | 48.4 | 71.2 |'
+  id: totrans-33
+  prefs: []
+  type: TYPE_TB
+  zh: '| LASER - 备份 | 48.4 | 71.2 |'
+- en: '| LASER | 50.0 | 75.6 |'
+  id: totrans-34
+  prefs: []
+  type: TYPE_TB
+  zh: '| LASER | 50.0 | 75.6 |'
+- en: '| Human Expert Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25))
+    | 59.6 | 82.1 |'
+  id: totrans-35
+  prefs: []
+  type: TYPE_TB
+  zh: '| 人类专家 Yao 等人 ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25)) | 59.6
+    | 82.1 |'
+- en: 'Table 1: Results on WebShop Task. *simplified setting'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：WebShop 任务的结果。*简化设置
+- en: 3 Experiments
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 个实验
+- en: 'We conduct our experiments on the WebShop task Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25)).
+    We used 500 test set instructions for evaluation and adopted reward and success
+    rate as metrics following previous works Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25)).
+    We used GPT-4-0613 to power LASER and its function-calling ability to implement
+    action selection step. We compare against the following baselines: ReAct Yao et al.
+    ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26)) is a prompting method
+    designed for interactive decision-making tasks. At every step, the LLM agent receives
+    an observation and can either produce a thought or an action. The agent accumulates
+    all of the past observations, thoughts, and actions in its prompt, using a full
+    trajectory of exploration as an in-context example. The original ReAct uses PaLM
+    Chowdhery et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib2)) as its
+    LLM backbone. To make a fair comparison, we also rerun the ReAct method with GPT-4-0613\.
+    ASH Lo et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15)) builds on
+    top of ReAct and adds a summarization step that condenses the agent observation
+    and acts based on the condensed information. WebGUM Furuta et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib5))
+    is a supervised method that finetunes FlanT5-XL model Chung et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib3))
+    on 1K human demonstrations provided by the WebShop task. Moreoever, we experimented
+    with sim-to-real transfer experiments where we directly apply LASER to [amazon.com](amazon.com)
+    without modification. We follow the same settings as Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25))
+    and evaluated on 100 test set instructions and then manually evaluated results.
+    More detailed experimental setup is discussed in [Appendix B](https://arxiv.org/html/2309.08172v2#A2
+    "Appendix B Experimental Details ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation").'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们在WebShop任务上进行实验，参考了Yao等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib25)）的工作。我们使用了500条测试集指令进行评估，并采用奖励和成功率作为度量指标，延续了Yao等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib25)）的做法。我们使用GPT-4-0613支持LASER及其函数调用能力来实现动作选择步骤。我们与以下基准方法进行了比较：ReAct，Yao等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib26)）提出的一种用于互动决策任务的提示方法。在每一步中，LLM智能体接收观察结果，并可以选择产生思考或动作。智能体将所有的历史观察、思考和动作存储在其提示中，使用完整的探索轨迹作为上下文示例。原始的ReAct使用PaLM，Chowdhery等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib2)）作为其LLM骨干网络。为了进行公平比较，我们还重新运行了基于GPT-4-0613的ReAct方法。ASH，Lo等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib15)）在ReAct基础上进行了扩展，并增加了一个总结步骤，浓缩智能体的观察信息，并基于浓缩后的信息采取行动。WebGUM，Furuta等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib5)）是一种监督学习方法，针对WebShop任务提供的1K人类演示数据，对FlanT5-XL模型进行微调，Chung等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib3)）提供了相关数据。此外，我们还进行了模拟到实际转移实验，直接将LASER应用于[amazon.com](amazon.com)，未作任何修改。我们遵循Yao等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib25)）的相同设置，并在100条测试集指令上进行了评估，然后手动评估结果。更详细的实验设置请参见[附录B](https://arxiv.org/html/2309.08172v2#A2
+    "附录B 实验细节 ‣ LASER: 具有状态空间探索的LLM智能体用于Web导航")。'
+- en: '|  | SR | Reward | Att. | Opt. | Type. |'
+  id: totrans-39
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | SR | 奖励 | 注意力 | 最优 | 类型 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-40
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| LASER | 62.0 | 85.4 | 85.5 | 75.0 | 97.0 |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '| LASER | 62.0 | 85.4 | 85.5 | 75.0 | 97.0 |'
+- en: '| Human Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25))
+    | 65.0 | 88.2 | 86.2 | 76.3 | 99.0 |'
+  id: totrans-42
+  prefs: []
+  type: TYPE_TB
+  zh: '| 人类 Yao等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib25)） | 65.0 |
+    88.2 | 86.2 | 76.3 | 99.0 |'
+- en: 'Table 2: Results on Amazon.com.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：Amazon.com上的实验结果。
+- en: '|  | Success Rate | Reward |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 成功率 | 奖励 |'
+- en: '| --- | --- | --- |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| LASER | 52.0 | 77.6 |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| LASER | 52.0 | 77.6 |'
+- en: '| LASER + One-shot | 50.0 | 74.9 |'
+  id: totrans-47
+  prefs: []
+  type: TYPE_TB
+  zh: '| LASER + 单次示例 | 50.0 | 74.9 |'
+- en: '| LASER - function call | 50.0 | 76.2 |'
+  id: totrans-48
+  prefs: []
+  type: TYPE_TB
+  zh: '| LASER - 函数调用 | 50.0 | 76.2 |'
+- en: '| LASER (text-davinci-003) | 38.5 | 70.2 |'
+  id: totrans-49
+  prefs: []
+  type: TYPE_TB
+  zh: '| LASER (text-davinci-003) | 38.5 | 70.2 |'
+- en: 'Table 3: Ablation Results on the WebShop Task. The standard LASER is powered
+    by GPT-4 under zero-shot.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：WebShop任务的消融实验结果。标准LASER由GPT-4支持，采用零-shot方法。
+- en: 4 Results
+  id: totrans-51
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 结果
+- en: 'The overall results of our experiments are shown in [Table 1](https://arxiv.org/html/2309.08172v2#S2.T1
+    "Table 1 ‣ 2.4 Action Space ‣ 2 Methods ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation"). Our early experiments showed that the ReAct agent often
+    produces invalid actions. For example, when it selects an item that doesn’t match
+    the instruction, it tries to click the next page button (which does not exist)
+    before backing to the results page. Also, the ReAct agent often got stuck in a
+    certain action and failed to produce output. For example, the agent keeps going
+    to the next page until the maximum step is reached. We added detailed instructions
+    as the system prompt to try to address the issue. Despite our best efforts, the
+    agent still makes invalid actions in some cases and achieves worse results than
+    the original paper. On the other hand, LASER outperforms baselines by large margins
+    on both metrics, showing the effectiveness of our approach. We further removed
+    the backup strategy of LASER (the agent would receive a 0 score when the maximum
+    budget runs out) to make a more fair comparison with ReAct. We see that our method
+    still outperforms baselines by very large margins. The results from the transfer
+    experiments are shown in [Table 2](https://arxiv.org/html/2309.08172v2#S3.T2 "Table
+    2 ‣ 3 Experiments ‣ LASER: LLM Agent with State-Space Exploration for Web Navigation").
+    Again, LASER achieves very close results compared to human performance. It’s also
+    encouraging to see that LASER even achieved better performance on this realistic
+    environment than the WebShop, which is likely due to the stronger search engine
+    on [amazon.com](amazon.com).'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们实验的整体结果显示在[表1](https://arxiv.org/html/2309.08172v2#S2.T1 "Table 1 ‣ 2.4 Action
+    Space ‣ 2 Methods ‣ LASER: LLM Agent with State-Space Exploration for Web Navigation")中。我们早期的实验表明，ReAct智能体经常产生无效的动作。例如，当它选择一个与指令不匹配的项目时，它会尝试点击“下一页”按钮（该按钮不存在），然后才返回结果页面。此外，ReAct智能体经常陷入某个动作中，无法产生输出。例如，智能体会一直跳到下一页，直到达到最大步数。我们添加了详细的指令作为系统提示，以尝试解决这一问题。尽管我们付出了最大努力，智能体在某些情况下仍然会做出无效的动作，且结果比原文中的实验更差。另一方面，LASER在两个指标上都远远超越了基准模型，显示了我们方法的有效性。我们进一步移除了LASER的备份策略（即当最大预算耗尽时，智能体会收到0分），以便与ReAct进行更公平的比较。我们看到我们的方法依然在很大程度上超越了基准模型。来自迁移实验的结果显示在[表2](https://arxiv.org/html/2309.08172v2#S3.T2
+    "Table 2 ‣ 3 Experiments ‣ LASER: LLM Agent with State-Space Exploration for Web
+    Navigation")中。同样，LASER与人类表现非常接近。令人鼓舞的是，LASER在这个真实环境中的表现甚至优于WebShop，这很可能是由于[amazon.com](amazon.com)上更强大的搜索引擎。'
+- en: 4.1 Analysis
+  id: totrans-53
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 分析
+- en: We first conduct ablation studies to understand the important design decisions
+    of our agent.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先进行消融实验，以了解我们智能体设计中的重要决策。
+- en: 'Zero-shot vs Few-shot We used state-specific instructions only to guide our
+    agent’s exploration in the environment, whereas previous works often adopt in-context
+    examples. To investigate if the agent can further benefit from in-context examples,
+    we experimented with a one-shot setting: for every prompt in LASER, we added one
+    example input-output pair between our system instructions and current inputs,
+    and the rest of the agent remains the same. Due to the limited computing budget,
+    we only ran our ablation studies on 200 instructions. The results are shown in
+    [Table 3](https://arxiv.org/html/2309.08172v2#S3.T3 "Table 3 ‣ 3 Experiments ‣
+    LASER: LLM Agent with State-Space Exploration for Web Navigation"). We see that
+    adding an in-context example actually leads to worse performance. Since LASER
+    already performs valid actions 100% time, we hypothesize that the agent understands
+    the task well without in-context examples and the added example is actually distracting
+    the agent in some cases.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '零-shot与少-shot：我们仅使用状态特定的指令来引导我们的智能体在环境中的探索，而以前的工作通常采用上下文示例。为了探讨智能体是否能从上下文示例中进一步受益，我们进行了一个一-shot实验：在LASER的每个提示中，我们在系统指令和当前输入之间添加了一个输入-输出对示例，其他部分保持不变。由于计算预算有限，我们只在200个指令上进行了消融实验。结果显示在[表3](https://arxiv.org/html/2309.08172v2#S3.T3
+    "Table 3 ‣ 3 Experiments ‣ LASER: LLM Agent with State-Space Exploration for Web
+    Navigation")中。我们发现添加上下文示例实际上导致了更差的表现。由于LASER已经能够100%执行有效动作，我们推测智能体已经很好地理解了任务，而添加的示例在某些情况下实际上干扰了智能体。'
+- en: '![Refer to caption](img/8d2fe314c5088c84f8e44df93cc8eee8.png)'
+  id: totrans-56
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/8d2fe314c5088c84f8e44df93cc8eee8.png)'
+- en: 'Figure 2: Left: LASER’s performance for test set episodes of different lengths.
+    Right: The distribution of the number of steps LASER takes to complete tasks'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：左：LASER 在不同长度的测试集回合中的性能。右：LASER 完成任务所需的步骤数量分布
+- en: 'Effect of function-calling LASER takes advantage of the function-calling functionality
+    that is enabled only for GPT models after 06/13/23\. Thus, we are interested to
+    see the effect of replacing this design with regular text generation. To do so,
+    instead of passing the permissible actions as a list of functions, we convert
+    each action as a Python dictionary describing its purpose and arguments and then
+    append them to the prompt. We then ask the LLM to generate output in JSON format
+    to represent the action it selects with appropriate arguments. The results are
+    shown in [Table 3](https://arxiv.org/html/2309.08172v2#S3.T3 "Table 3 ‣ 3 Experiments
+    ‣ LASER: LLM Agent with State-Space Exploration for Web Navigation"). Again, the
+    agent without function calling performs slightly worse on these 200 episodes.
+    It shows that the function calling functionality can be leveraged to boost performance
+    when building interactive agents, suggesting a direction for building future LLMs.'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '函数调用的影响 LASER 利用了仅在 2023 年 6 月 13 日后才为 GPT 模型启用的函数调用功能。因此，我们感兴趣的是将该设计替换为常规文本生成的影响。为此，我们不再将可执行操作作为函数列表传递，而是将每个操作转换为描述其目的和参数的
+    Python 字典，然后将它们附加到提示中。接着，我们要求 LLM 生成 JSON 格式的输出，以表示它选择的操作及其适当的参数。结果显示在[表 3](https://arxiv.org/html/2309.08172v2#S3.T3
+    "Table 3 ‣ 3 Experiments ‣ LASER: LLM Agent with State-Space Exploration for Web
+    Navigation")中。同样，在这 200 个回合中，没有函数调用的代理表现略逊一筹。这表明，当构建交互式代理时，可以利用函数调用功能来提升性能，为未来
+    LLM 的构建提供了一个方向。'
+- en: 'Performance vs trajectory length Here, we are interested in seeing the length
+    of LASER’s trajectories and their effect on the overall performance. We plot the
+    distribution of trajectory length in [Figure 2](https://arxiv.org/html/2309.08172v2#S4.F2
+    "Figure 2 ‣ 4.1 Analysis ‣ 4 Results ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation") and the agent’s performance for each length group. We notice
+    that most of the time, the agent only took three state transitions to reach the
+    finish state, which is search-select-buy. From the left figure, the agent’s performance
+    generally decreases as the trajectory gets longer. However, the drop is less significant
+    compared to the observation made for ReAct and ASH agent Lo et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15)),
+    which further shows the effectiveness of our agent. Finally, for the length 15
+    group, for which the agent is forced to stop and select from the browsing history,
+    the performance is much lower than other groups. While not surprising, it has
+    a non-zero success rate, showing that there are cases where the agent found a
+    matching item but failed to recognize it as the target in the first pass.'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '性能与轨迹长度 在这里，我们感兴趣的是查看 LASER 的轨迹长度及其对整体性能的影响。我们在[图 2](https://arxiv.org/html/2309.08172v2#S4.F2
+    "Figure 2 ‣ 4.1 Analysis ‣ 4 Results ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation")中绘制了轨迹长度的分布，并展示了每个长度组别的代理性能。我们注意到，大多数情况下，代理仅用了三次状态转移就达到了结束状态，即搜索-选择-购买。从左侧图中可以看出，随着轨迹变长，代理的性能通常会下降。然而，与
+    ReAct 和 ASH 代理的观察结果相比，下降的幅度较小（Lo 等人，[2023](https://arxiv.org/html/2309.08172v2#bib.bib15)），这进一步证明了我们代理的有效性。最后，对于长度为
+    15 的组别，代理被迫停止并从浏览历史中选择，性能远低于其他组别。虽然这并不令人惊讶，但其成功率非零，表明在某些情况下，代理找到了匹配的项目，但在第一次检查时未能识别为目标。'
+- en: 'Generalization to different LLMs We adopted the text-davinci-003 model to see
+    if LASER can transfer well to a less powerful non-chat model. Since this model
+    does not support function-calling, we adopted the approach described earlier to
+    prompt the model to generate JSON output to represent actions. The results are
+    shown in [Table 3](https://arxiv.org/html/2309.08172v2#S3.T3 "Table 3 ‣ 3 Experiments
+    ‣ LASER: LLM Agent with State-Space Exploration for Web Navigation"). Although
+    switching to text-davinci-003 leads to a large drop in performance, our model
+    still achieves better results than the baselines. It shows that our proposed agent
+    can be easily adapted to other LLMs with different capabilities. With more powerful
+    models in the future, our agent could potentially surpass human performance on
+    this task. We also conducted case studies to inspect the failure modes of LASER
+    and additional results are in [Appendix C](https://arxiv.org/html/2309.08172v2#A3
+    "Appendix C Case Studies ‣ LASER: LLM Agent with State-Space Exploration for Web
+    Navigation"). We discuss related works in [Appendix A](https://arxiv.org/html/2309.08172v2#A1
+    "Appendix A Related Works ‣ LASER: LLM Agent with State-Space Exploration for
+    Web Navigation").'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向不同 LLM 的泛化 我们采用了 text-davinci-003 模型，看看 LASER 是否能够很好地迁移到一个较弱的非聊天模型上。由于该模型不支持函数调用，我们采用了前面描述的方法，提示模型生成
+    JSON 输出以表示操作。结果显示在 [表 3](https://arxiv.org/html/2309.08172v2#S3.T3 "表 3 ‣ 3 实验
+    ‣ LASER：具有状态空间探索的 LLM 代理用于网页导航") 中。尽管切换到 text-davinci-003 导致性能大幅下降，但我们的模型仍然比基准结果更好。这表明我们提出的代理可以轻松适应具有不同能力的其他
+    LLM。未来，随着更强大的模型的出现，我们的代理有可能在这一任务上超越人类表现。我们还进行了案例研究，以检查 LASER 的失败模式，附加结果见 [附录 C](https://arxiv.org/html/2309.08172v2#A3
+    "附录 C 案例研究 ‣ LASER：具有状态空间探索的 LLM 代理用于网页导航")。我们在 [附录 A](https://arxiv.org/html/2309.08172v2#A1
+    "附录 A 相关工作 ‣ LASER：具有状态空间探索的 LLM 代理用于网页导航") 中讨论了相关工作。
+- en: 5 Conclusions
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结论
+- en: We proposed an LLM agent, LASER, that models interactive web navigation tasks
+    as state-space exploration. Our formulation allows the agent to handle novel situations,
+    easily backtrack from mistakes, and always perform valid actions. Guided solely
+    by the state-specific instructions without any in-context examples, LASER outperforms
+    all baselines on the WebShop task by large margins and closes the gap with human
+    performance on the real-world shopping website. Our analysis shows that LASER
+    is also more robust to longer trajectories and generalizes well to other LLMs.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出了一种名为 LASER 的 LLM 代理，它将交互式网页导航任务建模为状态空间探索。我们的框架使得代理能够处理新颖的情况，轻松从错误中回溯，并始终执行有效的操作。在没有任何上下文示例的情况下，仅根据特定状态的指令进行引导，LASER
+    在 WebShop 任务上大幅超越所有基准，并缩小了与真实购物网站上人类表现的差距。我们的分析表明，LASER 对更长的轨迹也更具鲁棒性，并且能够很好地推广到其他
+    LLM。
+- en: Limitations
+  id: totrans-63
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 局限性
+- en: In this work, we have only experimented with the task of finding the target
+    item for the shopping domain. Despite its challenging nature, it does not cover
+    all tasks user typiclaly do on an e-commerce website, e.g., tracking orders or
+    checking order history. For future work, it would be interesting to enhance LASER’s
+    ability so that it can handle such popular tasks in the shopping domain. Also,
+    it would be interesting to equip LASER with more tools such as a knowledge retriever
+    Ma et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib16)) or a calculator
+    Gao et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib6)), so that it
+    can handle more complex instructions.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这项工作中，我们仅在购物领域的目标物品查找任务上进行了实验。尽管这一任务具有挑战性，但它并未涵盖用户通常在电子商务网站上执行的所有任务，例如跟踪订单或查看订单历史。未来的工作中，增强
+    LASER 的能力，使其能够处理购物领域中的这些常见任务，将是一个有趣的方向。此外，装备 LASER 更多工具，如知识检索器 Ma 等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib16)）或计算器
+    Gao 等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib6)），使其能够处理更复杂的指令，也将是一个有趣的方向。
+- en: Our LASER requires manual annotation of possible states in the environment and
+    their corresponding descriptions. Because of this, our method might only be suitable
+    for building agents for specific domains (rather than open-world web agents),
+    where only a handful of states are required, e.g. e-commerce or travel booking.
+    For future directions, we envision a hierarchical multi-agent system, in which
+    each specific domain is governed by an agent like LASER, and a general open-world
+    agent just collaborates with other domain agents to complete various user instructions.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的LASER需要手动标注环境中可能的状态及其对应的描述。因此，我们的方法可能仅适用于为特定领域（而非开放世界的网络代理）构建代理，在这些领域中，只需处理少数几种状态，例如电子商务或旅游预订。未来的发展方向，我们设想一个分层的多代理系统，其中每个特定领域都由类似LASER的代理进行管理，而一个通用的开放世界代理只需与其他领域代理协作来完成各种用户指令。
+- en: Regarding potential risks of our work, we think extra caution and testing are
+    required before deploying LASER to real-world scenarios. When conducting experiments
+    on the Webshop task, we allow the agent to take any action permitted in the environment
+    because of its simulated nature. However, certain actions may have hard-to-recover
+    consequences in the real world. For example, clicking the buy button in a real
+    shopping site. Therefore we forced the agent to stop when it decides to buy the
+    item when experimenting on [amazon.com](amazon.com). In general, as LASER’s success
+    rate is still far from being perfect, it might require additional human verification
+    before proceeding with actions that have high-stakes.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于我们工作的潜在风险，我们认为在将LASER部署到现实场景之前，需要额外的谨慎和测试。在Webshop任务的实验中，由于其模拟特性，我们允许代理执行环境中允许的任何操作。然而，某些操作在现实世界中可能会带来难以恢复的后果。例如，在真实购物网站上点击购买按钮。因此，在实验中我们强制代理在决定购买物品时停止操作，尤其是在[amazon.com](amazon.com)上进行实验时。总的来说，由于LASER的成功率仍然远未完美，它可能需要在执行高风险操作之前进行额外的人类验证。
+- en: References
+  id: totrans-67
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Brown et al. (2020) Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D
+    Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+    Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan,
+    Rewon Child, Aditya Ramesh, Daniel Ziegler, Jeffrey Wu, Clemens Winter, Chris
+    Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack
+    Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya Sutskever, and Dario
+    Amodei. 2020. [Language models are few-shot learners](https://proceedings.neurips.cc/paper_files/paper/2020/file/1457c0d6bfcb4967418bfb8ac142f64a-Paper.pdf).
+    In *Advances in Neural Information Processing Systems*, volume 33, pages 1877–1901\.
+    Curran Associates, Inc.
+  id: totrans-68
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown等人（2020年）Tom Brown、Benjamin Mann、Nick Ryder、Melanie Subbiah、Jared D Kaplan、Prafulla
+    Dhariwal、Arvind Neelakantan、Pranav Shyam、Girish Sastry、Amanda Askell、Sandhini
+    Agarwal、Ariel Herbert-Voss、Gretchen Krueger、Tom Henighan、Rewon Child、Aditya Ramesh、Daniel
+    Ziegler、Jeffrey Wu、Clemens Winter、Chris Hesse、Mark Chen、Eric Sigler、Mateusz Litwin、Scott
+    Gray、Benjamin Chess、Jack Clark、Christopher Berner、Sam McCandlish、Alec Radford、Ilya
+    Sutskever 和 Dario Amodei。2020年。[语言模型是少样本学习者](https://proceedings.neurips.cc/paper_files/paper/2020/file/1457c0d6bfcb4967418bfb8ac142f64a-Paper.pdf)。发表于《神经信息处理系统进展》（*Advances
+    in Neural Information Processing Systems*），第33卷，第1877–1901页。Curran Associates,
+    Inc.
+- en: 'Chowdhery et al. (2023) Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten
+    Bosma, Gaurav Mishra, Adam Roberts, Paul Barham, Hyung Won Chung, Charles Sutton,
+    Sebastian Gehrmann, Parker Schuh, Kensen Shi, Sasha Tsvyashchenko, Joshua Maynez,
+    Abhishek Rao, Parker Barnes, Yi Tay, Noam Shazeer, Vinodkumar Prabhakaran, Emily
+    Reif, Nan Du, Ben Hutchinson, Reiner Pope, James Bradbury, Jacob Austin, Michael
+    Isard, Guy Gur-Ari, Pengcheng Yin, Toju Duke, Anselm Levskaya, Sanjay Ghemawat,
+    Sunipa Dev, Henryk Michalewski, Xavier Garcia, Vedant Misra, Kevin Robinson, Liam
+    Fedus, Denny Zhou, Daphne Ippolito, David Luan, Hyeontaek Lim, Barret Zoph, Alexander
+    Spiridonov, Ryan Sepassi, David Dohan, Shivani Agrawal, Mark Omernick, Andrew M.
+    Dai, Thanumalayan Sankaranarayana Pillai, Marie Pellat, Aitor Lewkowycz, Erica
+    Moreira, Rewon Child, Oleksandr Polozov, Katherine Lee, Zongwei Zhou, Xuezhi Wang,
+    Brennan Saeta, Mark Diaz, Orhan Firat, Michele Catasta, Jason Wei, Kathy Meier-Hellstern,
+    Douglas Eck, Jeff Dean, Slav Petrov, and Noah Fiedel. 2023. [Palm: Scaling language
+    modeling with pathways](http://jmlr.org/papers/v24/22-1144.html). *Journal of
+    Machine Learning Research*, 24(240):1–113.'
+  id: totrans-69
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chowdhery等人（2023）Aakanksha Chowdhery、Sharan Narang、Jacob Devlin、Maarten Bosma、Gaurav
+    Mishra、Adam Roberts、Paul Barham、Hyung Won Chung、Charles Sutton、Sebastian Gehrmann、Parker
+    Schuh、Kensen Shi、Sasha Tsvyashchenko、Joshua Maynez、Abhishek Rao、Parker Barnes、Yi
+    Tay、Noam Shazeer、Vinodkumar Prabhakaran、Emily Reif、Nan Du、Ben Hutchinson、Reiner
+    Pope、James Bradbury、Jacob Austin、Michael Isard、Guy Gur-Ari、Pengcheng Yin、Toju
+    Duke、Anselm Levskaya、Sanjay Ghemawat、Sunipa Dev、Henryk Michalewski、Xavier Garcia、Vedant
+    Misra、Kevin Robinson、Liam Fedus、Denny Zhou、Daphne Ippolito、David Luan、Hyeontaek
+    Lim、Barret Zoph、Alexander Spiridonov、Ryan Sepassi、David Dohan、Shivani Agrawal、Mark
+    Omernick、Andrew M. Dai、Thanumalayan Sankaranarayana Pillai、Marie Pellat、Aitor
+    Lewkowycz、Erica Moreira、Rewon Child、Oleksandr Polozov、Katherine Lee、Zongwei Zhou、Xuezhi
+    Wang、Brennan Saeta、Mark Diaz、Orhan Firat、Michele Catasta、Jason Wei、Kathy Meier-Hellstern、Douglas
+    Eck、Jeff Dean、Slav Petrov和Noah Fiedel. 2023. [Palm：通过路径扩展语言建模](http://jmlr.org/papers/v24/22-1144.html)。发表于*机器学习研究期刊*，24(240):1–113。
+- en: Chung et al. (2022) Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay,
+    William Fedus, Yunxuan Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, Albert
+    Webson, Shixiang Shane Gu, Zhuyun Dai, Mirac Suzgun, Xinyun Chen, Aakanksha Chowdhery,
+    Alex Castro-Ros, Marie Pellat, Kevin Robinson, Dasha Valter, Sharan Narang, Gaurav
+    Mishra, Adams Yu, Vincent Zhao, Yanping Huang, Andrew Dai, Hongkun Yu, Slav Petrov,
+    Ed H. Chi, Jeff Dean, Jacob Devlin, Adam Roberts, Denny Zhou, Quoc V. Le, and
+    Jason Wei. 2022. [Scaling instruction-finetuned language models](http://arxiv.org/abs/2210.11416).
+  id: totrans-70
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chung等人（2022）Hyung Won Chung、Le Hou、Shayne Longpre、Barret Zoph、Yi Tay、William
+    Fedus、Yunxuan Li、Xuezhi Wang、Mostafa Dehghani、Siddhartha Brahma、Albert Webson、Shixiang
+    Shane Gu、Zhuyun Dai、Mirac Suzgun、Xinyun Chen、Aakanksha Chowdhery、Alex Castro-Ros、Marie
+    Pellat、Kevin Robinson、Dasha Valter、Sharan Narang、Gaurav Mishra、Adams Yu、Vincent
+    Zhao、Yanping Huang、Andrew Dai、Hongkun Yu、Slav Petrov、Ed H. Chi、Jeff Dean、Jacob
+    Devlin、Adam Roberts、Denny Zhou、Quoc V. Le和Jason Wei. 2022. [扩展指令微调的语言模型](http://arxiv.org/abs/2210.11416)。
+- en: 'Deng et al. (2023) Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Samuel Stevens,
+    Boshi Wang, Huan Sun, and Yu Su. 2023. [Mind2web: Towards a generalist agent for
+    the web](https://openreview.net/forum?id=kiYqbO3wqw). In *Thirty-seventh Conference
+    on Neural Information Processing Systems Datasets and Benchmarks Track*.'
+  id: totrans-71
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Deng等人（2023）Xiang Deng、Yu Gu、Boyuan Zheng、Shijie Chen、Samuel Stevens、Boshi Wang、Huan
+    Sun和Yu Su. 2023. [Mind2web：面向通用网络代理](https://openreview.net/forum?id=kiYqbO3wqw)。发表于*第37届神经信息处理系统会议
+    数据集与基准追踪*。
+- en: Furuta et al. (2023) Hiroki Furuta, Ofir Nachum, Kuang-Huei Lee, Yutaka Matsuo,
+    Shixiang Shane Gu, and Izzeddin Gur. 2023. [Instruction-finetuned foundation models
+    for multimodal web navigation](https://openreview.net/forum?id=oLc9sGOBbc). In
+    *ICLR 2023 Workshop on Mathematical and Empirical Understanding of Foundation
+    Models*.
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Furuta等人（2023）Hiroki Furuta、Ofir Nachum、Kuang-Huei Lee、Yutaka Matsuo、Shixiang
+    Shane Gu和Izzeddin Gur. 2023. [基于指令微调的多模态网络导航基础模型](https://openreview.net/forum?id=oLc9sGOBbc)。发表于*ICLR
+    2023 数学与经验理解基础模型工作坊*。
+- en: 'Gao et al. (2023) Luyu Gao, Aman Madaan, Shuyan Zhou, Uri Alon, Pengfei Liu,
+    Yiming Yang, Jamie Callan, and Graham Neubig. 2023. Pal: program-aided language
+    models. In *Proceedings of the 40th International Conference on Machine Learning*,
+    ICML’23\. JMLR.org.'
+  id: totrans-73
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gao等人（2023）Luyu Gao、Aman Madaan、Shuyan Zhou、Uri Alon、Pengfei Liu、Yiming Yang、Jamie
+    Callan和Graham Neubig. 2023. Pal：程序辅助语言模型。发表于*第40届国际机器学习大会论文集*，ICML'23。JMLR.org。
+- en: Gur et al. (2024) Izzeddin Gur, Hiroki Furuta, Austin V Huang, Mustafa Safdari,
+    Yutaka Matsuo, Douglas Eck, and Aleksandra Faust. 2024. [A real-world webagent
+    with planning, long context understanding, and program synthesis](https://openreview.net/forum?id=9JQtrumvg8).
+    In *The Twelfth International Conference on Learning Representations*.
+  id: totrans-74
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gur等人（2024）Izzeddin Gur, Hiroki Furuta, Austin V Huang, Mustafa Safdari, Yutaka
+    Matsuo, Douglas Eck, 和 Aleksandra Faust. 2024. [具有规划、长时间上下文理解和程序合成的现实世界网页代理](https://openreview.net/forum?id=9JQtrumvg8)。发表于*第十二届国际学习表征会议*。
+- en: 'Gur et al. (2023) Izzeddin Gur, Ofir Nachum, Yingjie Miao, Mustafa Safdari,
+    Austin Huang, Aakanksha Chowdhery, Sharan Narang, Noah Fiedel, and Aleksandra
+    Faust. 2023. [Understanding HTML with large language models](https://doi.org/10.18653/v1/2023.findings-emnlp.185).
+    In *Findings of the Association for Computational Linguistics: EMNLP 2023*, pages
+    2803–2821, Singapore. Association for Computational Linguistics.'
+  id: totrans-75
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gur等人（2023）Izzeddin Gur, Ofir Nachum, Yingjie Miao, Mustafa Safdari, Austin
+    Huang, Aakanksha Chowdhery, Sharan Narang, Noah Fiedel, 和 Aleksandra Faust. 2023.
+    [使用大规模语言模型理解HTML](https://doi.org/10.18653/v1/2023.findings-emnlp.185)。发表于*计算语言学协会发现：EMNLP
+    2023*，页2803–2821，新加坡。计算语言学协会。
+- en: 'He et al. (2024) Hongliang He, Wenlin Yao, Kaixin Ma, Wenhao Yu, Yong Dai,
+    Hongming Zhang, Zhenzhong Lan, and Dong Yu. 2024. [Webvoyager: Building an end-to-end
+    web agent with large multimodal models](http://arxiv.org/abs/2401.13919).'
+  id: totrans-76
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'He等人（2024）Hongliang He, Wenlin Yao, Kaixin Ma, Wenhao Yu, Yong Dai, Hongming
+    Zhang, Zhenzhong Lan, 和 Dong Yu. 2024. [Webvoyager: 使用大规模多模态模型构建端到端网页代理](http://arxiv.org/abs/2401.13919)。'
+- en: 'Huang et al. (2023) Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang,
+    Pete Florence, Andy Zeng, Jonathan Tompson, Igor Mordatch, Yevgen Chebotar, Pierre
+    Sermanet, Tomas Jackson, Noah Brown, Linda Luu, Sergey Levine, Karol Hausman,
+    and brian ichter. 2023. [Inner monologue: Embodied reasoning through planning
+    with language models](https://proceedings.mlr.press/v205/huang23c.html). In *Proceedings
+    of The 6th Conference on Robot Learning*, volume 205 of *Proceedings of Machine
+    Learning Research*, pages 1769–1782. PMLR.'
+  id: totrans-77
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang等人（2023）Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang, Pete
+    Florence, Andy Zeng, Jonathan Tompson, Igor Mordatch, Yevgen Chebotar, Pierre
+    Sermanet, Tomas Jackson, Noah Brown, Linda Luu, Sergey Levine, Karol Hausman,
+    和 brian ichter. 2023. [内心独白：通过规划与语言模型进行具身推理](https://proceedings.mlr.press/v205/huang23c.html)。发表于*第六届机器人学习会议论文集*，机器学习研究论文集第205卷，页1769–1782。PMLR。
+- en: Kil et al. (2024) Jihyung Kil, Chan Hee Song, Boyuan Zheng, Xiang Deng, Yu Su,
+    and Wei-Lun Chao. 2024. [Dual-view visual contextualization for web navigation](http://arxiv.org/abs/2402.04476).
+  id: totrans-78
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kil等人（2024）Jihyung Kil, Chan Hee Song, Boyuan Zheng, Xiang Deng, Yu Su, 和 Wei-Lun
+    Chao. 2024. [双视角视觉情境化用于网页导航](http://arxiv.org/abs/2402.04476)。
+- en: Kim et al. (2023) Geunwoo Kim, Pierre Baldi, and Stephen McAleer. 2023. [Language
+    models can solve computer tasks](http://arxiv.org/abs/2303.17491).
+  id: totrans-79
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kim等人（2023）Geunwoo Kim, Pierre Baldi, 和 Stephen McAleer. 2023. [语言模型可以解决计算机任务](http://arxiv.org/abs/2303.17491)。
+- en: 'Lin et al. (2023) Bill Yuchen Lin, Yicheng Fu, Karina Yang, Faeze Brahman,
+    Shiyu Huang, Chandra Bhagavatula, Prithviraj Ammanabrolu, Yejin Choi, and Xiang
+    Ren. 2023. [Swiftsage: A generative agent with fast and slow thinking for complex
+    interactive tasks](https://openreview.net/forum?id=Rzk3GP1HN7). In *Thirty-seventh
+    Conference on Neural Information Processing Systems*.'
+  id: totrans-80
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Lin等人（2023）Bill Yuchen Lin, Yicheng Fu, Karina Yang, Faeze Brahman, Shiyu Huang,
+    Chandra Bhagavatula, Prithviraj Ammanabrolu, Yejin Choi, 和 Xiang Ren. 2023. [Swiftsage:
+    一种用于复杂交互任务的具有快速与慢速思维的生成代理](https://openreview.net/forum?id=Rzk3GP1HN7)。发表于*第37届神经信息处理系统会议*。'
+- en: Liu et al. (2018) Evan Zheran Liu, Kelvin Guu, Panupong Pasupat, and Percy Liang.
+    2018. [Reinforcement learning on web interfaces using workflow-guided exploration](https://openreview.net/forum?id=ryTp3f-0-).
+    In *International Conference on Learning Representations*.
+  id: totrans-81
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu等人（2018）Evan Zheran Liu, Kelvin Guu, Panupong Pasupat, 和 Percy Liang. 2018.
+    [使用工作流引导的探索进行网页界面的强化学习](https://openreview.net/forum?id=ryTp3f-0-)。发表于*国际学习表征会议*。
+- en: 'Lo et al. (2023) Robert Lo, Abishek Sridhar, Frank Xu, Hao Zhu, and Shuyan
+    Zhou. 2023. [Hierarchical prompting assists large language model on web navigation](https://doi.org/10.18653/v1/2023.findings-emnlp.685).
+    In *Findings of the Association for Computational Linguistics: EMNLP 2023*, pages
+    10217–10244, Singapore. Association for Computational Linguistics.'
+  id: totrans-82
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lo等人（2023）Robert Lo, Abishek Sridhar, Frank Xu, Hao Zhu, 和 Shuyan Zhou. 2023.
+    [分层提示辅助大规模语言模型进行网页导航](https://doi.org/10.18653/v1/2023.findings-emnlp.685)。发表于*计算语言学协会发现：EMNLP
+    2023*，页10217–10244，新加坡。计算语言学协会。
+- en: 'Ma et al. (2023) Kaixin Ma, Hao Cheng, Yu Zhang, Xiaodong Liu, Eric Nyberg,
+    and Jianfeng Gao. 2023. [Chain-of-skills: A configurable model for open-domain
+    question answering](https://doi.org/10.18653/v1/2023.acl-long.89). In *Proceedings
+    of the 61st Annual Meeting of the Association for Computational Linguistics (Volume
+    1: Long Papers)*, pages 1599–1618, Toronto, Canada. Association for Computational
+    Linguistics.'
+  id: totrans-83
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ma 等人（2023）Kaixin Ma, Hao Cheng, Yu Zhang, Xiaodong Liu, Eric Nyberg, 和 Jianfeng
+    Gao. 2023. [Chain-of-skills: 一个可配置的开放域问答模型](https://doi.org/10.18653/v1/2023.acl-long.89).
+    载于 *第61届计算语言学协会年会论文集（第一卷：长篇论文）*，第1599–1618页，多伦多，加拿大。计算语言学协会。'
+- en: 'Madaan et al. (2023) Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan,
+    Luyu Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang,
+    Shashank Gupta, Bodhisattwa Prasad Majumder, Katherine Hermann, Sean Welleck,
+    Amir Yazdanbakhsh, and Peter Clark. 2023. [Self-refine: Iterative refinement with
+    self-feedback](https://openreview.net/forum?id=S37hOerQLB). In *Thirty-seventh
+    Conference on Neural Information Processing Systems*.'
+  id: totrans-84
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Madaan 等人（2023）Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan, Luyu
+    Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang,
+    Shashank Gupta, Bodhisattwa Prasad Majumder, Katherine Hermann, Sean Welleck,
+    Amir Yazdanbakhsh, 和 Peter Clark. 2023. [Self-refine: 通过自我反馈的迭代优化](https://openreview.net/forum?id=S37hOerQLB).
+    载于 *第七十七届神经信息处理系统会议*。'
+- en: OpenAI (2023) OpenAI. 2023. [Gpt-4 technical report](http://arxiv.org/abs/2303.08774).
+  id: totrans-85
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI（2023）OpenAI. 2023. [Gpt-4技术报告](http://arxiv.org/abs/2303.08774)。
+- en: Ouyang et al. (2022) Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll
+    Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex
+    Ray, John Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda
+    Askell, Peter Welinder, Paul F Christiano, Jan Leike, and Ryan Lowe. 2022. [Training
+    language models to follow instructions with human feedback](https://proceedings.neurips.cc/paper_files/paper/2022/file/b1efde53be364a73914f58805a001731-Paper-Conference.pdf).
+    In *Advances in Neural Information Processing Systems*, volume 35, pages 27730–27744\.
+    Curran Associates, Inc.
+  id: totrans-86
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ouyang 等人（2022）Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright,
+    Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, John
+    Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda Askell,
+    Peter Welinder, Paul F Christiano, Jan Leike, 和 Ryan Lowe. 2022. [通过人类反馈训练语言模型执行指令](https://proceedings.neurips.cc/paper_files/paper/2022/file/b1efde53be364a73914f58805a001731-Paper-Conference.pdf).
+    载于 *神经信息处理系统进展*，卷 35，第 27730–27744 页。Curran Associates, Inc.
+- en: 'Shaw et al. (2023) Peter Shaw, Mandar Joshi, James Cohan, Jonathan Berant,
+    Panupong Pasupat, Hexiang Hu, Urvashi Khandelwal, Kenton Lee, and Kristina Toutanova.
+    2023. [From pixels to UI actions: Learning to follow instructions via graphical
+    user interfaces](https://openreview.net/forum?id=3PjCt4kmRx). In *Thirty-seventh
+    Conference on Neural Information Processing Systems*.'
+  id: totrans-87
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shaw 等人（2023）Peter Shaw, Mandar Joshi, James Cohan, Jonathan Berant, Panupong
+    Pasupat, Hexiang Hu, Urvashi Khandelwal, Kenton Lee, 和 Kristina Toutanova. 2023.
+    [从像素到 UI 操作：通过图形用户界面学习执行指令](https://openreview.net/forum?id=3PjCt4kmRx). 载于 *第七十七届神经信息处理系统会议*。
+- en: 'Shinn et al. (2023) Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik R
+    Narasimhan, and Shunyu Yao. 2023. [Reflexion: language agents with verbal reinforcement
+    learning](https://openreview.net/forum?id=vAElhFcKW6). In *Thirty-seventh Conference
+    on Neural Information Processing Systems*.'
+  id: totrans-88
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Shinn 等人（2023）Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik R Narasimhan,
+    和 Shunyu Yao. 2023. [Reflexion: 带有语言强化学习的语言代理](https://openreview.net/forum?id=vAElhFcKW6).
+    载于 *第七十七届神经信息处理系统会议*。'
+- en: 'Sun et al. (2023) Haotian Sun, Yuchen Zhuang, Lingkai Kong, Bo Dai, and Chao
+    Zhang. 2023. [Adaplanner: Adaptive planning from feedback with language models](https://openreview.net/forum?id=rnKgbKmelt).
+    In *Thirty-seventh Conference on Neural Information Processing Systems*.'
+  id: totrans-89
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Sun 等人（2023）Haotian Sun, Yuchen Zhuang, Lingkai Kong, Bo Dai, 和 Chao Zhang.
+    2023. [Adaplanner: 基于反馈与语言模型的自适应规划](https://openreview.net/forum?id=rnKgbKmelt).
+    载于 *第七十七届神经信息处理系统会议*。'
+- en: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, brian
+    ichter, Fei Xia, Ed H. Chi, Quoc V Le, and Denny Zhou. 2022. [Chain of thought
+    prompting elicits reasoning in large language models](https://openreview.net/forum?id=_VjQlMeSB_J).
+    In *Advances in Neural Information Processing Systems*.
+  id: totrans-90
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等人（2022）Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, brian ichter,
+    Fei Xia, Ed H. Chi, Quoc V Le, 和 Denny Zhou. 2022. [思维链提示在大规模语言模型中引发推理](https://openreview.net/forum?id=_VjQlMeSB_J).
+    载于 *神经信息处理系统进展*。
+- en: 'Yang et al. (2023) Hui Yang, Sifu Yue, and Yunzhong He. 2023. [Auto-gpt for
+    online decision making: Benchmarks and additional opinions](http://arxiv.org/abs/2306.02224).'
+  id: totrans-91
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yang等（2023）Hui Yang, Sifu Yue, 和 Yunzhong He。2023年。[Auto-gpt在线决策：基准和附加观点](http://arxiv.org/abs/2306.02224)。
+- en: 'Yao et al. (2022) Shunyu Yao, Howard Chen, John Yang, and Karthik R Narasimhan.
+    2022. [Webshop: Towards scalable real-world web interaction with grounded language
+    agents](https://openreview.net/forum?id=R9KnuFlvnU). In *Advances in Neural Information
+    Processing Systems*.'
+  id: totrans-92
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Yao等（2022）Shunyu Yao, Howard Chen, John Yang, 和 Karthik R Narasimhan。2022年。[Webshop:
+    面向可扩展的真实世界网页交互与基础语言智能体](https://openreview.net/forum?id=R9KnuFlvnU)。发表于*神经信息处理系统进展*。'
+- en: 'Yao et al. (2023) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+    Karthik R Narasimhan, and Yuan Cao. 2023. [React: Synergizing reasoning and acting
+    in language models](https://openreview.net/forum?id=WE_vluYUL-X). In *The Eleventh
+    International Conference on Learning Representations*.'
+  id: totrans-93
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Yao等（2023）Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik
+    R Narasimhan, 和 Yuan Cao。2023年。[React: 协同推理与行动的语言模型](https://openreview.net/forum?id=WE_vluYUL-X)。发表于*第十一届国际学习表示会议*。'
+- en: 'Zhang et al. (2023) Chi Zhang, Zhao Yang, Jiaxuan Liu, Yucheng Han, Xin Chen,
+    Zebiao Huang, Bin Fu, and Gang Yu. 2023. [Appagent: Multimodal agents as smartphone
+    users](http://arxiv.org/abs/2312.13771).'
+  id: totrans-94
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等（2023）Chi Zhang, Zhao Yang, Jiaxuan Liu, Yucheng Han, Xin Chen, Zebiao
+    Huang, Bin Fu, 和 Gang Yu。2023年。[Appagent: 将多模态智能体作为智能手机用户](http://arxiv.org/abs/2312.13771)。'
+- en: Zheng et al. (2024a) Boyuan Zheng, Boyu Gou, Jihyung Kil, Huan Sun, and Yu Su.
+    2024a. [Gpt-4v(ision) is a generalist web agent, if grounded](http://arxiv.org/abs/2401.01614).
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zheng等（2024a）Boyuan Zheng, Boyu Gou, Jihyung Kil, Huan Sun, 和 Yu Su。2024年a。[Gpt-4v(ision)是一个通用的网页智能体，如果有基础支持](http://arxiv.org/abs/2401.01614)。
+- en: 'Zheng et al. (2024b) Longtao Zheng, Rundong Wang, Xinrun Wang, and Bo An. 2024b.
+    [Synapse: Trajectory-as-exemplar prompting with memory for computer control](https://openreview.net/forum?id=Pc8AU1aF5e).
+    In *The Twelfth International Conference on Learning Representations*.'
+  id: totrans-96
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zheng等（2024b）Longtao Zheng, Rundong Wang, Xinrun Wang, 和 Bo An。2024年b。[Synapse:
+    用记忆进行轨迹示例提示的计算机控制](https://openreview.net/forum?id=Pc8AU1aF5e)。发表于*第十二届国际学习表示会议*。'
+- en: 'Zhou et al. (2024) Shuyan Zhou, Frank F. Xu, Hao Zhu, Xuhui Zhou, Robert Lo,
+    Abishek Sridhar, Xianyi Cheng, Tianyue Ou, Yonatan Bisk, Daniel Fried, Uri Alon,
+    and Graham Neubig. 2024. [Webarena: A realistic web environment for building autonomous
+    agents](https://openreview.net/forum?id=oKn9c6ytLx). In *The Twelfth International
+    Conference on Learning Representations*.'
+  id: totrans-97
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhou等（2024）Shuyan Zhou, Frank F. Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek
+    Sridhar, Xianyi Cheng, Tianyue Ou, Yonatan Bisk, Daniel Fried, Uri Alon, 和 Graham
+    Neubig。2024年。[Webarena: 一个构建自主智能体的现实网页环境](https://openreview.net/forum?id=oKn9c6ytLx)。发表于*第十二届国际学习表示会议*。'
+- en: Appendix A Related Works
+  id: totrans-98
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 相关工作
+- en: Interactive decision-making tasks such as web navigation have become popular
+    recently Liu et al. ([2018](https://arxiv.org/html/2309.08172v2#bib.bib14)); Yao
+    et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25)); Deng et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib4));
+    Zhou et al. ([2024](https://arxiv.org/html/2309.08172v2#bib.bib30)), while some
+    efforts have tried to solve these tasks by finetuning pretrained language models
+    on a large corpus of demonstration data Gur et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib8));
+    Furuta et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib5)), other attempted
+    to build agents to navigate web environments solely relying on prompting LLMs
+    Yang et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib24)). Among the
+    LLM-based approaches, ReAct Yao et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26))
+    and InnerMonologue Huang et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib10))
+    equip the LLM with a thought process before producing actions. ASH Lo et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15))
+    and WebAgent Gur et al. ([2024](https://arxiv.org/html/2309.08172v2#bib.bib7))
+    focus on decomposing complex decision-making steps into a set of simpler steps,
+    e.g. first summarizing the task-relevant content and then act upon it. Most similar
+    to our work, Synapse Zheng et al. ([2024b](https://arxiv.org/html/2309.08172v2#bib.bib29))
+    also proposed to use state-conditional prompts to guide the LLM’s action. However,
+    their focus is on decomposing the few-shot examples into atomic parts whereas
+    our agent uses state-specific instructions alone without in-context examples to
+    complete tasks.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 互动决策任务，如网页导航，最近变得非常流行 Liu et al. ([2018](https://arxiv.org/html/2309.08172v2#bib.bib14));
+    Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25)); Deng et al.
+    ([2023](https://arxiv.org/html/2309.08172v2#bib.bib4)); Zhou et al. ([2024](https://arxiv.org/html/2309.08172v2#bib.bib30))，与此同时，一些研究尝试通过在大规模示范数据语料库上微调预训练语言模型来解决这些任务
+    Gur et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib8)); Furuta et al.
+    ([2023](https://arxiv.org/html/2309.08172v2#bib.bib5))，另一些则尝试构建能够仅通过提示LLMs在网页环境中导航的智能体
+    Yang et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib24))。在基于LLM的方法中，ReAct
+    Yao et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26)) 和 InnerMonologue
+    Huang et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib10)) 在执行动作之前，为LLM提供了思考过程。ASH
+    Lo et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15)) 和 WebAgent Gur
+    et al. ([2024](https://arxiv.org/html/2309.08172v2#bib.bib7)) 聚焦于将复杂的决策步骤分解成一系列更简单的步骤，例如先总结与任务相关的内容，然后再进行操作。与我们工作最相似的是，Synapse
+    Zheng et al. ([2024b](https://arxiv.org/html/2309.08172v2#bib.bib29)) 也提出使用状态条件提示来引导LLM的行动。然而，他们的重点是将少样本示例分解成原子部分，而我们的智能体仅使用特定状态的指令，而不依赖于上下文中的示例来完成任务。
+- en: Another line of work focuses on the planning stage of LLM agents. Kim et al.
+    ([2023](https://arxiv.org/html/2309.08172v2#bib.bib12)) proposed an agent RCI
+    that generates a plan before acting, and then refines its action when encountering
+    errors. Adaplanner Sun et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib22))
+    further enhanced the planning approach by adaptively updating the plan during
+    the agent’s execution. Reflexion Shinn et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib21))
+    agent refines its plan and actions by taking environmental feedback through a
+    trial-and-error fashion. These approaches are orthogonal to our work and can be
+    potentially combined with our agent to enhance its performance.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一类研究聚焦于LLM智能体的规划阶段。Kim et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib12))
+    提出了一个智能体RCI，该智能体在行动之前生成一个计划，并在遇到错误时对其行动进行调整。Adaplanner Sun et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib22))
+    进一步通过在智能体执行过程中自适应地更新计划来增强了这一规划方法。Reflexion Shinn et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib21))
+    智能体通过试错方式从环境反馈中精炼其计划和行动。这些方法与我们的工作是正交的，且有潜力与我们的智能体结合，以提升其性能。
+- en: More recently, various works have tried to develop multi-modal agents. Pix2Act
+    Shaw et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib20)) and AppAgent
+    Zhang et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib27)) mostly replied
+    on the screenshots as inputs for the agents to predict UI actions, wheras SEEACT
+    Zheng et al. ([2024a](https://arxiv.org/html/2309.08172v2#bib.bib28)), WebVoyager
+    He et al. ([2024](https://arxiv.org/html/2309.08172v2#bib.bib9)) and Dual-VCR
+    Kil et al. ([2024](https://arxiv.org/html/2309.08172v2#bib.bib11)) leverage both
+    screenshots and textual elements from websites to interact with the web environment.
+    Our idea of modeling web navigation as state transitions can potentially be incorporated
+    in those agents to further enhance their performance.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，许多研究尝试开发多模态代理。Pix2Act Shaw 等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib20)）和
+    AppAgent Zhang 等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib27)）主要依赖截图作为输入，让代理预测
+    UI 操作，而 SEEACT Zheng 等人（[2024a](https://arxiv.org/html/2309.08172v2#bib.bib28)）、WebVoyager
+    He 等人（[2024](https://arxiv.org/html/2309.08172v2#bib.bib9)）和 Dual-VCR Kil 等人（[2024](https://arxiv.org/html/2309.08172v2#bib.bib11)）则结合了来自网站的截图和文本元素来与网页环境互动。我们将网页导航建模为状态转换的想法可以潜在地被纳入这些代理中，以进一步提升它们的性能。
+- en: Appendix B Experimental Details
+  id: totrans-102
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B 实验细节
+- en: The WebShop provides a simulated environment for online shopping, containing
+    1,181,436 items collected from Amazon shopping sites. Additionally, the task provides
+    human-annotated instructions for purchasing certain items and their corresponding
+    target items. We followed previous works and used the 500 test set instructions
+    to evaluate our LASER and evaluate with rewards and success rate, where the agent
+    is considered successful if the purchased item perfectly matches the target item,
+    otherwise, if the purchased item partially matches the target item, the agent
+    receives a partial reward (scale between 0-100). This partial reward is computed
+    using the items’ price, product category, hidden attributes and customization
+    options.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: WebShop 提供了一个模拟的在线购物环境，包含了从 Amazon 购物网站收集的 1,181,436 件商品。此外，任务还提供了人工标注的购买特定商品的说明和对应的目标商品。我们遵循了以往的工作，并使用了
+    500 条测试集指令来评估我们的 LASER，评估内容包括奖励和成功率，其中如果购买的商品与目标商品完全匹配，则认为代理成功，否则，如果购买的商品部分匹配目标商品，代理将获得部分奖励（奖励范围为
+    0-100）。该部分奖励是根据商品的价格、产品类别、隐藏属性和自定义选项来计算的。
+- en: For our method, we used the GPT-4-0613 to power our LASER. We used the function-calling
+    functionality to implement the action selection step. In particular, we write
+    a short description for each action and then pass them as a list to the function-call
+    argument of the LLM to let the model select from. We allow our agent to make 15
+    state transitions in maximum. In practice, if the agent has not reached the finish
+    state after 13 state transitions, we force it to select from the history to ensure
+    it does not exceed the budget.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们的方法，我们使用 GPT-4-0613 来驱动我们的 LASER。我们使用了函数调用功能来实现动作选择步骤。具体来说，我们为每个动作写了简短的描述，然后将它们作为列表传递给
+    LLM 的函数调用参数，让模型从中选择。我们允许代理最多进行 15 次状态转换。实际上，如果代理在 13 次状态转换后仍未达到完成状态，我们会强制它从历史中选择，以确保它不超过预算。
+- en: '![Refer to caption](img/2dbbaf3aac469ea12b3c73330c4c23dd.png)'
+  id: totrans-105
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/2dbbaf3aac469ea12b3c73330c4c23dd.png)'
+- en: 'Figure 3: An example of the Item good enough error cases, the item selected
+    by the agent is shown and the user instruction is on the top. The reward the agent
+    receives is 0.666.'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：一个商品“足够好”错误案例的示例，代理选择的商品显示在图中，用户指令位于上方。代理收到的奖励为 0.666。
+- en: 'For the sim-to-real transfer experiments on [amazon.com](amazon.com), we used
+    the first 100 test set instructions from the WebShop. We following the same setting
+    as Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25)), where we
+    convert the webpages on [amazon.com](amazon.com) into the same format as the WebShop
+    ¹¹1[https://github.com/princeton-nlp/WebShop/tree/master/transfer](https://github.com/princeton-nlp/WebShop/tree/master/transfer)
+    then run LASER agent as is. Since we do not have the gold annotation for the items
+    LASER selected on [amazon.com](amazon.com), we follow Yao et al. ([2022](https://arxiv.org/html/2309.08172v2#bib.bib25))
+    and conducted human evaluation. In particular, we manually annotated item attribute
+    matches, item option matches, item category matches and item price matches. We
+    then computed individual reward scores as well as the overall reward score and
+    success rate using the same functions defined for the WebShop task. Since both
+    human and LASER achieves 100% on item price matches, we omitted these results
+    from [Table 2](https://arxiv.org/html/2309.08172v2#S3.T2 "Table 2 ‣ 3 Experiments
+    ‣ LASER: LLM Agent with State-Space Exploration for Web Navigation").'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于在 [amazon.com](amazon.com) 上的仿真到现实转移实验，我们使用了 WebShop 中的前 100 个测试集指令。我们遵循与
+    Yao 等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib25)）相同的设置，将 [amazon.com](amazon.com)
+    上的网页转换为与 WebShop 相同的格式¹¹1[https://github.com/princeton-nlp/WebShop/tree/master/transfer](https://github.com/princeton-nlp/WebShop/tree/master/transfer)，然后直接运行
+    LASER 代理。由于我们没有 [amazon.com](amazon.com) 上 LASER 选择的项目的黄金标注，我们参考了 Yao 等人（[2022](https://arxiv.org/html/2309.08172v2#bib.bib25)）并进行了人工评估。具体而言，我们手动标注了项目属性匹配、项目选项匹配、项目类别匹配和项目价格匹配。然后，我们计算了单独的奖励分数以及整体奖励分数和成功率，使用的是为
+    WebShop 任务定义的相同函数。由于人工评估和 LASER 在项目价格匹配上都达到了 100%，我们在 [表 2](https://arxiv.org/html/2309.08172v2#S3.T2
+    "Table 2 ‣ 3 Experiments ‣ LASER: LLM Agent with State-Space Exploration for Web
+    Navigation") 中省略了这些结果。'
+- en: '![Refer to caption](img/66beb087ce9a01998748b89f8320489b.png)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/66beb087ce9a01998748b89f8320489b.png)'
+- en: 'Figure 4: An example of the Missing details error cases, the item selected
+    by the agent is shown and the user instruction is on the top. The reward the agent
+    receives is 0.8.'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：缺失细节错误案例的示例，代理选择的项目显示在图中，用户指令位于顶部。代理获得的奖励为 0.8。
+- en: 'Regarding the comparison against different baselines, we would like to note
+    that both ReAct Yao et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib26))
+    and ASH Lo et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib15)) used
+    manually written instruction and manually annotated agent trajectories as in-context
+    demonstrations to prompt LLMs, which corresponds to our one-shot setting in [subsection 4.1](https://arxiv.org/html/2309.08172v2#S4.SS1
+    "4.1 Analysis ‣ 4 Results ‣ LASER: LLM Agent with State-Space Exploration for
+    Web Navigation"). For WebGUM Furuta et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib5)),
+    they used 1k human annotated gold trajectories to finetune their model. Therefore,
+    all baselines we considered use some kind of human knowledge/prior to help the
+    agent learn. For us, we solely relied on manual instructions to guide the LASER.'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '关于与不同基准的比较，我们想指出，ReAct Yao 等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib26)）和
+    ASH Lo 等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib15)）使用了手动编写的指令和手动标注的代理轨迹作为上下文示范来提示大型语言模型（LLMs），这对应于我们在
+    [4.1节](https://arxiv.org/html/2309.08172v2#S4.SS1 "4.1 Analysis ‣ 4 Results ‣
+    LASER: LLM Agent with State-Space Exploration for Web Navigation")中的一次性设置。对于 WebGUM，Furuta
+    等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib5)）使用了1千个人工标注的黄金轨迹来微调他们的模型。因此，我们考虑的所有基准都使用了某种形式的人类知识/先验来帮助代理学习。而我们则完全依赖手动指令来引导
+    LASER。'
+- en: We believe that providing high-level generalizable instructions (as done in
+    LASER) is a more efficient ways of learning than providing low-level task-specific
+    trajectories (e.g. WebGUM). Intuitively, the agent basically learns to abstract
+    out some high-level insights about how to handle each scenario from the large
+    amount of trajectories. In comparison, we can directly provide such insights to
+    the model via a few sentences in the instruction. Taking such perspective, we
+    can also say that the difference between our work and previous work is providing
+    high-level generalizable human knowledge vs providing low-level case-by-case human
+    knowledge. We believe it’s desirable to provide model such high-level knowledge
+    when it requires similar or less amount of human effort.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们认为提供高层次的可泛化指令（如LASER所做的）是一种比提供低层次的任务特定轨迹（例如WebGUM）更高效的学习方式。直观地说，代理基本上是从大量轨迹中学习如何处理每种场景的高层次见解。相比之下，我们可以通过在指令中提供几句话将这些见解直接传递给模型。从这个角度看，我们也可以说，我们的工作与以往工作的区别在于提供高层次的可泛化人类知识与提供低层次的个案人类知识。我们认为，在需要相似或更少人类努力的情况下，向模型提供这种高层次的知识是理想的。
+- en: Appendix C Case Studies
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录C 案例研究
+- en: 'We manually annotated 30 error cases from the Dev set to understand the failure
+    cases of LASER. We broadly categorize the errors into three categories: Item good
+    enough: the item selected by the agent meets the user instruction from the authors’
+    perspective but did not receive a full score. We found that 9 out of 30 cases
+    fall into this category, and an example is shown in [Figure 3](https://arxiv.org/html/2309.08172v2#A2.F3
+    "Figure 3 ‣ Appendix B Experimental Details ‣ LASER: LLM Agent with State-Space
+    Exploration for Web Navigation"). The item found by the agent is indeed a green
+    table lamp for the living room with a price within the budget, but it is considered
+    incorrect. Retrieval failure: none of the items returned by the search engine
+    meets the user requirement, despite that the agent used a suitable query for retrieval.
+    We found 12 out of 30 cases fall into this category. We hypothesize that a more
+    effective retriever or search engine can probably address these issues. Missing
+    details: The item selected by the agent indeed does not match the user’s instruction
+    on certain details. We found that 9 out of 30 cases fall into this category, and
+    an example is shown in [Figure 4](https://arxiv.org/html/2309.08172v2#A2.F4 "Figure
+    4 ‣ Appendix B Experimental Details ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation"). In this example, although the color and size of the selected
+    women’s shoes both matched the user instructions, these are not high-heel shoes.
+    This indicates that LASER can make mistakes when encountering items with many
+    matching details, and it would be interesting to see if a self-feedback/verification
+    module can address this issue Madaan et al. ([2023](https://arxiv.org/html/2309.08172v2#bib.bib17)).'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们手动标注了来自开发集的30个错误案例，以便理解LASER的失败案例。我们将这些错误大致分为三类：项目足够好：代理选择的项目从作者的角度来看符合用户指令，但未获得满分。我们发现30个案例中有9个属于此类，示例如[图3](https://arxiv.org/html/2309.08172v2#A2.F3
+    "图3 ‣ 附录B 实验细节 ‣ LASER：具备状态空间探索的LLM代理用于网页导航")所示。代理找到的物品确实是适合客厅的绿色台灯，且价格在预算范围内，但仍被认为是错误的。检索失败：尽管代理使用了合适的查询进行检索，但搜索引擎返回的项目均未满足用户需求。我们发现30个案例中有12个属于此类。我们假设使用更有效的检索器或搜索引擎可能能解决这些问题。缺失细节：代理选择的项目在某些细节上确实与用户指令不符。我们发现30个案例中有9个属于此类，示例如[图4](https://arxiv.org/html/2309.08172v2#A2.F4
+    "图4 ‣ 附录B 实验细节 ‣ LASER：具备状态空间探索的LLM代理用于网页导航")所示。在这个例子中，尽管选定的女士鞋的颜色和尺码都符合用户指令，但这些鞋并不是高跟鞋。这表明，当遇到细节匹配较多的项目时，LASER可能会出错，值得关注的是，是否可以通过自我反馈/验证模块解决这个问题，参见Madaan等人（[2023](https://arxiv.org/html/2309.08172v2#bib.bib17)）。
+- en: Appendix D Prompts used in our experiments
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录D 实验中使用的提示
+- en: '| You are an intelligent shopping assistant that can help users find the right
+    item. You are given an |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你是一个智能购物助手，可以帮助用户找到合适的物品。你会根据用户指令生成 |'
+- en: '| observation of the current web navigation session, in the following format:
+    |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前网页导航会话的观察，格式如下： |'
+- en: '| Current Observation: |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前观察: |'
+- en: '| WebShop |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| WebShop |'
+- en: '| Instruction: |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指令: |'
+- en: '| {the user instruction} |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| {用户指令} |'
+- en: '| [button] Search [button_] (generate a search query based on the user instruction
+    and select this button to |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 搜索 [按钮_] （根据用户指令生成搜索查询，并选择此按钮进行 |'
+- en: '| find relevant items) |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查找相关项目） |'
+- en: '| Every button in the observation represents a possible action you can take.
+    Based on the current |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| 观察中的每个按钮都代表您可以采取的可能行动。基于当前 |'
+- en: '| observation, your task is to generate a rationale about the next action you
+    should take. Note that if an |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| 观察，您的任务是生成有关下一步应采取的行动的理由。请注意，如果 |'
+- en: '| history of past rationales and actions is provided, you should also consider
+    the history when generating |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提供的过去理由和行动的历史记录时，您还应该在生成时考虑这些历史 |'
+- en: '| the rationale. |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| 原因。 |'
+- en: 'Table 4: The system instruction we used for the search state.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：我们用于搜索状态的系统指令。
+- en: '| You are an intelligent shopping assistant that can help users find the right
+    item. You are given an |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| 您是一个智能购物助手，能帮助用户找到合适的商品。您得到一个 |'
+- en: '| observation of the current web navigation session, in the following format:
+    |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前网页导航会话的观察，以下格式： |'
+- en: '| Current Observation: |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前观察： |'
+- en: '| Instruction: |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指令： |'
+- en: '| {the user instruction} |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| {用户指令} |'
+- en: '| [button] Back to Search [button_] (select this button to go back to the search
+    page) |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 返回搜索 [按钮_] （选择此按钮返回搜索页面） |'
+- en: '| Page current page number (Total results: total number of results) |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| 页面当前页码（总结果：结果总数） |'
+- en: '| [button] Next > [button_] (select this button to go to the next page of results)
+    |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 下一页 > [按钮_] （选择此按钮进入结果的下一页） |'
+- en: '| [button] {item_id 1} [button_] (select this button to view item 1’s details)
+    |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] {item_id 1} [按钮_] （选择此按钮查看项目 1 的详细信息） |'
+- en: '| {name of item 1} |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| {项目 1 的名称} |'
+- en: '| {price of item 1} |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| {项目 1 的价格} |'
+- en: '| [button] {item_id 2} [button_] (select this button to view item 2’s details)
+    |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] {item_id 2} [按钮_] （选择此按钮查看项目 2 的详细信息） |'
+- en: '| {name of item 2} |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| {项目 2 的名称} |'
+- en: '| {price of item 2} |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| {项目 2 的价格} |'
+- en: '| [button] {item_id 3} [button_] (select this button to view item 3’s details)
+    |'
+  id: totrans-142
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] {item_id 3} [按钮_] （选择此按钮查看项目 3 的详细信息） |'
+- en: '| {name of item 3} |'
+  id: totrans-143
+  prefs: []
+  type: TYPE_TB
+  zh: '| {项目 3 的名称} |'
+- en: '| {price of item 3} |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| {项目 3 的价格} |'
+- en: '| {More items…} |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| {更多项目…} |'
+- en: '| At this stage, you want to select an item that might match the user instruction.
+    Note that even if an item |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在此阶段，您希望选择一个可能匹配用户指令的项目。请注意，即使某个项目 |'
+- en: '| has non-matching details with the user instruction, it might offer different
+    customization options to |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| 与用户指令不匹配的详细信息，可能提供不同的自定义选项以 |'
+- en: '| allow you to match. E.g. an item may have color x in its name, but you can
+    customize it to color y later, |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| 允许您进行匹配。例如，一个项目可能在名称中有颜色 x，但您可以稍后将其自定义为颜色 y， |'
+- en: '| the customization options are shown after you select the item. Thus if an
+    item name seems relevant or |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在选择项目后会显示自定义选项。因此，如果某个项目名称似乎相关或 |'
+- en: '| partially matches the instruction, you should select that item to check its
+    details. If an item has been |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| 部分匹配指令，您应该选择该项目查看其详细信息。如果某个项目已经 |'
+- en: '| selected before (the button has been clicked), you should not select the
+    same item again. In other words, |'
+  id: totrans-151
+  prefs: []
+  type: TYPE_TB
+  zh: '| 之前已选择（按钮已被点击），您不应再次选择相同的项目。换句话说， |'
+- en: '| do not select an item with [clicked button] item_id [clicked button_]. Prepare
+    your response in the |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| 不要选择 [已点击按钮] item_id [已点击按钮_] 的项目。请在 |'
+- en: '| following format: |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| 以下格式： |'
+- en: '| Rationale: the user wanted {keywords of the target item}, and we have found
+    {matching keywords of |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| 原因：用户想要 {目标项目的关键词}，我们已经找到了 {匹配的关键词} |'
+- en: '| item x}, thus item {item_id x} seems to be a match. |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| 项目 x}，因此项目 {item_id x} 看起来是匹配的。 |'
+- en: 'Table 5: The system instruction we used for the result state.'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：我们用于结果状态的系统指令。
+- en: '| You are an intelligent shopping assistant that can help users find the right
+    item. You are given an |'
+  id: totrans-157
+  prefs: []
+  type: TYPE_TB
+  zh: '| 您是一个智能购物助手，能帮助用户找到合适的商品。您得到一个 |'
+- en: '| observation of the current web navigation session, in the following format:
+    |'
+  id: totrans-158
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前网页导航会话的观察，以下格式： |'
+- en: '| Current Observation: |'
+  id: totrans-159
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前观察： |'
+- en: '| Instruction: |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指令： |'
+- en: '| {the user instruction} |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| {用户指令} |'
+- en: '| [button] Back to Search [button_] (select this button to go back to the search
+    page) |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 返回搜索 [按钮_] （选择此按钮返回搜索页面） |'
+- en: '| [button] < Prev [button_] (select this button to go back to the previous
+    page of results) |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] < 上一页 [按钮_] （选择此按钮返回结果的上一页） |'
+- en: '| {Customization type1}: |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| {自定义类型1}: |'
+- en: '| [button] option1 [button_] |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 选项1 [按钮_] |'
+- en: '| [button] option2 [button_] |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 选项2 [按钮_] |'
+- en: '| {Customization type2}: |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| {自定义类型2}: |'
+- en: '| [button] option1 [button_] |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 选项1 [按钮_] |'
+- en: '| [button] option2 [button_] |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 选项2 [按钮_] |'
+- en: '| {more customization options… (if any)} |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| {更多自定义选项…（如果有）} |'
+- en: '| {Item name and details} |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| {项目名称和详细信息} |'
+- en: '| [button] Description [button_] (select this button to view the full description
+    of the item) |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 描述 [按钮_] （选择此按钮查看该项的完整描述） |'
+- en: '| [button] Features [button_] (select this button to view the full features
+    of the item) |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 功能 [按钮_] （选择此按钮查看该项的完整功能） |'
+- en: '| [button] Reviews [button_] (select this button to view the full reviews of
+    the item) |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 评论 [按钮_] （选择此按钮查看该项的完整评论） |'
+- en: '| [button] Buy Now [button_] (select this button to buy the item) |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| [按钮] 立即购买 [按钮_] （选择此按钮以购买该商品） |'
+- en: '| description: (if this is shown, the description button should not be selected
+    again) |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| 描述: （如果此项显示，则描述按钮不应再次选择） |'
+- en: '| {full description of the item (if any) or "None"} |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| {该项的完整描述（如有）或“无”} |'
+- en: '| features: (if this is shown, the features button should not be selected again)
+    |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| 功能： （如果此项显示，则功能按钮不应再次选择） |'
+- en: '| {full features of the item (if any) or "None"} |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| {该项的完整功能（如有）或“无”} |'
+- en: '| reviews: (if this is shown, the reviews button should not be selected again)
+    |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| 评论: （如果此项显示，则评论按钮不应再次选择） |'
+- en: '| {full reviews of the item (if any) or "None"} |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| {该项的完整评论（如有）或“无”} |'
+- en: '| Target item details (what the user is looking for): |'
+  id: totrans-182
+  prefs: []
+  type: TYPE_TB
+  zh: '| 目标项详情（用户正在寻找的内容）： |'
+- en: '| keywords: {keywords of the target item} |'
+  id: totrans-183
+  prefs: []
+  type: TYPE_TB
+  zh: '| 关键词: {目标项的关键词} |'
+- en: '| max_price: {the price of the item should not exceed this} |'
+  id: totrans-184
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最大价格: {该项的价格不应超过此值} |'
+- en: '| At this stage, you want to verify if the item matches the user instruction.
+    You should consider the |'
+  id: totrans-185
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在这个阶段，你需要验证该项是否符合用户指令。你应该考虑 |'
+- en: '| available customization options when deciding whether an item matches the
+    user instruction. If an item |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| 可用的自定义选项，以决定该项是否符合用户指令。如果一项商品 |'
+- en: '| can be customized to match the user instruction, or if the customization
+    options cover the user |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| 可以自定义以匹配用户指令，或者如果自定义选项覆盖用户 |'
+- en: '| specification, it is also a good match. If the item does not match the user
+    instruction and it does not |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| 规格，它也是一个很好的匹配。如果该商品不符合用户指令并且没有 |'
+- en: '| provide enough customization options, you can go to previous page to view
+    other items. You can also |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提供足够的自定义选项，你可以返回上一页查看其他商品。你也可以 |'
+- en: '| check the item’s description, features and reviews to view more details (Note
+    that description, features |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查看商品的描述、功能和评论以查看更多详情（注意描述、功能 |'
+- en: '| and reviews could be "None", do not check them again if they are already
+    given). Prepare your |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| 评论可能是“无”，如果已经给出，请不要再次查看。准备你的 |'
+- en: '| response in the following format: |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| 以以下格式响应： |'
+- en: '| Rationale: the user wanted {keywords of the target item}, and they required
+    the following customization |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| 理由：用户需要{目标项的关键词}，并且他们要求以下自定义选项 |'
+- en: '| options: {customization of the target item}, the item is keywords of the
+    item in the current observation, |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| 选项: {目标项的自定义内容}，该项为当前观察中项目的关键词， |'
+- en: '| and it has the following customization options: {options available for the
+    current item}, which {cover}/ |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| 并且它有以下自定义选项：{当前项目的可用选项}，这些选项{覆盖}/ |'
+- en: '| {not cover the user requirement}, thus we should {buy the item}/{check more
+    details}/{go to previous |'
+  id: totrans-196
+  prefs: []
+  type: TYPE_TB
+  zh: '| {不符合用户需求}，因此我们应该{购买该商品}/{查看更多详情}/{返回上一步 |'
+- en: '| page to view other items} |'
+  id: totrans-197
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查看其他项目的页面} |'
+- en: 'Table 6: The system instruction we used for the item state.'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表6：我们为该项目状态使用的系统指令。 |
+- en: '| You are an intelligent shopping assistant that can help users find the right
+    item. You are given an |'
+  id: totrans-199
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你是一个智能购物助手，可以帮助用户找到合适的商品。你可以获取到 |'
+- en: '| observation of the current environment and a rationale for the next action
+    to be taken, |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前环境的观察和下一步行动的依据， |'
+- en: '| in the following format: |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| 以下格式： |'
+- en: '| Current Observation: |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前观察： |'
+- en: '| The observation layout from search or result or item state, as shown from
+    [Table 4](https://arxiv.org/html/2309.08172v2#A4.T4 "Table 4 ‣ Appendix D Prompts
+    used in our experiments ‣ LASER: LLM Agent with State-Space Exploration for Web
+    Navigation"), [Table 5](https://arxiv.org/html/2309.08172v2#A4.T5 "Table 5 ‣ Appendix
+    D Prompts used in our experiments ‣ LASER: LLM Agent with State-Space Exploration
+    for Web Navigation") and [Table 6](https://arxiv.org/html/2309.08172v2#A4.T6 "Table
+    6 ‣ Appendix D Prompts used in our experiments ‣ LASER: LLM Agent with State-Space
+    Exploration for Web Navigation") |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '| 从搜索、结果或项目状态中观察布局，如[表 4](https://arxiv.org/html/2309.08172v2#A4.T4 "表 4 ‣
+    附录 D 我们实验中使用的提示 ‣ LASER：具有状态空间探索的网页导航 LLM 代理")，[表 5](https://arxiv.org/html/2309.08172v2#A4.T5
+    "表 5 ‣ 附录 D 我们实验中使用的提示 ‣ LASER：具有状态空间探索的网页导航 LLM 代理")和[表 6](https://arxiv.org/html/2309.08172v2#A4.T6
+    "表 6 ‣ 附录 D 我们实验中使用的提示 ‣ LASER：具有状态空间探索的网页导航 LLM 代理") |'
+- en: '| Next action rationale: {the rationale for the next action} |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '| 下一步操作的理由：{下一步操作的理由} |'
+- en: '| Your task is to perform one of the function calls based on the rationale.
+    |'
+  id: totrans-205
+  prefs: []
+  type: TYPE_TB
+  zh: '| 你的任务是根据理由执行其中一个功能调用。 |'
+- en: 'Table 7: The system instruction we used for generating action from thought.'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 7：我们用来从思维中生成操作的系统指令。
+- en: '| State | Available Actions |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| 状态 | 可用操作 |'
+- en: '| --- | --- |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Search | {"name": "Search", "description": "Use this function to search for
+    the target item in the |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| 搜索 | {"name": "Search", "description": "使用此功能在 |'
+- en: '|  | inventory based on keywords"} |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 基于关键词的库存搜索"} |'
+- en: '| Result | {"name": "select_item", "description": "Use this function to select
+    one of the items from |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| 结果 | {"name": "select_item", "description": "使用此功能从 |'
+- en: '|  | the search results and check its details"} |'
+  id: totrans-212
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 搜索结果并检查其详情"} |'
+- en: '|  | {"name": "Next", "description": "Use this function to go to the next page
+    of search results |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | {"name": "Next", "description": "使用此功能跳转到搜索结果的下一页 |'
+- en: '|  | to view more items, if none of the items on the current page match the
+    user instruction."} |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 如果当前页面上的项目都不符合用户指令，则使用此功能查看更多项目。"} |'
+- en: '|  | {"name": "Back_to_Search", "description": "Use this function to go back
+    to the initial |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | {"name": "Back_to_Search", "description": "使用此功能返回到初始 |'
+- en: '|  | search page. You should use this function only if you have browsed multiple
+    pages of |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 搜索页面。只有在浏览了多个页面并且 |'
+- en: '|  | items and checked multiple items’ details in the history, and none of
+    the items |'
+  id: totrans-217
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目并检查了历史中多个项目的详情，但没有任何项目 |'
+- en: '|  | match the user instruction."} |'
+  id: totrans-218
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 不符合用户指令。"} |'
+- en: '| Item | {"name": "Description", "description": "Use this function to check
+    the description of the |'
+  id: totrans-219
+  prefs: []
+  type: TYPE_TB
+  zh: '| 项目 | {"name": "Description", "description": "使用此功能查看项目的描述， |'
+- en: '|  | item, if you are unsure if the item perfectly matches the user instruction"}
+    |'
+  id: totrans-220
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目，如果你不确定该项是否完全符合用户指令"} |'
+- en: '|  | {"name": "Features", "description": "Use this function to check the features
+    of the item, |'
+  id: totrans-221
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | {"name": "Features", "description": "使用此功能查看项目的功能， |'
+- en: '|  | if you are unsure if the item perfectly matches the user instruction"}
+    |'
+  id: totrans-222
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 如果你不确定该项是否完全符合用户指令"} |'
+- en: '|  | {"name": "Reviews", "description": "Use this function to check the reviews
+    of the item, |'
+  id: totrans-223
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | {"name": "Reviews", "description": "使用此功能查看项目的评论， |'
+- en: '|  | if you are unsure if the item perfectly matches the user instruction"}
+    |'
+  id: totrans-224
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 如果你不确定该项是否完全符合用户指令"} |'
+- en: '|  | {"name": "Buy_Now", "description": "Use this function to buy the current
+    item, if the |'
+  id: totrans-225
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | {"name": "Buy_Now", "description": "使用此功能购买当前项目，如果该 |'
+- en: '|  | current item perfectly matches the user instruction."} |'
+  id: totrans-226
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 当前项目完全符合用户指令。"} |'
+- en: '|  | {"name": "Prev", "description": "Use this function to go back to the results
+    page, if the |'
+  id: totrans-227
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | {"name": "Prev", "description": "使用此功能返回到结果页面，如果该 |'
+- en: '|  | current item does not match the user instruction "} |'
+  id: totrans-228
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 当前项目不符合用户指令 "} |'
+- en: 'Table 8: The action space of our agent in each state. Each action is implemented
+    as a function call following the guidelines from OpenAI ³³3[https://platform.openai.com/docs/guides/gpt/function-calling](https://platform.openai.com/docs/guides/gpt/function-calling),
+    additional parameters used in the function call are omitted here for brevity.'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 8：我们代理在每个状态下的操作空间。每个操作都按照OpenAI ³³3[https://platform.openai.com/docs/guides/gpt/function-calling](https://platform.openai.com/docs/guides/gpt/function-calling)的指南作为功能调用实现，功能调用中使用的其他参数在此处省略，以简洁为主。
+- en: Appendix E Licenses
+  id: totrans-230
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 E 许可证
+- en: The Webshop task and ReAct method are both released under MIT License. They
+    are both released for research purposes, and our experiments are consistent with
+    their intended usage.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Webshop 任务和 ReAct 方法都采用 MIT 许可证发布。它们都用于研究目的，并且我们的实验与它们的预期用途一致。

@@ -1,0 +1,2929 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '分类: 未分类'
+- en: 'date: 2025-01-11 11:55:39'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '日期: 2025-01-11 11:55:39'
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: An Empirical Study on LLM-based Agents for Automated Bug Fixing
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 基于大语言模型（LLM）的自动修复缺陷智能体的实证研究
+- en: 来源：[https://arxiv.org/html/2411.10213/](https://arxiv.org/html/2411.10213/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2411.10213/](https://arxiv.org/html/2411.10213/)
+- en: Xiangxin Meng [mengxiangxin.1219@bytedance.com](mailto:mengxiangxin.1219@bytedance.com)
+    BytedanceBeijingChina ,  Zexiong Ma [mazexiong@bytedance.com](mailto:mazexiong@bytedance.com)
+    Bytedance & Peking UniversityBeijingChina ,  Pengfei Gao [gaopengfei.se@bytedance.com](mailto:gaopengfei.se@bytedance.com)
+    BytedanceBeijingChina  and  Chao Peng [pengchao.x@bytedance.com](mailto:pengchao.x@bytedance.com)
+    BytedanceBeijingChina
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Xiangxin Meng [mengxiangxin.1219@bytedance.com](mailto:mengxiangxin.1219@bytedance.com)
+    字节跳动 北京 中国, Zexiong Ma [mazexiong@bytedance.com](mailto:mazexiong@bytedance.com)
+    字节跳动 & 北京大学 北京 中国, Pengfei Gao [gaopengfei.se@bytedance.com](mailto:gaopengfei.se@bytedance.com)
+    字节跳动 北京 中国 和 Chao Peng [pengchao.x@bytedance.com](mailto:pengchao.x@bytedance.com)
+    字节跳动 北京 中国
+- en: Abstract.
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要。
+- en: Large language models (LLMs) and LLM-based Agents have been applied to fix bugs
+    automatically, demonstrating the capability in addressing software defects by
+    engaging in development environment interaction, iterative validation and code
+    modification. However, systematic analysis of these agent and non-agent systems
+    remain limited, particularly regarding performance variations among top-performing
+    ones. In this paper, we examine seven proprietary and open-source systems on the
+    SWE-bench Lite benchmark for automated bug fixing. We first assess each system’s
+    overall performance, noting instances solvable by all or none of these sytems,
+    and explore why some instances are uniquely solved by specific system types. We
+    also compare fault localization accuracy at file and line levels and evaluate
+    bug reproduction capabilities, identifying instances solvable only through dynamic
+    reproduction. Through analysis, we concluded that further optimization is needed
+    in both the LLM itself and the design of Agentic flow to improve the effectiveness
+    of the Agent in bug fixing.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大语言模型（LLM）和基于LLM的智能体已被应用于自动修复缺陷，展示了通过与开发环境互动、反复验证和代码修改来解决软件缺陷的能力。然而，关于这些智能体系统与非智能体系统的系统性分析仍然有限，特别是在顶级表现系统之间的性能差异方面。本文在SWE-bench
+    Lite基准测试上考察了七个专有和开源系统用于自动修复缺陷。我们首先评估了每个系统的整体表现，注意到有些实例可以通过所有系统解决，而有些实例则无法通过任何系统解决，并探讨了为何某些实例仅能通过特定类型的系统解决。我们还比较了文件和行级别的故障定位准确性，并评估了缺陷重现能力，识别出只有通过动态重现才能解决的实例。通过分析，我们得出结论，LLM本身以及智能体流设计都需要进一步优化，以提高智能体在缺陷修复中的有效性。
+- en: 1\. Introduction
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1\. 引言
+- en: Large Language Models (LLMs) (Zhao et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib61))
+    are advanced machine learning models trained on vast amounts of textual data,
+    capable of understanding and generating human-like text. LLM-based Agents (Xi
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib49)) are systems that
+    utilize large language models to interact with the environment and accomplish
+    specific tasks. Recently, LLM-based Agents have demonstrated significant influence
+    in automated bug fixing in code repositories (Kang et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib15);
+    Zhang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60); Yang et al.,
+    [2024a](https://arxiv.org/html/2411.10213v1#bib.bib53)). Thanks to the powerful
+    natural language processing capabilities of LLMs, these Agents can efficiently
+    understand and analyze source code and its associated natural language descriptions,
+    such as user-submitted issue descriptions and code comments. Additionally, through
+    dynamic interaction with local environments (e.g., via terminal), LLM-based Agents
+    can retrieve useful information from the code repository, perform code editing
+    and execution, and iterate and validate repair results, thereby improving the
+    accuracy and efficiency of bug fixes. This combination of LLM and environmental
+    feedback has made automated bug fixing more efficient and feasible than ever before,
+    providing revolutionary new tools for software maintenance and development.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）（Zhao et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib61)）是经过大量文本数据训练的先进机器学习模型，能够理解并生成类似人类的文本。基于LLM的智能体（Xi
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib49)）是利用大型语言模型与环境交互并完成特定任务的系统。最近，基于LLM的智能体在代码库中的自动化
+    bug 修复方面表现出了显著影响（Kang et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib15)；Zhang
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60)；Yang et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib53)）。得益于LLM强大的自然语言处理能力，这些智能体能够高效地理解和分析源代码及其相关的自然语言描述，如用户提交的问题描述和代码注释。此外，通过与本地环境的动态交互（例如，通过终端），基于LLM的智能体可以从代码库中检索有用的信息，进行代码编辑和执行，并迭代验证修复结果，从而提高
+    bug 修复的准确性和效率。这种LLM与环境反馈的结合，使得自动化 bug 修复比以往更加高效和可行，为软件维护和开发提供了革命性的全新工具。
+- en: Researchers from both the industry (Liu et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib27);
+    hon, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2); gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3);
+    Ma et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib29)) and academia (Zhang
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60); Tao et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib40))
+    have developed LLM-based Agent systems to locate and fix bugs in code repositories.
+    To evaluate the fault localization and repair capabilities of LLMs and various
+    Agent systems, Jimenez et.al (Jimenez et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib14))
+    proposed the evaluation datasets SWE-bench, with derived versions SWE-bench Lite
+    (a subset of the full benchmark), and SWE-bench Verified (human annotated subset
+    of SWE-bench published recently). These datasets contain real bugs from code repositories
+    and can verify the correctness of the patches generated by Agents through unit
+    tests. Recently, these datasets have become the most influential benchmarks in
+    the field of automated bug fixing, attracting both academic and industrial participants
+    to compete on the SWE-bench Lite leaderboard ¹¹1[https://www.swebench.com/](https://www.swebench.com/),
+    with new submissions typically every one or a half week.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 来自工业界（Liu et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib27)；hon,
+    [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2)；gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3)；Ma
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib29)）和学术界（Zhang et al.,
+    [2024](https://arxiv.org/html/2411.10213v1#bib.bib60)；Tao et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib40)）的研究人员开发了基于LLM的智能体系统，用于定位和修复代码库中的bug。为了评估LLM和各种智能体系统的故障定位与修复能力，Jimenez等人（Jimenez
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib14)）提出了评估数据集SWE-bench，并派生出了SWE-bench
+    Lite（完整基准的子集）和SWE-bench Verified（最近发布的SWE-bench人工注释子集）。这些数据集包含来自代码库的真实bug，并且可以通过单元测试验证智能体生成的修复补丁的正确性。最近，这些数据集已成为自动化bug修复领域最具影响力的基准，吸引了学术界和工业界的参与者在SWE-bench
+    Lite排行榜上竞争¹¹1[https://www.swebench.com/](https://www.swebench.com/)，并且通常每一到两周就会有新的提交。
+- en: However, no work has systematically analyzed the fault localization and repair
+    capabilities of LLM-based Agents or the performance differences among various
+    tools within these Agent systems. Regarding the SWE-bench Lite dataset itself,
+    due to the quality of issue descriptions and the complexity of the logical dependencies
+    related to the defects, some instances in the benchmark are easier for Agents
+    to fix, while others are more difficult (Xia et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib50)).
+    As for the design of the systems, different designs exhibit different planning,
+    reasoning, and problem solving capabilities, i.e. some systems adopting static
+    approaches (gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3)) and
+    others adopting dynamic approaches (Zhang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60)).
+    We have also observed significant differences in the sets of cases that each system
+    can solve. Therefore, analyzing the solving capabilities of LLM-based Agents on
+    specific instances can not only help us better understand the current performance
+    of Agents but also provide comparative insights to inspire future research directions.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，目前没有研究系统地分析基于 LLM 的 Agent 的故障定位和修复能力，或者分析这些 Agent 系统中不同工具之间的性能差异。关于 SWE-bench
+    Lite 数据集本身，由于问题描述的质量和与缺陷相关的逻辑依赖的复杂性，基准中的一些实例对于 Agent 更容易修复，而另一些则更难修复（Xia 等，[2024](https://arxiv.org/html/2411.10213v1#bib.bib50)）。至于系统的设计，不同的设计展现了不同的规划、推理和问题解决能力，即一些系统采用静态方法（gru，[[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3)），而另一些则采用动态方法（Zhang
+    等，[2024](https://arxiv.org/html/2411.10213v1#bib.bib60)）。我们还观察到，每个系统能够解决的案例集存在显著差异。因此，分析基于
+    LLM 的 Agent 在特定实例上的解决能力，不仅有助于我们更好地理解 Agent 当前的性能，还能提供比较性见解，激发未来的研究方向。
+- en: We collected the four most outstanding commercial systems (i.e. MarsCode Agent (Liu
+    et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib27)), Honeycomb (hon,
+    [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2)), Gru (gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3)),
+    Alibaba Lingma Agent (Ma et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib29)))
+    and the three most excellent open-source systems (i.e. AutoCodeRover (Zhang et al.,
+    [2024](https://arxiv.org/html/2411.10213v1#bib.bib60)), Agentless + RepoGraph (Ouyang
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib36)), Agentless (Xia
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib50))) with top performances
+    on the SWE-bench Lite Leaderboard and conducted a comprehensive analysis of the
+    performance differences of each system. First, we evaluated the overall performance
+    of LLM-based Agents in bug fixing, including statistics on the instances that
+    all seven systems can solve and those that none can solve, and analyzed the reasons
+    behind these results. We also explored why some instances can only be solved by
+    Agent systems while others can only be solved by non-Agent systems. Next, we investigated
+    the performance differences in fault localization among different systems and
+    their causes, compiling file-level and line-level localization accuracy rates.
+    Finally, we analyzed the impact of bug reproduction on bug fixing, and the common
+    characteristics of instances that can only be solved through dynamic reproduction.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们收集了四个最杰出的商业系统（即 MarsCode Agent（Liu 等，[2024a](https://arxiv.org/html/2411.10213v1#bib.bib27)），Honeycomb（hon，[[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2)），Gru（gru，[[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3)），阿里巴巴
+    Lingma Agent（Ma 等，[2024](https://arxiv.org/html/2411.10213v1#bib.bib29)））和三个最优秀的开源系统（即
+    AutoCodeRover（Zhang 等，[2024](https://arxiv.org/html/2411.10213v1#bib.bib60)），Agentless
+    + RepoGraph（Ouyang 等，[2024](https://arxiv.org/html/2411.10213v1#bib.bib36)），Agentless（Xia
+    等，[2024](https://arxiv.org/html/2411.10213v1#bib.bib50)）），它们在 SWE-bench Lite Leaderboard
+    上表现出色，并进行了全面的性能差异分析。首先，我们评估了基于 LLM 的 Agent 在修复 bug 方面的整体性能，包括所有七个系统能够解决的实例以及所有系统都无法解决的实例的统计数据，并分析了这些结果背后的原因。我们还探讨了为何一些实例只能由
+    Agent 系统解决，而其他实例只能由非 Agent 系统解决。接下来，我们调查了不同系统在故障定位方面的性能差异及其原因，并编制了文件级和行级定位准确率。最后，我们分析了
+    bug 复现对 bug 修复的影响，以及那些只能通过动态复现解决的实例的共同特征。
+- en: Through data analysis, we have summarized several insights.To improve bug fixing,
+    it is essential to enhance the model’s reasoning ability, enabling it to accurately
+    identify bug-related information within an issue and reduce noise interference.
+    For multiple potential repair locations, the model should leverage its reasoning
+    capabilities to determine the most relevant location. From the Agentic flow perspective,
+    there should be a strong focus on the quality of the issue and attention to multiple
+    suspicious locations in the stack trace. The design should include mechanisms
+    to verify the completeness of patches and consider their global impact. Mechanisms
+    should also be implemented to mitigate the randomness of the model’s output or
+    effectively utilize its diversity. In error localization, achieving line-level
+    accuracy is more critical than file-level, due to the larger discovery space,
+    necessitating finer-grained results. During the reproduction process, ensuring
+    the correctness of reproductions is crucial, as incorrect reproductions can result
+    in the failure of the entire solving process.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过数据分析，我们总结了若干见解。为了改进修复错误，必须增强模型的推理能力，使其能够准确识别问题中的与错误相关的信息，并减少噪声干扰。对于多个潜在修复位置，模型应利用其推理能力确定最相关的位置。从智能体流程的角度来看，应该更加关注问题的质量，并关注堆栈跟踪中的多个可疑位置。设计应包括验证补丁完整性的机制，并考虑其全局影响。还应实施机制，以减轻模型输出的随机性或有效利用其多样性。在错误定位中，达到行级准确性比文件级更为关键，因为发现空间更大，需要更精细的结果。在重现过程中，确保重现的正确性至关重要，因为错误的重现可能导致整个解决过程失败。
+- en: 'Novelty and Contribution To the best of knowledge, this is the first work to:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 新颖性与贡献 据我们所知，这是首次进行以下工作：
+- en: (1)
+  id: totrans-16
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (1)
+- en: Study the effectiveness of LLM-based Agents in automatic bug fixing for code
+    repositories
+  id: totrans-17
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 研究基于LLM的智能体在代码库自动修复中的有效性
+- en: (2)
+  id: totrans-18
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (2)
+- en: Examine the effectiveness of different LLM-based Agents in Fault Localization
+    and analyze the reasons for their differences
+  id: totrans-19
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 研究不同基于LLM的智能体在故障定位中的有效性，并分析它们差异的原因
+- en: (3)
+  id: totrans-20
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (3)
+- en: Investigate the impact of bug reproduction on bug fixing of LLM-based Agents
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 研究错误重现对基于LLM的智能体修复效果的影响
+- en: (4)
+  id: totrans-22
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (4)
+- en: Summarize the current issues and future research directions for LLM-based Agents
+    in bug fixing
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 总结基于LLM的智能体在错误修复中的当前问题和未来研究方向
+- en: 'Paper Organization The remainder of this paper is organized as follows: Section [2](https://arxiv.org/html/2411.10213v1#S2
+    "2\. Background ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")
+    explains the background. Section [3](https://arxiv.org/html/2411.10213v1#S3 "3\.
+    Study Design ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")
+    describes the study design. Section [4](https://arxiv.org/html/2411.10213v1#S4
+    "4\. Analysis & Results ‣ An Empirical Study on LLM-based Agents for Automated
+    Bug Fixing") presents the analysis results and findings. Section [5](https://arxiv.org/html/2411.10213v1#S5
+    "5\. Discussion ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")
+    discusses the analysis results and findings. Section [6](https://arxiv.org/html/2411.10213v1#S6
+    "6\. Threats to Validity ‣ An Empirical Study on LLM-based Agents for Automated
+    Bug Fixing") reports the threats to validity. Section [7](https://arxiv.org/html/2411.10213v1#S7
+    "7\. Related Work ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")
+    discusses related work, and Section [8](https://arxiv.org/html/2411.10213v1#S8
+    "8\. Conclusion ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")
+    concludes the paper.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 论文组织 本论文的其余部分组织如下：第[2](https://arxiv.org/html/2411.10213v1#S2 "2\. Background
+    ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")节解释背景。第[3](https://arxiv.org/html/2411.10213v1#S3
+    "3\. Study Design ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")节描述研究设计。第[4](https://arxiv.org/html/2411.10213v1#S4
+    "4\. Analysis & Results ‣ An Empirical Study on LLM-based Agents for Automated
+    Bug Fixing")节展示分析结果和发现。第[5](https://arxiv.org/html/2411.10213v1#S5 "5\. Discussion
+    ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")节讨论分析结果和发现。第[6](https://arxiv.org/html/2411.10213v1#S6
+    "6\. Threats to Validity ‣ An Empirical Study on LLM-based Agents for Automated
+    Bug Fixing")节报告有效性威胁。第[7](https://arxiv.org/html/2411.10213v1#S7 "7\. Related
+    Work ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")节讨论相关工作，第[8](https://arxiv.org/html/2411.10213v1#S8
+    "8\. Conclusion ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing")节总结论文内容。
+- en: 2\. Background
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2\. 背景
+- en: In this section, we first introduce SWE-bench Lite and then we introduce the
+    leading LLM-based bug fixing systems.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节首先介绍SWE-bench Lite，然后介绍领先的基于LLM的自动修复系统。
+- en: 2.1\. SWE-bench Lite
+  id: totrans-27
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1\. SWE-bench Lite
+- en: SWE-Bench (Jimenez et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib14))
+    is a comprehensive benchmark designed to evaluate LLMs on complex real-world software
+    engineering tasks sourced from GitHub issues and corresponding pull requests across
+    12 popular Python repositories. This benchmark addresses the limitations of existing
+    coding benchmarks such as HumanEval (Chen et al., [2021](https://arxiv.org/html/2411.10213v1#bib.bib7))
+    by presenting tasks that require models to understand and coordinate changes across
+    large codebases involving multiple functions and files. The benchmark includes
+    2,294 task instances and emphasizes the need for models to interact with execution
+    environments and handle long contexts, showcasing the challenges that real-world
+    software engineering problems pose to current LLMs. Their evaluations reveal that
+    even the best-performing models at the time of publication, such as Claude 2,
+    achieve a success rate of only 1.96%, highlighting significant room for improvement.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SWE-Bench（Jimenez等，[2023](https://arxiv.org/html/2411.10213v1#bib.bib14)）是一个全面的基准测试，旨在评估大语言模型在复杂的真实世界软件工程任务中的表现，这些任务来自GitHub上的问题和相应的拉取请求，涵盖了12个流行的Python代码库。该基准测试解决了现有编码基准测试（如HumanEval（Chen等，[2021](https://arxiv.org/html/2411.10213v1#bib.bib7)））的局限性，通过提供要求模型理解并协调多个函数和文件之间更改的任务。该基准测试包含2,294个任务实例，强调了模型与执行环境交互和处理长上下文的需求，展示了真实世界软件工程问题对现有大语言模型的挑战。评估结果显示，即便是当时表现最好的模型（如Claude
+    2），成功率也仅为1.96%，显示出显著的改进空间。
+- en: 'As the computational demands and high difficulty of SWE-bench which comprises
+    2,294 issue-commit pairs across 12 Python repositories, the authors of SWE-bench
+    introduces SWE-bench Lite ²²2[https://www.swebench.com/lite.html](https://www.swebench.com/lite.html),
+    which includes 300 more manageable and self-contained instances focused on functional
+    bug fixes, covering 11 of the original 12 repositories. It retains the diversity
+    of SWE-bench but is easier to evaluate. The selection criteria is shown below:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于SWE-bench的计算需求高且难度大，其中包含2,294个问题-提交对，涉及12个Python代码库，SWE-bench的作者们推出了SWE-bench
+    Lite²²2[https://www.swebench.com/lite.html](https://www.swebench.com/lite.html)，该版本包括300个更易处理和自包含的实例，专注于功能性错误修复，覆盖了原始12个代码库中的11个。它保留了SWE-bench的多样性，但更容易进行评估。选择标准如下所示：
+- en: (1)
+  id: totrans-30
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (1)
+- en: Removed instances with images, external links, commit SHAs, or references.
+  id: totrans-31
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 移除了包含图片、外部链接、提交SHA或引用的实例。
+- en: (2)
+  id: totrans-32
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (2)
+- en: Excluded problem statements under 40 words.
+  id: totrans-33
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 排除了40字以下的问题描述。
+- en: (3)
+  id: totrans-34
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (3)
+- en: Excluded instances editing more than one file or with more than three edit hunks.
+  id: totrans-35
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 排除了编辑多个文件或包含超过三个编辑块的实例。
+- en: (4)
+  id: totrans-36
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (4)
+- en: Excluded instances creating/removing files or with error message checks.
+  id: totrans-37
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 排除了涉及创建/删除文件或包含错误信息检查的实例。
+- en: (5)
+  id: totrans-38
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: (5)
+- en: Sampled final 300 test and 23 development instances from remaining ones.
+  id: totrans-39
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 从剩余实例中抽取了最后的300个测试实例和23个开发实例。
+- en: 2.2\. Leading LLM-based Bug Fixing Systems
+  id: totrans-40
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2\. 基于大语言模型的错误修复系统
+- en: LLM-based Bug Fixing Systems are systems built on Large Language Models (LLMs)
+    that can automatically edit code repositories to fix bugs based on issue reports.
+    Bug fixing is a highly resource-intensive task in software development, requiring
+    developers to reproduce the bugs reported in issue reports, precisely locate defective
+    code snippets within large code repositories, understand the cause of errors,
+    and implement fixes. Automating bug fixing has long attracted widespread attention
+    in both academia and industry. Given the strong logical reasoning and coding capabilities
+    demonstrated by LLMs, numerous works have explored the development of automated
+    bug fixing tools based on LLMs. In this paper, we study seven leading LLM-based
+    Bug Fixing Systems (four commercial systems (Liu et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib27);
+    hon, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2); gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3);
+    Ma et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib29)) and three open
+    source systems (Zhang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60);
+    Xia et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib50); Ouyang et al.,
+    [2024](https://arxiv.org/html/2411.10213v1#bib.bib36))), comparing their differences
+    in system design and performance in automated bug fixing, analyzing the shortcomings
+    and limitations of existing systems, and providing direction for future work in
+    building adaptive, high-reliability automated bug fixing systems.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于LLM的Bug修复系统是建立在大型语言模型（LLM）基础上的系统，这些系统能够自动编辑代码库，根据问题报告修复bug。Bug修复是软件开发中一个高度资源密集的任务，开发人员需要重现问题报告中描述的bug，精确定位大型代码库中的有缺陷代码片段，理解错误的原因并实施修复。自动化bug修复长期以来在学术界和工业界都受到广泛关注。鉴于LLM所展示的强大逻辑推理和编码能力，许多研究探索了基于LLM的自动化bug修复工具的开发。本文研究了七个领先的基于LLM的Bug修复系统（四个商业系统 (Liu
+    et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib27); hon, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2);
+    gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3); Ma et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib29))
+    和三个开源系统 (Zhang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60);
+    Xia et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib50); Ouyang et al.,
+    [2024](https://arxiv.org/html/2411.10213v1#bib.bib36)))，比较了它们在自动化bug修复中的系统设计和性能差异，分析了现有系统的不足和局限性，并为未来构建自适应、高可靠性的自动化bug修复系统提供了方向。
+- en: 'Table  [1](https://arxiv.org/html/2411.10213v1#S2.T1 "Table 1 ‣ 2.2\. Leading
+    LLM-based Bug Fixing Systems ‣ 2\. Background ‣ An Empirical Study on LLM-based
+    Agents for Automated Bug Fixing") shows the leading LLM-based bug fixing systems
+    on SWE-bench Lite. We classified the fault localization techniques adopted by
+    different systems from three perspectives: (1) the utilization of LLMs, (2) the
+    utilization of CodeGraph, and (3) the utilization of software analysis techniques.
+    We also compared whether different systems use reproduction for patch validation
+    and analyzed the patch generation format. Blow this section, we will introduce
+    these systems from a technical perspective:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 [1](https://arxiv.org/html/2411.10213v1#S2.T1 "Table 1 ‣ 2.2\. Leading LLM-based
+    Bug Fixing Systems ‣ 2\. Background ‣ An Empirical Study on LLM-based Agents for
+    Automated Bug Fixing")展示了SWE-bench Lite上领先的基于LLM的bug修复系统。我们从三个角度对不同系统采用的故障定位技术进行了分类：（1）LLM的使用，（2）CodeGraph的使用，以及（3）软件分析技术的使用。我们还比较了不同系统是否使用重现技术进行补丁验证，并分析了补丁生成格式。接下来，我们将从技术角度介绍这些系统：
+- en: MarsCode Agent (Liu et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib27)),developed
+    by ByteDance, is a bug fixing system that combines code knowledge graphs, software
+    analysis techniques, and LLMs. It uses a Reproducer Agent to automatically reproduce
+    the bugs described in the issue reports. The system constructs a code knowledge
+    graph for the code repository and utilizes graph reasoning, software analysis
+    techniques, and the reasoning capabilities of LLMs to achieve fine-grained defect
+    localization. Marscode Agent generates candidate patches using LLMs and selects
+    the final patch from these candidates based on the reproduction scripts. It has
+    demonstrated outstanding performance in bug fixing tasks, achieving the highest
+    issue resolution rate on the SWE-bench Lite leaderboard.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MarsCode Agent (Liu et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib27))
+    是由字节跳动开发的 bug 修复系统，结合了代码知识图谱、软件分析技术和 LLM。它使用重现代理自动重现问题报告中描述的 bug。该系统为代码仓库构建了代码知识图谱，并利用图推理、软件分析技术和
+    LLM 的推理能力实现精细化缺陷定位。Marscode Agent 使用 LLM 生成候选补丁，并根据重现脚本从中选择最终补丁。在 bug 修复任务中，它表现出了卓越的性能，达到了
+    SWE-bench Lite 排行榜上最高的解决率。
+- en: Honeycomb (hon, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2)), an
+    agent-based bug fixing system developed by Honeycomb. It provides tools for file
+    viewing and editing to the LLM, enabling it to attempt to construct reproduction
+    scripts for all issues. The system calls these tools for defect localization and
+    generates patches in the format of $(Line_{b},Line_{e},Replace)$. The tool design
+    in Honeycomb is relatively simple, streamlining the decision-making process for
+    LLM tool usage, but it may result in the system being unable to obtain more accurate
+    localization information. Honeycomb successfully resolved 38.33% of the issues
+    in the SWE-bench Lite dataset.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Honeycomb (hon, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib2)) 是由
+    Honeycomb 开发的基于代理的 bug 修复系统。它为 LLM 提供文件查看和编辑工具，使其能够尝试为所有问题构建重现脚本。该系统调用这些工具进行缺陷定位，并生成格式为
+    $(Line_{b},Line_{e},Replace)$ 的补丁。Honeycomb 中的工具设计相对简单，简化了 LLM 工具使用的决策过程，但这可能导致系统无法获得更精确的定位信息。Honeycomb
+    成功解决了 SWE-bench Lite 数据集中的 38.33% 问题。
+- en: Gru (gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3)), a workflow-based
+    bug fixing system developed by Gru. It first uses an LLM to select files related
+    to the issue, then the LLM makes decisions on which files to change and how to
+    change them. It generates patches in the format of $(Line_{b},Line_{e},Replace)$,
+    and after the LLM reviews the patches, they are applied to the repository. Gru
+    does not include a reproduction module and successfully resolved 35.67% of the
+    issues in the SWE-bench Lite dataset.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Gru (gru, [[n. d.]](https://arxiv.org/html/2411.10213v1#bib.bib3)) 是由 Gru 开发的基于工作流的
+    bug 修复系统。它首先使用 LLM 选择与问题相关的文件，然后 LLM 决定哪些文件需要修改以及如何修改。它生成格式为 $(Line_{b},Line_{e},Replace)$
+    的补丁，在 LLM 审核补丁后，补丁会被应用到仓库中。Gru 不包括重现模块，成功解决了 SWE-bench Lite 数据集中的 35.67% 问题。
+- en: Alibaba Lingma Agent (Ma et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib29)),
+    a bug fixing system developed by Alibaba that combines code knowledge graphs with
+    LLMs. It constructs a code knowledge graph for the code repository and utilizes
+    LLMs to perform Monte Carlo Tree Search based on issue information to locate code
+    snippets related to the issue throughout the entire repository. This approach
+    effectively alleviates the issue of short context supported by LLMs but places
+    high demands on the reasoning capabilities of the LLMs. It generates patches in
+    Search/Replace format and, for some issues, also validates patches using reproduction
+    scripts. Alibaba Lingma Agent successfully resolved 33.00% of the issues in the
+    SWE-bench Lite dataset.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Alibaba Lingma Agent (Ma et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib29))
+    是由阿里巴巴开发的 bug 修复系统，结合了代码知识图谱和 LLM。它为代码仓库构建了代码知识图谱，并利用 LLM 基于问题信息执行蒙特卡洛树搜索，定位整个仓库中与问题相关的代码片段。这种方法有效缓解了
+    LLM 支持的短上下文问题，但对 LLM 的推理能力要求较高。它以搜索/替换格式生成补丁，对于某些问题，还使用重现脚本验证补丁。Alibaba Lingma
+    Agent 成功解决了 SWE-bench Lite 数据集中的 33.00% 问题。
+- en: AutoCodeRover (Zhang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60)),
+    a bug fixing system that combines LLMs with software analysis techniques. It uses
+    Spectrum-based Fault Localization (SBFL) for defect localization, providing functions
+    potentially related to the issue to the LLM, which then generates patches for
+    bug fixing. AutoCodeRover’s localization process offers greater interpretability;
+    however, it requires executing failed unit tests, and its localization effectiveness
+    depends on the quality of the test cases. In practical development, it may struggle
+    to locate defects accurately if tests are missing. AutoCodeRover successfully
+    resolved 30.67% of the issues in the SWE-bench Lite dataset.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AutoCodeRover (Zhang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60))，一个结合了LLM与软件分析技术的缺陷修复系统。它使用基于谱的故障定位（SBFL）进行缺陷定位，向LLM提供可能与问题相关的函数，LLM随后生成修补程序进行缺陷修复。AutoCodeRover的定位过程具有更强的可解释性；然而，它需要执行失败的单元测试，且其定位效果依赖于测试用例的质量。在实际开发中，如果缺少测试，它可能难以准确定位缺陷。AutoCodeRover成功解决了SWE-bench
+    Lite数据集中30.67%的问题。
+- en: Agentless (Xia et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib50)),
+    a two-stage, workflow-based bug fixing system. It directly uses an LLM to sequentially
+    perform file, function, and line localization. First, it lists the repository’s
+    file structure, allowing the LLM to select the files most relevant to the issue
+    based on the project’s structure. Then, it lists the file framework (including
+    class names, function declarations, etc.) and uses the LLM to identify the functions
+    most relevant to the issue. The model then locates the specific lines that need
+    modification based on the function content. Once the required lines are identified,
+    Agentless provides the context of these lines as input to the model, which generates
+    multiple candidate patches in Search/Replace format. The final patch is selected
+    using a majority voting strategy. Agentless achieves automated bug fixing using
+    a straightforward workflow approach; however, due to the lack of an autonomous
+    decision-making process and missing information in the localization phase, its
+    localization performance is limited. Agentless successfully resolved 27.33% of
+    the issues in the SWE-bench Lite dataset.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Agentless (Xia et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib50))，一个基于工作流的两阶段缺陷修复系统。它直接使用LLM按顺序执行文件、函数和行的定位。首先，它列出代码库的文件结构，允许LLM根据项目结构选择与问题最相关的文件。然后，它列出文件框架（包括类名、函数声明等），并使用LLM识别与问题最相关的函数。接着，模型根据函数内容定位需要修改的具体行。确定所需的行后，Agentless将这些行的上下文提供给模型，模型生成多个候选修补程序，格式为搜索/替换。最终的修补程序通过多数投票策略选择。Agentless通过一种简化的工作流方法实现了自动化缺陷修复；然而，由于缺乏自主决策过程以及定位阶段信息缺失，其定位性能受限。Agentless成功解决了SWE-bench
+    Lite数据集中27.33%的问题。
+- en: Agentless + RepoGraph (Ouyang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib36)),
+    a bug fixing system that combines code knowledge graphs with the Agentless approach.
+    It constructs a code knowledge graph for the code repository and provides a graph-based
+    retrieval interface for the LLM, using GRAG (Hu et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib12))
+    to retrieve classes/functions related to the issue from the graph. Then, Agentless
+    generates patches based on the localized code snippets, addressing the information
+    loss issue in Agentless’s localization phase. However, it performs poorly on issues
+    that are brief and lack code identifiers, resulting in a gap compared to commercial
+    agent systems. RepoGraph + Agentless successfully resolved 29.67% of the issues
+    in the SWE-bench Lite dataset.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Agentless + RepoGraph (Ouyang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib36))，一个结合了代码知识图谱和Agentless方法的缺陷修复系统。它为代码库构建代码知识图谱，并为LLM提供基于图谱的检索接口，使用GRAG (Hu
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib12))从图谱中检索与问题相关的类/函数。然后，Agentless根据定位的代码片段生成修补程序，解决了Agentless定位阶段的信息丢失问题。然而，它在处理简短且缺少代码标识符的问题时表现较差，导致与商业代理系统相比存在差距。RepoGraph
+    + Agentless成功解决了SWE-bench Lite数据集中29.67%的问题。
+- en: As shown in Table [1](https://arxiv.org/html/2411.10213v1#S2.T1 "Table 1 ‣ 2.2\.
+    Leading LLM-based Bug Fixing Systems ‣ 2\. Background ‣ An Empirical Study on
+    LLM-based Agents for Automated Bug Fixing"), Marscode Agent, which combines three
+    localization strategies and utilizes reproduction for patch validation, achieved
+    the state-of-the-art bug fixing performance. In this paper, we will analyze the
+    localization accuracy of different localization strategies and the impact of reproduction
+    on the final patch generation accuracy, providing guidance for building more reliable
+    bug fixing systems in future work.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如表[1](https://arxiv.org/html/2411.10213v1#S2.T1 "表 1 ‣ 2.2\. 基于 LLM 的主流 Bug
+    修复系统 ‣ 2\. 背景 ‣ 基于 LLM 的自动化 Bug 修复代理的实证研究")所示，Marscode Agent 结合了三种定位策略，并利用重现进行补丁验证，达到了最先进的
+    Bug 修复性能。在本文中，我们将分析不同定位策略的定位准确性以及重现对最终补丁生成准确性的影响，为未来构建更可靠的 Bug 修复系统提供指导。
+- en: Table 1. Leading LLM-based Bug Fixing Systems on SWE-bench Lite.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1. 基于 LLM 的主流 Bug 修复系统在 SWE-bench Lite 上的表现。
+- en: '| System Name | Type | %Resolved | Fault Localization | Reproduction | Patch
+    Generation Format |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '| 系统名称 | 类型 | %已解决 | 故障定位 | 重现 | 补丁生成格式 |'
+- en: '| Using LLMs | CodeGraph | Software Analysis |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '| 使用 LLM | CodeGraph | 软件分析 |'
+- en: '| MarsCode Agent | Commercial | 39.33 | ✓ | ✓ | ✓ | ✓ | Search/Replace |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| MarsCode 代理 | 商业 | 39.33 | ✓ | ✓ | ✓ | ✓ | 搜索/替换 |'
+- en: '| Honeycomb | 38.33 | ✓ | $\times$ | $\times$ | ✓ | ($Line_{b}$, $Line_{e}$,
+    Replace) |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| 蜂巢 | 38.33 | ✓ | $\times$ | $\times$ | ✓ | ($Line_{b}$, $Line_{e}$, 替换) |'
+- en: '| Gru | 35.67 | ✓ | $\times$ | $\times$ | $\times$ | ($Line_{b}$, $Line_{e}$,
+    Replace) |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| Gru | 35.67 | ✓ | $\times$ | $\times$ | $\times$ | ($Line_{b}$, $Line_{e}$,
+    替换) |'
+- en: '| Alibaba Lingma Agent | 33.00 | ✓ | ✓ | $\times$ | ✓ | Search/Replace |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| 阿里巴巴灵马代理 | 33.00 | ✓ | ✓ | $\times$ | ✓ | 搜索/替换 |'
+- en: '| AutoCodeRover | Open Source | 30.67 | ✓ | $\times$ | ✓ | ✓ | Search/Replace
+    |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| AutoCodeRover | 开源 | 30.67 | ✓ | $\times$ | ✓ | ✓ | 搜索/替换 |'
+- en: '| Agentless + RepoGraph | 29.67 | ✓ | ✓ | $\times$ | $\times$ | Search/Replace
+    |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无代理 + RepoGraph | 29.67 | ✓ | ✓ | $\times$ | $\times$ | 搜索/替换 |'
+- en: '| Agentless | 27.33 | ✓ | $\times$ | $\times$ | $\times$ | Search/Replace |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无代理 | 27.33 | ✓ | $\times$ | $\times$ | $\times$ | 搜索/替换 |'
+- en: 3\. Study Design
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3\. 研究设计
+- en: In this section, we first introduce the research questions and then introduce
+    the data collection.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们首先介绍研究问题，然后介绍数据收集。
+- en: 3.1\. Research Questions
+  id: totrans-63
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1\. 研究问题
+- en: 'RQ1\. Effectiveness of Systems: How does the LLM-based Agent currently perform
+    in automatic bug fixing in code repositories?'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ1\. 系统有效性：基于 LLM 的代理在代码库中的自动 Bug 修复效果如何？
+- en: 'Motivation: In the SWE-bench Lite leaderboard, the solution rates of various
+    systems vary significantly, and there are substantial differences in the instances
+    that each system can and cannot solve. This discrepancy is usually due to the
+    quality of issue description and the design of the systems themselves. When an
+    issue description is of sufficiently high quality, we expect an LLM-based Agent
+    to be able to resolve it. Therefore, it is necessary to analyze why certain instances
+    with high-quality issue description are not successfully fixed by the Agent, while
+    some instances with low-quality issue description are resolved. Additionally,
+    there are significant differences in the implementation of Agent-based and non-Agent
+    systems, and it is worth investigating the differences in their resolution capabilities.'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动机：在 SWE-bench Lite 排行榜中，各系统的解决率差异显著，而且每个系统能够解决和无法解决的实例也存在较大差异。这种差异通常是由于问题描述的质量以及系统本身设计的差异。当问题描述的质量足够高时，我们期望基于
+    LLM 的代理能够解决该问题。因此，有必要分析为什么某些具有高质量问题描述的实例未能成功修复，而一些问题描述质量较低的实例却得以解决。此外，基于代理和非代理系统的实现存在显著差异，值得研究它们在解决能力上的差异。
+- en: 'Approach: We will analyze the differences in the instances solved by various
+    systems, showing how many instances are resolved by all systems and how many instances
+    are not solved by any system. Then, based on the criteria proposed by Agentless[]
+    for evaluating issue descriptions, we will score the quality of the issue descriptions
+    for each instance, where higher scores indicate higher-quality issue descriptions.
+    Subsequently, we will investigate why many high-scoring issues cannot be resolved
+    by any system, while some low-scoring issues can be resolved by all tools. Additionally,
+    we will examine the characteristics of instances that can be resolved by all Agent
+    systems but not by non-Agent systems, as well as those instances that can be resolved
+    by all non-Agent systems but not by Agent systems.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法：我们将分析不同系统解决的实例差异，展示所有系统共同解决了多少实例，以及哪些实例没有被任何系统解决。然后，基于Agentless[]提出的评估问题描述的标准，我们将对每个实例的问题描述质量进行评分，其中较高的分数表示更高质量的问题描述。接着，我们将调查为什么许多高分问题无法被任何系统解决，而一些低分问题却能被所有工具解决。此外，我们将检查那些所有Agent系统能解决但非Agent系统无法解决的实例特征，以及那些所有非Agent系统能解决但Agent系统无法解决的实例特征。
+- en: 'RQ2\. Effectiveness of FL: How do different systems perform in Fault Localization
+    and what are the reasons for their differences?'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 研究问题2\. FL的有效性：不同系统在故障定位中的表现如何？它们差异的原因是什么？
+- en: 'Motivation: Fault localization is a crucial step in bug fixing, as the more
+    accurately the fault is localized, the higher the probability of successfully
+    fixing the bug. Therefore, we need to investigate the differences in fault localization
+    effectiveness among different systems.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动机：故障定位是修复缺陷的关键步骤，因为故障定位越准确，成功修复缺陷的概率就越高。因此，我们需要研究不同系统之间故障定位有效性的差异。
+- en: 'Approach: Based on the ground truth, we will compile statistics on the proportion
+    of successfully localized faulty files and the proportion of successfully localized
+    faulty lines for each system in each SWE-bench Lite instance.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法：基于真实情况，我们将统计每个系统在每个SWE-bench Lite实例中成功定位的故障文件比例和成功定位的故障行比例。
+- en: 'RQ3\. Effectiveness of Reproduction: How Bug Reproduction in Different Systems
+    Affects Bug Fixing Performance?'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 研究问题3\. 重现的有效性：不同系统中的缺陷重现如何影响缺陷修复性能？
+- en: 'Motivation: Bug reproduction is an important step in bug fixing and an essential
+    part of dynamic debugging. Its role is reflected in two aspects. First, the error
+    messages from running the bug reproduction script can be used for fault localization.
+    Second, the bug reproduction script can be used to validate the final generated
+    patch. The higher the quality of the bug reproduction script, the more accurate
+    information it can provide to the Agent, increasing the probability of successfully
+    fixing the bug. Therefore, we need to investigate the impact of bug reproduction
+    on bug fixing.'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动机：缺陷重现是修复缺陷的重要步骤，也是动态调试的关键部分。其作用体现在两个方面。首先，通过运行缺陷重现脚本得到的错误信息可以用于故障定位。其次，缺陷重现脚本可用于验证最终生成的修复补丁。缺陷重现脚本的质量越高，它能提供给Agent的信息就越准确，从而提高成功修复缺陷的概率。因此，我们需要研究缺陷重现对缺陷修复的影响。
+- en: 'Approach: We will compile statistics on the adoption rate of the reproduction
+    scripts generated by each system, providing a comparison of the impact of bug
+    reproduction on bug fixing. Additionally, we will analyze the cases that can only
+    be solved with the involvement of reproduction scripts, ans the cases that bug
+    reproduction negatively impact bug fixing.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法：我们将统计每个系统生成的重现脚本的采纳率，提供缺陷重现对缺陷修复影响的比较。此外，我们将分析仅能通过重现脚本参与的案例，以及缺陷重现对缺陷修复产生负面影响的案例。
+- en: 3.2\. Data Collection
+  id: totrans-73
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2\. 数据收集
+- en: In RQ1, we design a scoring system based on the five metrics and corresponding
+    candidate values provided by Agentless, allowing us to evaluate the quality of
+    different issue sets across multiple dimensions. In RQ2, we conduct a reverse
+    analysis of the patches generated by different tools, thereby offering an unbiased
+    evaluation of each tool’s performance in fault localization.In RQ3, to determine
+    the use of reproduction by different systems from their trajectories, we first
+    identify Agentless, RepoGraph+Agentless, and Gru as systems that do not support
+    reproduction, based on keyword matching for "reproduce" and manual analysis. Then,
+    for the remaining four systems, we utilize different heuristic rules to identify
+    the construction of reproduction scripts.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在RQ1中，我们设计了一个基于五个指标和Agentless提供的相应候选值的评分系统，从多个维度评估不同问题集的质量。在RQ2中，我们对不同工具生成的补丁进行了反向分析，从而提供了每个工具在故障定位中的无偏评估。在RQ3中，为了确定不同系统在其轨迹中的重现使用情况，我们首先通过关键词匹配“reproduce”和人工分析，识别出Agentless、RepoGraph+Agentless和Gru为不支持重现的系统。然后，对于剩余的四个系统，我们利用不同的启发式规则来识别重现脚本的构建。
+- en: 4\. Analysis & Results
+  id: totrans-75
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4\. 分析与结果
+- en: We will sequentially present the analysis results and insights for RQ1 to RQ3.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将依次呈现RQ1到RQ3的分析结果和见解。
+- en: '4.1\. RQ1: Effectiveness of Systems'
+  id: totrans-77
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1\. RQ1：系统的有效性
+- en: 'We analyzed the versions of cases that each of the seven tools can solve individually,
+    as well as the differences between the cases that each tool can resolve, as shown
+    in Figure [1](https://arxiv.org/html/2411.10213v1#S4.F1 "Figure 1 ‣ 4.1\. RQ1:
+    Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical Study on LLM-based
+    Agents for Automated Bug Fixing")-(a). The histogram at the top of the figure
+    shows the number of cases each tool can resolve in SWE-bench Lite. Specifically,
+    ranked from lowest to highest, these are Agentless, Agentless+RepoGraph, AutoCodeRover,
+    Alibaba Lingma Agent, Gru, Honeycomb, and MarsCode Agent, resolving 82, 89, 92,
+    99, 107, 115, and 118 cases, respectively. MarsCode Agent performs the best, achieving
+    a 43.9% performance improvement over Agentless and addressing 39.3% of the total
+    300 cases in SWE-bench Lite. Compared to the popular APR benchmark Defects4J over
+    the past decade, SWE-bench Lite introduces stricter usage protocols, prohibiting
+    participants from leveraging dynamic evaluation results generated by closely related
+    failing test cases as feedback information for filtering patches. This test case
+    set can only be utilized as a quality standard once the patch generation process
+    has concluded. In this context, many error localization methods based on dynamic
+    test execution information—such as spectrum-based and mutation-based error localization
+    methods—cannot be used, adding further complexity to problem detection and resolution.
+    This strict protocol undoubtedly aligns more closely with real-world development
+    scenarios, where repair tools must rely almost solely on issues raised by users
+    and the current state of the code repository to devise solutions. Against this
+    backdrop, MarsCode’s ability to address 39.3% of cases underscores its advanced
+    capabilities and utility in real-world development environments.'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们分析了每个工具单独能解决的案例版本，以及每个工具能够解决的案例之间的差异，如图[1](https://arxiv.org/html/2411.10213v1#S4.F1
+    "图 1 ‣ 4.1\. RQ1：系统的有效性 ‣ 4\. 分析与结果 ‣ 基于LLM的自动化bug修复代理的实证研究")-(a)所示。图中上方的柱状图显示了每个工具在SWE-bench
+    Lite中能够解决的案例数量。具体来说，从低到高依次为：Agentless、Agentless+RepoGraph、AutoCodeRover、阿里巴巴Lingma
+    Agent、Gru、Honeycomb和MarsCode Agent，分别解决了82、89、92、99、107、115和118个案例。MarsCode Agent表现最佳，较Agentless提高了43.9%的性能，解决了SWE-bench
+    Lite中300个案例的39.3%。与过去十年流行的APR基准Defects4J相比，SWE-bench Lite引入了更严格的使用协议，禁止参与者利用由密切相关的失败测试用例生成的动态评估结果作为反馈信息来过滤补丁。此测试用例集只能在补丁生成过程结束后作为质量标准使用。在这种背景下，许多基于动态测试执行信息的错误定位方法——如基于光谱和基于突变的错误定位方法——无法使用，进一步增加了问题检测和解决的复杂性。这一严格协议无疑与现实世界开发场景更为契合，在这些场景中，修复工具必须几乎完全依赖用户提出的问题和当前代码库的状态来制定解决方案。在这种背景下，MarsCode能够解决39.3%的案例，凸显了其在现实开发环境中的先进能力和实用性。
+- en: '![Refer to caption](img/cd9ed158bc19b8cb7e46e25f337a0e4d.png)'
+  id: totrans-79
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/cd9ed158bc19b8cb7e46e25f337a0e4d.png)'
+- en: (a) Issue Resolve Task
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 问题解决任务
+- en: '![Refer to caption](img/fd304e6eea2ee2c228e36e4d77577a5d.png)'
+  id: totrans-81
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/fd304e6eea2ee2c228e36e4d77577a5d.png)'
+- en: (b) File-level FL Task
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 文件级FL任务
+- en: '![Refer to caption](img/beeb80a091dafa0466630e60ab9467d5.png)'
+  id: totrans-83
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图例说明](img/beeb80a091dafa0466630e60ab9467d5.png)'
+- en: (c) Line-level FL Task
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 行级FL任务
+- en: Figure 1. Analysis of Performance of State-of-the-art Techniques on Issue Resolve
+    and Fault Localization Tasks, where FL indicates Fault Localization.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1. 最先进技术在问题解决和故障定位任务中的性能分析，其中FL表示故障定位。
+- en: Table 2. Issue Quality Metrics (REs indicates Reproducible Examples, and NL
+    indicates Natutal Language).
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2. 问题质量指标（REs表示可复现示例，NL表示自然语言）。
+- en: '| Metrics | Descriptions of Metrics | Candidates | Scores |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 指标描述 | 候选工具 | 分数 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Quality of Reproducible Examples | This Metric indicates whether each issue
+    description contains sufficient information to perform the desired task. | Contains
+    REs | 10.00 |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| 可复现示例质量 | 该指标表示每个问题描述中是否包含足够的信息来执行所需任务。 | 包含可复现示例 | 10.00 |'
+- en: '|  |  | Contains Partial REs | 6.67 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 包含部分可复现示例 | 6.67 |'
+- en: '|  |  | Info in NL | 3.33 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 自然语言中的信息 | 3.33 |'
+- en: '|  |  | Not Enough Info | 0.00 |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 信息不足 | 0.00 |'
+- en: '| Quality of Resolve Solutions | This metric indicates whether the solutions
+    or steps to solve the problem are already provided in the issue description. |
+    Exact Patch | 10.00 |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| 解决方案质量 | 该指标表示问题的解决方案或步骤是否已在问题描述中提供。 | 精确修补 | 10.00 |'
+- en: '|  |  | Complete Steps in NL | 7.50 |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 完整的自然语言步骤 | 7.50 |'
+- en: '|  |  | Some Steps in NL | 5.00 |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 自然语言中的某些步骤 | 5.00 |'
+- en: '|  |  | No Solution | 2.50 |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 无解决方案 | 2.50 |'
+- en: '|  |  | Misleading Information | 0.00 |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 误导性信息 | 0.00 |'
+- en: '| Quality of Bug Locations (File/Function/Line) | This metric indicates whether
+    the issue description contains the correct bug location information. | Stacktrace
+    | 10.00 |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| 错误位置质量（文件/函数/行） | 该指标表示问题描述中是否包含正确的错误位置（文件/函数/行）信息。 | 堆栈跟踪 | 10.00 |'
+- en: '|  |  | Keyword | 6.67 |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 关键词 | 6.67 |'
+- en: '|  |  | Natural Language | 3.33 |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 自然语言 | 3.33 |'
+- en: '|  |  | None Information | 0.00 |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 无信息 | 0.00 |'
+- en: 'In Figure [1](https://arxiv.org/html/2411.10213v1#S4.F1 "Figure 1 ‣ 4.1\. RQ1:
+    Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical Study on LLM-based
+    Agents for Automated Bug Fixing")-(a), the histogram beneath the tool names (referred
+    to as Part-I) presents the case versions that different tool combinations can
+    address. Each row indicates the number of case versions solvable by the tools
+    marked with black dots but not by those marked with gray dots. For instance, in
+    the first row, only MarsCode is marked with a black dot, while the other six tools
+    are marked with gray dots, indicating that MarsCode can solve a unique set of
+    9 cases that none of the other six tools can handle. Similarly, the seventh row
+    demonstrates that MarsCode and Honeycomb together can solve 5 cases that the other
+    five tools cannot address. The final row shows that all seven tools collectively
+    can solve 36 cases. The following sections will analyze the statistical findings
+    presented in this figure from several perspectives.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在图[1](https://arxiv.org/html/2411.10213v1#S4.F1 "图 1 ‣ 4.1\. RQ1: 系统的有效性 ‣
+    4\. 分析与结果 ‣ 基于LLM的自动化修复错误代理的实证研究")-(a)中，工具名称下方的直方图（称为Part-I）展示了不同工具组合可以解决的案例版本。每一行表示通过标记为黑点的工具可以解决的案例版本数量，而标记为灰点的工具无法解决这些案例。例如，在第一行中，只有MarsCode被标记为黑点，而其他六个工具被标记为灰点，表明MarsCode能够解决其他六个工具无法处理的9个独特案例。类似地，第七行显示MarsCode和Honeycomb可以一起解决5个其他五个工具无法处理的案例。最后一行显示所有七个工具可以共同解决36个案例。接下来的部分将从多个角度分析图中展示的统计结果。'
+- en: 'Analysis of Case Solvability. Among the 300 cases in SWE-bench Lite, 168 cases
+    are solvable by at least one of the seven tools (representing the sum of all values
+    in Part-II of Figure [1](https://arxiv.org/html/2411.10213v1#S4.F1 "Figure 1 ‣
+    4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical Study
+    on LLM-based Agents for Automated Bug Fixing")-(a)), while 132 cases remain unsolved
+    by any tool (not displayed in the figure and constituting the complement of the
+    168 solvable cases). Furthermore, 36 cases can be solved by all seven tools (represented
+    by the last row in Part-II). We hypothesize that the issue descriptions for these
+    36 universally solvable cases are generally of higher quality, whereas the 132
+    cases that none of the tools can resolve likely exhibit lower-quality issue descriptions.
+    To validate this hypothesis, we conducted a significance analysis of issue quality
+    differences using five metrics provided by the issue quality analysis report in
+    Agentless, as detailed in Table [2](https://arxiv.org/html/2411.10213v1#S4.T2
+    "Table 2 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing") (with bug location represented
+    by three metrics: file, function, and line). For each metric, Agentless provided
+    candidate values that represent the completeness of information, which we listed
+    in descending order of completeness in the third column. We then assigned scores
+    on a 10-point scale, uniformly distributing scores among candidate values to facilitate
+    further analysis. For example, for the Quality of Reproducible Examples metric,
+    we assigned a score of 10 points to "Contain REs" (highest information completeness),
+    6.67 points to "Contain Partial REs" (moderate completeness), 3.33 points to "Info
+    in NL", and 0 points to "Not enough Info". While the number of candidates varied
+    across metrics, we ensured that all metric scores ranged from 0 to 10, allowing
+    comparability across metrics. Notably, for the Quality of Resolve Solutions metric,
+    we positioned the "Misleading" candidate (where the issue description contains
+    misleading information) at the lowest rank, as we consider it more detrimental
+    than "No Solution." It is important to note that the indicators for each case
+    have already been manually analyzed in the open-source artifacts of Agentless.
+    Our approach builds on this by assigning scores to each candidate value to facilitate
+    further analysis of issue quality.'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '案例可解性分析。在SWE-bench Lite的300个案例中，168个案例至少可以通过七个工具中的一个解决（代表图[1](https://arxiv.org/html/2411.10213v1#S4.F1
+    "Figure 1 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An
+    Empirical Study on LLM-based Agents for Automated Bug Fixing")-(a)中第II部分所有值的总和），而132个案例则未被任何工具解决（在图中未显示，构成168个可解案例的补集）。此外，36个案例可以被所有七个工具解决（由第II部分最后一行表示）。我们假设，这36个普遍可解案例的问题描述通常质量较高，而这132个未能被任何工具解决的案例则可能存在较低质量的问题描述。为了验证这一假设，我们使用Agentless提供的五个指标进行了问题质量差异的显著性分析，详细内容见表[2](https://arxiv.org/html/2411.10213v1#S4.T2
+    "Table 2 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing")（其中bug位置由三个指标表示：文件、函数和行）。对于每个指标，Agentless提供了代表信息完整性的候选值，我们按信息完整性降序排列在第三列中。然后，我们对候选值进行了10分制评分，均匀分配分数，以便进一步分析。例如，对于可重现示例的质量指标，我们对“包含REs”（最高信息完整性）赋予10分，对“包含部分REs”（适中完整性）赋予6.67分，对“自然语言中的信息”赋予3.33分，对“信息不足”赋予0分。尽管候选值在不同指标之间有所不同，但我们确保所有指标的评分范围从0到10，以便进行跨指标的可比性分析。特别地，对于解决方案质量指标，我们将“误导性”候选项（即问题描述包含误导性信息）排在最低位置，因为我们认为它比“无解决方案”更具危害性。需要注意的是，每个案例的指标已经在Agentless的开源文档中进行了手动分析。我们的方法在此基础上，通过为每个候选值分配分数，以促进对问题质量的进一步分析。'
+- en: 'To examine the validity of our hypothesis, we calculated the mean values for
+    the five indicators across two case sets: the set of 132 cases unsolved by any
+    tool (referred to as the "No-one-resolve Set") and the set of 36 cases solvable
+    by all tools (referred to as the "All-resolve Set"). These results are shown in
+    Table [3](https://arxiv.org/html/2411.10213v1#S4.T3 "Table 3 ‣ 4.1\. RQ1: Effectiveness
+    of Systems ‣ 4\. Analysis & Results ‣ An Empirical Study on LLM-based Agents for
+    Automated Bug Fixing"). For each indicator, a higher score indicates that the
+    corresponding issue description provides more complete and detailed information.
+    It is evident that the scores for all five indicators are consistently higher
+    in the All-resolve Set compared to the No-one-resolve Set. This suggests that
+    issue quality significantly influences the effectiveness of resolution methods,
+    underscoring the importance of crafting clear and comprehensive issue descriptions
+    to improve resolution rates from the outset.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了检验我们假设的有效性，我们计算了两个案例集中的五个指标的平均值：一个是132个无法通过任何工具解决的案例集（称为“无人解决集”），另一个是36个可以通过所有工具解决的案例集（称为“全能解决集”）。这些结果如表[3](https://arxiv.org/html/2411.10213v1#S4.T3
+    "Table 3 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing")所示。对于每个指标，得分越高表明相应的漏洞描述提供了更完整、更详细的信息。显然，所有五个指标在全能解决集中得分普遍高于无人解决集。这表明，问题的质量显著影响解决方法的有效性，强调了从一开始就制定清晰、全面的问题描述以提高解决率的重要性。'
+- en: Examining the performance details for each indicator across both case sets,
+    the most notable difference is observed in the Quality of Line-level Location
+    metric, where the average score in the All-resolve Set is 27.8 times that of the
+    No-one-resolve Set. This indicates that, at least within the SWE-bench Lite dataset,
+    providing line-level location information markedly enhances the resolution rate
+    for repair tools. The second largest difference appears in Quality of Solution
+    in Description, with an average score difference of 2.13 times between the two
+    sets, indicating that suggesting positive modifications based on observed symptoms
+    can also substantially aid in improving tool solvability. This is followed by
+    function-level and file-level location information, with score differences of
+    1.66 times and 1.47 times, respectively, suggesting that as the granularity of
+    the bug location becomes coarser, its benefit to repair tools diminishes—a finding
+    that aligns with intuitive expectations. Lastly, Quality of Reproducible Examples
+    shows only a 1.1-time score difference between the two sets, suggesting that the
+    completeness of this indicator has a comparatively minor impact on enhancing the
+    solvability of repair tools.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在对两个案例集中每个指标的表现进行详细分析时，最显著的差异出现在行级位置质量指标上，全能解决集的平均得分是无人解决集的27.8倍。这表明，至少在SWE-bench
+    Lite数据集内，提供行级位置的信息显著提高了修复工具的解决率。其次，描述中的解决方案质量指标的差异也较为显著，两者的平均得分差为2.13倍，表明根据观察到的症状建议正向修改也能大大提升工具的可解性。紧随其后的是功能级和文件级位置的指标，得分差分别为1.66倍和1.47倍，这表明随着漏洞位置的粒度变粗，其对修复工具的帮助也随之减少——这一发现符合直觉预期。最后，可复现示例质量的得分差仅为1.1倍，表明该指标的完整性对提升修复工具的可解性影响相对较小。
+- en: 'In the above analysis, we validated our hypothesis by calculating differences
+    across five metrics that represent issue quality in the All-resolve Set and No-one-resolve
+    Set, showing a clear disparity in issue quality between cases that can be resolved
+    and those that cannot. This reflects an overall trend, though some outliers may
+    exist. On one hand, we observed several high-scoring cases in the No-one-resolve
+    Set; we aim to investigate why, despite relatively complete information in these
+    issues, no tools were able to resolve them. On the other hand, we also identified
+    some low-scoring cases within the All-resolve Set, which may further highlight
+    the capability of repair tools to independently find and gather necessary information.
+    To this end, we collected the top 5 cases with the highest average scores across
+    the five metrics in the No-one-resolve Set, and the 5 cases with the lowest average
+    scores in the All-resolve Set, as shown in Table [3](https://arxiv.org/html/2411.10213v1#S4.T3
+    "Table 3 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing").'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在上述分析中，我们通过计算“全解集合”和“无解集合”中五个指标的差异，验证了我们的假设，显示了解决和未解决案例之间在问题质量上的明显差异。这反映出一个总体趋势，尽管可能存在一些异常值。一方面，我们观察到“无解集合”中有几个高分案例；我们旨在调查，尽管这些问题中信息相对完整，为什么没有工具能够解决它们。另一方面，我们还在“全解集合”中发现了一些低分案例，这可能进一步凸显了修复工具独立查找和收集必要信息的能力。为此，我们收集了“无解集合”中五个指标平均分数最高的前五个案例，以及“全解集合”中五个指标平均分数最低的五个案例，如表[3](https://arxiv.org/html/2411.10213v1#S4.T3
+    "表3 ‣ 4.1\. RQ1: 系统有效性 ‣ 4\. 分析与结果 ‣ 基于LLM的自动化错误修复代理的实证研究")所示。'
+- en: Table 3. Issue Quality Analysis for All-resolve Cases and No-one-resolve Cases.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3. 全解案例和无解案例的问题质量分析。
+- en: '| Case Sets |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| 案例集合 |'
+- en: '&#124; Quality of &#124;'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 质量 &#124;'
+- en: '&#124; Reproducible &#124;'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 可重复 &#124;'
+- en: '&#124; Examples &#124;'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例 &#124;'
+- en: '|'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Quality of &#124;'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 质量 &#124;'
+- en: '&#124; Resolve &#124;'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 解决方案 &#124;'
+- en: '&#124; Solutions &#124;'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 解决方案 &#124;'
+- en: '|'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Quality of &#124;'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 质量 &#124;'
+- en: '&#124; File-level &#124;'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 文件级别 &#124;'
+- en: '&#124; Locations &#124;'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 位置 &#124;'
+- en: '|'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Quality of &#124;'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 质量 &#124;'
+- en: '&#124; Func-level &#124;'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 功能级别 &#124;'
+- en: '&#124; Locations &#124;'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 位置 &#124;'
+- en: '|'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Quality of &#124;'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 质量 &#124;'
+- en: '&#124; Line-level &#124;'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 行级别 &#124;'
+- en: '&#124; Locations &#124;'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 位置 &#124;'
+- en: '|'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Avg &#124;'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 平均值 &#124;'
+- en: '&#124; Scores &#124;'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 分数 &#124;'
+- en: '|'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '|'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; No-one-resolve &#124;'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无解集合 &#124;'
+- en: '&#124; Set (132 cases) &#124;'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 集合（132个案例） &#124;'
+- en: '| 6.46 | 2.67 | 2.95 | 1.67 | 0.05 | 2.76 |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6.46 | 2.67 | 2.95 | 1.67 | 0.05 | 2.76 |'
+- en: '|'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; All-resolve Set &#124;'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 全解集合 &#124;'
+- en: '&#124; (36 cases) &#124;'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; （36个案例） &#124;'
+- en: '| 7.22 | 5.69 | 4.35 | 2.78 | 1.39 | 4.29 |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7.22 | 5.69 | 4.35 | 2.78 | 1.39 | 4.29 |'
+- en: '|'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; All-resolve Set / &#124;'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 全解集合 / &#124;'
+- en: '&#124; No-one-resolve Set &#124;'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 无解集合 &#124;'
+- en: '| 110% | 213% | 147% | 166% | 2780% | 155% |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| 110% | 213% | 147% | 166% | 2780% | 155% |'
+- en: Table 4. Scores of 5 top-ranked cases in No-one-resolve Set and 5 bottom-ranked
+    cases in All-resolve Set.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4. 在“无解集合”和“全解集合”中，排名前五的案例和排名后五的案例的分数。
+- en: '| No-one-resolve Set |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无解集合 |'
+- en: '| Case IDs |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| 案例ID |'
+- en: '&#124; Scores of &#124;'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 分数 &#124;'
+- en: '&#124; Reproducible &#124;'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 可重复 &#124;'
+- en: '&#124; Examples &#124;'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 示例 &#124;'
+- en: '|'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Scores of &#124;'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 分数 &#124;'
+- en: '&#124; Resolve &#124;'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 解决方案 &#124;'
+- en: '&#124; Solutions &#124;'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 解决方案 &#124;'
+- en: '|'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Scores of &#124;'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 分数 &#124;'
+- en: '&#124; File-level &#124;'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 文件级别 &#124;'
+- en: '&#124; Locations &#124;'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 位置 &#124;'
+- en: '|'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Scores of &#124;'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 分数 &#124;'
+- en: '&#124; Func-level &#124;'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 功能级别 &#124;'
+- en: '&#124; Locations &#124;'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 位置 &#124;'
+- en: '|'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Scores of &#124;'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 分数 &#124;'
+- en: '&#124; Line-level &#124;'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 行级别 &#124;'
+- en: '&#124; Locations &#124;'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 位置 &#124;'
+- en: '|'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '&#124; Avg &#124;'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 平均值 &#124;'
+- en: '&#124; Scores &#124;'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '&#124; 分数 &#124;'
+- en: '|'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '|'
+- en: '| scikit-learn-25747 | 10 | 2.5 | 10 | 10 | 0 | 6.5 |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| scikit-learn-25747 | 10 | 2.5 | 10 | 10 | 0 | 6.5 |'
+- en: '| seaborn-3407 | 10 | 2.5 | 10 | 10 | 0 | 6.5 |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| seaborn-3407 | 10 | 2.5 | 10 | 10 | 0 | 6.5 |'
+- en: '| django-15202 | 6.67 | 5 | 10 | 10 | 0 | 6.33 |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| django-15202 | 6.67 | 5 | 10 | 10 | 0 | 6.33 |'
+- en: '| scikit-learn-10508 | 10 | 5 | 10 | 6.67 | 0 | 6.33 |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| scikit-learn-10508 | 10 | 5 | 10 | 6.67 | 0 | 6.33 |'
+- en: '| django-13660 | 3.33 | 7.5 | 10 | 10 | 0 | 6.17 |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| django-13660 | 3.33 | 7.5 | 10 | 10 | 0 | 6.17 |'
+- en: '| All-resolve Set |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| 全解集合 |'
+- en: '| django-12497 | 3.33 | 7.5 | 0 | 0 | 0 | 2.17 |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| django-12497 | 3.33 | 7.5 | 0 | 0 | 0 | 2.17 |'
+- en: '| django-11133 | 3.33 | 2.5 | 6.67 | 0 | 0 | 2.5 |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| django-11133 | 3.33 | 2.5 | 6.67 | 0 | 0 | 2.5 |'
+- en: '| pytest-7432 | 3.33 | 2.5 | 3.33 | 3.33 | 0 | 2.5 |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| pytest-7432 | 3.33 | 2.5 | 3.33 | 3.33 | 0 | 2.5 |'
+- en: '| pytest-5692 | 3.33 | 2.5 | 6.67 | 0 | 0 | 2.5 |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| pytest-5692 | 3.33 | 2.5 | 6.67 | 0 | 0 | 2.5 |'
+- en: '| django-16046 | 6.67 | 2.5 | 3.33 | 0 | 0 | 2.5 |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| django-16046 | 6.67 | 2.5 | 3.33 | 0 | 0 | 2.5 |'
+- en: 'For each case, we examined the execution trajectories generated by seven tools
+    to analyze the reasons they could or could not resolve the respective cases. Due
+    to space limitations, we present only the more commonly observed findings across
+    the seven methods:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个案例，我们检查了七个工具生成的执行轨迹，以分析它们能否解决各自的案例。由于篇幅限制，我们仅展示了在七种方法中更常见的发现：
+- en: 'scikit-learn-25747: Most methods successfully extracted relevant files, functions,
+    and even fine-grained code snippets containing the error line as a set of suspicious
+    elements for fault localization. This is largely because the issue provided a
+    high-quality description with file- and function-level localization, scoring a
+    10\. However, the main reason for the failure to resolve this case lies in the
+    excessive number of suspicious elements identified by the fault localization module
+    (as each call node in the stack trace tends to be included). The actual error
+    location is deeply embedded within the stack trace, making it challenging to prioritize
+    among the top-ranked elements. This issue tests the model’s ability to infer the
+    relationship between the observed symptoms and the root cause of the error, where
+    the model’s reasoning capabilities remain limited. Additionally, the issue title
+    references a code element associated with the observed error symptom (i.e., the
+    entry point in the stack trace). As the title is a summary of the issue, it naturally
+    draws more attention from the model, further reinforcing the impression that this
+    element caused the error. Meanwhile, in the subsequent repair phase, tools are
+    constrained by the time and cost associated with large-model calls to generate
+    repair suggestions. Resources may be fully exhausted on the first suspicious location,
+    thus limiting opportunities to address subsequent ones.'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'scikit-learn-25747: 大多数方法成功地提取了相关的文件、函数，甚至包含错误行的细粒度代码片段，将其作为一组可疑元素进行故障定位。这主要是因为问题提供了高质量的描述，并且具备文件和函数级别的定位，得分为10。然而，未能解决该问题的主要原因在于故障定位模块识别的可疑元素数量过多（因为堆栈跟踪中的每个调用节点往往都被包括在内）。实际的错误位置深深嵌入在堆栈跟踪中，使得很难在排名靠前的元素中进行优先排序。这个问题考察了模型推断观察到的症状与错误根本原因之间关系的能力，而模型的推理能力仍然有限。此外，问题标题引用了与观察到的错误症状相关的代码元素（即堆栈跟踪中的入口点）。由于标题是问题的总结，它自然会吸引模型更多的关注，进一步强化了这个元素导致错误的印象。同时，在随后的修复阶段，工具受到大模型调用的时间和成本的限制，无法生成修复建议。资源可能会在第一个可疑位置上被完全消耗，从而限制了处理后续问题的机会。'
+- en: 'seaborn-3407: The reason it remains unresolved is nearly identical to that
+    of scikit-learn-25747.'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'seaborn-3407: 它未解决的原因与scikit-learn-25747几乎相同。'
+- en: 'django-15202: The reason it remains unresolved is nearly identical to that
+    of scikit-learn-25747.'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'django-15202: 它未解决的原因与scikit-learn-25747几乎相同。'
+- en: 'scikit-learn-10508: This issue requires consistent modifications at two locations
+    to be resolved. We observed that many tools successfully identified and repaired
+    one location while neglecting the other. In fact, the two required modification
+    points are in close proximity, within the same function and only about 10 lines
+    apart. However, due to current limitations in assessing the completeness of fixes,
+    tools tend to favor generating an ostensibly reasonable solution. Once it passes
+    their designed validation processes—such as using a self-reflective agent to critique
+    the patch’s plausibility or generating plausible reproduction scripts to verify
+    the model-generated patch—the tools often finalize the patch and conclude the
+    resolution process. At present, models demonstrate limited capacity for assessing
+    the completeness of patches in response to issues. Semantic relationships between
+    multiple related modifications that may be overlooked during patch generation
+    are also challenging to detect in subsequent self-reflection phases.'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: scikit-learn-10508：此问题需要在两个位置进行一致的修改才能解决。我们观察到，许多工具成功识别并修复了一个位置，而忽略了另一个位置。事实上，这两个需要修改的位置非常接近，位于同一函数内，且相隔仅约10行。然而，由于目前评估修复完整性的限制，工具通常倾向于生成一个表面上合理的解决方案。一旦通过了它们设计的验证过程——例如，使用自我反思代理批评补丁的合理性，或生成合理的重现脚本来验证模型生成的补丁——这些工具通常会最终确定补丁并结束解决过程。目前，模型在评估补丁响应问题的完整性方面表现有限。多项相关修改之间的语义关系可能在补丁生成过程中被忽视，而这些关系在后续的自我反思阶段也很难检测到。
+- en: 'django-13660: The primary reason this issue remains unresolved is due to a
+    misleading solution provided within the issue description. Specifically, the issue
+    description suggests the following fix: “exec should be passed a dictionary containing
+    a minimal set of globals. This can be done by just passing a new, empty dictionary
+    as the second argument of exec.” Many tools adhered to this recommendation, generating
+    patches based on it, primarily modifying “exec(options[’command’])” to “exec(options[’command’],
+    )”, which aligns with the solution suggested in the issue. However, the actual
+    patch replaces the statement with “exec(options[’command’], globals())”, which
+    differs in code semantics from the suggested fix (as shown in the following code
+    box). In the Agentless report, the Quality of Resolve Solution metric received
+    a score of “Complete steps in NL” (7.5 points in Table [4](https://arxiv.org/html/2411.10213v1#S4.T4
+    "Table 4 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing")) rather than a “Misleading”
+    score (0 points). We speculate that this may have been an oversight in manual
+    analysis.'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'django-13660：此问题未解决的主要原因是问题描述中提供了一个误导性的解决方案。具体来说，问题描述建议以下修复方法：“exec应传入一个包含最小全局变量集的字典。这可以通过将一个新的空字典作为exec的第二个参数传入来实现。”许多工具遵循了这一建议，基于此生成了补丁，主要是将“exec(options[’command’])”修改为“exec(options[’command’],
+    )”，这与问题中建议的解决方案一致。然而，实际的补丁将语句替换为“exec(options[’command’], globals())”，其代码语义与建议的修复方法不同（如下代码框所示）。在无代理报告中，解决方案的质量评分为“在自然语言中完成的步骤”（表[4](https://arxiv.org/html/2411.10213v1#S4.T4
+    "Table 4 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing")中的7.5分），而不是“误导性”评分（0分）。我们推测这可能是手动分析时的一个疏忽。'
+- en: '<svg class="ltx_picture" height="6003.72" id="S4.SS1.p13.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,6003.72) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 5985.52)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Comparison of the Generated
+    Patch Candidate and the Human-written Patch.</foreignobject></g> <g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000"
+    height="5954.02" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69"><svg
+    class="ltx_picture" height="2966.56" id="S4.SS1.p13.pic1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.p1.pic1"
+    overflow="visible" version="1.1" width="600"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,2966.56) matrix(1 0 0 -1 0 0)"><g
+    fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 2948.35)"><foreignobject
+    height="12.3" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">The
+    Patch Candidate Generated by Gru</foreignobject></g> <g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject height="2916.85" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="556.69">[⬇](data:text/plain;base64,ZGlmZiAtLWdpdCBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkgYi9kamFuZ28vY29yZS9tYW5hZ2VtZW50L2NvbW1hbmRzL3NoZWxsLnB5Ci0tLSBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkKKysrIGIvZGphbmdvL2NvcmUvbWFuYWdlbWVudC9jb21tYW5kcy9zaGVsbC5weQpAQCAtODQsMTMgKzg0LDEzIEBAIGRlZiBweXRob24oc2VsZiwgb3B0aW9ucyk6CiAgICAgZGVmIGhhbmRsZShzZWxmLCAqKm9wdGlvbnMpOgogICAgICAgICAjIEV4ZWN1dGUgdGhlIGNvbW1hbmQgYW5kIGV4aXQuCiAgICAgICAgIGlmIG9wdGlvbnNbJ2NvbW1hbmQnXToKLSAgICAgICAgICAgIGV4ZWMob3B0aW9uc1snY29tbWFuZCddKQorICAgICAgICAgICAgZXhlYyhvcHRpb25zWydjb21tYW5kJ10sIHt9KQogICAgICAgICAgICAgcmV0dXJuCi4uLg==)
+    1diff  --git  a/django/core/management/commands/shell.py  b/django/core/management/commands/shell.py
+    2---  a/django/core/management/commands/shell.py 3+++  b/django/core/management/commands/shell.py
+    4@@  -84,13  +84,13  @@  def  python(self,  options): 5  def  handle(self,  **options):
+    6  #  Execute  the  command  and  exit. 7  if  options[’command’]: 8-  exec(options[’command’])
+    9+  exec(options[’command’],  {}) 10  return 11...</foreignobject></g></g></svg>
+    <svg class="ltx_picture" height="2984.7" id="S4.SS1.p13.pic1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.p2.pic1"
+    overflow="visible" version="1.1" width="600"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,2984.7) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 21.65 2964.95)"><foreignobject height="13.84"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">The Human-written
+    Patch (Ground Truth)</foreignobject></g> <g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject height="2933.46" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="556.69">[⬇](data:text/plain;base64,ZGlmZiAtLWdpdCBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkgYi9kamFuZ28vY29yZS9tYW5hZ2VtZW50L2NvbW1hbmRzL3NoZWxsLnB5Ci0tLSBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkKKysrIGIvZGphbmdvL2NvcmUvbWFuYWdlbWVudC9jb21tYW5kcy9zaGVsbC5weQpAQCAtODQsMTMgKzg0LDEzIEBAIGRlZiBweXRob24oc2VsZiwgb3B0aW9ucyk6CiAgICAgZGVmIGhhbmRsZShzZWxmLCAqKm9wdGlvbnMpOgogICAgICAgICAjIEV4ZWN1dGUgdGhlIGNvbW1hbmQgYW5kIGV4aXQuCiAgICAgICAgIGlmIG9wdGlvbnNbJ2NvbW1hbmQnXToKLSAgICAgICAgICAgIGV4ZWMob3B0aW9uc1snY29tbWFuZCddKQorICAgICAgICAgICAgZXhlYyhvcHRpb25zWydjb21tYW5kJ10sIGdsb2JhbHMoKSkKICAgICAgICAgICAgIHJldHVybgouLi4=)
+    1diff  --git  a/django/core/management/commands/shell.py  b/django/core/management/commands/shell.py
+    2---  a/django/core/management/commands/shell.py 3+++  b/django/core/management/commands/shell.py
+    4@@  -84,13  +84,13  @@  def  python(self,  options): 5  def  handle(self,  **options):
+    6  #  Execute  the  command  and  exit. 7  if  options[’command’]: 8-  exec(options[’command’])
+    9+  exec(options[’command’],  globals()) 10  return 11...</foreignobject></g></g></svg></foreignobject></g></g></svg><svg
+    class="ltx_picture" height="156.09" id="S4.SS1.p14.pic1" overflow="visible" version="1.1"
+    width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,156.09)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    21.65 13.78)"><foreignobject color="#000000" height="128.53" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(1)-(2): Overall, we
+    derive two key insights from the above case analyses: (1) Enhancing the large
+    model or agent’s understanding of root causes is crucial. The model’s understanding
+    should extend beyond the location where the issue occurs (i.e., the symptoms)
+    and include deeper reasoning about the relationship between multiple suspicious
+    locations in the issue title or stack trace and the root cause. This would help
+    prioritize the root cause location more effectively. (2) Improving the large model
+    or agent’s ability to generate patches for related locations and to verify patch
+    completeness offers a feasible approach to further enhance issue resolution effectiveness
+    from a holistic perspective.</foreignobject></g></g></svg>'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '<svg class="ltx_picture" height="6003.72" id="S4.SS1.p13.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,6003.72) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 5985.52)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">生成的补丁候选与人工编写的补丁的比较。</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    color="#000000" height="5954.02" overflow="visible" transform="matrix(1 0 0 -1
+    0 16.6)" width="556.69"><svg class="ltx_picture" height="2966.56" id="S4.SS1.p13.pic1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.p1.pic1"
+    overflow="visible" version="1.1" width="600"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,2966.56) matrix(1 0 0 -1 0 0)"><g
+    fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 2948.35)"><foreignobject
+    height="12.3" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Gru生成的补丁候选</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    height="2916.85" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[⬇](data:text/plain;base64,ZGlmZiAtLWdpdCBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkgYi9kamFuZ28vY29yZS9tYW5hZ2VtZW50L2NvbW1hbmRzL3NoZWxsLnB5Ci0tLSBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkKKysrIGIvZGphbmdvL2NvcmUvbWFuYWdlbWVudC9jb21tYW5kcy9zaGVsbC5weQpAQCAtODQsMTMgKzg0LDEzIEBAIGRlZiBweXRob24oc2VsZiwgb3B0aW9ucyk6CiAgICAgZGVmIGhhbmRsZShzZWxmLCAqKm9wdGlvbnMpOgogICAgICAgICAjIEV4ZWN1dGUgdGhlIGNvbW1hbmQgYW5kIGV4aXQuCiAgICAgICAgIGlmIG9wdGlvbnNbJ2NvbW1hbmQnXToKLSAgICAgICAgICAgIGV4ZWMob3B0aW9uc1snY29tbWFuZCddKQorICAgICAgICAgICAgZXhlYyhvcHRpb25zWydjb21tYW5kJ10sIHt9KQogICAgICAgICAgICAgcmV0dXJuCi4uLg==)
+    1diff  --git  a/django/core/management/commands/shell.py  b/django/core/management/commands/shell.py
+    2---  a/django/core/management/commands/shell.py 3+++  b/django/core/management/commands/shell.py
+    4@@  -84,13  +84,13  @@  def  python(self,  options): 5  def  handle(self,  **options):
+    6  #  执行命令并退出。 7  if  options[’command’]: 8-  exec(options[’command’]) 9+  exec(options[’command’],  {})
+    10  return 11...</foreignobject></g></g></svg> <svg class="ltx_picture" height="2984.7"
+    id="S4.SS1.p13.pic1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,2984.7) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 2964.95)"><foreignobject height="13.84" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="556.69">人工编写的补丁（地面真实情况）</foreignobject></g> <g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject height="2933.46"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[⬇](data:text/plain;base64,ZGlmZiAtLWdpdCBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkgYi9kamFuZ28vY29yZS9tYW5hZ2VtZW50L2NvbW1hbmRzL3NoZWxsLnB5Ci0tLSBhL2RqYW5nby9jb3JlL21hbmFnZW1lbnQvY29tbWFuZHMvc2hlbGwucHkKKysrIGIvZGphbmdvL2NvcmUvbWFuYWdlbWVudC9jb21tYW5kcy9zaGVsbC5weQpAQCAtODQsMTMgKzg0LDEzIEBAIGRlZiBweXRob24oc2VsZiwgb3B0aW9ucyk6CiAgICAgZGVmIGhhbmRsZShzZWxmLCAqKm9wdGlvbnMpOgogICAgICAgICAjIEV4ZWN1dGUgdGhlIGNvbW1hbmQgYW5kIGV4aXQuCiAgICAgICAgIGlmIG9wdGlvbnNbJ2NvbW1hbmQnXToKLSAgICAgICAgICAgIGV4ZWMob3B0aW9uc1snY29tbWFuZCddKQorICAgICAgICAgICAgZXhlYyhvcHRpb25zWydjb21tYW5kJ10sIGdsb2JhbHMoKSkKICAgICAgICAgICAgIHJldHVybgouLi4=)
+    1diff  --git  a/django/core/management/commands/shell.py  b/django/core/management/commands/shell.py
+    2---  a/django/core/management/commands/shell.py 3+++  b/django/core/management/commands/shell.py
+    4@@  -84,13  +84,13  @@  def  python(self,  options): 5  def  handle(self,  **options):
+    6  #  执行命令并退出。 7  if  options[’command’]: 8-  exec(options[’command’]) 9+  exec(options[’command’],  globals())
+    10  return 11...</foreignobject></g></g></svg></foreignobject></g></g></svg><svg
+    class="ltx_picture" height="156.09" id="S4.SS1.p14.pic1" overflow="visible" version="1.1"
+    width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,156.09)
+    matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    21.65 13.78'
+- en: The above analysis pertains to the five highest-scoring cases within the No-one-resolve
+    Set. Next, we will analyze the five lowest-scoring cases within the All-resolve
+    Set.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 上述分析涉及到 No-one-resolve 集合中的五个最高评分案例。接下来，我们将分析 All-resolve 集合中五个最低评分的案例。
+- en: 'django-12497: Although this case’s issue description does not provide any granular
+    bug location information, it does offer a high-quality solution. Repair tools,
+    based on this solution, progressively localized the bug down to the file, function,
+    and line levels, ultimately reusing the suggested solution to generate a correct
+    patch. In relation to the conclusions drawn from Table [3](https://arxiv.org/html/2411.10213v1#S4.T3
+    "Table 3 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing"), as the impact of the completeness
+    of these five metrics on issue resolution varies, cases with an equivalent total
+    score but concentrated on more relevant metrics (e.g., line-level location and
+    resolve solution) are likely to be easier to resolve.'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'django-12497：尽管此案例的问题描述没有提供详细的 bug 定位信息，但它提供了高质量的解决方案。基于该解决方案，修复工具逐步将 bug 定位到文件、函数和行级别，最终重用建议的解决方案生成了正确的补丁。根据表[3](https://arxiv.org/html/2411.10213v1#S4.T3
+    "Table 3 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing")中的结论，由于这五个指标的完整性对问题解决的影响各不相同，具有相同总分但集中在更相关指标（例如行级定位和解决方案）上的案例往往更容易解决。'
+- en: 'django-11133: The patch candidate provided is in a different location within
+    the same file as the manually crafted patch, but it also passes the failed tests.
+    Thus, after the issue provided high-quality file-level bug localization information
+    (6.67 points), the absence of function- and line-level location information does
+    not appear to be critical. However, it is also important to note that passing
+    failed tests does not always equate to generating a semantically correct patch,
+    as discussed in Section  [6](https://arxiv.org/html/2411.10213v1#S6 "6\. Threats
+    to Validity ‣ An Empirical Study on LLM-based Agents for Automated Bug Fixing").'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: django-11133：所提供的补丁候选在与手动创建的补丁相同文件中的不同位置，但它同样通过了失败的测试。因此，在问题提供了高质量的文件级 bug 定位信息（6.67
+    分）后，缺少函数级和行级定位信息似乎并不关键。然而，同样重要的是要注意，虽然通过失败的测试并不总是等同于生成语义正确的补丁，正如第[6](https://arxiv.org/html/2411.10213v1#S6
+    "6\. Threats to Validity ‣ An Empirical Study on LLM-based Agents for Automated
+    Bug Fixing")节中讨论的那样。
+- en: 'pytest-7432: The patch candidate is situated in a different location within
+    the same function as the manually created patch, but it too passes the failed
+    tests. After providing partial file- and function-level localization information
+    (each scoring 3.33 points), the lack of line-level information does not seem to
+    be a significant limitation.'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: pytest-7432：补丁候选位于与手动创建的补丁相同函数中的不同位置，但它同样通过了失败的测试。在提供了部分文件级和函数级定位信息（每项得分 3.33
+    分）后，缺少行级信息似乎并不是一个显著的限制。
+- en: 'pytest-5692: Although the issue only provides file-level bug location information,
+    repair tools effectively refined the location through iterative understanding
+    of the issue, eventually pinpointing the bug’s line-level location and producing
+    a correct patch. This indicates that the model and agent possess strong capabilities
+    for identifying relevant information, capable of comprehending the problem described
+    in natural language and extracting high-relevance code segments through multiple
+    rounds of iteration.'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: pytest-5692：尽管该问题只提供了文件级的 bug 定位信息，修复工具通过对问题的反复理解有效地细化了定位，最终确定了 bug 的行级位置并生成了正确的补丁。这表明模型和代理具备强大的信息识别能力，能够理解自然语言描述的问题，并通过多轮迭代提取高相关性的代码片段。
+- en: 'django-16046: The reasons for its resolution are nearly identical to those
+    of django-11133.'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: django-16046：它的解决原因几乎与 django-11133 相同。
+- en: '<svg class="ltx_picture" height="172.69" id="S4.SS1.p21.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,172.69) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="145.13" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(3)-(5): Overall, we
+    derive three insights from the above case analyses: (3) Due to the varying impact
+    of the completeness of these five metrics on issue resolution, cases with the
+    same total score but concentrated in more relevant metrics (e.g., line-level location
+    and resolve solution) tend to be easier to resolve. (4) The manually crafted patch
+    may not be the only solution to the issue; multiple resolution strategies may
+    exist. The model may attempt to generate a semantically correct or partially correct
+    patch based on the suspicious locations already highlighted in the issue. (5)
+    Large models and agents demonstrate strong capabilities for discovering relevant
+    information. They can deeply analyze the natural language issue description, iteratively
+    extracting high-relevance code segments over multiple interactions.</foreignobject></g></g></svg>'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '<svg class="ltx_picture" height="172.69" id="S4.SS1.p21.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,172.69) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="145.13" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(3)-(5): Overall, we
+    derive three insights from the above case analyses: (3) Due to the varying impact
+    of the completeness of these five metrics on issue resolution, cases with the
+    same total score but concentrated in more relevant metrics (e.g., line-level location
+    and resolve solution) tend to be easier to resolve. (4) The manually crafted patch
+    may not be the only solution to the issue; multiple resolution strategies may
+    exist. The model may attempt to generate a semantically correct or partially correct
+    patch based on the suspicious locations already highlighted in the issue. (5)
+    Large models and agents demonstrate strong capabilities for discovering relevant
+    information. They can deeply analyze the natural language issue description, iteratively
+    extracting high-relevance code segments over multiple interactions.</foreignobject></g></g></svg>'
+- en: 'As shown in Figure [1](https://arxiv.org/html/2411.10213v1#S4.F1 "Figure 1
+    ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing"), we found significant differences
+    between Agent and non-Agent systems in solving cases. Therefore, we analyzed the
+    differences between cases that can only be solved by the Agent system and those
+    that can only be solved by the non-Agent system. We analyzed two cases that could
+    only be solved by Agentless, specifically django-11422 and sympy-24909. In django-11422,
+    the Agent system identified three locations to make repairs, but bypassed the
+    correct repair location in the golden patch, iter_all_python_module_files(), during
+    the fix. On the other hand, Agentless only selected the location of the golden
+    patch during localization, hence it correctly fixed the issue. The following figure
+    shows the response of the two systems when selecting repair locations.'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如图[1](https://arxiv.org/html/2411.10213v1#S4.F1 "Figure 1 ‣ 4.1\. RQ1: Effectiveness
+    of Systems ‣ 4\. Analysis & Results ‣ An Empirical Study on LLM-based Agents for
+    Automated Bug Fixing")所示，我们发现Agent系统与非Agent系统在解决案例方面存在显著差异。因此，我们分析了仅能通过Agent系统解决的案例与仅能通过非Agent系统解决的案例之间的差异。我们分析了两个只能通过无Agent解决的案例，具体是django-11422和sympy-24909。在django-11422中，Agent系统识别出了三个修复位置，但在修复过程中跳过了黄金补丁中的正确修复位置iter_all_python_module_files()。另一方面，无Agent系统在定位时仅选择了黄金补丁的位置，因此正确地修复了该问题。下图显示了两种系统在选择修复位置时的响应。'
+- en: '<svg class="ltx_picture" height="292.7" id="S4.SS1.p23.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,292.7) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 274.5)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Comparison of MarsCode Agent
+    and Agentless</foreignobject></g> <g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="243" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69"><svg class="ltx_picture" height="132.72"
+    id="S4.SS1.p23.pic1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.p1.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,132.72) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 114.52)"><foreignobject height="12.3" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="556.69">MarsCode Agent</foreignobject></g> <g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject height="83.02"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Thank you
+    for providing the iter_all_python_module_files() implementation. It appears that
+    this function only iterates through loaded Python modules, which means manage.py
+    is not included since it’s not imported as a module. Thought: The issue is that
+    manage.py is not being added to the list of watched files. We need to explicitly
+    add it to the extra_files set in the reloader. Let’s modify the runserver command
+    to add manage.py to the watched files.</foreignobject></g></g></svg> <svg class="ltx_picture"
+    height="95.21" id="S4.SS1.p23.pic1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.p2.pic1"
+    overflow="visible" version="1.1" width="600"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,95.21) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 21.65 77)"><foreignobject height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Agentless</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    height="45.51" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">To
+    fix this, we need to ensure that the manage.py file is included in the list of
+    files to be watched. We can do this by modifying the iter_all_python_module_files
+    function to include the manage.py file explicitly.</foreignobject></g></g></svg></foreignobject></g></g></svg>'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="292.7" id="S4.SS1.p23.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,292.7) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 274.5)"><foreignobject color="#FFFFFF" height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">MarsCode 代理与无代理的比较</foreignobject></g>
+    <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    color="#000000" height="243" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)"
+    width="556.69"><svg class="ltx_picture" height="132.72" id="S4.SS1.p23.pic1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.p1.pic1"
+    overflow="visible" version="1.1" width="600"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,132.72) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 21.65 114.52)"><foreignobject height="12.3"
+    overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">MarsCode
+    代理</foreignobject></g> <g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0
+    21.65 13.78)"><foreignobject height="83.02" overflow="visible" transform="matrix(1
+    0 0 -1 0 16.6)" width="556.69">感谢您提供`iter_all_python_module_files()`的实现。看起来这个函数只遍历已加载的
+    Python 模块，这意味着 manage.py 不在其中，因为它没有作为模块被导入。想法：问题在于 manage.py 没有被加入到被监视的文件列表中。我们需要显式地将它添加到
+    reloader 中的 extra_files 集合里。让我们修改 `runserver` 命令，将 manage.py 添加到被监视的文件中。</foreignobject></g></g></svg>
+    <svg class="ltx_picture" height="95.21" id="S4.SS1.p23.pic1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.p2.pic1"
+    overflow="visible" version="1.1" width="600"><g fill="#000000" stroke="#000000"
+    stroke-width="0.4pt" transform="translate(0,95.21) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0"
+    transform="matrix(1.0 0.0 0.0 1.0 21.65 77)"><foreignobject height="12.3" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">无代理</foreignobject></g> <g
+    fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><foreignobject
+    height="45.51" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="556.69">为了解决这个问题，我们需要确保将
+    manage.py 文件包含在需要被监视的文件列表中。我们可以通过修改 `iter_all_python_module_files` 函数，显式地将 manage.py
+    文件包含进去。</foreignobject></g></g></svg></foreignobject></g></g></svg>
+- en: In sympy-24909, we also observed that both Agent and non-Agent systems identified
+    the correct faulty location, the function Prefix.__mul__. However, the LLM was
+    not confident about how to fix the bug. Because the Agent system lacked sampling,
+    it directly generated an incorrect patch. On the other hand, Agentless performed
+    42 samples and chose the patch that appeared most frequently, resulting in the
+    correct modification.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在sympy-24909中，我们还观察到，Agent系统和非Agent系统都正确地识别出了故障位置，即函数Prefix.__mul__。然而，LLM对如何修复该错误并不自信。由于Agent系统缺乏采样，它直接生成了一个错误的补丁。另一方面，非Agent系统进行了42次采样，并选择了最频繁出现的补丁，最终得到了正确的修改。
+- en: The instance django-12453 is an example that all Agent systems can solve but
+    Agentless cannot. We observed that the Agentless patch is very close to the ground
+    truth, only missing the import of the relevant module. The Agent, through multiple
+    rounds of dialogue and tool invocation, can detect the missing dependencies, whereas
+    Agentless merely generates the code block and cannot compensate for the missing
+    dependencies.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实例django-12453是一个所有Agent系统都能解决，但非Agent系统不能解决的例子。我们观察到，非Agent补丁与地面真实值非常接近，仅缺少了相关模块的导入。Agent通过多轮对话和工具调用，能够检测到缺失的依赖项，而非Agent系统仅生成了代码块，无法弥补缺失的依赖项。
+- en: '<svg class="ltx_picture" height="106.28" id="S4.SS1.p26.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,106.28) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="78.72" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(6)-(8): (6) The Agent
+    system may fail to complete the repair due to an inability to select the correct
+    repair location among multiple candidates. (7) Additionally, the lack of sampling
+    in the Agent system leads to low diversity in the results, causing failure in
+    repairs. (8) Non-Agent systems, on the other hand, may produce syntactically incorrect
+    patches because they lack multi-turn dialogues and tool invocation.</foreignobject></g></g></svg>'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '<svg class="ltx_picture" height="106.28" id="S4.SS1.p26.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,106.28) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="78.72" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(6)-(8): (6) The Agent
+    system may fail to complete the repair due to an inability to select the correct
+    repair location among multiple candidates. (7) Additionally, the lack of sampling
+    in the Agent system leads to low diversity in the results, causing failure in
+    repairs. (8) Non-Agent systems, on the other hand, may produce syntactically incorrect
+    patches because they lack multi-turn dialogues and tool invocation.</foreignobject></g></g></svg>'
+- en: '4.2\. RQ2: Effectiveness of FL'
+  id: totrans-201
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: '4.2\. RQ2: FL的有效性'
+- en: Fault localization is a critical step in resolving issues; only when the faulty
+    code element is accurately identified can the model generate a semantically correct
+    patch. In this RQ, we examine the effectiveness of seven methods in fault localization.
+    As some tools’ run trajectories lack explicit fault localization results or provide
+    insufficient localization granularity—offering bug location information only at
+    the file level, without finer-grained function or line-level details—we use the
+    modified files and line information in the final submitted patch as a reference
+    to fairly assess each tool’s localization capability. Specifically, we downloaded
+    the final patch set submitted for each tool’s benchmark on the SWE-bench Lite
+    website, then parsed the formatted patch files. From the perspective of the files
+    pre-modification (pre-patch code files), we recorded the files and lines that
+    were modified. We applied the same processing to the manually crafted patches
+    (ground truth).
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 故障定位是解决问题的关键步骤；只有当故障代码元素被准确识别时，模型才能生成语义正确的补丁。在本RQ中，我们检查了七种方法在故障定位中的有效性。由于一些工具的运行轨迹缺乏明确的故障定位结果，或者提供的定位粒度不足——只提供文件级的错误位置，而没有更精细的函数或行级信息——我们使用最终提交补丁中的修改文件和行信息作为参考，公平地评估每种工具的定位能力。具体而言，我们从SWE-bench
+    Lite网站下载了每个工具基准测试的最终补丁集，然后解析了格式化的补丁文件。从文件修改前（补丁前代码文件）的角度出发，我们记录了被修改的文件和行。我们对手工编写的补丁（地面真实值）也进行了相同的处理。
+- en: 'After obtaining the above processed data, we created Figure [1(b)](https://arxiv.org/html/2411.10213v1#S4.F1.sf2
+    "In Figure 1 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣
+    An Empirical Study on LLM-based Agents for Automated Bug Fixing") and Figure [1(c)](https://arxiv.org/html/2411.10213v1#S4.F1.sf3
+    "In Figure 1 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣
+    An Empirical Study on LLM-based Agents for Automated Bug Fixing") to illustrate
+    the hit rate of fault localization at the file and line levels, respectively.
+    The meaning of the different modules in the figures is similar to Figure [1(a)](https://arxiv.org/html/2411.10213v1#S4.F1.sf1
+    "In Figure 1 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣
+    An Empirical Study on LLM-based Agents for Automated Bug Fixing"), except that
+    the latter is oriented towards the issue resolve task. For the file-level localization
+    task, since cases in SWE-bench Lite only modify one file (the ground truth file),
+    but repair tools are not limited to a single file in generating patches, we consider
+    it a file hit if the patch file set contains the ground truth file. For line-level
+    localization, we define a hit as an overlap between the lines modified in the
+    patch and the ground truth line.'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在获得上述处理后的数据后，我们创建了图 [1(b)](https://arxiv.org/html/2411.10213v1#S4.F1.sf2 "图1
+    ‣ 4.1\. RQ1: 系统的有效性 ‣ 4\. 分析与结果 ‣ 基于LLM的自动修复工具的实证研究")和图 [1(c)](https://arxiv.org/html/2411.10213v1#S4.F1.sf3
+    "图1 ‣ 4.1\. RQ1: 系统的有效性 ‣ 4\. 分析与结果 ‣ 基于LLM的自动修复工具的实证研究")，分别展示了在文件级和行级的故障定位命中率。这些图中不同模块的含义与图 [1(a)](https://arxiv.org/html/2411.10213v1#S4.F1.sf1
+    "图1 ‣ 4.1\. RQ1: 系统的有效性 ‣ 4\. 分析与结果 ‣ 基于LLM的自动修复工具的实证研究")类似，区别在于后者侧重于问题解决任务。对于文件级定位任务，由于SWE-bench
+    Lite中的案例仅修改一个文件（即地面真相文件），而修复工具生成补丁时并不限于单一文件，因此如果补丁文件集包含地面真相文件，则视为文件命中。对于行级定位任务，我们将补丁中修改的行与地面真相行之间的重叠定义为命中。'
+- en: 'Based on this definition of a hit, we investigated the localization performance
+    of the seven tools. As shown in Figure [1(a)](https://arxiv.org/html/2411.10213v1#S4.F1.sf1
+    "In Figure 1 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣
+    An Empirical Study on LLM-based Agents for Automated Bug Fixing"), MarsCode Agent
+    performs best on the file-level localization task, successfully localizing 239
+    cases. It is followed by Alibaba Lingma Agent, Gru, Agentless+RepoGraph, AutoCodeRover,
+    Honeycomb, and finally Agentless, which successfully localized 206 cases. MarsCode
+    Agent shows a 16.0% improvement over Agentless. As the highest and lowest-ranking
+    tools in the issue resolve task, MarsCode Agent and Agentless demonstrate a smaller
+    performance gap of 43.9% in the issue resolve task, which is much larger than
+    their difference in file-level localization performance. Additionally, Agentless+RepoGraph,
+    another representative of non-agent systems, ranks fourth in file-level fault
+    localization but sixth in the issue resolve task. These comparisons indicate that
+    the file-level localization task is generally simpler than the subsequent patch
+    generation task. Moreover, agent-based repair methods like MarsCode Agent show
+    more strength in subsequent patch generation optimization.'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '基于这种命中定义，我们研究了七种工具的定位性能。如图 [1(a)](https://arxiv.org/html/2411.10213v1#S4.F1.sf1
+    "图1 ‣ 4.1\. RQ1: 系统的有效性 ‣ 4\. 分析与结果 ‣ 基于LLM的自动修复工具的实证研究")所示，MarsCode Agent在文件级定位任务中表现最佳，成功定位了239个案例。其后依次是阿里巴巴Lingma
+    Agent、Gru、Agentless+RepoGraph、AutoCodeRover、Honeycomb，最后是Agentless，成功定位了206个案例。MarsCode
+    Agent相比Agentless提升了16.0%。作为问题解决任务中排名最高和最低的工具，MarsCode Agent和Agentless在问题解决任务中的表现差距为43.9%，这一差距远大于它们在文件级定位任务中的差异。此外，Agentless+RepoGraph作为另一种非代理系统的代表，在文件级故障定位中排名第四，但在问题解决任务中排名第六。这些比较表明，文件级定位任务通常比随后的补丁生成任务更简单。此外，像MarsCode
+    Agent这样的基于代理的修复方法在随后的补丁生成优化中表现更强。'
+- en: 'However, we encountered an unexpected result: Honeycomb, the second-best tool
+    in the issue resolve task (with minimal gap from MarsCode), performs poorly in
+    file-level localization, ranking sixth, with only two more hits than the lowest-ranking
+    Agentless. To investigate this further, we examined the tools’ performance in
+    line-level localization. As shown in Figure [1(c)](https://arxiv.org/html/2411.10213v1#S4.F1.sf3
+    "In Figure 1 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣
+    An Empirical Study on LLM-based Agents for Automated Bug Fixing"), MarsCode remains
+    the best method, while Honeycomb ranks a close second, trailing by only two hits.
+    This suggests that although Honeycomb performs poorly in file-level localization,
+    it has a relatively high hit rate for faulty lines within the located file (137/208
+    = 65.9%). Therefore, strong line-level localization performance is the main reason
+    Honeycomb resolves a larger number of issues. This further suggests that line-level
+    localization results are more closely associated with the subsequent patch generation
+    process than file-level results. Improving fine-grained line-level localization
+    may thus be key to enhancing end-to-end repair effectiveness, aligning with our
+    conclusions based on Table [3](https://arxiv.org/html/2411.10213v1#S4.T3 "Table
+    3 ‣ 4.1\. RQ1: Effectiveness of Systems ‣ 4\. Analysis & Results ‣ An Empirical
+    Study on LLM-based Agents for Automated Bug Fixing") (i.e., the line-level location
+    metric shows the most significant difference between the All-resolve Set and No-one-resolve
+    Set).'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '然而，我们遇到了一个意外的结果：在问题解决任务中表现第二好的工具蜂窝（与 MarsCode 的差距最小），在文件级本地化方面表现不佳，排名第六，仅比排名最低的无代理多出两次命中。为进一步调查此问题，我们检查了这些工具在行级本地化中的表现。如图[1(c)](https://arxiv.org/html/2411.10213v1#S4.F1.sf3
+    "在图 1 ‣ 4.1\. RQ1: 系统效果 ‣ 4\. 分析与结果 ‣ 基于 LLM 的自动修复代理的实证研究")所示，MarsCode 仍然是最佳方法，而蜂窝紧随其后，落后仅两次命中。这表明，尽管蜂窝在文件级本地化中的表现不佳，但它在定位到的文件中的错误行命中率相对较高（137/208
+    = 65.9%）。因此，强大的行级本地化表现是蜂窝能够解决更多问题的主要原因。这进一步表明，行级本地化结果与后续的修复补丁生成过程的关联比文件级结果更为密切。因此，改善细粒度的行级本地化可能是提升端到端修复效果的关键，这与我们基于表[3](https://arxiv.org/html/2411.10213v1#S4.T3
+    "表 3 ‣ 4.1\. RQ1: 系统效果 ‣ 4\. 分析与结果 ‣ 基于 LLM 的自动修复代理的实证研究")的结论一致（即，行级位置指标在 All-resolve
+    集合和 No-one-resolve 集合之间显示出最显著的差异）。'
+- en: 'Overall, three key insights can be derived from the above analysis: (1) Existing
+    methods have achieved relatively strong performance in file-level fault localization,
+    but there remains room for improvement in line-level localization tasks. (2) Finer-grained
+    line-level localization results are more closely correlated with end-to-end issue
+    resolution. When erroneous code lines can be accurately identified by a tool,
+    the generation of a correct patch becomes more feasible.'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总的来说，以上分析可以得出三个关键结论：（1）现有方法在文件级故障本地化方面已经取得了相对较强的表现，但在行级本地化任务中仍有改进的空间。（2）更细粒度的行级本地化结果与端到端问题解决的相关性更强。当工具能够准确识别错误的代码行时，生成正确的修复补丁变得更为可行。
+- en: '<svg class="ltx_picture" height="120.19" id="S4.SS2.p6.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,120.19) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="92.63" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(9)-(10): Overall,
+    two key insights can be derived from the above analysis: (9) Existing methods
+    have achieved relatively strong performance in file-level fault localization,
+    but there remains room for improvement in line-level localization tasks. (10)
+    Finer-grained line-level localization results are more closely correlated with
+    end-to-end issue resolution. When erroneous code lines can be accurately identified
+    by a tool, the generation of a correct patch becomes more feasible.</foreignobject></g></g></svg>'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '<svg class="ltx_picture" height="120.19" id="S4.SS2.p6.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,120.19) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="92.63" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(9)-(10): Overall,
+    two key insights can be derived from the above analysis: (9) Existing methods
+    have achieved relatively strong performance in file-level fault localization,
+    but there remains room for improvement in line-level localization tasks. (10)
+    Finer-grained line-level localization results are more closely correlated with
+    end-to-end issue resolution. When erroneous code lines can be accurately identified
+    by a tool, the generation of a correct patch becomes more feasible.</foreignobject></g></g></svg>'
+- en: '4.3\. RQ3: Effectiveness of Reproduction'
+  id: totrans-208
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: '4.3\. RQ3: 复制效果'
+- en: 'Table 5. Reproduction Statistics of Leading LLM-based Bug Fixing Systems on
+    SWE-Bench Lite. #Resolved refers to the number of successfully resolved issues,
+    #(Reproduced&Resolved) refers to the number of issues that were successfully resolved
+    and involved bug reproduction during the resolution. %(Reproduced&Resolved) refers
+    to #(Reproduced&Resolved) / #Resolved.'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 5. 基于 LLM 的领先自动修复系统在 SWE-Bench Lite 上的复制统计数据。#Resolved 表示成功解决的问题数量，#(Reproduced&Resolved)
+    表示在解决过程中成功解决并涉及到错误重现的问题数量。%(Reproduced&Resolved) 表示 #(Reproduced&Resolved) / #Resolved。'
+- en: '| System Name | Type | Reproducer | #Resolved | #(Reproduced&Resolved) | %(Reproduced&Resolved)
+    |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '| 系统名称 | 类型 | 重现者 | #Resolved | #(Reproduced&Resolved) | %(Reproduced&Resolved)
+    |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| MarsCode Agent | Commercial | ✓ | 118 | 83 | 70.3 |'
+  id: totrans-212
+  prefs: []
+  type: TYPE_TB
+  zh: '| MarsCode 代理 | 商业 | ✓ | 118 | 83 | 70.3 |'
+- en: '| Honeycomb | ✓ | 115 | 115 | 100 |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| 蜂窝 | ✓ | 115 | 115 | 100 |'
+- en: '| Gru | $\times$ | 107 | 0 | 0 |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '| Gru | $\times$ | 107 | 0 | 0 |'
+- en: '| Alibaba Lingma Agent | ✓ | 99 | 12 | 12.1 |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '| 阿里巴巴灵马代理 | ✓ | 99 | 12 | 12.1 |'
+- en: '| AutoCodeRover | Open Source | ✓ | 92 | 39 | 42.4 |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '| AutoCodeRover | 开源 | ✓ | 92 | 39 | 42.4 |'
+- en: '| Agentless + RepoGraph | $\times$ | 89 | 0 | 0 |'
+  id: totrans-217
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无代理 + RepoGraph | $\times$ | 89 | 0 | 0 |'
+- en: '| Agentless | $\times$ | 82 | 0 | 0 |'
+  id: totrans-218
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无代理 | $\times$ | 82 | 0 | 0 |'
+- en: 'We analyzed the trajectories of the seven systems evaluated on SWE-Bench-Lite,
+    examining the use of reproduction in different systems and analyzing some typical
+    cases to gain a deeper understanding of the impact of reproduction on bug fix
+    success rates, as well as the challenges reproduction faces in current systems.
+    Table [5](https://arxiv.org/html/2411.10213v1#S4.T5 "Table 5 ‣ 4.3\. RQ3: Effectiveness
+    of Reproduction ‣ 4\. Analysis & Results ‣ An Empirical Study on LLM-based Agents
+    for Automated Bug Fixing") presents the statistics on reproduction usage across
+    different systems. The systems Gru, Agentless, and Agentless+RepoGraph do not
+    include a reproduction module, while Marscode Agent, Honeycomb, Alibaba Lingma
+    Agent, and AutoCodeRover all employ a reproduction module, and in the successfully
+    fixed bugs, they perform bug reproduction for 70.3%, 100%, 12.1%, and 42.4% of
+    the issues, respectively. Marscode Agent, Alibaba Lingma Agent, and AutoCodeRover
+    decide whether to perform bug reproduction based on the issue, opting for static
+    analysis for bugs that are difficult to reproduce. Honeycomb, on the other hand,
+    requires the LLM to attempt bug reproduction for all issues.'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们分析了在SWE-Bench-Lite上评估的七个系统的轨迹，研究了不同系统中复现的使用情况，并分析了一些典型案例，以更深入地了解复现对bug修复成功率的影响，以及复现目前在系统中面临的挑战。[5](https://arxiv.org/html/2411.10213v1#S4.T5
+    "Table 5 ‣ 4.3\. RQ3: Effectiveness of Reproduction ‣ 4\. Analysis & Results ‣
+    An Empirical Study on LLM-based Agents for Automated Bug Fixing")表格展示了不同系统中复现使用情况的统计数据。系统Gru、Agentless和Agentless+RepoGraph不包含复现模块，而Marscode
+    Agent、Honeycomb、Alibaba Lingma Agent和AutoCodeRover都采用了复现模块，在成功修复的bug中，它们分别对70.3%、100%、12.1%和42.4%的问题进行了bug复现。Marscode
+    Agent、Alibaba Lingma Agent和AutoCodeRover根据问题决定是否进行bug复现，对于难以复现的bug，它们选择进行静态分析。而Honeycomb则要求LLM对所有问题都尝试进行bug复现。'
+- en: Through an analysis and comparison of the trajectories of different systems,
+    we found that reproduction can provide additional information for defect localization
+    when issue information is lacking, and it helps verify the accuracy of generated
+    candidate patches. Our trajectory analysis revealed that among the 168 issues
+    resolved by at least one system, 24 issues could only be solved using reproduction.
+    These 24 instances generally had brief textual descriptions that only briefly
+    outlined the bug conditions, making defect localization challenging based on the
+    text alone. Of these, 20 instances included code snippets in the issue description
+    to help understand the bug. For example, in sympy-15346, the issue contains only
+    a brief textual description followed by an example of the bug. Locating the defect
+    based solely on the text was challenging. Marscode Agent implemented a bug reproduction
+    script based on the example in the issue and gradually identified the defect location
+    based on the reproduction results, eventually generating the correct patch. Notably,
+    during trajectory analysis, we observed that Marscode Agent initially struggled
+    to pinpoint the defect location when running the reproduction script. It then
+    attempted to print intermediate variables at different points in the script, and
+    it successfully identified the defect location by analyzing the outputs during
+    execution. This further demonstrates the advantage of the autonomy of agent-based
+    systems in bug fixing.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过分析和比较不同系统的轨迹，我们发现，当问题信息缺失时，复现可以为缺陷定位提供额外的信息，并有助于验证生成的候选补丁的准确性。我们的轨迹分析显示，在168个由至少一个系统解决的问题中，24个问题只能通过复现来解决。这24个实例通常只有简短的文本描述，简要概述了bug条件，仅凭文本很难进行缺陷定位。其中，20个实例在问题描述中包含了代码片段，帮助理解bug。例如，在sympy-15346中，问题仅包含简短的文本描述，后面跟着一个bug示例。仅凭文本定位缺陷是具有挑战性的。Marscode
+    Agent根据问题中的示例实现了一个bug复现脚本，并根据复现结果逐步识别出缺陷位置，最终生成了正确的补丁。值得注意的是，在轨迹分析过程中，我们观察到Marscode
+    Agent在运行复现脚本时最初难以准确定位缺陷位置。随后，它尝试在脚本中的不同点打印中间变量，并通过分析执行过程中输出的结果成功识别了缺陷位置。这进一步展示了基于代理的系统在bug修复中自治性的优势。
+- en: Although reproduction could provide additional information and verify the correctness
+    of candidate patches, it does not always improve the success rate of bug fixing.
+    For instance, in django-11422, the "Autoreloader" mentioned in the issue description
+    directly points to the file $autoreload.py$. By using information such as "track
+    changes" from the issue, Agentless accurately located the code snippet needing
+    modification and generated the correct patch. However, systems like Marscode Agent
+    and Honeycomb, which performed bug reproduction, was distracted by the reproduction
+    information. The reproduction diverted the LLM’s attention away from the issue
+    description, leading to incorrect localization of the defect cause and ultimately
+    failing to produce the correct patch.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管重现可以提供额外的信息并验证候选补丁的正确性，但它并不总是能提高修复成功率。例如，在django-11422中，问题描述中提到的“Autoreloader”直接指向文件$autoreload.py$。通过使用如“跟踪更改”等问题信息，Agentless准确地定位了需要修改的代码片段并生成了正确的补丁。然而，像Marscode
+    Agent和Honeycomb这样的系统在执行故障重现时，受到重现信息的干扰。重现使LLM的注意力从问题描述中转移，导致错误的缺陷原因定位，最终未能生成正确的补丁。
+- en: '<svg class="ltx_picture" height="89.67" id="S4.SS3.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,89.67) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="62.11" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(11)-(12): (11) Reproduction
+    can provide additional information for defect localization when issue information
+    is lacking and help verify the accuracy of generated candidate patches. (12) When
+    the issue description is already clear and precise, reproduction may mislead the
+    LLM’s judgment, reducing its focus on the issue description.</foreignobject></g></g></svg>'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '<svg class="ltx_picture" height="89.67" id="S4.SS3.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,89.67) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="62.11" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">Insights(11)-(12): (11) Reproduction
+    can provide additional information for defect localization when issue information
+    is lacking and help verify the accuracy of generated candidate patches. (12) When
+    the issue description is already clear and precise, reproduction may mislead the
+    LLM’s judgment, reducing its focus on the issue description.</foreignobject></g></g></svg>'
+- en: 5\. Discussion
+  id: totrans-223
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5\. 讨论
+- en: 5.1\. Large Language Model
+  id: totrans-224
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1\. 大型语言模型
+- en: From the LLM perspective, it is necessary to further enhance the model’s reasoning
+    ability so that it can accurately identify information related to the bug within
+    the issue, thereby reducing the interference of noise. Additionally, for multiple
+    potential repair locations, the model should utilize its reasoning capability
+    to select the location most relevant to the issue.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从大型语言模型（LLM）的角度来看，有必要进一步增强模型的推理能力，使其能够准确识别与问题相关的信息，从而减少噪声的干扰。此外，对于多个潜在的修复位置，模型应该利用其推理能力选择与问题最相关的位置。
+- en: 5.2\. Agentic Flow
+  id: totrans-226
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2\. 代理流
+- en: From the Agentic flow perspective, agents should especially focus on the quality
+    of the issue and pay attention to multiple suspicious locations in the stack trace.
+    The Agentic flow design should include mechanisms to check the completeness of
+    patches and consider the global impact of the fixes. During the use of the model,
+    mechanisms should be established to either avoid the randomness of the model’s
+    output or make full use of the diversity in the model’s output.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从代理流的角度来看，代理特别需要关注问题的质量，并注意堆栈跟踪中的多个可疑位置。代理流设计应包括检查补丁完整性的机制，并考虑修复的全球影响。在使用模型的过程中，应该建立机制来避免模型输出的随机性，或充分利用模型输出的多样性。
+- en: In fault localization, the accuracy of line-level localization is more important
+    than file-level, as the discovery space at the line level is larger, necessitating
+    finer-grained localization results. During the reproduction process, it is crucial
+    to strengthen the determination of the correctness of the reproduction, as an
+    incorrect reproduction can lead to the failure of the entire solving process.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在故障定位中，行级定位的准确性比文件级更为重要，因为行级的发现空间更大，需要更精细的定位结果。在重现过程中，必须加强对重现正确性的判断，因为错误的重现可能导致整个解决过程的失败。
+- en: 6\. Threats to Validity
+  id: totrans-229
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6\. 有效性威胁
+- en: 'Fail-to-Pass Tests: SWE-bench uses Fail-to-Pass (F2P) tests to verify the correctness
+    of generated patches. However, F2P tests may not be comprehensive, allowing a
+    patch to pass F2P and be deemed correct without fully addressing the user’s issue.
+    This is a common problem in the field of APR as well as in LLM evaluation based
+    on unit tests (Liu et al., [2024b](https://arxiv.org/html/2411.10213v1#bib.bib26)).
+    In this context, we assume that a patch is correct as long as it passes the F2P
+    test cases. We also call for contributions from the academic community to improve
+    the test cases in the SWE-bench evaluation dataset to make the evaluation results
+    more reliable.'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 失败转通过测试：SWE-bench使用失败转通过（F2P）测试来验证生成补丁的正确性。然而，F2P测试可能不够全面，允许一个补丁通过F2P并被认为是正确的，而没有完全解决用户的问题。这是自动程序修复（APR）领域以及基于单元测试的LLM评估中的一个常见问题（Liu
+    et al., [2024b](https://arxiv.org/html/2411.10213v1#bib.bib26)）。在这种情况下，我们假设只要补丁通过了F2P测试用例，就认为它是正确的。我们还呼吁学术界贡献力量，改进SWE-bench评估数据集中的测试用例，以使评估结果更加可靠。
+- en: 'Uncertainty of LLM: The output of LLMs is stochastic, leading to a probabilistic
+    nature for whether an instance is solved. In this work, we directly analyzed the
+    patches and trajectories submitted by various systems, assuming that the results
+    submitted to SWE-bench represent the best performance of the Agent. Furthermore,
+    conducting multiple experiments for each system to eliminate stochasticity is
+    impractical in terms of both cost and accessibility.'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM的不确定性：LLMs的输出是随机的，这导致其解决某个实例的结果具有概率性质。在这项工作中，我们直接分析了各种系统提交的修补程序和轨迹，假设提交给SWE-bench的结果代表了代理的最佳表现。此外，针对每个系统进行多次实验以消除随机性，在成本和可访问性方面是不可行的。
+- en: 7\. Related Work
+  id: totrans-232
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7. 相关工作
+- en: In this section, we discuss basic concepts of large language models and their
+    application on software engineering tasks, especially for fault localization and
+    automated program repair. We also discuss recent advances in LLM-based agents
+    for software engineering.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们讨论了大语言模型的基本概念及其在软件工程任务中的应用，特别是在故障定位和自动程序修复方面。我们还讨论了基于LLM的代理在软件工程中的最新进展。
+- en: 7.1\. Large Language Models
+  id: totrans-234
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.1. 大语言模型
+- en: Large language models (LLMs) are highly advanced pre-trained language models.
+    These models undergo initial unsupervised training on vast amounts of corpus,
+    followed by fine-tuning for specific tasks to enhance performance. In natural
+    language processing (NLP), LLMs have been extensively applied to various tasks
+    such as machine translation (Wang et al., [2023d](https://arxiv.org/html/2411.10213v1#bib.bib43);
+    Zhang et al., [2023b](https://arxiv.org/html/2411.10213v1#bib.bib57)), text summarization (Zhang
+    et al., [2023c](https://arxiv.org/html/2411.10213v1#bib.bib59)), and classification (Mayer
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib31)).
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大语言模型（LLMs）是高度先进的预训练语言模型。这些模型首先在大量语料库上进行初步的无监督训练，然后针对特定任务进行微调，以提高性能。在自然语言处理（NLP）领域，LLMs已经广泛应用于各种任务，例如机器翻译（Wang
+    et al., [2023d](https://arxiv.org/html/2411.10213v1#bib.bib43); Zhang et al.,
+    [2023b](https://arxiv.org/html/2411.10213v1#bib.bib57)）、文本摘要（Zhang et al., [2023c](https://arxiv.org/html/2411.10213v1#bib.bib59)）和分类（Mayer
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib31)）。
+- en: 'Language models are classified into three categories based on their architecture:
+    encoder-only models (Feng et al., [2020](https://arxiv.org/html/2411.10213v1#bib.bib10)),
+    decoder-only models (Nijkamp et al., [2022](https://arxiv.org/html/2411.10213v1#bib.bib35)),
+    and encoder-decoder models (Tian et al., [2022](https://arxiv.org/html/2411.10213v1#bib.bib41)).
+    Most existing LLMs for code utilize the transformer architecture’s encoders, known
+    for their exceptional learning capabilities and scalability. Regardless of their
+    architecture, most models can be fine-tuned with task-specific data to enhance
+    performance (Lin et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib24)).'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据架构，语言模型可分为三类：仅编码器模型（Feng et al., [2020](https://arxiv.org/html/2411.10213v1#bib.bib10)）、仅解码器模型（Nijkamp
+    et al., [2022](https://arxiv.org/html/2411.10213v1#bib.bib35)）和编码器-解码器模型（Tian
+    et al., [2022](https://arxiv.org/html/2411.10213v1#bib.bib41)）。目前大多数用于代码的大语言模型采用变换器架构的编码器，这种架构以其卓越的学习能力和可扩展性而闻名。无论其架构如何，大多数模型都可以通过任务特定数据进行微调，以提升性能（Lin
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib24)）。
+- en: Large language models (LLMs) have become a promising choice for various software
+    engineering tasks due to their impressive performance in both code generation
+    and understanding (Yang et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib54)).
+    Researchers and developers have applied LLMs to several software engineering tasks,
+    such as program synthesis (Liu et al., [2024b](https://arxiv.org/html/2411.10213v1#bib.bib26);
+    Zhu-Tian et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib63); Wang et al.,
+    [2023b](https://arxiv.org/html/2411.10213v1#bib.bib42), [c](https://arxiv.org/html/2411.10213v1#bib.bib45),
+    [a](https://arxiv.org/html/2411.10213v1#bib.bib44)), code translation (Yu et al.,
+    [2024](https://arxiv.org/html/2411.10213v1#bib.bib56); Yang et al., [2024b](https://arxiv.org/html/2411.10213v1#bib.bib55)),
+    program repair (Lin et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib25);
+    Jiang et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib13); Xia et al.,
+    [2023](https://arxiv.org/html/2411.10213v1#bib.bib51)), fault detection and localization (Du
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib9); Qin et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib38)),
+    incident analysis (Chen et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib8);
+    Ahmed et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib6)), code summarization (Geng
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib11)) and testing (Sun
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib39)). For example, Codex (Chen
+    et al., [2021](https://arxiv.org/html/2411.10213v1#bib.bib7)), StarCoder (Lozhkov
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib28)), and DeepSeek-Coder (Zhu
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib62)) are notable code-specific
+    LLMs developed through extensive training on large datasets of open-source code
+    snippets. Additionally, instruction-following code-specific LLMs such as DeepSeek-Coder-Instruct (Zhu
+    et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib62)) and Magicoder (Wei
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib47)) have been created
+    using instruction-tuning methods to enhance their utility in coding tasks.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）因其在代码生成和理解方面的出色表现，已成为各种软件工程任务中一种有前景的选择（Yang等人，[2023](https://arxiv.org/html/2411.10213v1#bib.bib54)）。研究人员和开发者已将LLMs应用于多个软件工程任务，如程序合成（Liu等人，[2024b](https://arxiv.org/html/2411.10213v1#bib.bib26)；Zhu-Tian等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib63)；Wang等人，[2023b](https://arxiv.org/html/2411.10213v1#bib.bib42)，[c](https://arxiv.org/html/2411.10213v1#bib.bib45)，[a](https://arxiv.org/html/2411.10213v1#bib.bib44)）、代码翻译（Yu等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib56)；Yang等人，[2024b](https://arxiv.org/html/2411.10213v1#bib.bib55)）、程序修复（Lin等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib25)；Jiang等人，[2023](https://arxiv.org/html/2411.10213v1#bib.bib13)；Xia等人，[2023](https://arxiv.org/html/2411.10213v1#bib.bib51)）、故障检测与定位（Du等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib9)；Qin等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib38)）、事件分析（Chen等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib8)；Ahmed等人，[2023](https://arxiv.org/html/2411.10213v1#bib.bib6)）、代码总结（Geng等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib11)）和测试（Sun等人，[2023](https://arxiv.org/html/2411.10213v1#bib.bib39)）。例如，Codex（Chen等人，[2021](https://arxiv.org/html/2411.10213v1#bib.bib7)）、StarCoder（Lozhkov等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib28)）和DeepSeek-Coder（Zhu等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib62)）是通过对大规模开源代码片段数据集进行广泛训练开发的著名代码专用LLMs。此外，像DeepSeek-Coder-Instruct（Zhu等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib62)）和Magicoder（Wei等人，[2023](https://arxiv.org/html/2411.10213v1#bib.bib47)）这样的指令跟随代码专用LLMs也已经通过指令微调方法开发出来，以提高其在编码任务中的实用性。
+- en: 7.2\. Fault Localization
+  id: totrans-238
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.2\. 故障定位
+- en: Fault localization (FL) (Wong et al., [2016](https://arxiv.org/html/2411.10213v1#bib.bib48))
+    techniques aim to discover and analyze the location and causes of faults, which
+    can be categorized into dynamic and static approaches. Dynamic FL techniques,
+    such as spectrum-based fault localization (SBFL) (Abreu et al., [2007](https://arxiv.org/html/2411.10213v1#bib.bib5),
+    [2009](https://arxiv.org/html/2411.10213v1#bib.bib4)) and mutation-based fault
+    localization (MBFL) (Papadakis and Le Traon, [2015](https://arxiv.org/html/2411.10213v1#bib.bib37)),
+    analyze the dynamic execution information of a program to determine fault locations,
+    though they are resource-intensive. Static FL techniques (Mao et al., [2014](https://arxiv.org/html/2411.10213v1#bib.bib30))
+    determine fault locations through semantic or syntactic analysis at the bug report
+    or source code level, offering fast detection with low resource consumption. Advanced
+    FL techniques, such as multiple fault localization (MFL) and combined dynamic
+    and static methods, have emerged to guide APR tools in finding and fixing more
+    errors (Xiao et al., [2021](https://arxiv.org/html/2411.10213v1#bib.bib52); Kim
+    et al., [2019](https://arxiv.org/html/2411.10213v1#bib.bib16); Neelofar et al.,
+    [2017](https://arxiv.org/html/2411.10213v1#bib.bib33)).
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 故障定位（FL）（Wong 等人，[2016](https://arxiv.org/html/2411.10213v1#bib.bib48)）技术旨在发现和分析故障的位置和原因，通常分为动态和静态两种方法。动态
+    FL 技术，如基于谱的故障定位（SBFL）（Abreu 等人，[2007](https://arxiv.org/html/2411.10213v1#bib.bib5)，[2009](https://arxiv.org/html/2411.10213v1#bib.bib4)）和基于变异的故障定位（MBFL）（Papadakis
+    和 Le Traon，[2015](https://arxiv.org/html/2411.10213v1#bib.bib37)），分析程序的动态执行信息以确定故障位置，但它们资源消耗较大。静态
+    FL 技术（Mao 等人，[2014](https://arxiv.org/html/2411.10213v1#bib.bib30)）通过在错误报告或源代码级别进行语义或语法分析来确定故障位置，提供快速检测并消耗较少资源。先进的
+    FL 技术，如多重故障定位（MFL）和动态与静态方法的结合，已经出现，用于引导 APR 工具发现和修复更多错误（Xiao 等人，[2021](https://arxiv.org/html/2411.10213v1#bib.bib52)；Kim
+    等人，[2019](https://arxiv.org/html/2411.10213v1#bib.bib16)；Neelofar 等人，[2017](https://arxiv.org/html/2411.10213v1#bib.bib33)）。
+- en: 7.3\. Automated Program Repair
+  id: totrans-240
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.3\. 自动化程序修复
+- en: Automated program repair (APR) (Le Goues et al., [2019](https://arxiv.org/html/2411.10213v1#bib.bib20))
+    has attracted significant attention over the past decade. APR techniques aim to
+    generate patches for buggy programs to pass given test suites. These techniques
+    can be categorized into search-based (Li et al., [2022b](https://arxiv.org/html/2411.10213v1#bib.bib21);
+    Mehne et al., [2018](https://arxiv.org/html/2411.10213v1#bib.bib32)), semantics-based (Le
+    et al., [2017](https://arxiv.org/html/2411.10213v1#bib.bib17); Nguyen et al.,
+    [2013](https://arxiv.org/html/2411.10213v1#bib.bib34); Le et al., [2016](https://arxiv.org/html/2411.10213v1#bib.bib18)),
+    and pattern/learning-based approaches (Li et al., [2020](https://arxiv.org/html/2411.10213v1#bib.bib22),
+    [2022a](https://arxiv.org/html/2411.10213v1#bib.bib23); Zhang et al., [2023a](https://arxiv.org/html/2411.10213v1#bib.bib58)).
+    Search-based APR techniques like GenProg (Le Goues et al., [2011](https://arxiv.org/html/2411.10213v1#bib.bib19))
+    use predefined code mutation operators to generate patches, while semantics-based
+    APR techniques generate patches by solving repair constraints based on test suite
+    specifications. Learning-based APR techniques, such as those utilizing deep learning
+    models, train on large code repositories to predict correct patches. Recent work
+    has shown the use of LLMs for APR, often focusing on constructing APR-specific
+    prompts to guide LLMs in generating patches for buggy program statements (Xia
+    et al., [2023](https://arxiv.org/html/2411.10213v1#bib.bib51)).
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动化程序修复（APR）（Le Goues 等人，[2019](https://arxiv.org/html/2411.10213v1#bib.bib20)）在过去十年中引起了广泛关注。APR
+    技术旨在为有缺陷的程序生成修复补丁，以使其通过给定的测试套件。这些技术可以分为基于搜索的（Li 等人，[2022b](https://arxiv.org/html/2411.10213v1#bib.bib21)；Mehne
+    等人，[2018](https://arxiv.org/html/2411.10213v1#bib.bib32)）、基于语义的（Le 等人，[2017](https://arxiv.org/html/2411.10213v1#bib.bib17)；Nguyen
+    等人，[2013](https://arxiv.org/html/2411.10213v1#bib.bib34)；Le 等人，[2016](https://arxiv.org/html/2411.10213v1#bib.bib18)）和基于模式/学习的
+    approaches（Li 等人，[2020](https://arxiv.org/html/2411.10213v1#bib.bib22)，[2022a](https://arxiv.org/html/2411.10213v1#bib.bib23)；Zhang
+    等人，[2023a](https://arxiv.org/html/2411.10213v1#bib.bib58)）。基于搜索的 APR 技术，如 GenProg（Le
+    Goues 等人，[2011](https://arxiv.org/html/2411.10213v1#bib.bib19)），使用预定义的代码变异操作符生成补丁，而基于语义的
+    APR 技术通过解决基于测试套件规范的修复约束来生成补丁。基于学习的 APR 技术，如利用深度学习模型的技术，使用大型代码库进行训练，以预测正确的修复补丁。最近的研究表明，LLM
+    在 APR 中的应用，通常侧重于构建特定于 APR 的提示，以指导 LLM 生成有缺陷程序语句的补丁（Xia 等人，[2023](https://arxiv.org/html/2411.10213v1#bib.bib51)）。
+- en: 7.4\. Agents for Software Development
+  id: totrans-242
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.4\. 软件开发的智能体
+- en: The emergence and popularity of agent-based frameworks have led to the development
+    of agent-based approaches for solving software engineering tasks. Devin and its
+    open-source counterpart OpenDevin (Wang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib46))
+    are among the first end-to-end LLM agent-based frameworks. These frameworks use
+    agents for planning based on user requirements and enable agents to iteratively
+    perform tasks using tools like file editors, terminals, and web search engines.
+    SWE-agent (Yang et al., [2024a](https://arxiv.org/html/2411.10213v1#bib.bib53)),
+    for example, designs a custom agent-computer interface (ACI) allowing LLM agents
+    to interact with the repository environment through actions such as reading, editing
+    files, and running bash commands. AutoCodeRover (Zhang et al., [2024](https://arxiv.org/html/2411.10213v1#bib.bib60))
+    provides LLM agents with specific APIs to effectively identify locations needing
+    modification to resolve issues. Numerous other agent-based approaches have been
+    developed, both in open-source and commercial products.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于代理的框架的出现和普及促使了基于代理的方法在解决软件工程任务中的发展。Devin及其开源对应物OpenDevin（Wang等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib46)）是首批端到端LLM代理框架之一。这些框架使用代理根据用户需求进行规划，并使代理通过使用文件编辑器、终端和网络搜索引擎等工具，迭代地执行任务。例如，SWE-agent（Yang等人，[2024a](https://arxiv.org/html/2411.10213v1#bib.bib53)）设计了一个定制的代理-计算机接口（ACI），使LLM代理能够通过读取、编辑文件和执行bash命令等操作与仓库环境进行交互。AutoCodeRover（Zhang等人，[2024](https://arxiv.org/html/2411.10213v1#bib.bib60)）为LLM代理提供了特定的API，以有效地识别需要修改的位置以解决问题。许多其他基于代理的方法也在开源和商业产品中得到了开发。
+- en: 8\. Conclusion
+  id: totrans-244
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8. 结论
+- en: In this paper, we analyzed the top 4 commercial systems and the top 3 open-source
+    systems on SWE-bench Lite. We conducted detailed analyses of the performance of
+    LLM-based Agents in automatic bug fixing for code repositories, the performance
+    of different systems in Fault Localization, and their performance in Reproduction.
+    The analysis results indicate that to further enhance the capabilities of LLM-based
+    Agents in bug fixing, future efforts should focus on improving the reasoning ability
+    of LLMs. Additionally, attention should be given to the Agentic flow design, considering
+    the quality of issues, stack traces, and the correctness of reproductions.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文分析了SWE-bench Lite上的前4大商业系统和前3大开源系统。我们对基于LLM的代理在代码库自动修复中的表现、不同系统在故障定位中的表现以及它们在重现中的表现进行了详细分析。分析结果表明，要进一步提升基于LLM的代理在错误修复中的能力，未来的努力应集中在提高LLM的推理能力。此外，还应关注代理流程设计，考虑问题的质量、堆栈跟踪和重现的正确性。
+- en: Data availability
+  id: totrans-246
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 数据可用性
+- en: 'All raw data comes from the official SWE-bench experiment repository: https://github.com/swe-bench/experiments/'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有原始数据来自官方SWE-bench实验仓库：[https://github.com/swe-bench/experiments/](https://github.com/swe-bench/experiments/)
+- en: References
+  id: totrans-248
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: (1)
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: （1）
+- en: hon ([n. d.]) [n. d.]. [https://honeycomb.sh/](https://honeycomb.sh/).
+  id: totrans-250
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: hon（[n. d.]）[n. d.]。[https://honeycomb.sh/](https://honeycomb.sh/)。
+- en: gru ([n. d.]) [n. d.]. [https://gru.ai/](https://gru.ai/).
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: gru（[n. d.]）[n. d.]。[https://gru.ai/](https://gru.ai/)。
+- en: Abreu et al. (2009) Rui Abreu, Peter Zoeteweij, Rob Golsteijn, and Arjan JC
+    Van Gemund. 2009. A practical evaluation of spectrum-based fault localization.
+    *Journal of Systems and Software* 82, 11 (2009), 1780–1792.
+  id: totrans-252
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Abreu等人（2009）Rui Abreu、Peter Zoeteweij、Rob Golsteijn和Arjan JC Van Gemund。2009年。基于频谱的故障定位的实践评估。*系统与软件期刊*
+    82, 11（2009），1780-1792。
+- en: 'Abreu et al. (2007) Rui Abreu, Peter Zoeteweij, and Arjan JC Van Gemund. 2007.
+    On the accuracy of spectrum-based fault localization. In *Testing: Academic and
+    industrial conference practice and research techniques-MUTATION (TAICPART-MUTATION
+    2007)*. IEEE, 89–98.'
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Abreu等人（2007）Rui Abreu、Peter Zoeteweij和Arjan JC Van Gemund。2007年。基于频谱的故障定位准确性研究。在*测试：学术与工业会议实践和研究技术-MUTATION（TAICPART-MUTATION
+    2007）*。IEEE，89-98。
+- en: Ahmed et al. (2023) Toufique Ahmed, Supriyo Ghosh, Chetan Bansal, Thomas Zimmermann,
+    Xuchao Zhang, and Saravan Rajmohan. 2023. Recommending root-cause and mitigation
+    steps for cloud incidents using large language models. In *2023 IEEE/ACM 45th
+    International Conference on Software Engineering (ICSE)*. IEEE, 1737–1749.
+  id: totrans-254
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ahmed等人（2023）Toufique Ahmed、Supriyo Ghosh、Chetan Bansal、Thomas Zimmermann、Xuchao
+    Zhang和Saravan Rajmohan。2023年。使用大型语言模型推荐云事件的根本原因和缓解步骤。在*2023 IEEE/ACM第45届国际软件工程会议（ICSE）*。IEEE，1737-1749。
+- en: Chen et al. (2021) Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique
+    Ponde De Oliveira Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph,
+    Greg Brockman, et al. 2021. Evaluating large language models trained on code.
+    *arXiv preprint arXiv:2107.03374* (2021).
+  id: totrans-255
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen et al. (2021) Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique
+    Ponde De Oliveira Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph,
+    Greg Brockman, 等。2021. 评估训练于代码上的大型语言模型。*arXiv 预印本 arXiv:2107.03374*（2021）。
+- en: Chen et al. (2024) Yinfang Chen, Huaibing Xie, Minghua Ma, Yu Kang, Xin Gao,
+    Liu Shi, Yunjie Cao, Xuedong Gao, Hao Fan, Ming Wen, et al. 2024. Automatic root
+    cause analysis via large language models for cloud incidents. In *Proceedings
+    of the Nineteenth European Conference on Computer Systems*. 674–688.
+  id: totrans-256
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen et al. (2024) Yinfang Chen, Huaibing Xie, Minghua Ma, Yu Kang, Xin Gao,
+    Liu Shi, Yunjie Cao, Xuedong Gao, Hao Fan, Ming Wen, 等。2024. 通过大型语言模型进行云事件的自动根本原因分析。发表于
+    *第十九届欧洲计算机系统会议论文集*。674–688。
+- en: Du et al. (2024) Xiaohu Du, Ming Wen, Jiahao Zhu, Zifan Xie, Bin Ji, Huijun
+    Liu, Xuanhua Shi, and Hai Jin. 2024. Generalization-Enhanced Code Vulnerability
+    Detection via Multi-Task Instruction Fine-Tuning. *arXiv preprint arXiv:2406.03718*
+    (2024).
+  id: totrans-257
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Du et al. (2024) Xiaohu Du, Ming Wen, Jiahao Zhu, Zifan Xie, Bin Ji, Huijun
+    Liu, Xuanhua Shi, 和 Hai Jin. 2024. 通过多任务指令微调增强泛化的代码漏洞检测。*arXiv 预印本 arXiv:2406.03718*（2024）。
+- en: 'Feng et al. (2020) Zhangyin Feng, Daya Guo, Duyu Tang, Nan Duan, Xiaocheng
+    Feng, Ming Gong, Linjun Shou, Bing Qin, Ting Liu, Daxin Jiang, et al. 2020. Codebert:
+    A pre-trained model for programming and natural languages. *arXiv preprint arXiv:2002.08155*
+    (2020).'
+  id: totrans-258
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Feng et al. (2020) Zhangyin Feng, Daya Guo, Duyu Tang, Nan Duan, Xiaocheng
+    Feng, Ming Gong, Linjun Shou, Bing Qin, Ting Liu, Daxin Jiang, 等。2020. Codebert:
+    一种预训练的编程和自然语言模型。*arXiv 预印本 arXiv:2002.08155*（2020）。'
+- en: 'Geng et al. (2024) Mingyang Geng, Shangwen Wang, Dezun Dong, Haotian Wang,
+    Ge Li, Zhi Jin, Xiaoguang Mao, and Xiangke Liao. 2024. Large language models are
+    few-shot summarizers: Multi-intent comment generation via in-context learning.
+    In *Proceedings of the 46th IEEE/ACM International Conference on Software Engineering*.
+    1–13.'
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Geng et al. (2024) Mingyang Geng, Shangwen Wang, Dezun Dong, Haotian Wang, Ge
+    Li, Zhi Jin, Xiaoguang Mao, 和 Xiangke Liao. 2024. 大型语言模型是少量示例的总结者：通过上下文学习生成多意图评论。发表于
+    *第46届IEEE/ACM国际软件工程会议论文集*。1–13。
+- en: 'Hu et al. (2024) Yuntong Hu, Zhihan Lei, Zheng Zhang, Bo Pan, Chen Ling, and
+    Liang Zhao. 2024. GRAG: Graph Retrieval-Augmented Generation. *arXiv preprint
+    arXiv:2405.16506* (2024).'
+  id: totrans-260
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Hu et al. (2024) Yuntong Hu, Zhihan Lei, Zheng Zhang, Bo Pan, Chen Ling, 和
+    Liang Zhao. 2024. GRAG: 图检索增强生成。*arXiv 预印本 arXiv:2405.16506*（2024）。'
+- en: Jiang et al. (2023) Nan Jiang, Kevin Liu, Thibaud Lutellier, and Lin Tan. 2023.
+    Impact of code language models on automated program repair. In *2023 IEEE/ACM
+    45th International Conference on Software Engineering (ICSE)*. IEEE, 1430–1442.
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jiang et al. (2023) Nan Jiang, Kevin Liu, Thibaud Lutellier, 和 Lin Tan. 2023.
+    代码语言模型对自动程序修复的影响。发表于 *2023 IEEE/ACM 第45届国际软件工程会议（ICSE）*。IEEE，1430–1442。
+- en: 'Jimenez et al. (2023) Carlos E Jimenez, John Yang, Alexander Wettig, Shunyu
+    Yao, Kexin Pei, Ofir Press, and Karthik Narasimhan. 2023. Swe-bench: Can language
+    models resolve real-world github issues? *arXiv preprint arXiv:2310.06770* (2023).'
+  id: totrans-262
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Jimenez et al. (2023) Carlos E Jimenez, John Yang, Alexander Wettig, Shunyu
+    Yao, Kexin Pei, Ofir Press, 和 Karthik Narasimhan. 2023. Swe-bench: 语言模型能解决真实世界的GitHub问题吗？
+    *arXiv 预印本 arXiv:2310.06770*（2023）。'
+- en: Kang et al. (2023) Sungmin Kang, Bei Chen, Shin Yoo, and Jian-Guang Lou. 2023.
+    Explainable automated debugging via large language model-driven scientific debugging.
+    *arXiv preprint arXiv:2304.02195* (2023).
+  id: totrans-263
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kang et al. (2023) Sungmin Kang, Bei Chen, Shin Yoo, 和 Jian-Guang Lou. 2023.
+    通过大型语言模型驱动的科学调试实现可解释的自动调试。*arXiv 预印本 arXiv:2304.02195*（2023）。
+- en: Kim et al. (2019) Yunho Kim, Seokhyeon Mun, Shin Yoo, and Moonzoo Kim. 2019.
+    Precise learn-to-rank fault localization using dynamic and static features of
+    target programs. *ACM Transactions on Software Engineering and Methodology (TOSEM)*
+    28, 4 (2019), 1–34.
+  id: totrans-264
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kim et al. (2019) Yunho Kim, Seokhyeon Mun, Shin Yoo, 和 Moonzoo Kim. 2019. 使用目标程序的动态和静态特征进行精确的学习排序故障定位。*ACM软件工程与方法学学报（TOSEM）*
+    28, 4（2019），1–34。
+- en: 'Le et al. (2017) Xuan-Bach D Le, Duc-Hiep Chu, David Lo, Claire Le Goues, and
+    Willem Visser. 2017. JFIX: semantics-based repair of Java programs via symbolic
+    PathFinder. In *Proceedings of the 26th ACM SIGSOFT International Symposium on
+    Software Testing and Analysis*. 376–379.'
+  id: totrans-265
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Le et al. (2017) Xuan-Bach D Le, Duc-Hiep Chu, David Lo, Claire Le Goues, 和
+    Willem Visser. 2017. JFIX: 通过符号路径查找器对Java程序的语义修复。发表于 *第26届ACM SIGSOFT国际软件测试与分析研讨会论文集*。376–379。'
+- en: Le et al. (2016) Xuan-Bach D Le, David Lo, and Claire Le Goues. 2016. Empirical
+    study on synthesis engines for semantics-based program repair. In *2016 IEEE International
+    Conference on Software Maintenance and Evolution (ICSME)*. IEEE, 423–427.
+  id: totrans-266
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Le 等人 (2016) Xuan-Bach D Le, David Lo, 和 Claire Le Goues. 2016. 基于语义的程序修复合成引擎的实证研究。载于
+    *2016年IEEE国际软件维护与演化会议（ICSME）*，IEEE，423–427。
+- en: 'Le Goues et al. (2011) Claire Le Goues, ThanhVu Nguyen, Stephanie Forrest,
+    and Westley Weimer. 2011. Genprog: A generic method for automatic software repair.
+    *Ieee transactions on software engineering* 38, 1 (2011), 54–72.'
+  id: totrans-267
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Le Goues 等人 (2011) Claire Le Goues, ThanhVu Nguyen, Stephanie Forrest, 和 Westley
+    Weimer. 2011. Genprog: 一种通用的自动化软件修复方法。*IEEE软件工程学报* 38, 1 (2011)，54–72。'
+- en: Le Goues et al. (2019) Claire Le Goues, Michael Pradel, and Abhik Roychoudhury.
+    2019. Automated program repair. *Commun. ACM* 62, 12 (2019), 56–65.
+  id: totrans-268
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Le Goues 等人 (2019) Claire Le Goues, Michael Pradel, 和 Abhik Roychoudhury. 2019.
+    自动化程序修复。*ACM通讯* 62, 12 (2019)，56–65。
+- en: Li et al. (2022b) Dongcheng Li, W Eric Wong, Mingyong Jian, Yi Geng, and Matthew
+    Chau. 2022b. Improving search-based automatic program repair with Neural Machine
+    Translation. *IEEE Access* 10 (2022), 51167–51175.
+  id: totrans-269
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人 (2022b) Dongcheng Li, W Eric Wong, Mingyong Jian, Yi Geng, 和 Matthew Chau.
+    2022b. 利用神经机器翻译改进基于搜索的自动化程序修复。*IEEE Access* 10 (2022)，51167–51175。
+- en: 'Li et al. (2020) Yi Li, Shaohua Wang, and Tien N Nguyen. 2020. Dlfix: Context-based
+    code transformation learning for automated program repair. In *Proceedings of
+    the ACM/IEEE 42nd international conference on software engineering*. 602–614.'
+  id: totrans-270
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li 等人 (2020) Yi Li, Shaohua Wang, 和 Tien N Nguyen. 2020. Dlfix: 基于上下文的代码转换学习用于自动化程序修复。载于
+    *ACM/IEEE第42届国际软件工程会议论文集*，602–614。'
+- en: 'Li et al. (2022a) Yi Li, Shaohua Wang, and Tien N Nguyen. 2022a. Dear: A novel
+    deep learning-based approach for automated program repair. In *Proceedings of
+    the 44th international conference on software engineering*. 511–523.'
+  id: totrans-271
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li 等人 (2022a) Yi Li, Shaohua Wang, 和 Tien N Nguyen. 2022a. Dear: 一种基于深度学习的自动化程序修复新方法。载于
+    *第44届国际软件工程会议论文集*，511–523。'
+- en: 'Lin et al. (2023) Bo Lin, Shangwen Wang, Zhongxin Liu, Yepang Liu, Xin Xia,
+    and Xiaoguang Mao. 2023. Cct5: A code-change-oriented pre-trained model. In *Proceedings
+    of the 31st ACM Joint European Software Engineering Conference and Symposium on
+    the Foundations of Software Engineering*. 1509–1521.'
+  id: totrans-272
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Lin 等人 (2023) Bo Lin, Shangwen Wang, Zhongxin Liu, Yepang Liu, Xin Xia, 和 Xiaoguang
+    Mao. 2023. Cct5: 一种面向代码变化的预训练模型。载于 *第31届ACM联合欧洲软件工程会议暨软件工程基础研讨会论文集*，1509–1521。'
+- en: 'Lin et al. (2024) Bo Lin, Shangwen Wang, Ming Wen, Liqian Chen, and Xiaoguang
+    Mao. 2024. One Size Does Not Fit All: Multi-granularity Patch Generation for Better
+    Automated Program Repair. In *Proceedings of the 33rd ACM SIGSOFT International
+    Symposium on Software Testing and Analysis*.'
+  id: totrans-273
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lin 等人 (2024) Bo Lin, Shangwen Wang, Ming Wen, Liqian Chen, 和 Xiaoguang Mao.
+    2024. 一种方法并不适用于所有情况：多粒度补丁生成以改善自动化程序修复。载于 *第33届ACM SIGSOFT国际软件测试与分析研讨会论文集*。
+- en: Liu et al. (2024b) Jiawei Liu, Chunqiu Steven Xia, Yuyao Wang, and Lingming
+    Zhang. 2024b. Is your code generated by chatgpt really correct? rigorous evaluation
+    of large language models for code generation. *Advances in Neural Information
+    Processing Systems* 36 (2024).
+  id: totrans-274
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人 (2024b) Jiawei Liu, Chunqiu Steven Xia, Yuyao Wang, 和 Lingming Zhang.
+    2024b. 你的代码真的是由ChatGPT生成的正确吗？大型语言模型在代码生成中的严格评估。*神经信息处理系统进展* 36 (2024)。
+- en: 'Liu et al. (2024a) Yizhou Liu, Pengfei Gao, Xinchen Wang, Chao Peng, and Zhao
+    Zhang. 2024a. MarsCode Agent: AI-native Automated Bug Fixing. *arXiv preprint
+    arXiv:2409.00899* (2024).'
+  id: totrans-275
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Liu 等人 (2024a) Yizhou Liu, Pengfei Gao, Xinchen Wang, Chao Peng, 和 Zhao Zhang.
+    2024a. MarsCode Agent: AI原生的自动化漏洞修复。*arXiv预印本 arXiv:2409.00899* (2024)。'
+- en: 'Lozhkov et al. (2024) Anton Lozhkov, Raymond Li, Loubna Ben Allal, Federico
+    Cassano, Joel Lamy-Poirier, Nouamane Tazi, Ao Tang, Dmytro Pykhtar, Jiawei Liu,
+    Yuxiang Wei, et al. 2024. Starcoder 2 and the stack v2: The next generation. *arXiv
+    preprint arXiv:2402.19173* (2024).'
+  id: totrans-276
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Lozhkov 等人 (2024) Anton Lozhkov, Raymond Li, Loubna Ben Allal, Federico Cassano,
+    Joel Lamy-Poirier, Nouamane Tazi, Ao Tang, Dmytro Pykhtar, Jiawei Liu, Yuxiang
+    Wei 等人. 2024. Starcoder 2 和 Stack v2: 下一代技术。*arXiv预印本 arXiv:2402.19173* (2024)。'
+- en: Ma et al. (2024) Yingwei Ma, Qingping Yang, Rongyu Cao, Binhua Li, Fei Huang,
+    and Yongbin Li. 2024. How to Understand Whole Software Repository? arXiv:2406.01422 [cs.SE]
+    [https://arxiv.org/abs/2406.01422](https://arxiv.org/abs/2406.01422)
+  id: totrans-277
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ma 等人 (2024) Yingwei Ma, Qingping Yang, Rongyu Cao, Binhua Li, Fei Huang, 和
+    Yongbin Li. 2024. 如何理解整个软件库？arXiv:2406.01422 [cs.SE] [https://arxiv.org/abs/2406.01422](https://arxiv.org/abs/2406.01422)
+- en: Mao et al. (2014) Xiaoguang Mao, Yan Lei, Ziying Dai, Yuhua Qi, and Chengsong
+    Wang. 2014. Slice-based statistical fault localization. *Journal of Systems and
+    Software* 89 (2014), 51–62.
+  id: totrans-278
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mao等人（2014）Xiaoguang Mao、Yan Lei、Ziying Dai、Yuhua Qi和Chengsong Wang。2014年。基于切片的统计故障定位。*系统与软件杂志*
+    89（2014年），51–62页。
+- en: Mayer et al. (2023) Christian WF Mayer, Sabrina Ludwig, and Steffen Brandt.
+    2023. Prompt text classifications with transformer models! An exemplary introduction
+    to prompt-based learning with large language models. *Journal of Research on Technology
+    in Education* 55, 1 (2023), 125–141.
+  id: totrans-279
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mayer等人（2023）Christian WF Mayer、Sabrina Ludwig和Steffen Brandt。2023年。使用变换器模型进行提示文本分类！基于大型语言模型的提示学习示范性介绍。*技术教育研究杂志*
+    55，第1期（2023年），125–141页。
+- en: Mehne et al. (2018) Ben Mehne, Hiroaki Yoshida, Mukul R Prasad, Koushik Sen,
+    Divya Gopinath, and Sarfraz Khurshid. 2018. Accelerating search-based program
+    repair. In *2018 IEEE 11th international conference on software testing, verification
+    and validation (ICST)*. IEEE, 227–238.
+  id: totrans-280
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mehne等人（2018）Ben Mehne、Hiroaki Yoshida、Mukul R Prasad、Koushik Sen、Divya Gopinath和Sarfraz
+    Khurshid。2018年。加速基于搜索的程序修复。在*2018年IEEE第11届国际软件测试、验证与验证会议（ICST）*中，IEEE，227–238页。
+- en: 'Neelofar et al. (2017) Neelofar Neelofar, Lee Naish, Jason Lee, and Kotagiri
+    Ramamohanarao. 2017. Improving spectral-based fault localization using static
+    analysis. *Software: Practice and Experience* 47, 11 (2017), 1633–1655.'
+  id: totrans-281
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Neelofar等人（2017）Neelofar Neelofar、Lee Naish、Jason Lee和Kotagiri Ramamohanarao。2017年。通过静态分析改进基于谱的故障定位。*软件：实践与经验*
+    47，第11期（2017年），1633–1655页。
+- en: 'Nguyen et al. (2013) Hoang Duong Thien Nguyen, Dawei Qi, Abhik Roychoudhury,
+    and Satish Chandra. 2013. Semfix: Program repair via semantic analysis. In *2013
+    35th International Conference on Software Engineering (ICSE)*. IEEE, 772–781.'
+  id: totrans-282
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nguyen等人（2013）Hoang Duong Thien Nguyen、Dawei Qi、Abhik Roychoudhury和Satish Chandra。2013年。Semfix：通过语义分析进行程序修复。在*2013年第35届国际软件工程会议（ICSE）*中，IEEE，772–781页。
+- en: 'Nijkamp et al. (2022) Erik Nijkamp, Bo Pang, Hiroaki Hayashi, Lifu Tu, Huan
+    Wang, Yingbo Zhou, Silvio Savarese, and Caiming Xiong. 2022. Codegen: An open
+    large language model for code with multi-turn program synthesis. *arXiv preprint
+    arXiv:2203.13474* (2022).'
+  id: totrans-283
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nijkamp等人（2022）Erik Nijkamp、Bo Pang、Hiroaki Hayashi、Lifu Tu、Huan Wang、Yingbo
+    Zhou、Silvio Savarese和Caiming Xiong。2022年。Codegen：一个开放的面向代码的大型语言模型，支持多轮程序合成。*arXiv预印本arXiv:2203.13474*（2022年）。
+- en: 'Ouyang et al. (2024) Siru Ouyang, Wenhao Yu, Kaixin Ma, Zilin Xiao, Zhihan
+    Zhang, Mengzhao Jia, Jiawei Han, Hongming Zhang, and Dong Yu. 2024. RepoGraph:
+    Enhancing AI Software Engineering with Repository-level Code Graph. *arXiv preprint
+    arXiv:2410.14684* (2024).'
+  id: totrans-284
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ouyang等人（2024）Siru Ouyang、Wenhao Yu、Kaixin Ma、Zilin Xiao、Zhihan Zhang、Mengzhao
+    Jia、Jiawei Han、Hongming Zhang和Dong Yu。2024年。RepoGraph：通过代码库级图增强AI软件工程。*arXiv预印本arXiv:2410.14684*（2024年）。
+- en: 'Papadakis and Le Traon (2015) Mike Papadakis and Yves Le Traon. 2015. Metallaxis-FL:
+    mutation-based fault localization. *Software Testing, Verification and Reliability*
+    25, 5-7 (2015), 605–628.'
+  id: totrans-285
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Papadakis和Le Traon（2015）Mike Papadakis和Yves Le Traon。2015年。Metallaxis-FL：基于变异的故障定位。*软件测试、验证与可靠性*
+    25，第5-7期（2015年），605–628页。
+- en: 'Qin et al. (2024) Yihao Qin, Shangwen Wang, Yiling Lou, Jinhao Dong, Kaixin
+    Wang, Xiaoling Li, and Xiaoguang Mao. 2024. AgentFL: Scaling LLM-based Fault Localization
+    to Project-Level Context. *arXiv preprint arXiv:2403.16362* (2024).'
+  id: totrans-286
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Qin等人（2024）Yihao Qin、Shangwen Wang、Yiling Lou、Jinhao Dong、Kaixin Wang、Xiaoling
+    Li和Xiaoguang Mao。2024年。AgentFL：将基于LLM的故障定位扩展到项目级上下文。*arXiv预印本arXiv:2403.16362*（2024年）。
+- en: Sun et al. (2023) Maolin Sun, Yibiao Yang, Yang Wang, Ming Wen, Haoxiang Jia,
+    and Yuming Zhou. 2023. SMT solver validation empowered by large pre-trained language
+    models. In *2023 38th IEEE/ACM International Conference on Automated Software
+    Engineering (ASE)*. IEEE, 1288–1300.
+  id: totrans-287
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sun等人（2023）Maolin Sun、Yibiao Yang、Yang Wang、Ming Wen、Haoxiang Jia和Yuming Zhou。2023年。由大型预训练语言模型赋能的SMT求解器验证。在*2023年第38届IEEE/ACM国际自动化软件工程会议（ASE）*中，IEEE，1288–1300页。
+- en: 'Tao et al. (2024) Wei Tao, Yucheng Zhou, Wenqiang Zhang, and Yu Cheng. 2024.
+    MAGIS: LLM-Based Multi-Agent Framework for GitHub Issue Resolution. *arXiv preprint
+    arXiv:2403.17927* (2024).'
+  id: totrans-288
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Tao等人（2024）Wei Tao、Yucheng Zhou、Wenqiang Zhang和Yu Cheng。2024年。MAGIS：基于LLM的多智能体框架用于GitHub问题解决。*arXiv预印本arXiv:2403.17927*（2024年）。
+- en: Tian et al. (2022) Zhao Tian, Junjie Chen, Qihao Zhu, Junjie Yang, and Lingming
+    Zhang. 2022. Learning to construct better mutation faults. In *Proceedings of
+    the 37th IEEE/ACM International Conference on Automated Software Engineering*.
+    1–13.
+  id: totrans-289
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Tian等人（2022）赵天、陈俊杰、朱启豪、杨俊杰和张玲铭。2022年。学习构建更好的变异故障。在*第37届IEEE/ACM国际自动化软件工程会议论文集*中，1–13页。
+- en: Wang et al. (2023b) Chaozheng Wang, Junhao Hu, Cuiyun Gao, Yu Jin, Tao Xie,
+    Hailiang Huang, Zhenyu Lei, and Yuetang Deng. 2023b. How practitioners expect
+    code completion?. In *Proceedings of the 31st ACM Joint European Software Engineering
+    Conference and Symposium on the Foundations of Software Engineering*. 1294–1306.
+  id: totrans-290
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023b) Chaozheng Wang, Junhao Hu, Cuiyun Gao, Yu Jin, Tao Xie,
+    Hailiang Huang, Zhenyu Lei, and Yuetang Deng. 2023b. 开发者如何期望代码补全？载于*第31届ACM联合欧洲软件工程会议暨软件工程基础研讨会会议录*，1294–1306。
+- en: Wang et al. (2023d) Longyue Wang, Chenyang Lyu, Tianbo Ji, Zhirui Zhang, Dian
+    Yu, Shuming Shi, and Zhaopeng Tu. 2023d. Document-level machine translation with
+    large language models. *arXiv preprint arXiv:2304.02210* (2023).
+  id: totrans-291
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023d) Longyue Wang, Chenyang Lyu, Tianbo Ji, Zhirui Zhang, Dian
+    Yu, Shuming Shi, and Zhaopeng Tu. 2023d. 基于大型语言模型的文档级机器翻译。*arXiv预印本 arXiv:2304.02210*（2023）。
+- en: 'Wang et al. (2023a) Shangwen Wang, Mingyang Geng, Bo Lin, Zhensu Sun, Ming
+    Wen, Yepang Liu, Li Li, Tegawendé F Bissyandé, and Xiaoguang Mao. 2023a. Natural
+    language to code: How far are we?. In *Proceedings of the 31st ACM Joint European
+    Software Engineering Conference and Symposium on the Foundations of Software Engineering*.
+    375–387.'
+  id: totrans-292
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023a) Shangwen Wang, Mingyang Geng, Bo Lin, Zhensu Sun, Ming Wen,
+    Yepang Liu, Li Li, Tegawendé F Bissyandé, and Xiaoguang Mao. 2023a. 自然语言到代码：我们离目标有多远？载于*第31届ACM联合欧洲软件工程会议暨软件工程基础研讨会会议录*，375–387。
+- en: 'Wang et al. (2023c) Shangwen Wang, Bo Lin, Zhensu Sun, Ming Wen, Yepang Liu,
+    Yan Lei, and Xiaoguang Mao. 2023c. Two birds with one stone: Boosting code generation
+    and code search via a generative adversarial network. *Proceedings of the ACM
+    on Programming Languages* 7, OOPSLA2 (2023), 486–515.'
+  id: totrans-293
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023c) Shangwen Wang, Bo Lin, Zhensu Sun, Ming Wen, Yepang Liu,
+    Yan Lei, and Xiaoguang Mao. 2023c. 一石二鸟：通过生成对抗网络促进代码生成与代码搜索。*ACM编程语言会议录* 7, OOPSLA2（2023），486–515。
+- en: 'Wang et al. (2024) Xingyao Wang, Boxuan Li, Yufan Song, Frank F Xu, Xiangru
+    Tang, Mingchen Zhuge, Jiayi Pan, Yueqi Song, Bowen Li, Jaskirat Singh, et al.
+    2024. OpenDevin: An Open Platform for AI Software Developers as Generalist Agents.
+    *arXiv preprint arXiv:2407.16741* (2024).'
+  id: totrans-294
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2024) Xingyao Wang, Boxuan Li, Yufan Song, Frank F Xu, Xiangru
+    Tang, Mingchen Zhuge, Jiayi Pan, Yueqi Song, Bowen Li, Jaskirat Singh, et al.
+    2024. OpenDevin：面向AI软件开发者的开放平台，作为通用代理。*arXiv预印本 arXiv:2407.16741*（2024）。
+- en: 'Wei et al. (2023) Yuxiang Wei, Zhe Wang, Jiawei Liu, Yifeng Ding, and Lingming
+    Zhang. 2023. Magicoder: Source code is all you need. *arXiv preprint arXiv:2312.02120*
+    (2023).'
+  id: totrans-295
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wei et al. (2023) Yuxiang Wei, Zhe Wang, Jiawei Liu, Yifeng Ding, and Lingming
+    Zhang. 2023. Magicoder: 只需源代码即可。*arXiv预印本 arXiv:2312.02120*（2023）。'
+- en: Wong et al. (2016) W Eric Wong, Ruizhi Gao, Yihao Li, Rui Abreu, and Franz Wotawa.
+    2016. A survey on software fault localization. *IEEE Transactions on Software
+    Engineering* 42, 8 (2016), 707–740.
+  id: totrans-296
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wong et al. (2016) W Eric Wong, Ruizhi Gao, Yihao Li, Rui Abreu, and Franz Wotawa.
+    2016. 软件故障定位调查。*IEEE软件工程学报* 42, 8（2016），707–740。
+- en: 'Xi et al. (2023) Zhiheng Xi, Wenxiang Chen, Xin Guo, Wei He, Yiwen Ding, Boyang
+    Hong, Ming Zhang, Junzhe Wang, Senjie Jin, Enyu Zhou, et al. 2023. The rise and
+    potential of large language model based agents: A survey. *arXiv preprint arXiv:2309.07864*
+    (2023).'
+  id: totrans-297
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xi et al. (2023) Zhiheng Xi, Wenxiang Chen, Xin Guo, Wei He, Yiwen Ding, Boyang
+    Hong, Ming Zhang, Junzhe Wang, Senjie Jin, Enyu Zhou, et al. 2023. 基于大型语言模型的代理崛起与潜力：一项调查。*arXiv预印本
+    arXiv:2309.07864*（2023）。
+- en: 'Xia et al. (2024) Chunqiu Steven Xia, Yinlin Deng, Soren Dunn, and Lingming
+    Zhang. 2024. Agentless: Demystifying LLM-based Software Engineering Agents. *arXiv
+    preprint arXiv:2407.01489* (2024).'
+  id: totrans-298
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xia et al. (2024) Chunqiu Steven Xia, Yinlin Deng, Soren Dunn, and Lingming
+    Zhang. 2024. 无代理：揭秘基于大型语言模型的软件工程代理。*arXiv预印本 arXiv:2407.01489*（2024）。
+- en: Xia et al. (2023) Chunqiu Steven Xia, Yuxiang Wei, and Lingming Zhang. 2023.
+    Automated program repair in the era of large pre-trained language models. In *2023
+    IEEE/ACM 45th International Conference on Software Engineering (ICSE)*. IEEE,
+    1482–1494.
+  id: totrans-299
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xia et al. (2023) Chunqiu Steven Xia, Yuxiang Wei, and Lingming Zhang. 2023.
+    大型预训练语言模型时代的自动程序修复。载于*2023 IEEE/ACM 第45届国际软件工程会议（ICSE）*。IEEE，1482–1494。
+- en: 'Xiao et al. (2021) Xi Xiao, Yuqing Pan, Bin Zhang, Guangwu Hu, Qing Li, and
+    Runiu Lu. 2021. ALBFL: A novel neural ranking model for software fault localization
+    via combining static and dynamic features. *Information and Software Technology*
+    139 (2021), 106653.'
+  id: totrans-300
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xiao et al. (2021) Xi Xiao, Yuqing Pan, Bin Zhang, Guangwu Hu, Qing Li, and
+    Runiu Lu. 2021. ALBFL：一种结合静态与动态特征的软件故障定位的新型神经排名模型。*信息与软件技术* 139（2021），106653。
+- en: 'Yang et al. (2024a) John Yang, Carlos E Jimenez, Alexander Wettig, Kilian Lieret,
+    Shunyu Yao, Karthik Narasimhan, and Ofir Press. 2024a. Swe-agent: Agent-computer
+    interfaces enable automated software engineering. *arXiv preprint arXiv:2405.15793*
+    (2024).'
+  id: totrans-301
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 杨等人（2024a）杨约翰，卡洛斯·E·吉门尼斯，亚历山大·韦蒂格，基里安·利雷特，姚顺宇，卡尔蒂克·纳拉西姆汉，奥菲尔·普雷斯。2024a. Swe-agent：代理-计算机接口使自动化软件工程成为可能。*arXiv预印本arXiv:2405.15793*（2024）。
+- en: Yang et al. (2023) Kang Yang, Xinjun Mao, Shangwen Wang, Tanghaoran Zhang, Bo
+    Lin, Yanlin Wang, Yihao Qin, Zhang Zhang, and Xiaoguang Mao. 2023. Enhancing Code
+    Intelligence Tasks with ChatGPT. *arXiv preprint arXiv:2312.15202* (2023).
+  id: totrans-302
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 杨等人（2023）杨康，毛欣俊，王尚文，张唐浩然，林博，王延林，秦一豪，张张，毛晓光。2023. 运用ChatGPT增强代码智能任务。*arXiv预印本arXiv:2312.15202*（2023）。
+- en: Yang et al. (2024b) Zhen Yang, Fang Liu, Zhongxing Yu, Jacky Wai Keung, Jia
+    Li, Shuo Liu, Yifan Hong, Xiaoxue Ma, Zhi Jin, and Ge Li. 2024b. Exploring and
+    unleashing the power of large language models in automated code translation. *Proceedings
+    of the ACM on Software Engineering* 1, FSE (2024), 1585–1608.
+  id: totrans-303
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 杨等人（2024b）杨臻，刘芳，余忠兴，纪伟强，李佳，刘硕，洪一凡，马晓雪，金智，李歌。2024b. 探索和释放大型语言模型在自动化代码翻译中的力量。*ACM软件工程会议录*
+    1，FSE（2024），1585-1608。
+- en: 'Yu et al. (2024) Zeliang Yu, Ming Wen, Xiaochen Guo, and Hai Jin. 2024. Maltracker:
+    A Fine-Grained NPM Malware Tracker Copiloted by LLM-Enhanced Dataset. In *Proceedings
+    of the 33rd ACM SIGSOFT International Symposium on Software Testing and Analysis*.'
+  id: totrans-304
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 于等人（2024）于泽亮，文铭，郭晓晨，金海。2024. Maltracker：由LLM增强数据集协同工作的细粒度NPM恶意软件跟踪器。发表于*第33届ACM
+    SIGSOFT国际软件测试与分析研讨会会议录*。
+- en: 'Zhang et al. (2023b) Biao Zhang, Barry Haddow, and Alexandra Birch. 2023b.
+    Prompting large language model for machine translation: A case study. *arXiv preprint
+    arXiv:2301.07069* (2023).'
+  id: totrans-305
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 张等人（2023b）张彪，巴里·哈多，亚历山德拉·伯奇。2023b. 向大型语言模型提示机器翻译：一个案例研究。*arXiv预印本arXiv:2301.07069*（2023）。
+- en: Zhang et al. (2023a) Quanjun Zhang, Chunrong Fang, Yuxiang Ma, Weisong Sun,
+    and Zhenyu Chen. 2023a. A survey of learning-based automated program repair. *ACM
+    Transactions on Software Engineering and Methodology* 33, 2 (2023), 1–69.
+  id: totrans-306
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 张等人（2023a）张全俊，方春荣，马玉翔，孙伟松，陈震宇。2023a. 基于学习的自动程序修复综述。*ACM软件工程与方法学交易* 33, 2（2023），1-69。
+- en: Zhang et al. (2023c) Tianyi Zhang, Faisal Ladhak, Esin Durmus, Percy Liang,
+    Kathleen McKeown, and Tatsunori B Hashimoto. 2023c. Benchmarking large language
+    models for news summarization. *arXiv preprint arXiv:2301.13848* (2023).
+  id: totrans-307
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 张等人（2023c）张天毅，费萨尔·拉达哈，埃辛·杜尔穆斯，珀西·梁，凯瑟琳·麦基翁，塔辛诺里·B·哈希莫托。2023c. 基准测试大型语言模型在新闻摘要中的表现。*arXiv预印本arXiv:2301.13848*（2023）。
+- en: 'Zhang et al. (2024) Yuntong Zhang, Haifeng Ruan, Zhiyu Fan, and Abhik Roychoudhury.
+    2024. Autocoderover: Autonomous program improvement. *arXiv preprint arXiv:2404.05427*
+    (2024).'
+  id: totrans-308
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 张等人（2024）张云通，阮海峰，范志宇，阿比克·罗伊乔杜里。2024. Autocoderover：自主程序改进。*arXiv预印本arXiv:2404.05427*（2024）。
+- en: Zhao et al. (2023) Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang, Xiaolei
+    Wang, Yupeng Hou, Yingqian Min, Beichen Zhang, Junjie Zhang, Zican Dong, et al.
+    2023. A survey of large language models. *arXiv preprint arXiv:2303.18223* (2023).
+  id: totrans-309
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 赵等人（2023）赵心韦，周坤，李俊一，唐天毅，王晓磊，侯玉鹏，闵莹千，张备晨，张俊杰，董子灿，等人。2023. 大型语言模型综述。*arXiv预印本arXiv:2303.18223*（2023）。
+- en: 'Zhu et al. (2024) Qihao Zhu, Daya Guo, Zhihong Shao, Dejian Yang, Peiyi Wang,
+    Runxin Xu, Y Wu, Yukun Li, Huazuo Gao, Shirong Ma, et al. 2024. DeepSeek-Coder-V2:
+    Breaking the Barrier of Closed-Source Models in Code Intelligence. *arXiv preprint
+    arXiv:2406.11931* (2024).'
+  id: totrans-310
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 朱等人（2024）朱启浩，郭大雅，邵志宏，杨德建，王培一，徐润欣，吴怡，李玉坤，高华佐，马世荣，等人。2024. DeepSeek-Coder-V2：打破封闭源模型在代码智能中的壁垒。*arXiv预印本arXiv:2406.11931*（2024）。
+- en: 'Zhu-Tian et al. (2024) Chen Zhu-Tian, Zeyu Xiong, Xiaoshuo Yao, and Elena Glassman.
+    2024. Sketch Then Generate: Providing Incremental User Feedback and Guiding LLM
+    Code Generation through Language-Oriented Code Sketches. *arXiv preprint arXiv:2405.03998*
+    (2024).'
+  id: totrans-311
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 朱田等人（2024）朱天辰，熊泽宇，姚晓硕，埃琳娜·格拉斯曼。2024. 草图再生成：通过面向语言的代码草图提供增量用户反馈并引导LLM代码生成。*arXiv预印本arXiv:2405.03998*（2024）。

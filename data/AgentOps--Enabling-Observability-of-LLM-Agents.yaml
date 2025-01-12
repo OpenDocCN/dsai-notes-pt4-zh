@@ -1,0 +1,1996 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 11:58:19'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 11:58:19
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'AgentOps: Enabling Observability of LLM Agents'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'AgentOps: 启用LLM代理的可观察性'
+- en: 来源：[https://arxiv.org/html/2411.05285/](https://arxiv.org/html/2411.05285/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2411.05285/](https://arxiv.org/html/2411.05285/)
+- en: \useunderLiming Dong, Qinghua Lu, Liming Zhu
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \useunderLiming Dong, Qinghua Lu, Liming Zhu
+- en: Data61, CSIRO, Australia(Nov, 2024)
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Data61, CSIRO, 澳大利亚（2024年11月）
+- en: Abstract
+  id: totrans-8
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Large language model (LLM) agents have demonstrated remarkable capabilities
+    across various domains, gaining extensive attention from academia and industry.
+    However, these agents raise significant concerns on AI safety due to their autonomous
+    and non-deterministic behavior, as well as continuous evolving nature . From a
+    DevOps perspective, enabling observability in agents is necessary to ensuring
+    AI safety, as stakeholders can gain insights into the agents’ inner workings,
+    allowing them to proactively understand the agents, detect anomalies, and prevent
+    potential failures. Therefore, in this paper, we present a comprehensive taxonomy
+    of AgentOps, identifying the artifacts and associated data that should be traced
+    throughout the entire lifecycle of agents to achieve effective observability.
+    The taxonomy is developed based on a systematic mapping study of existing AgentOps
+    tools. Our taxonomy serves as a reference template for developers to design and
+    implement AgentOps infrastructure that supports monitoring, logging, and analytics.
+    thereby ensuring AI safety.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLM）代理在多个领域展示了显著的能力，获得了学术界和工业界的广泛关注。然而，由于其自主和非确定性的行为以及持续演化的特性，这些代理引发了关于人工智能安全的重大担忧。从DevOps的角度来看，确保代理可观察性是确保人工智能安全的必要条件，因为相关方可以深入了解代理的内部工作，帮助他们主动理解代理、检测异常并防止潜在故障。因此，在本文中，我们提出了一个全面的AgentOps分类法，识别了整个代理生命周期中应追踪的工件和相关数据，以实现有效的可观察性。该分类法是基于对现有AgentOps工具的系统化映射研究开发的。我们的分类法作为开发者设计和实施支持监控、日志记录和分析的AgentOps基础设施的参考模板，从而确保人工智能安全。
+- en: 1 Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: An large language model (LLM) is a large-scale language model with tens of billions
+    of parameters, pretrained on vast and diverse datasets, and applicable to various
+    downstream tasks [[1](https://arxiv.org/html/2411.05285v2#bib.bib1)]. While LLMs
+    demonstrate impressive capabilities, they also exhibit limitations in understanding
+    and performing complex tasks. This has led to an increasing demand for LLM agents
+    (including agentic systems which are designed to prompt an LLM multiple times
+    using agent-like design patterns and exhibit varying degrees of agent-like behavior),
+    which have the ability to handle complex tasks autonomously [[2](https://arxiv.org/html/2411.05285v2#bib.bib2)].
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLM）是一个具有数百亿参数的大规模语言模型，预先训练在广泛且多样化的数据集上，并应用于各种下游任务[[1](https://arxiv.org/html/2411.05285v2#bib.bib1)]。虽然LLM展示了令人印象深刻的能力，但它们在理解和执行复杂任务方面也表现出一定的局限性。这促使了对LLM代理（包括那些采用代理式设计模式，通过多次提示LLM并展现不同程度代理行为的系统）的需求不断增加，这些代理能够自主处理复杂任务[[2](https://arxiv.org/html/2411.05285v2#bib.bib2)]。
+- en: An LLM agent is an autonomous system powered by LLMs, capable of perceiving
+    context, reasoning, planning, executing workflows, by leveraging external tools,
+    knowledge bases and other agents to achieve human goals [[3](https://arxiv.org/html/2411.05285v2#bib.bib3)].
+    LLM agents have shown remarkable potential to enhance productivity across various
+    domains, attracting widespread attention from academia and industry. For example,
+    many agents are being successfully applied in the software engineering domain,
+    such as Devin ¹¹1Devin, [https://www.cognition.ai/blog/introducing-devin](https://www.cognition.ai/blog/introducing-devin),
+    ChatDev ²²2ChatDev. [https://github.com/OpenBMB/ChatDev](https://github.com/OpenBMB/ChatDev),
+    SWE-agent ³³3SWE-agent, [https://github.com/princeton-nlp/SWE-agent](https://github.com/princeton-nlp/SWE-agent).
+    Hereafter, we use ”agents” to refer specifically to LLM agents throughout this
+    paper.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM代理是由LLM驱动的自主系统，能够感知上下文、推理、规划、执行工作流，并利用外部工具、知识库及其他代理实现人类目标[[3](https://arxiv.org/html/2411.05285v2#bib.bib3)]。LLM代理展现出显著的潜力，能够提升多个领域的生产力，吸引了学术界和工业界的广泛关注。例如，许多代理已在软件工程领域成功应用，如Devin
+    ¹¹1Devin, [https://www.cognition.ai/blog/introducing-devin](https://www.cognition.ai/blog/introducing-devin)，ChatDev
+    ²²2ChatDev, [https://github.com/OpenBMB/ChatDev](https://github.com/OpenBMB/ChatDev)，SWE-agent
+    ³³3SWE-agent, [https://github.com/princeton-nlp/SWE-agent](https://github.com/princeton-nlp/SWE-agent)。在本文中，我们将“代理”一词专门用于指代LLM代理。
+- en: Despite the huge potential to enhance productivity, the adoption of LLM agents
+    introduces unique challenges due to their inherent characteristics.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管LLM代理具有巨大的提高生产力的潜力，但由于其固有特性，采用LLM代理也带来了独特的挑战。
+- en: •
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Complex Artefacts and Pipelines: The agents are compound AI systems, integrating
+    LLMs with various components (i.e., design time artifacts), such as context engine
+    and external tools, and dynamically generating runtime artifacts, such as goals
+    and plans. The operational pipelines typically include context processing, reasoning
+    and planning, workflow execution, and continuous evolution based on the feedback.
+    Throughout these processes, the pipelines may leverage external tools, knowledge
+    bases, and other agents to achieve human goals.'
+  id: totrans-15
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 复杂的工件和管道：这些代理是复合型AI系统，将LLM与各种组件（即设计时工件）集成在一起，如上下文引擎和外部工具，并动态生成运行时工件，如目标和计划。操作管道通常包括上下文处理、推理和规划、工作流执行以及基于反馈的持续演化。在这些过程中，管道可能会利用外部工具、知识库和其他代理来实现人类目标。
+- en: •
+  id: totrans-16
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Autonomy: The agents operate with a high degree of autonomy, dynamically interact
+    with external environments, including shifting context, external knowledge bases
+    and tools. These interactions are not predetermined, which may increase the risk
+    of unintended behaviors (such as selecting an external tool with vulnerability
+    issues) and pose severe AI safety challenges [[4](https://arxiv.org/html/2411.05285v2#bib.bib4)].'
+  id: totrans-17
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 自主性：这些代理以高度自主的方式运行，动态地与外部环境互动，包括变化的上下文、外部知识库和工具。这些互动并非预定的，这可能增加非预期行为的风险（例如选择存在漏洞问题的外部工具），并带来严重的AI安全挑战[[4](https://arxiv.org/html/2411.05285v2#bib.bib4)]。
+- en: •
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Non-Deterministic Behaviour: Due to the probabilistic nature of LLMs, the agents
+    often exhibit non-deterministic behaviour, producing varied outputs even when
+    given the same inputs. This lack of repeatability may lead to unintended consequences,
+    making it challenging to ensure consistent and predictable outcomes.'
+  id: totrans-19
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 非确定性行为：由于LLM的概率性质，这些代理往往表现出非确定性行为，即使输入相同，输出也可能不同。这种缺乏可重复性的问题可能导致非预期的后果，使得确保一致和可预测的结果变得具有挑战性。
+- en: •
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Continuous Evolution: The agents can evolve over time through continuous learning,
+    adapting based on runtime evaluation results or human feedback. While this adaptability
+    enhance the agents’ capabilities and skills, it also introduces further challenges
+    in maintaining alignment with intended quality and safety goals over the agent’s
+    lifecycle.'
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 持续演化：这些代理可以通过持续学习随着时间的推移不断进化，根据运行时评估结果或人类反馈进行适应。尽管这种适应性提升了代理的能力和技能，但它也带来了进一步的挑战，在代理的生命周期中保持与预定质量和安全目标的一致性。
+- en: •
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Shared Accountability: The responsibility of the behaviour or decisions of
+    the agents is often shared among multiple stakeholders, including the agent owner,
+    the FM provider, and various providers of external tools/agents. This complicates
+    the identification of failure sources and the assignment of accountability in
+    the event of incidents.'
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 共同责任：代理的行为或决策的责任通常由多个利益相关方共同承担，包括代理的所有者、FM提供者以及各种外部工具/代理的提供者。这使得在事件发生时识别故障源和分配责任变得更加复杂。
+- en: To address the challenges outlined above, it is essential for DevOps tools to
+    support observability features, enabling stakeholders to monitor agent behaviour,
+    track the status of artifacts, log associated data, detect anomalies, trace the
+    evolution of artifacts, and assign accountability if incidents occur. Observability
+    refers to the ability to gain actionable insights into the inner workings of an
+    agent by analysing the inputs and outputs (i.e., runtime artifacts) of different
+    components (i.e., design time artifacts), as they flow through the operational
+    pipelines [[5](https://arxiv.org/html/2411.05285v2#bib.bib5)]. However, most existing
+    DevOps tools for agents primarily focus on LLM-specific metrics and prompt management,
+    with limited support for the observability of agent-specific artifacts such as
+    goals, plans, and tools. This limitation results in insufficient observability
+    from both the system and pipeline perspectives.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决上述挑战，DevOps工具必须支持可观察性功能，使利益相关者能够监控代理行为、跟踪工件的状态、记录相关数据、检测异常、追踪工件的演变，并在发生事件时分配责任。可观察性是指通过分析不同组件（即设计时工件）的输入和输出（即运行时工件），从而获得有关代理内部工作原理的可操作洞察力，因为它们在操作管道中流动[[5](https://arxiv.org/html/2411.05285v2#bib.bib5)]。然而，大多数现有的针对代理的DevOps工具主要关注LLM特定的度量和提示管理，对于代理特定的工件（如目标、计划和工具）的可观察性支持有限。这一局限性导致了从系统和管道角度看，观察性不足。
+- en: To bridge this gap, we propose AgentOps, a specialised DevOps paradigm tailored
+    for agents. AgentOps provides a holistic view of agent operations, enabling comprehensive
+    observability by systematically tracing of agent artifacts and associated data.
+    In this paper, we perform a systematic mapping study on the existing DevOps tools
+    for monitoring agents and/or agentic systems to understand their features and
+    limitations. Based on the study results, we first propose an artifact relationship
+    model to identify key agent artifacts and their relationship. Then we present
+    a comprehensive taxonomy of AgentOps, detailing the artifacts and associated data
+    that should be traced. Our taxonomy serves as a reference template for developers
+    to design and implement AgentOps tools to support monitoring, logging, and analytics
+    of agents.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了弥补这一空白，我们提出了AgentOps，一种为代理定制的专用DevOps范式。AgentOps提供了代理操作的全面视图，通过系统地追踪代理工件及其相关数据，实现了全面的可观察性。在本文中，我们对现有的用于监控代理和/或代理系统的DevOps工具进行了系统的映射研究，以了解它们的特点和局限性。根据研究结果，我们首先提出了一个工件关系模型，以识别关键的代理工件及其关系。然后，我们展示了AgentOps的全面分类法，详细描述了应当追踪的工件和相关数据。我们的分类法为开发人员设计和实施AgentOps工具，以支持代理的监控、日志记录和分析，提供了参考模板。
+- en: 'The remainder of the paper is organized as follows. Section [2](https://arxiv.org/html/2411.05285v2#S2
+    "2 Methodology ‣ AgentOps: Enabling Observability of LLM Agents") introduces the
+    methodology. Section [3](https://arxiv.org/html/2411.05285v2#S3 "3 Mapping Study
+    Result ‣ AgentOps: Enabling Observability of LLM Agents") presents the mapping
+    study results of AgentOps tools and core features. Section [4](https://arxiv.org/html/2411.05285v2#S4
+    "4 Taxonomy of AgentOps ‣ AgentOps: Enabling Observability of LLM Agents") identifies
+    the agent artifacts and their relationship and presents the taxonomy of AgentOps.
+    Section [5](https://arxiv.org/html/2411.05285v2#S5 "5 Threats to Validity ‣ AgentOps:
+    Enabling Observability of LLM Agents") addresses threats to validity, and Section
+    [6](https://arxiv.org/html/2411.05285v2#S6 "6 Conclusion ‣ AgentOps: Enabling
+    Observability of LLM Agents") concludes the paper and outlines future work.'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本文其余部分的组织结构如下。第[2](https://arxiv.org/html/2411.05285v2#S2 "2 Methodology ‣
+    AgentOps: Enabling Observability of LLM Agents")节介绍了方法论。第[3](https://arxiv.org/html/2411.05285v2#S3
+    "3 Mapping Study Result ‣ AgentOps: Enabling Observability of LLM Agents")节展示了AgentOps工具和核心特性的映射研究结果。第[4](https://arxiv.org/html/2411.05285v2#S4
+    "4 Taxonomy of AgentOps ‣ AgentOps: Enabling Observability of LLM Agents")节识别了代理工件及其关系，并展示了AgentOps的分类法。第[5](https://arxiv.org/html/2411.05285v2#S5
+    "5 Threats to Validity ‣ AgentOps: Enabling Observability of LLM Agents")节讨论了有效性威胁，第[6](https://arxiv.org/html/2411.05285v2#S6
+    "6 Conclusion ‣ AgentOps: Enabling Observability of LLM Agents")节总结了论文并概述了未来的工作。'
+- en: 2 Methodology
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 方法论
+- en: 'In this section, we introduce the methodology for this study. Figure[1](https://arxiv.org/html/2411.05285v2#S2.F1
+    "Figure 1 ‣ 2 Methodology ‣ AgentOps: Enabling Observability of LLM Agents") provides
+    the overview of the search process. Following the guidelines outlined in [[6](https://arxiv.org/html/2411.05285v2#bib.bib6),
+    [7](https://arxiv.org/html/2411.05285v2#bib.bib7)], we performed a systematic
+    mapping study to analyse the existing tools related to AgentOps. This study aimed
+    to understand their features and limitations and to identify the agent artifacts
+    and associated data that should be traced to enable observability.'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本节介绍了本研究的方法论。图[1](https://arxiv.org/html/2411.05285v2#S2.F1 "图 1 ‣ 2 方法论 ‣
+    AgentOps: 使 LLM 代理的可观察性成为可能")提供了搜索过程的概述。按照[[6](https://arxiv.org/html/2411.05285v2#bib.bib6),
+    [7](https://arxiv.org/html/2411.05285v2#bib.bib7)]中概述的指南，我们进行了系统的映射研究，以分析与 AgentOps
+    相关的现有工具。本研究旨在了解这些工具的功能和局限性，并确定应该追踪的代理工件及其相关数据，以实现可观察性。'
+- en: '![Refer to caption](img/af0a7697061540e68b8b157da21275d0.png)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/af0a7697061540e68b8b157da21275d0.png)'
+- en: 'Figure 1: Search Process of AgentOps Relevant Tools'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：AgentOps 相关工具的搜索过程
+- en: 2.1 Data Sources
+  id: totrans-31
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 数据来源
+- en: To identify tools relevant to AgentOps, we used multiple sources. Initially,
+    we conducted a comprehensive search on GitHub⁴⁴4Github.[https://github.com](https://github.com)
+    using carefully selected keywords. The repositories were then filtered based on
+    predefined selection criteria to ensure relevance and quality. To complement the
+    GitHub search and address potential gaps, we performed a targeted Google Search⁵⁵5Google
+    Search.[https://google.com](https://google.com) to capture additional tools that
+    may not have been available or visible in the GitHub search results. This multi-source
+    approach ensured broad coverage of both open-source and proprietary AgentOps relevant
+    tools.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了识别与 AgentOps 相关的工具，我们使用了多个来源。最初，我们在 GitHub⁴⁴4GitHub.[https://github.com](https://github.com)上进行了全面的搜索，使用精心选择的关键词。然后，基于预定义的选择标准对仓库进行了筛选，以确保其相关性和质量。为了补充
+    GitHub 搜索并弥补可能的空白，我们进行了有针对性的 Google 搜索⁵⁵5Google Search.[https://google.com](https://google.com)，以捕获那些在
+    GitHub 搜索结果中可能未显示或不可用的额外工具。通过这种多来源的方法，确保了对开源和专有的 AgentOps 相关工具的广泛覆盖。
+- en: 2.2 Search String
+  id: totrans-33
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 搜索字符串
+- en: The search terms we used in GitHub primarily focused on the keywords *((“AgentOps”)
+    OR (“Agent” AND “DevOps”) OR (“Agent” AND “LLMOps”))*. Since the concept of AgentOps
+    and the exploration of related tools are still in the early stages, we extended
+    the scope of our search to include observability tools that provide comprehensive
+    visibility into LLM applications, must including agents tracing and observability
+    features as well. As a result, we also incorporated the search term *(“Agent”
+    AND “Observability”)*. The search keyword term used in Google Search is *(“LLM”
+    AND “Agent” AND “Observability” AND “Tool”)*.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在 GitHub 上使用的搜索关键词主要集中在关键词*((“AgentOps”) 或者 (“Agent” 和 “DevOps”) 或者 (“Agent”
+    和 “LLMOps”))*。由于 AgentOps 的概念以及相关工具的探索仍处于初期阶段，我们扩展了搜索范围，纳入了能够全面了解 LLM 应用程序的可观察性工具，必须包括代理追踪和可观察性特性。因此，我们还加入了搜索词*(“Agent”
+    和 “Observability”)*。在 Google 搜索中使用的搜索关键词是*(“LLM” 和 “Agent” 和 “Observability” 和
+    “Tool”)*。
+- en: 'Table 1: Selection Criteria'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：选择标准
+- en: '| ID | Inclusion Criteria |'
+  id: totrans-36
+  prefs: []
+  type: TYPE_TB
+  zh: '| ID | 纳入标准 |'
+- en: '| --- | --- |'
+  id: totrans-37
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| $I1$ | Support observability features (such as monitoring and tracing). |'
+  id: totrans-38
+  prefs: []
+  type: TYPE_TB
+  zh: '| $I1$ | 支持可观察性特性（如监控和追踪）。 |'
+- en: '| $I2$ | Support agent specific tracing or LLM application tracing that can
+    be applied to agents, not just LLM-level tracing. |'
+  id: totrans-39
+  prefs: []
+  type: TYPE_TB
+  zh: '| $I2$ | 支持特定于代理的追踪或可应用于代理的 LLM 应用程序追踪，而不仅仅是 LLM 级别的追踪。 |'
+- en: '| $I3$ | Formal release version. |'
+  id: totrans-40
+  prefs: []
+  type: TYPE_TB
+  zh: '| $I3$ | 正式发布版本。 |'
+- en: '| $I4$ | Public online document available. |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '| $I4$ | 提供公开的在线文档。 |'
+- en: 2.3 Selection Criteria
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.3 选择标准
+- en: We conducted the tool selection process from the multi-channel data sources
+    mentioned above. For this paper, we focused on AgentOps relevant tools that met
+    the criteria illustrated in Table 1. To ensure robust tracking and management
+    of agent performance and interactions, it is essential that selected tools support
+    core observability functionalities ($I1$) like monitoring and tracing etc. Furthermore,
+    given that the focus of our study is on AgentOps rather than general LLMOps or
+    model-level operations, the tools must support tracing at the agent level or LLM
+    application level ($I2$) that allows us to observe a finer-grained understanding
+    of agent-specific behaviors. To facilitate both implementation and community-wide
+    adoption, it is essential that tools with formal release version ($I3$) and have
+    accessible and public online documentation ($I4$).
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从上述多个渠道的数据源中进行工具选择。对于本论文，我们专注于符合表 1 所示标准的 AgentOps 相关工具。为了确保对代理性能和交互的强大跟踪与管理，所选工具必须支持核心可观察性功能（$I1$），如监控、追踪等。此外，由于我们的研究重点是
+    AgentOps，而非一般的 LLMOps 或模型级操作，因此工具必须支持在代理级别或 LLM 应用级别的追踪（$I2$），从而使我们能够观察到代理特定行为的细粒度理解。为了促进工具的实施和社区广泛采用，工具必须具有正式发布版本（$I3$）并且具有可访问和公开的在线文档（$I4$）。
+- en: 2.4 Search Process
+  id: totrans-44
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.4 搜索过程
+- en: We began by querying GitHub with four specific keyword strings *“AgentOps”*,
+    *“Agent” AND “DevOps”*, *“Agent” AND “LLMOps”*, and *“Agent” AND “Observability”*.
+    Each query returned an initial set of repositories. For the search strings *(“AgentOps”)
+    OR (“Agent” AND “LLMOps”) OR (“Agent” AND “Observability”)*, we obtained 37, 24,
+    and 81 initial repositories, respectively. All repositories from these search
+    results were screened to ensure relevance, leading to the inclusion of 4, 3, and
+    3 tools for further analysis, respectively.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先通过四个特定的关键词字符串查询 GitHub，分别是 *“AgentOps”*、*“Agent” AND “DevOps”*、*“Agent”
+    AND “LLMOps”* 和 *“Agent” AND “Observability”*。每个查询返回了一组初步的仓库。对于查询字符串 *("AgentOps")*
+    或 *("Agent" AND "LLMOps")* 或 *("Agent" AND "Observability")*，我们分别获得了37个、24个和81个初步仓库。所有这些仓库都经过筛选，以确保相关性，最终纳入了4个、3个和3个工具进行进一步分析。
+- en: For the *(“Agent” AND “DevOps”)* query, the search yielded a much larger set
+    of 618 repositories. To manage this, we limited our screening to the top three
+    pages of results, sorting repositories based on relevance and popularity. Most
+    of these projects, however, were focused on agents for DevOps tasks rather than
+    DevOps platforms for managing agents. As a result, only one additional tool was
+    included from this query.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于 *("Agent" AND "DevOps")* 查询，搜索结果显示了更大的 618 个仓库集。为了管理这一结果，我们将筛选范围限制在前三页，并根据相关性和流行度对仓库进行了排序。然而，这些项目大多数集中在用于
+    DevOps 任务的代理，而不是用于管理代理的 DevOps 平台。因此，从这个查询中仅包括了一款额外的工具。
+- en: To ensure comprehensive coverage and address potential gaps in the GitHub search,
+    we conducted an additional search using Google Search to capture proprietary tools.
+    We used the keyword string *(“LLM” AND “Agent” AND “Observability” AND “Tool”)*
+    and screened the top three pages of results. This search targeted relevant blogs,
+    product announcements, and other online resources. After removing duplicates and
+    irrelevant results, this process identified six additional tools.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了确保全面覆盖并解决 GitHub 搜索中的潜在遗漏，我们进行了额外的 Google 搜索，以捕获专有工具。我们使用了关键词字符串 *("LLM" AND
+    "Agent" AND "Observability" AND "Tool")*，并筛选了前三页的搜索结果。此次搜索的目标是相关的博客、产品公告以及其他在线资源。去除重复和不相关的结果后，最终确定了六款额外的工具。
+- en: The combined search process across GitHub and Google Search resulted in a total
+    of 17 tools. This final set formed the basis for our systematic analysis of AgentOps
+    relevant tools’ features and limitations.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过在 GitHub 和 Google 搜索引擎上的联合搜索，最终确定了17款工具。这一最终工具集为我们对 AgentOps 相关工具的功能和局限性进行系统分析奠定了基础。
+- en: 2.5 Data Extraction
+  id: totrans-49
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.5 数据提取
+- en: 'To better understand the current landscape of AgentOps tools, we systematically
+    categorized and summarized 17 selected tools. Relevant data items were extracted
+    from each tool’s GitHub repository, official product website, and available project
+    documentation. The specific data items extracted are outlined in Table [2](https://arxiv.org/html/2411.05285v2#S2.T2
+    "Table 2 ‣ 2.5 Data Extraction ‣ 2 Methodology ‣ AgentOps: Enabling Observability
+    of LLM Agents").'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了更好地了解当前 AgentOps 工具的全貌，我们系统地对17款精选工具进行了分类和总结。从每个工具的 GitHub 仓库、官方产品网站以及可用的项目文档中提取了相关数据项。具体提取的数据项在表
+    [2](https://arxiv.org/html/2411.05285v2#S2.T2 "Table 2 ‣ 2.5 Data Extraction ‣
+    2 Methodology ‣ AgentOps: Enabling Observability of LLM Agents") 中列出。'
+- en: 'Table 2: Data Extraction'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：数据提取
+- en: '| ID | Data Item | Description |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '| ID | 数据项 | 描述 |'
+- en: '| --- | --- | --- |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| $D1$ | Name | The name of AgentOps relevant tool. |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| $D1$ | 名称 | 与 AgentOps 相关的工具名称。 |'
+- en: '| $D2$ | Source | The data source used to identify the included tool. |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| $D2$ | 来源 | 用于识别所包含工具的数据来源。 |'
+- en: '| $D3$ | GitHub Repo URL | The Github repository URL of included tool. |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| $D3$ | Github 仓库 URL | 包含工具的 Github 仓库 URL。 |'
+- en: '| $D4$ | Star | The number of stars received on Github (as a proxy for popularity).
+    |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| $D4$ | 星标数 | 在 Github 上收到的星标数（作为受欢迎程度的代理）。 |'
+- en: '| $D5$ | Scope | The scope of the tool, specifically whether it is designed
+    for tracing agents or LLM applications. |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| $D5$ | 领域 | 工具的领域，具体来说是它是否为追踪代理或 LLM 应用设计的。 |'
+- en: '| $D6$ | Key Features | The primary features provided by the tool for AgentOps
+    or LLM application observability. |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| $D6$ | 主要特性 | 工具为 AgentOps 或 LLM 应用可观察性提供的主要特性。 |'
+- en: '| $D7$ | Traceable Artifacts | The artifacts and associated data that the tool
+    tracks. |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| $D7$ | 可追踪工件 | 工具跟踪的工件及相关数据。 |'
+- en: 3 Mapping Study Result
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 映射研究结果
+- en: In this section, we present the results of the systematic mapping study on tools
+    relevant to AgentOps.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了与 AgentOps 相关工具的系统映射研究结果。
+- en: 'Table 3: List of Tools relevant to AgentOps'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：与 AgentOps 相关的工具列表
+- en: '| Name | Source | Github Repo URL | Star | Scope |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| 名称 | 来源 | Github 仓库 URL | 星标数 | 领域 |'
+- en: '| Agenta | Github | Agenta-AI/agenta | 1.3k | LLM applications |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| Agenta | Github | Agenta-AI/agenta | 1.3k | LLM 应用 |'
+- en: '| AgentNeo | Github | raga-ai-hubAgentNeo | 1k | Agents |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgentNeo | Github | raga-ai-hubAgentNeo | 1k | 代理 |'
+- en: '| AgentOps | Github | AgentOps-AI/agentops | 2.1k | Agents |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgentOps | Github | AgentOps-AI/agentops | 2.1k | 代理 |'
+- en: '| AGIFlow | Github | AgiFlow/agiflow-sdks | 21 | Agents |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| AGIFlow | Github | AgiFlow/agiflow-sdks | 21 | 代理 |'
+- en: '| Arize | Google | Arize-Phoenix | 3.9k | LLM applications |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| Arize | Google | Arize-Phoenix | 3.9k | LLM 应用 |'
+- en: '| DataDog | Github | DataDog/datadog-agent | 2.9k | Agents |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| DataDog | Github | DataDog/datadog-agent | 2.9k | 代理 |'
+- en: '| Dify | Github | langgenius/dify | 51.6k | LLM applications |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| Dify | Github | langgenius/dify | 51.6k | LLM 应用 |'
+- en: '| Helicone | Github | Helicone/helicone | 1.9k | LLM applications |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| Helicone | Github | Helicone/helicone | 1.9k | LLM 应用 |'
+- en: '| Laminar | Github | lmnr-ai/lmnr | 1.1k | LLM applications |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| Laminar | Github | lmnr-ai/lmnr | 1.1k | LLM 应用 |'
+- en: '| Langfuse | Github | langfuse/langfuse | 6.5k | LLM applications |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| Langfuse | Github | langfuse/langfuse | 6.5k | LLM 应用 |'
+- en: '| LangSmith | Github | langchain-ai/langsmith-sdk | 417 | LLM applications
+    |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| LangSmith | Github | langchain-ai/langsmith-sdk | 417 | LLM 应用 |'
+- en: '| LangTrace | Github | Scale3-Labs/langtrace | 552 | LLM applications |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| LangTrace | Github | Scale3-Labs/langtrace | 552 | LLM 应用 |'
+- en: '| Lunary | Google | lunary-ai/lunary | 1.1k | LLM applications |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| Lunary | Google | lunary-ai/lunary | 1.1k | LLM 应用 |'
+- en: '| PortKey | Google | Portkey-AI/gateway | 6.3k | LLM applications |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| PortKey | Google | Portkey-AI/gateway | 6.3k | LLM 应用 |'
+- en: '| TraceLoop | Google | traceloop/openllmetry | 3.4k | LLM applications |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| TraceLoop | Google | traceloop/openllmetry | 3.4k | LLM 应用 |'
+- en: '| Trulens | Google | truera/trulens | 2.2k | LLM applications |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| Trulens | Google | truera/trulens | 2.2k | LLM 应用 |'
+- en: 3.1 AgentOps-Relevant Tools
+  id: totrans-81
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 与 AgentOps 相关的工具
+- en: 'This study includes a diverse range of 17 tools relevant to AgentOps, designed
+    to enable observability in agents or LLM applications. Table [3](https://arxiv.org/html/2411.05285v2#S3.T3
+    "Table 3 ‣ 3 Mapping Study Result ‣ AgentOps: Enabling Observability of LLM Agents")
+    highlights the AgentOps relevant tools currently available in the market. An analysis
+    of GitHub star rankings reveal that many of these tools have received significant
+    attention, with 14 out of 17 tools accumulating thousands of stars. As of November
+    2024, several tools stand out as leaders in their respective categories, such
+    as AgentOps (1.7k stars) and AgentNeo (1k stars). Among tools designed for LLM
+    applications, Langfuse (6.5k stars), PortKey (6.3k stars), and Arize (3.9k stars),
+    TraceLoop (3.4k stars), and DataDog (2.9k stars) stand out as leading solutions.
+    It is worth noting that some tools may have been unintentionally excluded due
+    to keyword mismatches or incomplete documentation. We aim to address this limitation
+    by monitoring emerging tools and incorporating them into future work.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本研究包括了与 AgentOps 相关的17种多样化工具，旨在启用智能体或 LLM 应用的可观察性。表格 [3](https://arxiv.org/html/2411.05285v2#S3.T3
+    "表格 3 ‣ 3 映射研究结果 ‣ AgentOps：启用 LLM 智能体的可观察性") 突出了目前市场上可用的 AgentOps 相关工具。对 GitHub
+    星标排名的分析显示，许多这些工具已经获得了显著关注，其中17个工具中有14个累积了数千个星标。截至2024年11月，一些工具在各自的类别中脱颖而出，如 AgentOps（1.7k
+    星标）和 AgentNeo（1k 星标）。在针对 LLM 应用的工具中，Langfuse（6.5k 星标）、PortKey（6.3k 星标）和 Arize（3.9k
+    星标）、TraceLoop（3.4k 星标）以及 DataDog（2.9k 星标）是领先的解决方案。值得注意的是，由于关键词不匹配或文档不完整，一些工具可能被无意中排除。我们旨在通过监控新兴工具并将其纳入未来的工作中来解决这一局限性。
+- en: 'Table 4: Key Features of AgentOps relevant Tools'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 4：AgentOps 相关工具的主要特性
+- en: '| Tool | Customisation | Prompt Mgmt | Evaluation | Feedback | Monitoring |
+    Tracing | Guardrails |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| 工具 | 自定义 | 提示管理 | 评估 | 反馈 | 监控 | 跟踪 | 防护 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Agenta | Yes | Yes | Yes | Yes | Yes | Yes | No |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| Agenta | 是 | 是 | 是 | 是 | 是 | 是 | 否 |'
+- en: '| AgentNeo | Yes | No | Yes | No | Yes | Yes | No |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgentNeo | 是 | 否 | 是 | 否 | 是 | 是 | 否 |'
+- en: '| AgentOps | Yes | Yes | Yes | Yes | Yes | Yes | Yes |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| AgentOps | 是 | 是 | 是 | 是 | 是 | 是 | 是 |'
+- en: '| AGIFlow | Yes | Yes | Yes | No | Yes | Yes | No |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| AGIFlow | 是 | 是 | 是 | 否 | 是 | 是 | 否 |'
+- en: '| Arize | No | No | Yes | No | Yes | Yes | Yes |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| Arize | 否 | 否 | 是 | 否 | 是 | 是 | 是 |'
+- en: '| Datadog | No | No | No | No | Yes | Yes | No |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| Datadog | 否 | 否 | 否 | 否 | 是 | 是 | 否 |'
+- en: '| Dify | Yes | Yes | Yes | Yes | Yes | Yes | Yes |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| Dify | 是 | 是 | 是 | 是 | 是 | 是 | 是 |'
+- en: '| Helicone | No | No | Yes | No | Yes | Yes | No |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| Helicone | 否 | 否 | 是 | 否 | 是 | 是 | 否 |'
+- en: '| Langfuse | No | Yes | Yes | Yes | Yes | Yes | No |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| Langfuse | 否 | 是 | 是 | 是 | 是 | 是 | 否 |'
+- en: '| LangTrace | No | No | Yes | No | Yes | Yes | No |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| LangTrace | 否 | 否 | 是 | 否 | 是 | 是 | 否 |'
+- en: '| LangSmith | No | Yes | Yes | Yes | Yes | Yes | Yes |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| LangSmith | 否 | 是 | 是 | 是 | 是 | 是 | 是 |'
+- en: '| Lunary | No | Yes | Yes | Yes | Yes | Yes | Yes |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| Lunary | 否 | 是 | 是 | 是 | 是 | 是 | 是 |'
+- en: '| TraceLoop | No | No | No | No | Yes | Yes | No |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| TraceLoop | 否 | 否 | 否 | 否 | 是 | 是 | 否 |'
+- en: '| Trulens | No | Yes | Yes | Yes | Yes | Yes | Yes |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| Trulens | 否 | 是 | 是 | 是 | 是 | 是 | 是 |'
+- en: '| Portkey | No | No | Yes | No | Yes | Yes | No |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| Portkey | 否 | 否 | 是 | 否 | 是 | 是 | 否 |'
+- en: 3.2 Key Features
+  id: totrans-101
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 主要特性
+- en: 'We summarized the key features of the identified AgentOps relevant tool, as
+    shown in Table [4](https://arxiv.org/html/2411.05285v2#S3.T4 "Table 4 ‣ 3.1 AgentOps-Relevant
+    Tools ‣ 3 Mapping Study Result ‣ AgentOps: Enabling Observability of LLM Agents")
+    and Table [5](https://arxiv.org/html/2411.05285v2#S3.T5 "Table 5 ‣ 3.2 Key Features
+    ‣ 3 Mapping Study Result ‣ AgentOps: Enabling Observability of LLM Agents").'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们总结了已识别的 AgentOps 相关工具的主要特性，如表格 [4](https://arxiv.org/html/2411.05285v2#S3.T4
+    "表格 4 ‣ 3.1 AgentOps 相关工具 ‣ 3 映射研究结果 ‣ AgentOps：启用 LLM 智能体的可观察性") 和表格 [5](https://arxiv.org/html/2411.05285v2#S3.T5
+    "表格 5 ‣ 3.2 主要特性 ‣ 3 映射研究结果 ‣ AgentOps：启用 LLM 智能体的可观察性") 中展示。
+- en: 'Table 5: AgentOps Relevant Tools Key Features'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 5：AgentOps 相关工具的主要特性
+- en: '| Category | Features | Description |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| 分类 | 特性 | 描述 |'
+- en: '| Customization | Provision, custom, spawn, and deploy autonomous agents |
+    Create customisable and scalable autonomous agents. |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自定义 | 提供、定制、生成和部署自主智能体 | 创建可定制和可扩展的自主智能体。 |'
+- en: '|  | Extend agent capabilities with toolkits | Add toolkits from marketplace
+    to agent workflows. |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 扩展智能体能力与工具包 | 将市场中的工具包添加到智能体工作流中。 |'
+- en: '|  | Extend agent capabilities with multiple vector databases | Connect to
+    multiple vector databases to improve agent’s performance. |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 扩展智能体能力与多个向量数据库 | 连接多个向量数据库以提升智能体性能。 |'
+- en: '|  | Extend agent capabilities with fine-tuned models | Custom fine-tuned models
+    for business specific use cases. |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 使用微调模型扩展代理功能 | 针对特定业务场景的自定义微调模型。 |'
+- en: '| Prompt Management | Prompt versioning and management | Keep track of different
+    versions of prompts used in agents. Useful for A/B testing and optimizing agent
+    performance. |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| 提示管理 | 提示版本控制和管理 | 跟踪代理中使用的不同版本的提示。这对 A/B 测试和优化代理性能非常有用。 |'
+- en: '|  | Prompt playground with model comparisons | Test and compare different
+    prompts and models for agents before deployment. |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 带模型比较的提示沙箱 | 在部署前测试并比较不同的提示和模型。 |'
+- en: '|  | Prompt injection detection | Identify potential code injection and secret
+    leaks. |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 提示注入检测 | 识别潜在的代码注入和秘密泄露。 |'
+- en: '| Evaluation | Test agents against benchmarks and leaderboards. | Create a
+    dataset, define metrics, run evaluations, compare results, track results over
+    time etc. |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| 评估 | 根据基准和排行榜测试代理。 | 创建数据集，定义度量标准，进行评估，比较结果，跟踪结果随时间的变化等。 |'
+- en: '|  | Evaluate agents in diverse step | Evaluate Final Response- Evaluate the
+    agent’s final response. |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 评估代理的多个步骤 | 评估最终响应——评估代理的最终回应。 |'
+- en: '|  |  | Evaluate Single step-Evaluate any agent step in isolation (e.g., whether
+    it selects the appropriate tool). |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 评估单个步骤——独立评估任何代理步骤（例如，是否选择了合适的工具）。 |'
+- en: '|  |  | Evaluate Trajectory- Evaluate whether the agent took the expected path
+    (e.g., of tool calls) to arrive at the final answer. |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 评估轨迹——评估代理是否沿预期路径（例如工具调用）到达最终答案。 |'
+- en: '| Feedback | Collect explicit feedback | Directly prompt the user to give feedback,
+    this can be a thumb up or a thumb down. |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| 反馈 | 收集显性反馈 | 直接提示用户提供反馈，可以是点赞或点踩。 |'
+- en: '|  | Collect implicit feedback | Measure the user’s behavior, this can be time
+    spent on a page, click-through rate. |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 收集隐性反馈 | 测量用户的行为，例如在页面上花费的时间、点击率等。 |'
+- en: '| Monitoring | Agent analytics dashboard | Monitor diverse level and dimension
+    statistics metrics about agents. |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: 监控 | 代理分析仪表板 | 监控有关代理的各类统计指标，包括不同层级和维度的指标。 |
+- en: '|  | LLM cost management and tracking | Track spend (token cost) with foundation
+    model providers. |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | LLM 成本管理与追踪 | 与基础模型提供商一起追踪开销（令牌成本）。 |'
+- en: '| Tracing | LLM/agent tracing | Trace each agent span, e.g., the whole chain,
+    retrieval, LLM call, tool call etc. |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| 跟踪 | LLM/代理跟踪 | 跟踪每个代理跨度，例如整个链条、检索、LLM 调用、工具调用等。 |'
+- en: '|  |  | Trace evaluation span |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 跟踪评估跨度 |'
+- en: '|  |  | Trace user feedback |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 跟踪用户反馈 |'
+- en: '| Guardrails | Predefined rules and constraints | Set rules or constraints
+    to limit agent actions, ensuring safe and predictable behavior. |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| 防护措施 | 预定义规则和约束 | 设置规则或约束，限制代理的行为，确保安全和可预测的操作。 |'
+- en: '|  | Fallback and escalation paths | Provide safe defaults or redirect cases
+    to human operators in ambiguous or risky scenarios. |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 后备和升级路径 | 在模糊或高风险情境中提供安全的默认设置，或将问题重定向至人工操作员。 |'
+- en: 3.2.1 Customization
+  id: totrans-125
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.1 自定义
+- en: When creating agents, existing tools extend agent capabilities by adding toolkits
+    from marketplaces to agent workflows, connecting to multiple knowledge bases to
+    improve performance, and integrating customized fine-tuned models for specific
+    business use cases.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在创建代理时，现有工具通过将市场上的工具包添加到代理工作流程中，连接多个知识库以提高性能，并整合定制的微调模型以应对特定业务用例，从而扩展了代理功能。
+- en: 3.2.2 Prompt Management
+  id: totrans-127
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.2 提示管理
+- en: Prompt versioning and management allow developers to store and track different
+    versions of prompts, making it invaluable for testing, optimizing, and reusing
+    prompts across various stages of agent production. The prompt playground enables
+    developers to edit, import, and test various prompt templates with different models,
+    helping to compare performance before deployment. Additionally, consistent monitoring
+    of prompts is also necessary for maintaining the reliability and security of agents,
+    particularly in detecting and mitigating issues such as code injection attacks
+    and secret leaks embedded within prompts.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提示版本控制和管理允许开发者存储和追踪不同版本的提示，使其在各个阶段的代理生产中不可或缺，特别是对于测试、优化和重用提示。提示沙箱使开发者能够编辑、导入和测试不同的提示模板与模型，帮助在部署前比较性能。此外，持续监控提示也对保持代理的可靠性和安全性至关重要，特别是在检测和减轻如代码注入攻击和提示中的秘密泄露等问题时。
+- en: 3.2.3 Evaluation
+  id: totrans-129
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.3 评估
+- en: Evaluation is the process of assessing the behaviour and capabilities of an
+    agent against specific criteria or general benchmarks. The typical evaluation
+    process involves creating a suitable evaluation dataset, defining clear criteria
+    and metrics, and conducting thorough testing based on these predefined metrics.
+    It is important to test the agent’s performance against user requirements, standard
+    leaderboards or comparable systems. For agents, evaluation goes beyond simply
+    assessing the the final output. It is equally important to monitor and track the
+    agent’s execution steps and evaluate intermediate outputs to ensure the entire
+    process meets the intended goals and aligns with governance requirements.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估是根据特定标准或一般基准评估智能体行为和能力的过程。典型的评估过程包括创建合适的评估数据集，定义明确的标准和指标，并根据这些预定义的指标进行全面测试。测试智能体的性能时，必须对照用户需求、标准排行榜或可比系统进行评估。对于智能体来说，评估不仅仅是评估最终输出。监控和跟踪智能体的执行步骤，评估中间输出同样重要，以确保整个过程符合预期目标并与治理要求对齐。
+- en: 'LangSmith⁶⁶6LangSmith.[https://docs.smith.langchain.com/evaluation](https://docs.smith.langchain.com/evaluation)
+    introduces two additional dimensions of agent evaluation: 1) Step-by-Step Evaluation:
+    Assess each individual step the agent takes in isolation, such as determining
+    whether it selects the appropriate tool. 2) Trajectory Evaluation: Examine whether
+    the agent followed the expected sequence of actions, including the series of tool
+    calls, to arrive at the final answer. This ensures that the decision-making process
+    is sound, not just the outcome.'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LangSmith⁶⁶6LangSmith.[https://docs.smith.langchain.com/evaluation](https://docs.smith.langchain.com/evaluation)引入了智能体评估的两个额外维度：1)
+    步骤评估：评估智能体在孤立情况下采取的每个步骤，例如判断它是否选择了合适的工具。2) 轨迹评估：检查智能体是否遵循了预期的行动顺序，包括一系列工具调用，以得出最终答案。这确保了决策过程是合理的，而不仅仅是结果。
+- en: 3.2.4 Feedback
+  id: totrans-132
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.4 反馈
+- en: 'Human feedback plays a key role in evaluating the quality of an agent’s output.
+    Feedback is collected as a score and attached to an execution trace or an individual
+    LLM generation. Feedback can be also used to retrain/fine-tune LLM or improve
+    the design of agents (e.g. stored in memory or used in prompts as positive or
+    negative examples). Langfuse⁷⁷7Langfuse.[https://langfuse.com/docs/scores/user-feedback](https://langfuse.com/docs/scores/user-feedback)
+    defined different types of feedback that can be collected that vary in quality,
+    detail, and quantity: 1) Explicit Feedback: Directly prompt the user to give feedback,
+    this can be a rating, a like, a dislike, a scale or a comment. While it is simple
+    to implement, quality and quantity of the feedback is often low. More structured
+    and fine-grained feedback is expected. 2) Implicit Feedback: Measure the user’s
+    behavior, e.g., time spent on a page, click-through rate, accepting or rejecting
+    final output. This type of feedback is more difficult to implement but is often
+    more frequent and reliable.'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 人类反馈在评估智能体输出质量中起着关键作用。反馈以评分的形式收集，并附加到执行轨迹或单个LLM生成中。反馈也可以用于重新训练/微调LLM或改善智能体的设计（例如，存储在记忆中或作为正面或负面示例用于提示）。Langfuse⁷⁷7Langfuse.[https://langfuse.com/docs/scores/user-feedback](https://langfuse.com/docs/scores/user-feedback)定义了可以收集的不同类型的反馈，这些反馈在质量、细节和数量上有所不同：1)
+    显式反馈：直接提示用户提供反馈，可以是评分、点赞、点踩、量表或评论。尽管实现简单，但反馈的质量和数量通常较低。预计会有更结构化和更细致的反馈。2) 隐式反馈：衡量用户行为，例如在页面上停留的时间、点击率、接受或拒绝最终输出。这种类型的反馈较难实现，但通常更频繁且更可靠。
+- en: 3.2.5 Monitoring
+  id: totrans-134
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.5 监控
+- en: Developers can continuously monitor agent performance and enhance observability
+    throughout the agent’s execution process by closely tracking its outputs. This
+    involves keeping track of monitoring metrics (e.g., latency and cost), associating
+    feedback with agent spans to evaluate performance, and debugging issues by diving
+    into specific traces and spans where errors occurred. Monitoring also helps identify
+    the root causes of unexpected results, errors, or latency issues, allowing developers
+    to optimize performance based on real-time feedback.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发者可以通过密切跟踪智能体的输出，持续监控其性能并增强可观测性。这涉及跟踪监控指标（例如延迟和成本），将反馈与智能体跨度关联以评估性能，并通过深入分析发生错误的特定跟踪和跨度来调试问题。监控还帮助识别意外结果、错误或延迟问题的根本原因，使开发者能够根据实时反馈优化性能。
+- en: 3.2.6 Tracing
+  id: totrans-136
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.6 跟踪
+- en: 'AgentOps is designed to support developers in transitioning from prototype
+    to production, ensuring that the work does not stop once the agent is created
+    and initial tests are passed. Within the otool, agents execute increasingly complex
+    tasks and iterative runs, such as chains, tool-assisted agents, and advanced prompts.
+    By adding traces, AgentOps captures the entire process—from the moment a user
+    sends a prompt to the final output—helping developers understand each step and
+    identify the root causes of any issues. Execution tracing allows developers to
+    follow the agent’s decision-making process step-by-step, providing insights into
+    the flow of actions, decisions, and interactions. This helps identify where errors
+    or unexpected behaviors originate, making it easier to isolate and address problems
+    within complex agentic workflows. There is no doubt that tracing is the most direct
+    way to enable observability in AgentOps platform. All tools listed in the Table
+    [3](https://arxiv.org/html/2411.05285v2#S3.T3 "Table 3 ‣ 3 Mapping Study Result
+    ‣ AgentOps: Enabling Observability of LLM Agents") have implemented tracing functionality.'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'AgentOps旨在支持开发者从原型到生产环境的过渡，确保在代理创建和初步测试通过后，工作不会停止。在otool中，代理执行越来越复杂的任务和迭代运行，例如链、工具辅助代理和高级提示。通过添加追踪，AgentOps捕获了整个过程——从用户发送提示到最终输出——帮助开发者理解每个步骤并找出任何问题的根本原因。执行追踪允许开发者逐步跟踪代理的决策过程，提供对行动、决策和互动流程的洞察。这有助于识别错误或意外行为的来源，使得在复杂的代理工作流中更容易隔离和解决问题。毫无疑问，追踪是实现AgentOps平台可观察性的最直接方式。表格[3](https://arxiv.org/html/2411.05285v2#S3.T3
+    "Table 3 ‣ 3 Mapping Study Result ‣ AgentOps: Enabling Observability of LLM Agents")中列出的所有工具都实现了追踪功能。'
+- en: 3.2.7 Guardrails
+  id: totrans-138
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.7 防护措施
+- en: Guardrails for agent application are essential for ensuring AI-safety-by-design.
+    Arize have already integrated Arize Guards⁸⁸8Arize Guards. [https://docs.arize.com/arize/llm-monitoring-and-guardrails/guardrails](https://docs.arize.com/arize/llm-monitoring-and-guardrails/guardrails).
+    Additionally, an increasing number of tools (e.g., AgentNeo⁹⁹9AgentNeo. [https://github.com/raga-ai-hub/agentneo](https://github.com/raga-ai-hub/agentneo)
+    ) have Guardrails implementation on their planned feature lists, aiming to enhance
+    the safety of agents. AgentOps tools can trace the activation, execution process
+    and outcomes of guardrails, which can be used to generate safety cases for auditing
+    purposes.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代理应用的防护措施对于确保AI安全设计至关重要。Arize已经集成了Arize Guards⁸⁸8Arize Guards。[https://docs.arize.com/arize/llm-monitoring-and-guardrails/guardrails](https://docs.arize.com/arize/llm-monitoring-and-guardrails/guardrails)。此外，越来越多的工具（例如AgentNeo⁹⁹9AgentNeo。[https://github.com/raga-ai-hub/agentneo](https://github.com/raga-ai-hub/agentneo)）在其计划功能列表中也有防护措施的实现，旨在提高代理的安全性。AgentOps工具可以追踪防护措施的激活、执行过程及结果，这些可以用于生成安全案例以供审计之用。
+- en: 4 Taxonomy of AgentOps
+  id: totrans-140
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 AgentOps分类法
+- en: '![Refer to caption](img/bb0daebc9a8cbea78656e6e5462edd31.png)'
+  id: totrans-141
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/bb0daebc9a8cbea78656e6e5462edd31.png)'
+- en: 'Figure 2: Entity-Relationship Model for Agent Artifacts'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：代理工件的实体关系模型
+- en: Once agent developer have deployed their agent, they need trace its execution
+    process to monitor agent performance and evolution of agent artifacts. The AgentOps
+    tool provides tracing functions to troubleshoot performance and correlate data
+    throughout the product, enabling developer to find and resolve issues in agents.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦代理开发者部署了他们的代理，他们需要追踪其执行过程，以监控代理的性能和工件的演变。AgentOps工具提供了追踪功能，帮助排查性能问题并关联产品中的数据，使开发者能够发现并解决代理中的问题。
+- en: In this section, we first introduce an entity-relationship model to describe
+    various relationships between different agent artifacts. Then, we present a comprehensive
+    taxonomy of Agentops, which serves as a template for developers to design and
+    implement AgentOps tools for tracing agent artifacts and their associate data.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们首先介绍了一个实体关系模型，用于描述不同代理工件之间的各种关系。然后，我们呈现了AgentOps的全面分类法，它作为开发者设计和实现AgentOps工具以追踪代理工件及其相关数据的模板。
+- en: 4.1 Entity-Relationship Model for Agent Artifacts
+  id: totrans-145
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 代理工件的实体关系模型
+- en: 'To clarify the relationships between traceable artifacts, Figure [2](https://arxiv.org/html/2411.05285v2#S4.F2
+    "Figure 2 ‣ 4 Taxonomy of AgentOps ‣ AgentOps: Enabling Observability of LLM Agents")
+    illustrates the connections among nested spans in an agent trace.'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了阐明可追踪工件之间的关系，图[2](https://arxiv.org/html/2411.05285v2#S4.F2 "Figure 2 ‣ 4
+    Taxonomy of AgentOps ‣ AgentOps: Enabling Observability of LLM Agents")展示了代理追踪中嵌套跨度之间的联系。'
+- en: When an agent receives a user goal, it can utilize zero or more knowledge bases
+    to gather information or support decision-making. These knowledge bases supply
+    essential data and contextual information for the agent span. A single reasoning
+    span generates a plan, structured through logical processes and analysis.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当一个代理接收到用户目标时，它可以利用零个或多个知识库来收集信息或支持决策。这些知识库为代理跨度提供了必要的数据和上下文信息。单一的推理跨度生成一个计划，通过逻辑过程和分析来构建。
+- en: An agent can generate multiple plan spans, each representing a structured plan
+    to address specific objectives. The agent relies on these plans to organize and
+    coordinate its tasks. Each plan span may call one or more LLM spans to leverage
+    the LLM’s processing capabilities, aiding in the execution of planned actions.
+    A plan is realized as a single Workflow, translating the strategic plan into practical
+    execution.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个代理可以生成多个计划跨度，每个跨度代表一个结构化的计划，用于实现特定目标。代理依赖这些计划来组织和协调其任务。每个计划跨度可能调用一个或多个LLM跨度，以利用LLM的处理能力，帮助执行计划中的操作。一个计划通过单一工作流得以实现，将战略计划转化为实际执行。
+- en: A workflow comprises multiple tasks, with each task representing a specific
+    action within the larger workflow. These task collectively fulfill the goals outlined
+    in the workflow. Each task may utilise one or more tools, providing additional
+    functionality or resources essential for task execution. Task may also call one
+    or more LLM spans to access model-based functionalities, such as prediction or
+    analysis, that are critical for task completion.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个工作流由多个任务组成，每个任务代表工作流中的一个特定操作。这些任务共同实现工作流中概述的目标。每个任务可能使用一个或多个工具，提供额外的功能或资源，帮助任务执行。任务还可以调用一个或多个LLM跨度，以访问基于模型的功能，如预测或分析，这对于任务的完成至关重要。
+- en: Evaluation spans assess either a specific agent, a plan or a single workflow,
+    ensuring that the agent’s overall performance or the effectiveness of the workflow
+    aligns with intended goals. The guardrail monitors all other spans in the agent’s
+    lifecycle, enforcing constraints and ensuring compliance with predefined rules.
+    This universal connection helps maintain the safety of the agent’s actions across
+    all spans.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估跨度评估特定代理、计划或单一工作流，确保代理的整体性能或工作流的有效性与预定目标一致。安全守卫监控代理生命周期中的所有其他跨度，执行约束并确保遵守预定义规则。这一通用连接有助于保持代理在所有跨度中的行为安全。
+- en: '![Refer to caption](img/af6f98d2de2ea2b4d03661860f2237bb.png)'
+  id: totrans-151
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/af6f98d2de2ea2b4d03661860f2237bb.png)'
+- en: 'Figure 3: Taxonomy of AgentOps'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：AgentOps的分类
+- en: 4.2 Taxonomy of AgentOps
+  id: totrans-153
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 AgentOps的分类
+- en: In AgentOps, a trace reveals the entire process from the moment a user submits
+    a goal achieving request to the point when the final result is delivered. This
+    includes the reasoning process, the plan generated, the workflow along with its
+    associated tasks, the knowledge retrieved, the tools invoked, the evaluation and
+    guardrails applied, and multiple LLM calls.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在AgentOps中，一条追踪揭示了从用户提交目标请求到最终结果交付的整个过程。这包括推理过程、生成的计划、工作流及其相关任务、检索的知识、调用的工具、应用的评估和安全守卫，以及多个LLM调用。
+- en: A trace consists of one or more spans. The first span represents the root span.
+    Each root span represents a request from start to finish. The spans beneath the
+    parent provide deeper context for what occurs during a request, detailing the
+    steps that make up the request.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一条追踪由一个或多个跨度组成。第一个跨度代表根跨度。每个根跨度代表从开始到结束的请求。父级下的跨度提供了请求过程中发生的更深层次的上下文，详细说明构成请求的步骤。
+- en: 'Aspan could consists of the following metadata attributes:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个跨度可能包含以下元数据属性：
+- en: •
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Name: The label or identifier of the span, indicating the type of operation
+    being performed.'
+  id: totrans-158
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 名称：跨度的标签或标识符，表示正在执行的操作类型。
+- en: •
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Start Timestamp: The exact time when the span begins, providing temporal context
+    for tracking and performance analysis.'
+  id: totrans-160
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 开始时间戳：跨度开始的确切时间，为跟踪和性能分析提供时间背景。
+- en: •
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Duration: The total time taken for the span’s operation, measured from start
+    to finish. This metric helps in analyzing efficiency and identifying potential
+    performance bottlenecks.'
+  id: totrans-162
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 持续时间：跨度操作所需的总时间，从开始到结束进行测量。此指标有助于分析效率并识别潜在的性能瓶颈。
+- en: •
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Attributes:'
+  id: totrans-164
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 属性：
+- en: –
+  id: totrans-165
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Inputs and Outputs: Data fed into the span (e.g., user goal) and the resulting
+    outputs (e.g., tool calling result or final result).'
+  id: totrans-166
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 输入和输出：输入到跨度的数据（例如，用户目标）和产生的输出（例如，工具调用结果或最终结果）。
+- en: –
+  id: totrans-167
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Error Type, Message, and Traceback: Information about any errors encountered,
+    including the error type, a descriptive message, and traceback details for debugging.'
+  id: totrans-168
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 错误类型、消息和回溯：有关遇到的任何错误的信息，包括错误类型、描述性消息和用于调试的回溯细节。
+- en: –
+  id: totrans-169
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Metrics: Quantitative data related to the span, such as input_tokens, output_tokens,
+    evaluation metrics, monitoring metrics, which measure and track cost usage and
+    agent performance.'
+  id: totrans-170
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 指标：与跨度相关的定量数据，例如输入令牌、输出令牌、评估指标、监控指标，用于衡量和跟踪成本使用情况和代理的性能。
+- en: •
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Events: Specific occurrences or a detailed timeline of actions and transitions
+    within each span, providing detailed insights into the span’s activities or any
+    notable events during its lifecycle.'
+  id: totrans-172
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 事件：每个跨度内的具体事件或详细的行动与过渡时间线，提供关于跨度活动或生命周期中任何显著事件的详细见解。
+- en: •
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Parent ID: An identifier that links this span to its parent span, establishing
+    a hierarchical relationship between spans and helping to track nested operations.'
+  id: totrans-174
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 父级ID：一个标识符，将该跨度与其父级跨度关联，建立跨度之间的层次关系，帮助跟踪嵌套操作。
+- en: •
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Links: Connections to other spans or external references, which can help in
+    understanding dependencies and relationships between different spans in a complex
+    workflow.'
+  id: totrans-176
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 链接：与其他跨度或外部参考的连接，有助于理解复杂工作流中不同跨度之间的依赖关系和相互关系。
+- en: 'In the context of agent spans, where a trace consists of a series of nested
+    spans representing different operational spans or runs, each type of span involved
+    in agent span plays a distinct role. The agent span includes the following nested
+    spans:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在代理跨度的上下文中，一个追踪由一系列嵌套跨度组成，表示不同的操作跨度或执行过程，每种类型的跨度在代理跨度中扮演着独特的角色。代理跨度包括以下嵌套跨度：
+- en: •
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Agent Span: The agent span metadata includes the agent’s role and persona,
+    which significantly influence how the agent performs tasks, interacts with users
+    and makes decisions. The agent span meta data includes the following.'
+  id: totrans-179
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 代理跨度：代理跨度元数据包括代理的角色和个性，这对代理执行任务、与用户互动以及做出决策的方式有重要影响。代理跨度元数据包括以下内容：
+- en: –
+  id: totrans-180
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Agent Role: The scope or responsibility of the agent.'
+  id: totrans-181
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 代理角色：代理的范围或职责。
+- en: –
+  id: totrans-182
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Agent Persona: The behavioral characteristics and interaction style the agent
+    adopts.'
+  id: totrans-183
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 代理个性：代理采取的行为特征和互动风格。
+- en: •
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Reasoning Span: Reasoning span, captures the reasoning processes of the agent.
+    Reasoning Span metadata including:'
+  id: totrans-185
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 推理跨度：推理跨度捕捉代理的推理过程。推理跨度元数据包括：
+- en: –
+  id: totrans-186
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Context: The relevant information or situational data that informs the reasoning
+    process. This may include inputs from previous spans or external factors that
+    influence the agent’s reasoning.'
+  id: totrans-187
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 上下文：为推理过程提供的相关信息或情境数据。可能包括来自先前跨度的输入或影响代理推理的外部因素。
+- en: –
+  id: totrans-188
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Retrieved Knowledge: Information or data that the agent retrieves and references
+    during reasoning, possibly from external sources or memory, to support its reasoning.'
+  id: totrans-189
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 检索知识：代理在推理过程中检索和引用的信息或数据，可能来自外部来源或记忆，以支持其推理。
+- en: –
+  id: totrans-190
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Inference Rules and Boundary: The logical rules, constraints, or boundaries
+    applied during the reasoning. This could include specific guidelines or conditions
+    under which the agent performs reasoning.'
+  id: totrans-191
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 推理规则与边界：推理过程中应用的逻辑规则、约束或边界。这可能包括在特定条件下代理执行推理的具体指南或条件。
+- en: –
+  id: totrans-192
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Outcome: The thoughts generated or conclusion reached after the reasoning process.'
+  id: totrans-193
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 结果：推理过程后生成的想法或得出的结论。
+- en: •
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Planning Span: Planning span records the planning phase, where the agent outlines
+    the steps or objectives required to achieve the goal. It defines the intended
+    sequence of operations, setting up a structured path for the agent’s activities.
+    Planning Span metadata including:'
+  id: totrans-195
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 计划跨度：计划跨度记录了计划阶段，在该阶段，代理概述了实现目标所需的步骤或目标。它定义了预期的操作顺序，为代理的活动设定了结构化路径。计划跨度元数据包括：
+- en: –
+  id: totrans-196
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Goal: The specific objective or desired outcome that the agent intends to achieve
+    through this plan.'
+  id: totrans-197
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 目标：代理通过此计划旨在实现的具体目标或期望结果。
+- en: –
+  id: totrans-198
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Constraints: The limitations or restrictions within which the plan must operate.
+    These constraints can include time limits, resource limitations, or predefined
+    rules that shape the planning process.'
+  id: totrans-199
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 约束：计划必须遵守的限制或约束。这些约束可能包括时间限制、资源限制或形塑计划过程的预定义规则。
+- en: –
+  id: totrans-200
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Context: Relevant situational or environmental information that informs the
+    plan.'
+  id: totrans-201
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 上下文：为计划提供相关的情境或环境信息。
+- en: –
+  id: totrans-202
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Historical Plans: Records of previous plans that may influence the current
+    planning process. This includes past strategies or actions taken in similar contexts,
+    which can provide valuable insights or best practices for the current plan.'
+  id: totrans-203
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 历史计划：可能影响当前计划过程的过去计划记录。包括在类似背景下采取的过去策略或行动，这些可以为当前计划提供有价值的见解或最佳实践。
+- en: •
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Workflow Span: Within the workflow span, the trace documents the organization
+    of tasks through task spans and tool Spans. The workflow span, supported by an
+    LLMspan, details how individual tasks are broken down and managed. The task span
+    represents specific actions within the workflow, while the tool span (nested within
+    the task span) logs interactions with tools or external resources the agent uses
+    to fulfill specific parts of the workflow.'
+  id: totrans-205
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 工作流跨度：在工作流跨度中，跟踪记录了任务跨度和工具跨度的组织结构。工作流跨度由LLM跨度支持，详细说明了如何拆解和管理各个任务。任务跨度代表工作流中的具体操作，而工具跨度（嵌套在任务跨度内）记录了代理为完成工作流中的特定部分而与工具或外部资源的交互。
+- en: The metadata of the workflow span includes the following.
+  id: totrans-206
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 工作流跨度的元数据包括以下内容：
+- en: –
+  id: totrans-207
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Tasks: A list of task span that need to be completed as part of the workflow.
+    This defines the specific actions or steps the agent needs to perform within this
+    span.'
+  id: totrans-208
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 任务：作为工作流一部分需要完成的任务跨度列表。此列表定义了代理在此跨度内需要执行的具体操作或步骤。
+- en: –
+  id: totrans-209
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Task Dependencies: Information about dependencies between tasks, indicating
+    the order in which tasks should be executed or any prerequisites required for
+    specific tasks. This helps manage the sequence and ensures that tasks are executed
+    in a logical, efficient manner.'
+  id: totrans-210
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 任务依赖：关于任务之间依赖关系的信息，指示任务应按何种顺序执行或执行特定任务所需的前提条件。这有助于管理任务的顺序，并确保任务以合乎逻辑和高效的方式执行。
+- en: –
+  id: totrans-211
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Operational Context: The situational information or environment details relevant
+    to executing the workflow. This can include real-time conditions, status updates
+    from other spans, or external factors that might influence task execution.'
+  id: totrans-212
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 操作环境：与执行工作流相关的情境信息或环境细节。可以包括实时条件、来自其他跨度的状态更新或可能影响任务执行的外部因素。
+- en: –
+  id: totrans-213
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Past Execution History: Records of previous executions of similar workflows
+    or tasks in (long-term) memory module, which can provide insights into best practices,
+    potential pitfalls, or optimisation opportunities for the current workflow.'
+  id: totrans-214
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 过去执行历史：在（长期）记忆模块中记录的以往相似工作流或任务的执行记录，这些可以为当前工作流提供最佳实践、潜在问题或优化机会的见解。
+- en: •
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Task Span: The task span represents a discrete unit of work or action within
+    a workflow. It is a fundamental part of the workflow structure, defining individual
+    tasks that the agent needs to execute in a sequence or parallel arrangement. The
+    task span metadata includes:'
+  id: totrans-216
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 任务跨度：任务跨度代表工作流中的一个离散工作单元或操作。它是工作流结构的基本组成部分，定义了代理需要按顺序或并行执行的各个任务。任务跨度的元数据包括：
+- en: –
+  id: totrans-217
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Task Description: Specific information about the task to be performed, including
+    task objectives, instructions, and parameters needed for execution.'
+  id: totrans-218
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 任务描述：执行任务的具体信息，包括任务目标、指令以及执行所需的参数。
+- en: –
+  id: totrans-219
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Task Status: The current status (e.g., pending, in progress, completed) and
+    the result of the task, which could include success, failure, or a specific output
+    generated by the task.'
+  id: totrans-220
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 任务状态：任务的当前状态（例如，待处理、进行中、已完成）及任务结果，其中可能包括成功、失败或任务生成的特定输出。
+- en: •
+  id: totrans-221
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Tool Span: The tool span represents interactions with external tools or resources
+    that assist in task execution. This span captures details about tools utilized
+    by the agent, logging their configurations, responses, and any intermediate outputs.
+    Tool Span metadata includes:'
+  id: totrans-222
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 工具跨度：工具跨度代表与外部工具或资源的交互，这些工具或资源有助于任务的执行。此跨度记录了代理使用的工具的详细信息，包括其配置、响应和任何中间输出。工具跨度的元数据包括：
+- en: –
+  id: totrans-223
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Tool Name: The name of the tool.'
+  id: totrans-224
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 工具名称：工具的名称。
+- en: –
+  id: totrans-225
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Tool Version: The version of the tool.'
+  id: totrans-226
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 工具版本：工具的版本。
+- en: –
+  id: totrans-227
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Configuration Settings: Parameters or settings configured for the tool during
+    its use, such as version restriction, input formats, timeouts, or resource limits
+    that may influence its behavior.'
+  id: totrans-228
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 配置设置：在使用工具过程中为其配置的参数或设置，如版本限制、输入格式、超时或可能影响工具行为的资源限制。
+- en: •
+  id: totrans-229
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Evaluation Span: The evaluation span assesses the correctness and quality of
+    the agent’s actions and outputs performance against predefined criteria. It verifies
+    whether the agent’s actions align with expectations or quality standards, providing
+    a feedback mechanism to ensure that outputs meet the intended goals.'
+  id: totrans-230
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 评估跨度：评估跨度评估代理的行为和输出的正确性及质量，与预定义标准的性能进行对比。它验证代理的行为是否符合预期或质量标准，并提供反馈机制，以确保输出符合预期目标。
+- en: The metadata of the evaluation span includes the following.
+  id: totrans-231
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 评估跨度的元数据包括以下内容：
+- en: –
+  id: totrans-232
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Test Cases: Specific scenarios or conditions under which the agent’s performance
+    or outputs are evaluated. These cases provide a structured way to assess the agent’s
+    actions and outcomes against expected behavior [[8](https://arxiv.org/html/2411.05285v2#bib.bib8)].'
+  id: totrans-233
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 测试用例：评估代理表现或输出的特定场景或条件。这些用例为评估代理的行为和结果提供了结构化的方式，以与预期行为对比[[8](https://arxiv.org/html/2411.05285v2#bib.bib8)]。
+- en: –
+  id: totrans-234
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Testing Metrics: Quantitative or qualitative measures used to assess the agent’s
+    performance. These metrics could include accuracy, efficiency, relevance, or other
+    criteria that define the quality of the agent’s output.'
+  id: totrans-235
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 测试指标：用于评估代理表现的定量或定性度量标准。这些指标可以包括准确性、效率、相关性或定义代理输出质量的其他标准。
+- en: –
+  id: totrans-236
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Testing Results: The actual outcomes or findings from the evaluation process,
+    indicating how well the agent’s performance aligns with the expected standards
+    defined in the test cases and metrics.'
+  id: totrans-237
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 测试结果：评估过程中的实际结果或发现，表明代理的表现与测试用例和指标中定义的预期标准的符合程度。
+- en: •
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Guardrail Span: The guardrail span defines the guardrails applied to ensure
+    the agent’s operations are aligned with expected governance requirements [[9](https://arxiv.org/html/2411.05285v2#bib.bib9)].
+    It helps prevent errors or unintended actions by setting boundaries on the agent’s
+    behavior. Guardrail span metadata includes:'
+  id: totrans-239
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 护栏跨度：护栏跨度定义了应用的护栏，以确保代理的操作与预期的治理要求对齐[[9](https://arxiv.org/html/2411.05285v2#bib.bib9)]。它通过为代理的行为设定边界，帮助防止错误或不当行为。护栏跨度元数据包括：
+- en: –
+  id: totrans-240
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Guardrail Actions: Guardrails actions triggered, such as block, validation,
+    filter, etc.'
+  id: totrans-241
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 护栏动作：触发的护栏动作，如阻止、验证、过滤等。
+- en: –
+  id: totrans-242
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'Guardrail Targets: Specific agent artifacts that guardrails are applied, such
+    as goals and tools.'
+  id: totrans-243
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 护栏目标：应用护栏的特定代理工件，如目标和工具。
+- en: •
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'LLM Span: The LLM Span captures interactions with an LLM, where the model processes
+    language-based inputs to generate responses or insights. This span is essential
+    for tasks involving natural language understanding, generation, or interpretation.
+    LLM Span metadata could includes:'
+  id: totrans-245
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM跨度：LLM跨度捕捉与LLM的互动，其中模型处理基于语言的输入以生成回应或见解。这个跨度对于涉及自然语言理解、生成或解释的任务至关重要。LLM跨度元数据可能包括：
+- en: –
+  id: totrans-246
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'LLM Name: The name of the LLM.'
+  id: totrans-247
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM名称：LLM的名称。
+- en: –
+  id: totrans-248
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'LLM Version: The version of the LLM.'
+  id: totrans-249
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM版本：LLM的版本。
+- en: –
+  id: totrans-250
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: –
+- en: 'LLM Parameters: Settings applied to the LLM, such as temperature (affecting
+    randomness), max_tokens (limiting response length), and other relevant hyper-parameters
+    that shape the output.'
+  id: totrans-251
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LLM参数：应用于LLM的设置，如温度（影响随机性）、max_tokens（限制回应长度）以及其他形状输出的相关超参数。
+- en: 5 Threats to Validity
+  id: totrans-252
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5种有效性威胁
+- en: 'Tool Selection Limitations: Due to the rapid proliferation of various tools
+    and AI platforms, it is possible that not all relevant AgentOps tools were identified.
+    To address this limitation, we selected tools from multiple data sources. The
+    identified tools include both open-source AgentOps tools, such as AgentOps and
+    Langfuse, as well as commercial observability platforms like Datadog.'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 工具选择限制：由于各种工具和人工智能平台的快速传播，可能并非所有相关的AgentOps工具都已被识别。为了应对这一限制，我们从多个数据源中选择了工具。所识别的工具包括开源的AgentOps工具，如AgentOps和Langfuse，以及商业观察平台，如Datadog。
+- en: 'Data Coverage Limitations: The comprehensive overview of traceable artifacts
+    throughout the AgentOps life-cycle provided in this work may not encompass all
+    possible data attributes related to AI agents. To ensure broader coverage of important
+    traceable data across the entire life-cycle of an agent and enrich on the data
+    attributes outlined in our paper, we have drawn on some relevant academic literature
+    [[10](https://arxiv.org/html/2411.05285v2#bib.bib10), [9](https://arxiv.org/html/2411.05285v2#bib.bib9),
+    [11](https://arxiv.org/html/2411.05285v2#bib.bib11)] to support our findings as
+    well. However, some potentially valuable data, such as trace links and interactions
+    between different steps, may have been missed. Future work will aim to explore
+    these gaps further.'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据覆盖限制：本研究提供的关于 AgentOps 生命周期中可追溯工件的综合概述，可能未涵盖与 AI 智能体相关的所有可能数据属性。为了确保覆盖智能体整个生命周期中的重要可追溯数据，并丰富我们论文中列出的数据属性，我们还参考了一些相关的学术文献
+    [[10](https://arxiv.org/html/2411.05285v2#bib.bib10)，[9](https://arxiv.org/html/2411.05285v2#bib.bib9)，[11](https://arxiv.org/html/2411.05285v2#bib.bib11)]
+    来支持我们的发现。然而，一些潜在有价值的数据，如不同步骤之间的追踪链接和交互，可能被遗漏。未来的研究将着重于进一步探索这些空白。
+- en: 6 Conclusion
+  id: totrans-255
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论
+- en: In this paper, we proposed AgentOps, a specialised DevOps paradigm tailored
+    for LLM agents to enable observability. Through a systematic mapping study of
+    existing AgentOps relevant tools, we first proposed an entity-relationship model
+    to understand the key agent artifacts and their relationship. Then we presented
+    a comprehensive taxonomy of AgentOps, offering a structured template for developers
+    to design and implement AgentOps tools. Future research will focus on validating
+    the proposed taxonomy through real-world case studies and the development of a
+    AgentOps tool prototype.
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了 AgentOps，这是一个专门为大语言模型（LLM）智能体量身定制的 DevOps 范式，旨在实现可观察性。通过对现有 AgentOps 相关工具的系统化映射研究，我们首先提出了一个实体-关系模型，以理解关键智能体工件及其关系。随后，我们展示了
+    AgentOps 的全面分类法，为开发人员设计和实现 AgentOps 工具提供了结构化模板。未来的研究将重点通过实际案例研究验证所提出的分类法，并开发 AgentOps
+    工具原型。
+- en: References
+  id: totrans-257
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] R. Bommasani, D. A. Hudson, E. Adeli, R. Altman, S. Arora, S. von Arx,
+    M. S. Bernstein, J. Bohg, A. Bosselut, E. Brunskill *et al.*, “On the opportunities
+    and risks of foundation models,” *arXiv preprint arXiv:2108.07258*, 2021.'
+  id: totrans-258
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] R. Bommasani, D. A. Hudson, E. Adeli, R. Altman, S. Arora, S. von Arx,
+    M. S. Bernstein, J. Bohg, A. Bosselut, E. Brunskill *等*，“关于基础模型的机遇与风险，”*arXiv
+    预印本 arXiv:2108.07258*，2021年。'
+- en: '[2] Y. Liu, S. K. Lo, Q. Lu, L. Zhu, D. Zhao, X. Xu, S. Harrer, and J. Whittle,
+    “Agent design pattern catalogue: A collection of architectural patterns for foundation
+    model based agents,” 2024\. [Online]. Available: [https://arxiv.org/abs/2405.10467](https://arxiv.org/abs/2405.10467)'
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] Y. Liu, S. K. Lo, Q. Lu, L. Zhu, D. Zhao, X. Xu, S. Harrer, 和 J. Whittle,
+    “智能体设计模式目录：基础模型智能体的架构模式集，”2024年。[在线]。可用链接：[https://arxiv.org/abs/2405.10467](https://arxiv.org/abs/2405.10467)'
+- en: '[3] Q. Lu, L. Zhu, X. Xu, Z. Xing, S. Harrer, and J. Whittle, “Towards responsible
+    generative ai: A reference architecture for designing foundation model based agents,”
+    in *2024 IEEE 21st International Conference on Software Architecture Companion
+    (ICSA-C)*.   IEEE, 2024, pp. 119–126.'
+  id: totrans-260
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] Q. Lu, L. Zhu, X. Xu, Z. Xing, S. Harrer, 和 J. Whittle, “走向负责任的生成式 AI：设计基于基础模型的智能体的参考架构，”发表于
+    *2024 IEEE 第21届国际软件架构会议（ICSA-C）*。IEEE，2024，第119–126页。'
+- en: '[4] Q. Lu, L. Zhu, J. Whittle, X. Xu *et al.*, *Responsible AI: Best Practices
+    for Creating Trustworthy AI Systems*.   Addison-Wesley, 2023.'
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] Q. Lu, L. Zhu, J. Whittle, X. Xu *等*，*负责任的 AI：创建可信 AI 系统的最佳实践*。Addison-Wesley，2023。'
+- en: '[5] L. Bass, Q. Lu, I. Weber, and L. Zhu, *Engineering AI Systems: Architecture
+    and DevOps Essentials*.   Addison-Wesley, 2025.'
+  id: totrans-262
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] L. Bass, Q. Lu, I. Weber, 和 L. Zhu, *工程化 AI 系统：架构与 DevOps 基础*. Addison-Wesley，2025。'
+- en: '[6] B. Kitchenham and S. Charters, “Guidelines for performing systematic literature
+    reviews in software engineering version 2.3,” Software Engineering Group, School
+    of Computer Science and Mathematics, Keele University and Department of Computer
+    Science University of Durham, Tech. Rep., 2007.'
+  id: totrans-263
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] B. Kitchenham 和 S. Charters, “在软件工程中执行系统文献综述的指南版本 2.3，”软件工程组，计算机科学与数学学院，基尔大学与达勒姆大学计算机科学系，技术报告，2007年。'
+- en: '[7] V. Garousi, M. Felderer, and M. V. Mäntylä, “Guidelines for including grey
+    literature and conducting multivocal literature reviews in software engineering,”
+    *Inf. Softw. Technol.*, vol. 106, pp. 101–121, 2019\. [Online]. Available: [https://doi.org/10.1016/j.infsof.2018.09.006](https://doi.org/10.1016/j.infsof.2018.09.006)'
+  id: totrans-264
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] V. Garousi, M. Felderer, 和 M. V. Mäntylä, “在软件工程中纳入灰色文献和进行多声部文献综述的指南”，
+    *Inf. Softw. Technol.*，第 106 卷，第 101-121 页，2019。 [在线]。可用链接：[https://doi.org/10.1016/j.infsof.2018.09.006](https://doi.org/10.1016/j.infsof.2018.09.006)'
+- en: '[8] B. Xia, Q. Lu, L. Zhu, Z. Xing, D. Zhao, and H. Zhang, “An evaluation-driven
+    approach to designing llm agents: Process and architecture,” 2024\. [Online].
+    Available: [https://arxiv.org/abs/2411.13768](https://arxiv.org/abs/2411.13768)'
+  id: totrans-265
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] B. Xia, Q. Lu, L. Zhu, Z. Xing, D. Zhao, 和 H. Zhang, “一种以评估为驱动的 LLM 代理设计方法：过程与架构”，2024。
+    [在线]。可用链接：[https://arxiv.org/abs/2411.13768](https://arxiv.org/abs/2411.13768)'
+- en: '[9] M. Shamsujjoha, Q. Lu, D. Zhao, and L. Zhu, “Designing multi-layered runtime
+    guardrails for foundation model based agents: Swiss cheese model for ai safety
+    by design,” 2024\. [Online]. Available: [https://arxiv.org/abs/2408.02205](https://arxiv.org/abs/2408.02205)'
+  id: totrans-266
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] M. Shamsujjoha, Q. Lu, D. Zhao, 和 L. Zhu, “为基础模型代理设计多层次的运行时保护措施：基于设计的 AI
+    安全瑞士奶酪模型”，2024。 [在线]。可用链接：[https://arxiv.org/abs/2408.02205](https://arxiv.org/abs/2408.02205)'
+- en: '[10] S. Schulhoff, M. Ilie, N. Balepur, K. Kahadze, A. Liu, C. Si, Y. Li, A. Gupta,
+    H. Han, S. Schulhoff, P. S. Dulepet, S. Vidyadhara, D. Ki, S. Agrawal, C. Pham,
+    G. Kroiz, F. Li, H. Tao, A. Srivastava, H. D. Costa, S. Gupta, M. L. Rogers, I. Goncearenco,
+    G. Sarli, I. Galynker, D. Peskoff, M. Carpuat, J. White, S. Anadkat, A. Hoyle,
+    and P. Resnik, “The prompt report: A systematic survey of prompting techniques,”
+    2024\. [Online]. Available: [https://arxiv.org/abs/2406.06608](https://arxiv.org/abs/2406.06608)'
+  id: totrans-267
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] S. Schulhoff, M. Ilie, N. Balepur, K. Kahadze, A. Liu, C. Si, Y. Li, A.
+    Gupta, H. Han, S. Schulhoff, P. S. Dulepet, S. Vidyadhara, D. Ki, S. Agrawal,
+    C. Pham, G. Kroiz, F. Li, H. Tao, A. Srivastava, H. D. Costa, S. Gupta, M. L.
+    Rogers, I. Goncearenco, G. Sarli, I. Galynker, D. Peskoff, M. Carpuat, J. White,
+    S. Anadkat, A. Hoyle, 和 P. Resnik, “The prompt report: A systematic survey of
+    prompting techniques,” 2024。 [在线]。可用链接：[https://arxiv.org/abs/2406.06608](https://arxiv.org/abs/2406.06608)'
+- en: '[11] A. Chan, C. Ezell, M. Kaufmann, K. Wei, L. Hammond, H. Bradley, E. Bluemke,
+    N. Rajkumar, D. Krueger, N. Kolt *et al.*, “Visibility into ai agents,” in *The
+    2024 ACM Conference on Fairness, Accountability, and Transparency*, 2024, pp.
+    958–973.'
+  id: totrans-268
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] A. Chan, C. Ezell, M. Kaufmann, K. Wei, L. Hammond, H. Bradley, E. Bluemke,
+    N. Rajkumar, D. Krueger, N. Kolt *等*， “AI 代理的可见性”，载于 *2024 年 ACM 公平性、问责性和透明度会议*，2024，第
+    958–973 页。'

@@ -1,0 +1,1616 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 12:27:49'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '日期: 2025-01-11 12:27:49'
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'MobileFlow: A Multimodal LLM for Mobile GUI Agent'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'MobileFlow: 一种用于移动GUI代理的多模态LLM'
+- en: 来源：[https://arxiv.org/html/2407.04346/](https://arxiv.org/html/2407.04346/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2407.04346/](https://arxiv.org/html/2407.04346/)
+- en: 'Songqin Nong, Jiali Zhu¹¹footnotemark: 1, Rui Wu¹¹footnotemark: 1, Jiongchao
+    Jin, Shuo Shan, Xiutian Huang, Wenhao Xu'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Songqin Nong, Jiali Zhu¹¹footnotemark: 1, Rui Wu¹¹footnotemark: 1, Jiongchao
+    Jin, Shuo Shan, Xiutian Huang, Wenhao Xu'
+- en: Ant Group
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Ant Group
+- en: '{nongsongqin.nsq, zhujiali.zjl, guli.wr, jinjiongchao.jjc}@antgroup.com'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{nongsongqin.nsq, zhujiali.zjl, guli.wr, jinjiongchao.jjc}@antgroup.com'
+- en: '{shanshuo.ss, huangxiutian.hxt, hao.xuwh}@antgroup.com Equal Contribution'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{shanshuo.ss, huangxiutian.hxt, hao.xuwh}@antgroup.com 同等贡献'
+- en: Abstract
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: The ongoing evolution of multimodal large-scale models, such as GPT-4v, Qwen-VL-Max,
+    has significantly bolstered the capabilities of image comprehension and user action
+    analysis, showcasing the potentiality of intelligent graphically-oriented user
+    interface (GUI) assistants. However, current GUI Agents often need to access page
+    layout information through calling system APIs, which may pose privacy risks,
+    and also need to fix user interfaces to a certain low resolution might result
+    in the loss of fine-grained image details. Meanwhile, the multimodal large models
+    built for GUI Agents currently have poor understanding and decision-making performance
+    when dealing with Mandarin apps. This paper introduces MobileFlow, a multimodal
+    large language model meticulously crafted for mobile GUI agents. Transforming
+    from the open-source model Qwen-VL-Chat into GUI domain, MobileFlow contains approximately
+    21 billion parameters and is equipped with novel hybrid visual encoders, making
+    it possible for variable resolutions of image inputs and good support for multilingual
+    GUI. By incorporating Mixture of Experts (MoE) expansions and pioneering alignment
+    training strategies, MobileFlow has the capacity to fully interpret image data
+    and comprehend user instructions for GUI interaction tasks. Finally, MobileFlow
+    outperforms Qwen-VL-Max and GPT-4v in terms of task execution by GUI agents on
+    both public and our proposed evaluation metrics, and has been successfully deployed
+    in real-world business contexts, proving its effectiveness for practical applications.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多模态大规模模型（如GPT-4v、Qwen-VL-Max）的持续发展显著增强了图像理解和用户行为分析的能力，展示了智能图形化用户界面（GUI）助手的潜力。然而，当前的GUI代理通常需要通过调用系统API来获取页面布局信息，这可能带来隐私风险；此外，固定在某一低分辨率的用户界面可能导致图像细节的丢失。同时，当前为GUI代理构建的多模态大型模型在处理中文应用程序时，理解和决策表现较差。本文介绍了MobileFlow，一种专为移动GUI代理精心打造的多模态大型语言模型。MobileFlow从开源模型Qwen-VL-Chat转化到GUI领域，包含约210亿个参数，并配备了新颖的混合视觉编码器，使其能够处理不同分辨率的图像输入，并良好支持多语言GUI。通过结合专家混合（MoE）扩展和开创性的对齐训练策略，MobileFlow具备了全面解读图像数据和理解用户指令以执行GUI交互任务的能力。最后，MobileFlow在公开的评估标准和我们提出的评估指标上，均超越了Qwen-VL-Max和GPT-4v，在GUI代理执行任务方面表现更优，并且已经成功部署于实际商业环境中，证明了其在实际应用中的有效性。
+- en: 1 Introduction
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Large Language Models (LLMs) have contributed significantly to the advancement
+    of Artificial General Intelligence (AGI) systems, demonstrating exceptional capabilities
+    in handling human-like interaction tasks. The progress of LLMs has also led to
+    substantial breakthroughs in Multimodal Large Language Models (MLLMs) (Chen et al.
+    ([2024](https://arxiv.org/html/2407.04346v3#bib.bib1)); Liu et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib2),
+    [2023](https://arxiv.org/html/2407.04346v3#bib.bib3)); Zhu et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib4))),
+    facilitating complex visual-language dialogue and interaction, and bridging the
+    gap between textual and visual information. This has created a favorable opportunity
+    for developing autonomous, GUI agents in digital worlds.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）为人工通用智能（AGI）系统的进展做出了重要贡献，在处理类人交互任务方面展示了卓越的能力。LLM的进展还带来了多模态大型语言模型（MLLMs）的重大突破（Chen
+    et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib1)); Liu et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib2),
+    [2023](https://arxiv.org/html/2407.04346v3#bib.bib3)); Zhu et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib4)))，促进了复杂的视觉-语言对话和交互，弥合了文本和视觉信息之间的鸿沟。这为在数字世界中开发自主图形用户界面（GUI）代理创造了有利的机会。
+- en: '![Refer to caption](img/c6b5bc1e8221651aaed14e7302963bc8.png)'
+  id: totrans-14
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/c6b5bc1e8221651aaed14e7302963bc8.png)'
+- en: 'Figure 1: Showcase of MobileFlow’s application for GUI Agent. User’s instruction:
+    Get me a cup of lily latte in classic coffee at Starbucks, and I want to pick
+    it up at store.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：展示 MobileFlow 在 GUI 代理中的应用。用户指令：在 Starbucks 经典咖啡中给我来一杯百合拿铁，我要在店里取。
+- en: Visually-enabled agents have immense potential in the real world, as they can
+    directly perceive visual signals and interact with humans and GUIs. Vision-Language
+    Models (VLMs) can acquire skills such as reading and programming, further expanding
+    their potential with multi-modal information. Some prior research has started
+    to utilize VLM models to achieve universality in GUI tasks. Agents like AppAgent
+    (Zhang et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib5))), CogAgent
+    (Hong et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib6))), and MobileAgent
+    (Wang et al. ([2024a](https://arxiv.org/html/2407.04346v3#bib.bib7))) have extended
+    the reach of multimodal capabilities to GUI interfaces, representing a significant
+    stride toward the realization of practical visual-language intelligent assistants.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具备视觉能力的代理在现实世界中具有巨大潜力，因为它们可以直接感知视觉信号，并与人类及 GUI 进行互动。视觉语言模型（VLM）能够掌握阅读和编程等技能，并通过多模态信息进一步扩展其潜力。一些先前的研究已经开始利用
+    VLM 模型实现 GUI 任务的普适性。像 AppAgent（Zhang 等人 ([2023](https://arxiv.org/html/2407.04346v3#bib.bib5))）、CogAgent（Hong
+    等人 ([2023](https://arxiv.org/html/2407.04346v3#bib.bib6))）和 MobileAgent（Wang 等人
+    ([2024a](https://arxiv.org/html/2407.04346v3#bib.bib7))）这样的代理，已经将多模态能力扩展到 GUI
+    界面，代表了朝着实现实用的视觉语言智能助手迈出的重要一步。
+- en: Nevertheless, Multimodal agents using GPT-4v face issues with Mandarin text
+    in GUIs, compounded by system API invocation, HTML parsing, and privacy concerns.
+    GUIs’ diverse elements challenge current agents, often using CLIP for pretraining
+    on natural scenes(e.g., flickr30k (Plummer et al. ([2016](https://arxiv.org/html/2407.04346v3#bib.bib8)))),
+    insufficient for UI image text and layout extraction. VLMs’ visual encoders are
+    limited by fixed image resolutions, impacting performance in diverse "super-app"
+    GUI scenarios. Thus, in this paper, we propose MobileFlow, a novel multi-modal
+    Large Language Model (LLM) specifically designed for GUI Agents, standing out
+    for its proficiency in managing applications that feature extensive Mandarin content,
+    such as Alipay. A key component of MobileFlow is its hybrid visual encoder, which
+    has been rigorously trained on a vast array of GUI pages. This extensive training
+    enables MobileFlow to effectively extract and comprehend information across diverse
+    GUI interfaces. By relying on a purely visual perception approach, MobileFlow’s
+    GUI agent eliminates the need to access system APIs to obtain page layout details.
+    This approach not only streamlines the process but also mitigates the risk of
+    privacy intrusion on user devices.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，使用 GPT-4v 的多模态代理在图形用户界面（GUI）中处理中文文本时遇到了问题，这些问题还受到系统 API 调用、HTML 解析和隐私问题的影响。GUI
+    的多样化元素给当前代理带来了挑战，代理通常使用 CLIP 对自然场景进行预训练（例如，flickr30k（Plummer 等人 ([2016](https://arxiv.org/html/2407.04346v3#bib.bib8))）），但这种方法不足以提取
+    UI 图像中的文本和布局。视觉语言模型（VLM）的视觉编码器受限于固定的图像分辨率，这在多样化的“超级应用”GUI场景中影响了性能。因此，在本文中，我们提出了
+    MobileFlow，一种专为 GUI 代理设计的创新多模态大型语言模型（LLM），其在处理包含大量中文内容的应用程序（如支付宝）方面表现突出。MobileFlow
+    的关键组件是其混合视觉编码器，该编码器经过严格训练，涵盖了大量 GUI 页面。这种广泛的训练使得 MobileFlow 能够有效地从各种 GUI 界面中提取并理解信息。通过依赖纯视觉感知方法，MobileFlow
+    的 GUI 代理无需访问系统 API 来获取页面布局详情。这种方法不仅简化了流程，还减少了对用户设备隐私侵犯的风险。
+- en: Besides, MobileFlow excels in understanding GUI info, offering step-by-step
+    user guidance, and performing GUI-specific info extraction and QA. It integrates
+    visual and textual data via MoE and specialized GUI training. A CoT approach during
+    fine-tuning enhances accuracy by showing reasoning, making MobileFlow effective
+    in real-world business applications.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，MobileFlow 在理解 GUI 信息方面表现出色，提供逐步用户指导，并执行 GUI 特定的信息提取和问答。它通过 MoE 和专门的 GUI
+    训练将视觉和文本数据结合起来。在微调过程中，采用 CoT 方法通过展示推理过程提高准确性，使 MobileFlow 在现实商业应用中非常有效。
+- en: 1.1 Related Work
+  id: totrans-19
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 1.1 相关工作
+- en: 'Visual Language Models Visual Language Large models usually consist of three
+    parts. An encoder projects various modalities into a high-dimensional space, followed
+    by a module that aligns the information from all modalities within this space,
+    and finally, a decoder interprets the aligned information back into a specific
+    modality. And as for implementation, VLMs can be divided into two types: one employs
+    dedicated visual encoders like ViT (Dosovitskiy et al. ([2021](https://arxiv.org/html/2407.04346v3#bib.bib9))),
+    specific alignment modules like Qformer (Li et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib10)))
+    (or MLP), combined with a trained LLM to form a system, such as LLAVA, MiniGPT-4,
+    Qwen-VL (Bai et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib11))),
+    CogView (Ding et al. ([2021](https://arxiv.org/html/2407.04346v3#bib.bib12))),
+    etc.; the other type eliminates the independent visual and alignment modules,
+    converting visual and textual content into tokens that are then fed directly into
+    a Decoder-only architecture LLM, creating a unified end-to-end VLM, such as Fuyu-8B
+    (Bavishi et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib13))), Chameleon
+    (Team ([2024](https://arxiv.org/html/2407.04346v3#bib.bib14))), and so on.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视觉语言模型（Visual Language Models）通常由三部分组成。编码器将不同的模态投射到高维空间中，随后是一个模块，将所有模态的信息在该空间内对齐，最后，解码器将对齐的信息解释回特定的模态。至于实现，VLMs可以分为两种类型：一种使用专用的视觉编码器，如ViT（Dosovitskiy等，[2021](https://arxiv.org/html/2407.04346v3#bib.bib9)），特定的对齐模块，如Qformer（Li等，[2023](https://arxiv.org/html/2407.04346v3#bib.bib10)）（或MLP），并结合经过训练的大型语言模型（LLM）来形成系统，例如LLAVA、MiniGPT-4、Qwen-VL（Bai等，[2023](https://arxiv.org/html/2407.04346v3#bib.bib11)）、CogView（Ding等，[2021](https://arxiv.org/html/2407.04346v3#bib.bib12)）等；另一种类型则去除了独立的视觉和对齐模块，将视觉和文本内容转换为标记（tokens），然后直接输入到仅解码器架构的LLM中，形成一个统一的端到端VLM，例如Fuyu-8B（Bavishi等，[2023](https://arxiv.org/html/2407.04346v3#bib.bib13)）、Chameleon（Team，[2024](https://arxiv.org/html/2407.04346v3#bib.bib14)）等。
+- en: GUI Agents CogAgent is constructed based on CogVLM (Wang et al. ([2024b](https://arxiv.org/html/2407.04346v3#bib.bib15)))
+    and relies solely on image information, avoiding the need for system API calls,
+    but its LLM component has not undergone targeted training. MobileAgent and AppAgent
+    utilize existing VLMs like GPT-4v to construct UI Agents, leaning more towards
+    prompt engineering while also depending on external modules or APIs to obtain
+    information under the UI layer. Ferret-UI (You et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib16))),
+    derived from Ferret (You et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib17))),
+    supports arbitrary resolution image input, yet it still follows the traditional
+    training approach for dialogue and question-answering in general scenarios without
+    optimizing for UI Navigation capabilities.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图形用户界面（GUI）代理（Agents）CogAgent基于CogVLM（Wang等，[2024b](https://arxiv.org/html/2407.04346v3#bib.bib15)）构建，并仅依赖图像信息，避免了需要系统API调用，但其LLM组件尚未经过针对性训练。MobileAgent和AppAgent利用现有的VLMs，如GPT-4v，构建UI代理，更侧重于提示工程（prompt
+    engineering），同时还依赖外部模块或API来在UI层下获取信息。Ferret-UI（You等，[2024](https://arxiv.org/html/2407.04346v3#bib.bib16)），来源于Ferret（You等，[2023](https://arxiv.org/html/2407.04346v3#bib.bib17)），支持任意分辨率的图像输入，但它仍然遵循传统的对话和问答训练方法，在一般场景下没有优化UI导航能力。
+- en: Vision Foundation Models for VLMs For VLMs, the visual encoder component is
+    of paramount importance as it determines what can be "seen". Notably, widely-utilized
+    architectures such as CLIP-ViT (Radford et al. ([2021](https://arxiv.org/html/2407.04346v3#bib.bib18)))
+    and SigLIP (Zhai et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib19)))
+    have spurred a series of studies aimed at identifying the most suitable visual
+    encoders for integration into VLMs. For instance, identified marked differences
+    in the visual representations captured by CLIP and DINOv2 (Oquab et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib20))),
+    leading to the creation of a mixed module that integrates features from both models.
+    Moreover, different approaches have been introduced that employ varied visual
+    encoders to process images at distinct resolutions, thereby combining features
+    at various levels of abstraction. For example, LLaVA-HR (Liu et al. ([2023](https://arxiv.org/html/2407.04346v3#bib.bib3)))
+    features a bifurcated visual encoder that combines CLIP-ViT with CLIP-ConvNext[20],
+    while DeepSeek-VL (DeepSeek-AI et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib21)))
+    incorporates SigLIP-L and SAM-B. These methodologies consistently leverage pre-trained
+    visual perceptors. In this research, we introduce LayoutLMV3 (Huang et al. ([2022](https://arxiv.org/html/2407.04346v3#bib.bib22))),
+    a visual branch pretrained on extensive UI data, capable of dynamically adjusting
+    to UI images with varying aspect ratios, thereby enhancing the understanding capabilities
+    of the overall visual encoder and its applicability within GUI agents.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: VLM的视觉基础模型 对于VLM，视觉编码器组件至关重要，因为它决定了可以“看到”的内容。值得注意的是，广泛使用的架构，如CLIP-ViT（Radford等人（[2021](https://arxiv.org/html/2407.04346v3#bib.bib18)））和SigLIP（Zhai等人（[2023](https://arxiv.org/html/2407.04346v3#bib.bib19)））已激发了一系列研究，旨在确定最适合集成到VLM中的视觉编码器。例如，CLIP和DINOv2（Oquab等人（[2024](https://arxiv.org/html/2407.04346v3#bib.bib20)））捕捉到的视觉表示存在显著差异，导致创建了一个融合了两种模型特征的混合模块。此外，还提出了不同的方法，采用不同的视觉编码器在不同分辨率下处理图像，从而在各个抽象层次上结合特征。例如，LLaVA-HR（Liu等人（[2023](https://arxiv.org/html/2407.04346v3#bib.bib3)））具有一个分叉的视觉编码器，将CLIP-ViT与CLIP-ConvNext[20]结合，而DeepSeek-VL（DeepSeek-AI等人（[2024](https://arxiv.org/html/2407.04346v3#bib.bib21)））则结合了SigLIP-L和SAM-B。这些方法始终利用预训练的视觉感知器。在本研究中，我们介绍了LayoutLMV3（Huang等人（[2022](https://arxiv.org/html/2407.04346v3#bib.bib22)）），一个在大量UI数据上预训练的视觉分支，能够动态调整以适应具有不同纵横比的UI图像，从而增强整体视觉编码器的理解能力及其在GUI代理中的应用性。
+- en: 2 Method
+  id: totrans-23
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 方法
+- en: 'MobileFlow combines a visual encoder with a large language model through a
+    fusion module for joint training with image-text pairs. It uses a Qwen-7B-based
+    language model as a universal interface, paired with a visual perception module
+    to gain dual "visualizing" capabilities. The paper’s architectural framework has
+    three main parts: the visual encoder, the visual-language adapter, and the extensive
+    language model, as shown in Figure [2](https://arxiv.org/html/2407.04346v3#S2.F2
+    "Figure 2 ‣ 2 Method ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent"). This
+    section will detail the enhancements and optimizations made for GUI tasks on the
+    original model structure.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'MobileFlow通过一个融合模块将视觉编码器与大型语言模型结合，进行图像-文本对的联合训练。它使用基于Qwen-7B的语言模型作为通用接口，配合视觉感知模块，获得双重“视觉化”能力。本文的架构框架分为三个主要部分：视觉编码器、视觉-语言适配器和广泛的语言模型，如图[2](https://arxiv.org/html/2407.04346v3#S2.F2
+    "Figure 2 ‣ 2 Method ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent")所示。本节将详细介绍针对原始模型结构在GUI任务中的增强和优化。'
+- en: 'Hybrid Visual Encoders The architecture of the proposed visual encoder is illustrated
+    in Fig.[3](https://arxiv.org/html/2407.04346v3#S2.F3 "Figure 3 ‣ 2.1 Model Architecture
+    ‣ 2 Method ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent"). In line with
+    most Vision-Language Models (VLMs), we construct our visual perception model based
+    on the pre-trained Vision Transformer (ViT) structure. Specifically, for the ViT
+    component, we utilize OpenAI’s OpenCLIP ViT-B/32 pre-trained weights for initialisation.
+    In addition, we introduce a UI Encoder, with capabilities for variable resolution
+    input, to augment the extraction of visual information. After extensive research,
+    we have chosen the document intelligence model LayoutLMv3, pre-trained with extensive
+    document data, as the foundational structure for UI Encoder. We reassess and recalibrate
+    the visual model’s weights through redesigned UI image pre-training tasks on UI
+    Encoder. In order to preserve the original aspect ratio of UI images to the greatest
+    extent possible, we propose a variable resolution-based image encoding methodology,
+    which is explained as follows.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 混合视觉编码器 提出的视觉编码器架构如图[3](https://arxiv.org/html/2407.04346v3#S2.F3 "图 3 ‣ 2.1
+    模型架构 ‣ 2 方法 ‣ MobileFlow：用于移动GUI代理的多模态LLM")所示。与大多数视觉-语言模型（VLMs）一致，我们基于预训练的视觉变换器（ViT）结构构建了视觉感知模型。具体来说，对于ViT组件，我们使用OpenAI的OpenCLIP
+    ViT-B/32预训练权重进行初始化。此外，我们引入了一个UI编码器，具备可变分辨率输入能力，以增强视觉信息的提取。经过广泛的研究，我们选择了文档智能模型LayoutLMv3，该模型已通过大量文档数据进行预训练，作为UI编码器的基础结构。我们通过重新设计UI图像预训练任务，在UI编码器上重新评估和重新校准视觉模型的权重。为了尽可能保持UI图像的原始纵横比，我们提出了一种基于可变分辨率的图像编码方法，具体解释如下。
+- en: When we set the target image sequence length for UI Encoder to be 784 tokens,
+    with each image patch sized at 16x16 pixels, and the input image size is 1216x576,
+    yielding an aspect ratio of 19:9, the resolution is recalculated by dynamically
+    adjusting the width and height to compute an extreme aspect ratio while maintaining
+    the original aspect ratio as closely as possible, under the sequence length constraint.
+    In this example, the calculated number of image patches in the width and height
+    directions are 41 and 19, respectively. Therefore, the recalculated dimensions
+    for width and height are 41x16 and 19x16, respectively. And the total number of
+    image patches amounts to 41x19=779, and the remaining 5 patches will be filled
+    through padding.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们将UI编码器的目标图像序列长度设置为784个标记，每个图像补丁的大小为16x16像素，输入图像的大小为1216x576，纵横比为19:9时，分辨率通过动态调整宽度和高度进行重新计算，以计算一个极端的纵横比，同时尽可能保持原始纵横比，在序列长度约束下。在这个例子中，计算出的图像补丁在宽度和高度方向上的数量分别是41和19。因此，重新计算后的宽度和高度尺寸分别为41x16和19x16，总的图像补丁数量为41x19=779，剩余的5个补丁将通过填充来补足。
+- en: '![Refer to caption](img/8546bded17815b7f0ccb250a7bfde516.png)'
+  id: totrans-27
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/8546bded17815b7f0ccb250a7bfde516.png)'
+- en: 'Figure 2: Overview of MobileFlow.'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：MobileFlow概览。
+- en: 2.1 Model Architecture
+  id: totrans-29
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 模型架构
+- en: 'As shown in Fig.[3](https://arxiv.org/html/2407.04346v3#S2.F3 "Figure 3 ‣ 2.1
+    Model Architecture ‣ 2 Method ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent"),
+    we employ MLM (Masked Language Modeling), MIM (Masked Image Modeling), WPA (Word-Patch
+    Alignment), and RCG (Real Component Generation) as pre-training tasks of UI Encoder.
+    Both MLM and MIM are popular and widely used pre-training tasks, as referenced
+    in (Devlin et al. ([2019](https://arxiv.org/html/2407.04346v3#bib.bib23)); Bao
+    et al. ([2022](https://arxiv.org/html/2407.04346v3#bib.bib24))). The WPA task,
+    introduced by the LayoutLMv3 paper (Huang et al. ([2022](https://arxiv.org/html/2407.04346v3#bib.bib22))),
+    predicts whether the corresponding image patch of a text word is masked, facilitating
+    the learning of multi-modal alignment. The RCG task involves initially employing
+    control recognition capabilities to detect all controls on a given UI interface,
+    followed by randomly replacing these controls at a predetermined ratio. An image
+    decoder is then utilized to reconstruct the original UI interface.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如图[3](https://arxiv.org/html/2407.04346v3#S2.F3 "Figure 3 ‣ 2.1 Model Architecture
+    ‣ 2 Method ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent")所示，我们采用了MLM（掩蔽语言模型）、MIM（掩蔽图像模型）、WPA（词块对齐）和RCG（真实组件生成）作为UI编码器的预训练任务。MLM和MIM是流行且广泛使用的预训练任务，参考文献包括（Devlin等人（[2019](https://arxiv.org/html/2407.04346v3#bib.bib23)）；Bao等人（[2022](https://arxiv.org/html/2407.04346v3#bib.bib24)））。WPA任务由LayoutLMv3论文（Huang等人（[2022](https://arxiv.org/html/2407.04346v3#bib.bib22)））提出，预测一个文本单词对应的图像块是否被掩蔽，从而促进多模态对齐的学习。RCG任务首先利用控制识别能力检测给定UI界面上的所有控件，然后以预定比例随机替换这些控件。接着，使用图像解码器重建原始UI界面。'
+- en: Vision-Language Adapter MobileFlow introduces a Vision-Language Adapter designed
+    to compress image features and fuse output features from multiple visual encoders.
+    The adapter consists of the cross-attention mechanism and the MLP module. The
+    cross-attention module employs a set of trainable vectors as query vectors, with
+    image features from the visual encoders serving as key vectors, to condense each
+    set of visual encoder features into a fixed length of 256\. The MLP module integrates
+    the features from parallel visual perception modules, projecting the visual features
+    into the semantic space of the large language model with a minimal number of parameters.
+    This configuration allows the model to flexibly perceive and understand visual
+    modality information.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视觉语言适配器 MobileFlow引入了一种视觉语言适配器，旨在压缩图像特征并融合来自多个视觉编码器的输出特征。该适配器由交叉注意力机制和MLP模块组成。交叉注意力模块采用一组可训练的向量作为查询向量，视觉编码器中的图像特征作为键向量，以将每组视觉编码器特征浓缩为固定长度的256\。MLP模块将来自并行视觉感知模块的特征集成，通过最小数量的参数将视觉特征投影到大语言模型的语义空间中。这种配置使得模型能够灵活地感知和理解视觉模态信息。
+- en: MoE Expansion Many practices have shown that if LLMs adopt a Mixture of Experts
+    (MoE) expansion, they can achieve a significant performance improvement while
+    maintaining low inference costs. Most language models in current VLMs use a dense
+    structure; hence, introducing the MoE approach to VLMs is also expected to provide
+    considerable improvement. Generally speaking, there are two main methods of MoE
+    expansion. One is to use random activations of multiple experts (where the routing
+    is learnable, a typical example being Mixtral-8x7B (Jiang et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib25)))),
+    and the other is a combination of shared expert activations with random expert
+    activations (with shared experts capturing global features, a typical example
+    being DeepSeek-Chat (DeepSeek-AI et al. ([2024](https://arxiv.org/html/2407.04346v3#bib.bib21)))).
+    In terms of implementation difficulty, this paper adopts the same method of random
+    activations of multiple experts as Mixtral.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MoE扩展 许多实践表明，如果大语言模型（LLM）采用专家混合（MoE）扩展，它们可以在保持低推理成本的同时显著提高性能。目前，大多数语言模型在现有的视觉语言模型（VLM）中采用密集结构；因此，引入MoE方法到VLM中也预计能够提供可观的改进。一般而言，MoE扩展有两种主要方法。一种是使用多个专家的随机激活（其中路由是可学习的，一个典型的例子是Mixtral-8x7B（Jiang等人（[2024](https://arxiv.org/html/2407.04346v3#bib.bib25)）））），另一种是将共享专家激活与随机专家激活结合起来（共享专家捕捉全局特征，一个典型的例子是DeepSeek-Chat（DeepSeek-AI等人（[2024](https://arxiv.org/html/2407.04346v3#bib.bib21)））））。在实现难度方面，本文采用与Mixtral相同的多专家随机激活方法。
+- en: For MoE architecture models, an MoE layer typically contains multiple feedforward
+    networks (FFNs). To leverage the visual understanding and dialogue question-answering
+    capabilities learned during multi-stage training by Qwen-VL-Chat, MobileFlow adopts
+    the method of directly duplicating the original MLP for expansion. Each MoE layer
+    obtained after expansion includes 4 identical MLPs as initial experts. Multiple
+    studies have shown that using trained MLPs as initial experts leads to quicker
+    and more stable convergence during subsequent training and ultimately better performance
+    compared to randomly initialized experts.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于MoE架构模型，MoE层通常包含多个前馈网络（FFNs）。为了利用Qwen-VL-Chat在多阶段训练过程中学习到的视觉理解和对话问答能力，MobileFlow采用了直接复制原始MLP进行扩展的方法。扩展后的每个MoE层包含4个相同的MLP作为初始专家。多项研究表明，使用经过训练的MLP作为初始专家能在后续训练中实现更快且更稳定的收敛，最终表现优于随机初始化的专家。
+- en: 'To sum up, MobileFlow’s architecture consists of three main components, similar
+    to other VLMs: a hybrid visual understanding network with multiple encoders, a
+    visual-language alignment module, and an LLM enhanced with MoE. During training
+    and inference, GUI screenshots are processed by the network to extract both global
+    and detailed local features. These visual tokens, combined with text tokens from
+    user inputs, OCR text, and BBOX data from the GUI, are fed into the LLM after
+    alignment.'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，MobileFlow的架构由三个主要组件组成，类似于其他VLMs：一个包含多个编码器的混合视觉理解网络，一个视觉语言对齐模块，以及一个增强了MoE的LLM。在训练和推理过程中，GUI截图通过网络处理，提取全局和详细的局部特征。这些视觉token与来自用户输入的文本token、OCR文本和GUI的BBOX数据一起经过对齐后，输入LLM。
+- en: '![Refer to caption](img/6801901879215b9d82bc0504d1f6474d.png)'
+  id: totrans-35
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/6801901879215b9d82bc0504d1f6474d.png)'
+- en: 'Figure 3: Overview of UI Encoder.'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：UI编码器概览。
+- en: 2.2 Training Formulation
+  id: totrans-37
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 训练公式
+- en: 'GUI Alignment For large multimodal models, training happens in two phases.
+    First is visual-language alignment pre-training, where the model learns to connect
+    images with text for appropriate responses. Second is instruction fine-tuning,
+    where it learns to follow instructions for complex tasks like VQA, visual reasoning,
+    and dialogue. Qwen-VL-Chat, trained on a lot of data, excels in image-text tasks
+    after these phases. MobileFlow, inheriting Qwen-VL-Chat’s multilingual image understanding,
+    doesn’t need full-scale pre-training but light GUI alignment and fine-tuning for
+    good GUI agent skills. This light stage includes four training tasks:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GUI对齐：对于大型多模态模型，训练分为两个阶段。第一阶段是视觉语言对齐预训练，模型学习将图像与文本连接起来，以便进行适当的响应。第二阶段是指令微调，模型学习如何遵循指令完成复杂任务，如VQA、视觉推理和对话。经过大量数据训练的Qwen-VL-Chat，在这些阶段后在图像-文本任务上表现优异。MobileFlow继承了Qwen-VL-Chat的多语言图像理解能力，不需要进行全量预训练，只需进行轻量级的GUI对齐和微调，即可实现良好的GUI代理技能。此轻量级阶段包括四个训练任务：
+- en: 'GUI Grounding: The purpose of this task is to help the model establish connections
+    between text and specific areas in an image. Given that app pages typically contain
+    rich textual information and various UI designs, incorporating this type of task
+    can enhance the model’s spatial understanding of the page.'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GUI定位：此任务的目的是帮助模型在文本和图像中的特定区域之间建立联系。考虑到应用页面通常包含丰富的文本信息和各种UI设计，加入此类任务能够增强模型对页面的空间理解。
+- en: 'GUI Referring: Given specific bounding boxes or spatial references in text
+    descriptions (such as upper left, lower right, etc.) or number references (first,
+    last, third on the right, etc.), the model is required to output textual information
+    at those positions. The model can understand the content referred to by the text
+    and identify and locate the referent object in the image, which is crucial for
+    a GUI Agent since many users’ actual intentions often include references.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GUI参考：给定文本描述中的特定边界框或空间参考（例如左上角、右下角等）或数字引用（例如第一个、最后一个、右边第三个等），模型需要在这些位置输出相应的文本信息。模型能够理解文本所指代的内容，并在图像中识别并定位所指物体，这对GUI代理至关重要，因为许多用户的实际意图通常包括这些引用。
+- en: 'UI Image Question Answering: Here, we use the open-source ScreenQa dataset[28]
+    to familiarize the model with and understand mobile GUI interfaces, transferring
+    its foundational VQA capabilities to GUI-styled page content. The ScreenQA dataset
+    contains a diverse range of VQA types, including both the extraction of page information
+    and the inference of page content.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: UI 图像问答：在此，我们使用开源的ScreenQa数据集[28]来帮助模型熟悉并理解移动GUI界面，将其基础的VQA能力转移到GUI风格的页面内容上。ScreenQA数据集包含多种VQA类型，包括页面信息的提取和页面内容的推理。
+- en: 'Image Description with Object Location: MobileFlow is required to describe
+    the image in details with the objects’ bounding boxes. This task further reinforces
+    the model’s spatial understanding of GUI pages.'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图像描述与对象位置：MobileFlow需要详细描述图像并标出对象的边界框。此任务进一步增强了模型对GUI页面的空间理解。
+- en: 'GUI Chain-of-Thought The core idea of CoT is to have the model generate a series
+    of intermediate steps or explanatory statements before delivering the final answer.
+    These steps resemble the human thought process in problem-solving and gradually
+    lead to the derivation of the solution. However, in most current multimodal LLMs,
+    models tend to directly output answers without providing the reasoning process
+    or rationale. This approach often fails in scenarios that require high-level logical
+    reasoning (e.g., in a GUI Agent where continual decision-making, clicking, or
+    swiping is necessary to fulfill user intentions). Therefore, in MobileFlow, we
+    employ the CoT technique in both training and inference of the model. After being
+    modified with CoT, the model shows a noticeable improvement in link accuracy and
+    question-answering accuracy.MobileFlow adopts a Chain of Thought definition similar
+    to AppAgent, where intent execution tasks consist of four steps:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GUI 思维链：CoT的核心思想是让模型在给出最终答案之前生成一系列中间步骤或解释性陈述。这些步骤类似于人类解决问题时的思维过程，逐渐引导出解决方案。然而，在大多数当前的多模态LLM中，模型往往直接输出答案，而不提供推理过程或理由。这种方法在需要高阶逻辑推理的场景中常常失败（例如，在需要持续决策、点击或滑动以完成用户意图的GUI代理中）。因此，在MobileFlow中，我们在模型的训练和推理中都采用了CoT技术。经过CoT的修改后，模型在链接准确性和问答准确性上表现出显著改善。MobileFlow采用了类似于AppAgent的思维链定义，其中意图执行任务包括四个步骤：
+- en: 'Observation: Describing the contents observed on the GUI page, integrating
+    information about page controls.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 观察：描述在图形用户界面（GUI）页面上观察到的内容，整合有关页面控件的信息。
+- en: 'Reasoning: Considering how to operate on the current page to accomplish the
+    given task.'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 推理：考虑如何操作当前页面以完成给定任务。
+- en: 'Action: Generating behaviors within the Agent’s action space, which could be
+    clicking, swiping, or typing text.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动作：在代理的动作空间内生成行为，这些行为可能是点击、滑动或输入文本。
+- en: 'Summary: Summarizing the actions and previous behaviors as historical information
+    for the next round interaction.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 摘要：总结动作和先前行为作为下一轮交互的历史信息。
+- en: The task structure for visual question answering is similar, except that the
+    action step is replaced with generating an answer. The detailed prompt structure
+    is shown in Appendix B.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视觉问答任务的任务结构类似，唯一不同的是动作步骤被生成答案所替代。详细的提示结构见附录B。
+- en: 3 Experiments
+  id: totrans-49
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 实验
+- en: In this section, we then show the qualitative and quantitative outcomes for
+    the action prediction and visual question answering tasks, complemented by an
+    ablation study that underscores the significance of our technical contributions.
+    And more experiments implementation and deployment details are demonstrated in
+    Appendix D.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了动作预测和视觉问答任务的定性和定量结果，并通过一项消融研究强调了我们技术贡献的重要性。更多的实验实现和部署细节请见附录D。
+- en: 3.1 Metrics
+  id: totrans-51
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 度量标准
+- en: In prior research, MobileAgent introduced a set of metrics that were effective
+    for discrete counting with a limited number of samples—specifically, the paper
+    referenced a case with just 10 samples. However, when scaling up to larger test
+    datasets, these metrics fail to accurately reflect the capabilities of the proposed
+    Large Language Model (LLM) agent. Additionally, in response to the observed issue
+    of endpoint determination, we introduced the Endpoint Determination Rate (EDR)
+    as a new metric to identify this problem. We showed how to determine whether cases
+    are positive or negative in Appendix C.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在先前的研究中，MobileAgent引入了一套有效的度量指标，适用于有限样本数量的离散计数——特别是该论文引用了一个仅有10个样本的案例。然而，当数据集扩大到更大的测试数据时，这些指标无法准确反映所提议的大型语言模型（LLM）代理的能力。此外，针对观察到的端点判定问题，我们引入了端点确定率（EDR）作为新指标来识别这一问题。我们在附录C中展示了如何判断案例是否为正面或负面。
+- en: Furthermore, we have adopted the Whole Task Success Rate (WTSR) and Step Success
+    Rate (SSR), metrics mentioned in previous studies, to assess the accuracy of both
+    single-step and multi-step predictions. The calculations of each metrics are demonstrated
+    in Appendix C.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们采用了在先前研究中提到的整体任务成功率（WTSR）和步骤成功率（SSR）作为度量指标，以评估单步预测和多步预测的准确性。每个指标的计算方法在附录C中进行了展示。
+- en: 3.2 Quantitative Results
+  id: totrans-54
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 定量结果
+- en: To thoroughly assess the capabilities of our newly proposed method, we conducted
+    a comparative analysis of MobileFlow against other leading Large Language Model
+    (LLM)-based terminal agent algorithms, including MobileAgent and GPT-4v, in the
+    context of mobile application strategy generation across various business domains.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了全面评估我们新提出的方法，我们对比分析了MobileFlow与其他领先的大型语言模型（LLM）终端代理算法，包括MobileAgent和GPT-4v，在各种商业领域的移动应用策略生成中的表现。
+- en: 'Table 1: Quantitative Results of MobileFlow in 6 business areas and 3 complexity
+    of tasks'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：MobileFlow在6个业务领域和3种任务复杂度下的定量结果
+- en: '| Complexity | Metrics | Food Delivery | Food Walkin | Medical Service | Fund
+    Select | Insurance | Gaming | All |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| 复杂度 | 指标 | 食品配送 | 到店 | 医疗服务 | 基金选择 | 保险 | 游戏 | 总计 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Long Chain Tasks | WTSR | 0.2353 | 0.1765 | 0.1875 | 0.2857 | - | - | 0.2213
+    |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| 长链任务 | WTSR | 0.2353 | 0.1765 | 0.1875 | 0.2857 | - | - | 0.2213 |'
+- en: '| SSR | 0.8282 | 0.7665 | 0.8163 | 0.5652 | - | - | 0.7441 |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSR | 0.8282 | 0.7665 | 0.8163 | 0.5652 | - | - | 0.7441 |'
+- en: '| EDR | 0.1429 | 0.14 | 0.1574 | 0.1038 | - | - | 0.1360 |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| EDR | 0.1429 | 0.14 | 0.1574 | 0.1038 | - | - | 0.1360 |'
+- en: '| Middle Chain Tasks | WTSR | 0.7691 | 0.3999 | 0.5554 | 0.2308 | 0.2 | - |
+    0.4310 |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 中链任务 | WTSR | 0.7691 | 0.3999 | 0.5554 | 0.2308 | 0.2 | - | 0.4310 |'
+- en: '| SSR | 0.9634 | 0.9032 | 0.8947 | 0.5652 | 0.7547 | - | 0.8162 |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSR | 0.9634 | 0.9032 | 0.8947 | 0.5652 | 0.7547 | - | 0.8162 |'
+- en: '| EDR | 0.3241 | 0.423 | 0.1739 | 0.1796 | 0.1875 | - | 0.2576 |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| EDR | 0.3241 | 0.423 | 0.1739 | 0.1796 | 0.1875 | - | 0.2576 |'
+- en: '| Short Chain Tasks | WTSR | - | 0.9995 | - | 0.4154 | 0.7999 | 0.6363 | 0.7128
+    |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| 短链任务 | WTSR | - | 0.9995 | - | 0.4154 | 0.7999 | 0.6363 | 0.7128 |'
+- en: '| SSR | - | 0.9997 | - | 0.4386 | 0.8332 | 0.7199 | 0.7479 |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSR | - | 0.9997 | - | 0.4386 | 0.8332 | 0.7199 | 0.7479 |'
+- en: '| EDR | - | 0.25 | - | 0.2015 | 0.2890 | 0.2047 | 0.2363 |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| EDR | - | 0.25 | - | 0.2015 | 0.2890 | 0.2047 | 0.2363 |'
+- en: '| Average | WTSR | 0.4667 | 0.2917 | 0.3333 | 0.3810 | 0.3333 | 0.6363 | 0.4071
+    |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均值 | WTSR | 0.4667 | 0.2917 | 0.3333 | 0.3810 | 0.3333 | 0.6363 | 0.4071
+    |'
+- en: '| SSR | 0.8735 | 0.7921 | 0.8341 | 0.5353 | 0.6136 | 0.7199 | 0.7280 |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSR | 0.8735 | 0.7921 | 0.8341 | 0.5353 | 0.6136 | 0.7199 | 0.7280 |'
+- en: '| EDR | 0.3 | 0.2083 | 0.2593 | 0.1807 | 0.2450 | 0.2047 | 0.2330 |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| EDR | 0.3 | 0.2083 | 0.2593 | 0.1807 | 0.2450 | 0.2047 | 0.2330 |'
+- en: 'For our quantitative assessment, we divided the test dataset into six business
+    sectors: Food Delivery, Walk-in, Insurance, Medical, Fund Selection, and Gaming
+    Apps. We also categorized tasks into three complexity levels: long chain (over
+    8 steps), middle chain (4-8 steps), and short chain (4 steps or less). The comparative
+    results are presented in Tab.[1](https://arxiv.org/html/2407.04346v3#S3.T1 "Table
+    1 ‣ 3.2 Quantitative Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for
+    Mobile GUI Agent"), offering a detailed view of MobileFlow’s performance metrics
+    in comparison to existing state-of-the-art solutions.'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在我们的定量评估中，我们将测试数据集划分为六个业务领域：食品配送、到店、保险、医疗、基金选择和游戏应用。同时，我们将任务分为三种复杂度级别：长链（超过8步）、中链（4-8步）和短链（4步或更少）。对比结果见表[1](https://arxiv.org/html/2407.04346v3#S3.T1
+    "表1 ‣ 3.2 定量结果 ‣ 3 实验 ‣ MobileFlow: 一种面向移动GUI代理的多模态LLM")，该表详细展示了MobileFlow在与现有最先进解决方案的比较中的性能指标。'
+- en: 'Based on the data presented in Tab.[1](https://arxiv.org/html/2407.04346v3#S3.T1
+    "Table 1 ‣ 3.2 Quantitative Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal
+    LLM for Mobile GUI Agent"), several key observations can be made. The performance
+    across different business sectors varies significantly, which may be attributed
+    to the differing distributions of task step lengths, or complexities, within each
+    area. Additionally, there is a clear trend indicating that as task complexity
+    increases, the performance of the evaluation metrics tends to degrade, a phenomenon
+    that aligns with human cognitive patterns.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '根据表[1](https://arxiv.org/html/2407.04346v3#S3.T1 "Table 1 ‣ 3.2 Quantitative
+    Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent")中提供的数据，可以得出几个关键观察结果。不同业务领域的表现差异显著，这可能归因于各领域内任务步骤长度或复杂度的分布不同。此外，还有一个明显的趋势表明，随着任务复杂度的增加，评估指标的表现趋于下降，这一现象与人类的认知模式一致。'
+- en: EDR may initially seem low, but it’s tied to WTSR. A task must fully execute
+    and end correctly for EDR to count it as successful. Thus, EDR is expected to
+    be lower than WTSR. We found this to be true, especially in Medical Service Apps,
+    where all tasks successfully predicted also ended properly.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: EDR可能最初看起来较低，但它与WTSR相关。任务必须完全执行并正确结束，EDR才会被计为成功。因此，EDR预计会低于WTSR。我们发现这一点是正确的，尤其是在医疗服务应用中，所有成功预测的任务也都正确结束。
+- en: 'Furthermore, we conducted a comparative analysis of our proposed MobileFlow
+    against the current state-of-the-art algorithms. The comparative results are detailed
+    in Tab.[2](https://arxiv.org/html/2407.04346v3#S3.T2 "Table 2 ‣ 3.2 Quantitative
+    Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent"),
+    offering insights into how MobileFlow stacks up against existing leading solutions
+    in the field.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '此外，我们还对提出的MobileFlow与当前最先进的算法进行了比较分析。比较结果详见表[2](https://arxiv.org/html/2407.04346v3#S3.T2
+    "Table 2 ‣ 3.2 Quantitative Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal
+    LLM for Mobile GUI Agent")，提供了MobileFlow与现有领先解决方案在该领域的对比情况。'
+- en: 'Table 2: Comparison with current SOTA LLM-agent on action prediction task'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2：与当前SOTA LLM-代理在动作预测任务中的比较
+- en: '| Method | Metrics | Food Delivery | Food Walkin | Medical Service | Fund Select
+    | Insurance | Gaming | All |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 指标 | 食品配送 | 食品外卖 | 医疗服务 | 基金选择 | 保险 | 游戏 | 总体 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GPT-4v | WTSR | 0.1833 | 0.1876 | 0.1138 | 0.1428 | 0.2021 | 0.4132 | 0.2071
+    |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4v | WTSR | 0.1833 | 0.1876 | 0.1138 | 0.1428 | 0.2021 | 0.4132 | 0.2071
+    |'
+- en: '| SSR | 0.5716 | 0.4647 | 0.3571 | 0.4857 | 0.5012 | 0.6613 | 0.5069 |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSR | 0.5716 | 0.4647 | 0.3571 | 0.4857 | 0.5012 | 0.6613 | 0.5069 |'
+- en: '| Qwen-VL-Max | WTSR | 0.3650 | 0.2562 | 0.1643 | 0.2875 | 0.3076 | 0.5832
+    | 0.3273 |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| Qwen-VL-Max | WTSR | 0.3650 | 0.2562 | 0.1643 | 0.2875 | 0.3076 | 0.5832
+    | 0.3273 |'
+- en: '| SSR | 0.7338 | 0.7075 | 0.6962 | 0.5112 | 0.2425 | 0.7763 | 0.6113 |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSR | 0.7338 | 0.7075 | 0.6962 | 0.5112 | 0.2425 | 0.7763 | 0.6113 |'
+- en: '| MobileFlow | WTSR | 0.4667 | 0.2917 | 0.3333 | 0.3810 | 0.3333 | 0.6363 |
+    0.4071 |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| MobileFlow | WTSR | 0.4667 | 0.2917 | 0.3333 | 0.3810 | 0.3333 | 0.6363 |
+    0.4071 |'
+- en: '| SSR | 0.8735 | 0.7921 | 0.8341 | 0.5353 | 0.6136 | 0.7199 | 0.7280 |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| SSR | 0.8735 | 0.7921 | 0.8341 | 0.5353 | 0.6136 | 0.7199 | 0.7280 |'
+- en: 'Comparing MobileFlow to other top LLM agents shows it has better performance
+    across different sectors. MobileFlow excels in complex tasks. Despite having a
+    smaller LLM than Qwen-vl-max, MobileFlow’s results are competitive, as shown in
+    Table [2](https://arxiv.org/html/2407.04346v3#S3.T2 "Table 2 ‣ 3.2 Quantitative
+    Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent").
+    This indicates that even with a smaller model, MobileFlow can improve after fine-tuning
+    and can match or outperform larger models, proving the method’s efficiency and
+    strength.'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '将MobileFlow与其他顶尖的LLM代理进行比较，表明它在不同领域的表现更佳。MobileFlow在复杂任务中表现突出。尽管MobileFlow的LLM模型比Qwen-vl-max小，但其结果依然具有竞争力，如表[2](https://arxiv.org/html/2407.04346v3#S3.T2
+    "Table 2 ‣ 3.2 Quantitative Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal
+    LLM for Mobile GUI Agent")所示。这表明，即使模型较小，MobileFlow通过微调后依然能够改进，并能与更大的模型相匹配或超越，证明了该方法的高效性和强大性。'
+- en: 'For the visual-question-answering tasks, the results are presented in the subsequent
+    Tab.[3](https://arxiv.org/html/2407.04346v3#S3.T3 "Table 3 ‣ 3.2 Quantitative
+    Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent").
+    Table 3 offers a breakdown of how MobileFlow and other leading LLM agents perform
+    on tasks that involve interpreting both visual and textual data to produce precise
+    responses. It assesses their capabilities in visual-question-answering, focusing
+    on the accuracy of the answers and the ability to understand and respond correctly
+    to questions presented with visual cues. Our MobileFlow has shown strong VQA abilities,
+    especially after fine-tuning with business-specific data. It’s impressive because
+    it can stand up to larger models like Qwen-vl-max. This shows that our fine-tuning
+    works well and that MobileFlow can do great in VQA tasks even if it’s not as big.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于视觉问答任务，结果展示在随后的表格 [3](https://arxiv.org/html/2407.04346v3#S3.T3 "Table 3
+    ‣ 3.2 Quantitative Results ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for
+    Mobile GUI Agent") 中。表 3 展示了 MobileFlow 和其他领先的 LLM 代理在涉及解释视觉和文本数据以产生精确响应的任务中的表现。它评估了这些模型在视觉问答（VQA）任务中的能力，重点是答案的准确性以及正确理解和回应带有视觉提示的问题的能力。我们的
+    MobileFlow 在 VQA 任务中表现出了强大的能力，特别是在通过特定业务数据进行微调后。令人印象深刻的是，它能够与更大规模的模型如 Qwen-vl-max
+    竞争。这表明我们的微调效果良好，即使 MobileFlow 模型本身不如一些大型模型，也能在 VQA 任务中表现出色。'
+- en: 'Table 3: Comparison with SOTA LLM-agent on VQA task'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：与 SOTA LLM-agent 在 VQA 任务中的对比
+- en: '| Method | Recall | Accuracy | F-score |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 召回率 | 准确率 | F-得分 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| GPT-4v | 0.6835 | 0.6228 | 0.6521 |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4v | 0.6835 | 0.6228 | 0.6521 |'
+- en: '| Qwen-VL-Max | 0.7478 | 0.7064 | 0.7268 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| Qwen-VL-Max | 0.7478 | 0.7064 | 0.7268 |'
+- en: '| MobileFlow | 0.7478 | 0.7253 | 0.7363 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| MobileFlow | 0.7478 | 0.7253 | 0.7363 |'
+- en: 3.3 Ablation Study
+  id: totrans-92
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 消融研究
+- en: 'The Effectiveness of MoE structure Based on the data from Tab.[4](https://arxiv.org/html/2407.04346v3#S3.T4
+    "Table 4 ‣ 3.3 Ablation Study ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for
+    Mobile GUI Agent"), the newly proposed architecture of ViT (Vision Transformer)
+    with MoE (Mixture of Experts) in MobileFlow has achieved significant improvements
+    over the conventional ViT plus dense Large Language Model (LLM) structure. Specifically,
+    there is an 4.49% enhancement in Whole Task Success Rate (WTSR) and a notable
+    8.17% increase in Step Success Rate (SSR). These results underscore the effectiveness
+    of the MoE components in enhancing the performance of MobileFlow, highlighting
+    the benefits of this innovative model structure for complex task execution and
+    prediction accuracy.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'MoE 结构的有效性 基于表格 [4](https://arxiv.org/html/2407.04346v3#S3.T4 "Table 4 ‣ 3.3
+    Ablation Study ‣ 3 Experiments ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent")
+    中的数据，MobileFlow 中提出的采用 MoE（专家混合）结构的 ViT（视觉 Transformer）架构，相较于传统的 ViT 加密集型大语言模型（LLM）结构，取得了显著的改进。具体而言，整体任务成功率（WTSR）提升了
+    4.49%，步骤成功率（SSR）则提高了 8.17%。这些结果突出了 MoE 组件在提升 MobileFlow 性能方面的有效性，强调了这一创新模型结构在复杂任务执行和预测准确性上的优势。'
+- en: The Effectiveness of the UI encoder We compared the performance of MobileFlow
+    before and after the inclusion of the UI Encoder. Experimental results indicate
+    that incorporating the UI Encoder as a visual branch into the MobileFlow architecture
+    resulted in a 6.96% improvement in the WTSR metric and a 4.47% improvement in
+    the SSR metric. This further underscores the importance of supplementing UI visual
+    information for the final decision-making in MobileFlow.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: UI 编码器的有效性 我们比较了在引入 UI 编码器前后的 MobileFlow 性能。实验结果表明，将 UI 编码器作为视觉分支融入 MobileFlow
+    架构后，WTSR 指标提高了 6.96%，SSR 指标提高了 4.47%。这进一步强调了补充 UI 视觉信息对 MobileFlow 最终决策的重要性。
+- en: 'Table 4: Effectiveness of the MoE structure and the UI encoder'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：MoE 结构和 UI 编码器的有效性
+- en: '| Model | WTSR | SSR |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | WTSR | SSR |'
+- en: '| --- | --- | --- |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| ViT(448px) + Dense | 0.2926 | 0.6016 |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| ViT(448px) + Dense | 0.2926 | 0.6016 |'
+- en: '| ViT(448px) + MoE | 0.3375 | 0.6833 |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| ViT(448px) + MoE | 0.3375 | 0.6833 |'
+- en: '| ViT(448px) + UI Encoder + MoE | 0.4071 | 0.7280 |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| ViT(448px) + UI Encoder + MoE | 0.4071 | 0.7280 |'
+- en: 4 Conclusion
+  id: totrans-101
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 结论
+- en: In this paper, we present MobileFlow, a GUI Agent that leverages a multimodal
+    large model and incorporates a set of optimization techniques, to analyze UI images,
+    understand user instructions and operate under the practical scenarios. Our proposed
+    MobileFlow has been designed to navigate a diverse array of intricate scenarios
+    and business domains with proficiency. It has demonstrated its capabilities in
+    practical applications across various sectors, showcasing its versatility and
+    effectiveness. And more applications could adopt MobileFlow for further optimization
+    as shown in Appendix D.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们提出了 MobileFlow，一种利用多模态大型模型并结合一系列优化技术的 GUI 代理，用于分析 UI 图像、理解用户指令并在实际场景下操作。我们提出的
+    MobileFlow 旨在高效应对各种复杂场景和业务领域，并已在多个行业的实际应用中展示了其能力，证明了其多功能性和有效性。如附录 D 所示，更多应用可以采用
+    MobileFlow 进行进一步优化。
+- en: As with many pioneering agents in the industry, MobileFlow marks an important
+    initial step in the evolution of GUI Agents. MobileFlow faces future challenges
+    like susceptibility to hallucinations and multiple images handling. It’s mainly
+    used for mobile apps now but has potential to expand to other devices like computers.
+    This could turn MobileFlow into a reliable, user-friendly AI assistant for everyday
+    tasks across platforms.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与许多行业中的开创性代理一样，MobileFlow 标志着 GUI 代理演变中的一个重要初步步骤。MobileFlow 面临未来的挑战，如易受幻觉影响和多图像处理问题。目前它主要用于移动应用，但有潜力扩展到其他设备，如计算机。这将使
+    MobileFlow 成为一个可靠且用户友好的 AI 助手，可在各平台之间执行日常任务。
+- en: References
+  id: totrans-104
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Chen et al. [2024] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen,
+    Sen Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, Bin Li, Ping Luo,
+    Tong Lu, Yu Qiao, and Jifeng Dai. Internvl: Scaling up vision foundation models
+    and aligning for generic visual-linguistic tasks, 2024. URL [https://arxiv.org/abs/2312.14238](https://arxiv.org/abs/2312.14238).'
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chen 等人 [2024] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen
+    Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, Bin Li, Ping Luo, Tong
+    Lu, Yu Qiao, 和 Jifeng Dai. Internvl: 扩展视觉基础模型并对齐通用视觉-语言任务, 2024. 网址 [https://arxiv.org/abs/2312.14238](https://arxiv.org/abs/2312.14238).'
+- en: Liu et al. [2024] Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved
+    baselines with visual instruction tuning, 2024. URL [https://arxiv.org/abs/2310.03744](https://arxiv.org/abs/2310.03744).
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人 [2024] Haotian Liu, Chunyuan Li, Yuheng Li, 和 Yong Jae Lee. 通过视觉指令调优改进基准,
+    2024. 网址 [https://arxiv.org/abs/2310.03744](https://arxiv.org/abs/2310.03744).
+- en: Liu et al. [2023] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual
+    instruction tuning, 2023. URL [https://arxiv.org/abs/2304.08485](https://arxiv.org/abs/2304.08485).
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人 [2023] Haotian Liu, Chunyuan Li, Qingyang Wu, 和 Yong Jae Lee. 视觉指令调优,
+    2023. 网址 [https://arxiv.org/abs/2304.08485](https://arxiv.org/abs/2304.08485).
+- en: 'Zhu et al. [2023] Deyao Zhu, Jun Chen, Xiaoqian Shen, Xiang Li, and Mohamed
+    Elhoseiny. Minigpt-4: Enhancing vision-language understanding with advanced large
+    language models, 2023. URL [https://arxiv.org/abs/2304.10592](https://arxiv.org/abs/2304.10592).'
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhu 等人 [2023] Deyao Zhu, Jun Chen, Xiaoqian Shen, Xiang Li, 和 Mohamed Elhoseiny.
+    Minigpt-4: 利用先进的大型语言模型增强视觉-语言理解, 2023. 网址 [https://arxiv.org/abs/2304.10592](https://arxiv.org/abs/2304.10592).'
+- en: 'Zhang et al. [2023] Chi Zhang, Zhao Yang, Jiaxuan Liu, Yucheng Han, Xin Chen,
+    Zebiao Huang, Bin Fu, and Gang Yu. Appagent: Multimodal agents as smartphone users,
+    2023. URL [https://arxiv.org/abs/2312.13771](https://arxiv.org/abs/2312.13771).'
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang 等人 [2023] Chi Zhang, Zhao Yang, Jiaxuan Liu, Yucheng Han, Xin Chen, Zebiao
+    Huang, Bin Fu, 和 Gang Yu. Appagent: 作为智能手机用户的多模态代理, 2023. 网址 [https://arxiv.org/abs/2312.13771](https://arxiv.org/abs/2312.13771).'
+- en: 'Hong et al. [2023] Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng
+    Yu, Junhui Ji, Yan Wang, Zihan Wang, Yuxuan Zhang, Juanzi Li, Bin Xu, Yuxiao Dong,
+    Ming Ding, and Jie Tang. Cogagent: A visual language model for gui agents, 2023.
+    URL [https://arxiv.org/abs/2312.08914](https://arxiv.org/abs/2312.08914).'
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Hong 等人 [2023] Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng Yu,
+    Junhui Ji, Yan Wang, Zihan Wang, Yuxuan Zhang, Juanzi Li, Bin Xu, Yuxiao Dong,
+    Ming Ding, 和 Jie Tang. Cogagent: 一种用于 GUI 代理的视觉语言模型, 2023. 网址 [https://arxiv.org/abs/2312.08914](https://arxiv.org/abs/2312.08914).'
+- en: 'Wang et al. [2024a] Junyang Wang, Haiyang Xu, Jiabo Ye, Ming Yan, Weizhou Shen,
+    Ji Zhang, Fei Huang, and Jitao Sang. Mobile-agent: Autonomous multi-modal mobile
+    device agent with visual perception, 2024a. URL [https://arxiv.org/abs/2401.16158](https://arxiv.org/abs/2401.16158).'
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wang 等人 [2024a] Junyang Wang, Haiyang Xu, Jiabo Ye, Ming Yan, Weizhou Shen,
+    Ji Zhang, Fei Huang, 和 Jitao Sang. Mobile-agent: 具有视觉感知的自主多模态移动设备代理, 2024a. 网址
+    [https://arxiv.org/abs/2401.16158](https://arxiv.org/abs/2401.16158).'
+- en: 'Plummer et al. [2016] Bryan A. Plummer, Liwei Wang, Chris M. Cervantes, Juan C.
+    Caicedo, Julia Hockenmaier, and Svetlana Lazebnik. Flickr30k entities: Collecting
+    region-to-phrase correspondences for richer image-to-sentence models, 2016. URL
+    [https://arxiv.org/abs/1505.04870](https://arxiv.org/abs/1505.04870).'
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 普卢默等人 [2016] 布莱恩·A·普卢默，王李伟，克里斯·M·塞尔万特斯，胡安·C·凯塞多，朱莉娅·霍肯迈尔，斯韦特兰娜·拉泽布尼克。Flickr30k实体：收集区域与短语的对应关系，用于更丰富的图像到句子模型，2016。网址
+    [https://arxiv.org/abs/1505.04870](https://arxiv.org/abs/1505.04870)。
+- en: 'Dosovitskiy et al. [2021] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov,
+    Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias
+    Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An
+    image is worth 16x16 words: Transformers for image recognition at scale, 2021.
+    URL [https://arxiv.org/abs/2010.11929](https://arxiv.org/abs/2010.11929).'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 多索维茨基等人 [2021] 亚历克谢·多索维茨基，卢卡斯·贝耶，亚历山大·科列斯尼科夫，迪尔克·魏森博恩，谢晓华，托马斯·翁特里纳，穆斯塔法·德赫格尼，马修·敏德尔，乔治·海戈尔德，西尔万·吉利，雅各布·乌斯科雷特，尼尔·霍尔斯比。图像胜过16x16个词：用于大规模图像识别的Transformer，2021。网址
+    [https://arxiv.org/abs/2010.11929](https://arxiv.org/abs/2010.11929)。
+- en: 'Li et al. [2023] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2:
+    Bootstrapping language-image pre-training with frozen image encoders and large
+    language models, 2023. URL [https://arxiv.org/abs/2301.12597](https://arxiv.org/abs/2301.12597).'
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 李等人 [2023] 李俊楠，李东旭，西尔维奥·萨瓦雷塞，霍斯特·史蒂文。Blip-2：通过冻结图像编码器和大语言模型引导图像-语言预训练，2023。网址
+    [https://arxiv.org/abs/2301.12597](https://arxiv.org/abs/2301.12597)。
+- en: 'Bai et al. [2023] Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan,
+    Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-vl: A versatile vision-language
+    model for understanding, localization, text reading, and beyond, 2023. URL [https://arxiv.org/abs/2308.12966](https://arxiv.org/abs/2308.12966).'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 白等人 [2023] 白金泽，白帅，杨树生，王世杰，谭思南，王鹏，林俊阳，周昌，周竞任。Qwen-vl：一种多功能的视觉-语言模型，用于理解、定位、文本阅读及更多，2023。网址
+    [https://arxiv.org/abs/2308.12966](https://arxiv.org/abs/2308.12966)。
+- en: 'Ding et al. [2021] Ming Ding, Zhuoyi Yang, Wenyi Hong, Wendi Zheng, Chang Zhou,
+    Da Yin, Junyang Lin, Xu Zou, Zhou Shao, Hongxia Yang, and Jie Tang. Cogview: Mastering
+    text-to-image generation via transformers, 2021. URL [https://arxiv.org/abs/2105.13290](https://arxiv.org/abs/2105.13290).'
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 丁等人 [2021] 丁明，杨卓逸，洪文一，郑文迪，周昌，尹大，林俊阳，邹旭，邵周，杨洪霞，唐杰。Cogview：通过Transformer掌握文本到图像生成，2021。网址
+    [https://arxiv.org/abs/2105.13290](https://arxiv.org/abs/2105.13290)。
+- en: Bavishi et al. [2023] Rohan Bavishi, Erich Elsen, Curtis Hawthorne, Maxwell
+    Nye, Augustus Odena, Arushi Somani, and Sağnak Taşırlar. Introducing our multimodal
+    models, 2023. URL [https://www.adept.ai/blog/fuyu-8b](https://www.adept.ai/blog/fuyu-8b).
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 巴维希等人 [2023] 罗汉·巴维希，埃里克·埃尔森，柯蒂斯·霍瑟恩，麦克斯韦·奈，奥古斯都·奥德纳，阿鲁什·索马尼，萨格纳克·塔什尔尔。介绍我们的多模态模型，2023。网址
+    [https://www.adept.ai/blog/fuyu-8b](https://www.adept.ai/blog/fuyu-8b)。
+- en: 'Team [2024] Chameleon Team. Chameleon: Mixed-modal early-fusion foundation
+    models, 2024. URL [https://arxiv.org/abs/2405.09818](https://arxiv.org/abs/2405.09818).'
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 团队 [2024] 变色龙团队。变色龙：混合模态早期融合基础模型，2024。网址 [https://arxiv.org/abs/2405.09818](https://arxiv.org/abs/2405.09818)。
+- en: 'Wang et al. [2024b] Weihan Wang, Qingsong Lv, Wenmeng Yu, Wenyi Hong, Ji Qi,
+    Yan Wang, Junhui Ji, Zhuoyi Yang, Lei Zhao, Xixuan Song, Jiazheng Xu, Bin Xu,
+    Juanzi Li, Yuxiao Dong, Ming Ding, and Jie Tang. Cogvlm: Visual expert for pretrained
+    language models, 2024b. URL [https://arxiv.org/abs/2311.03079](https://arxiv.org/abs/2311.03079).'
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 王等人 [2024b] 王维汉，吕青松，余文萌，洪文一，齐吉，王燕，季俊辉，杨卓逸，赵磊，宋希轩，徐佳正，徐彬，李娟子，董雨潇，丁明，唐杰。Cogvlm：预训练语言模型的视觉专家，2024b。网址
+    [https://arxiv.org/abs/2311.03079](https://arxiv.org/abs/2311.03079)。
+- en: 'You et al. [2024] Keen You, Haotian Zhang, Eldon Schoop, Floris Weers, Amanda
+    Swearngin, Jeffrey Nichols, Yinfei Yang, and Zhe Gan. Ferret-ui: Grounded mobile
+    ui understanding with multimodal llms, 2024. URL [https://arxiv.org/abs/2404.05719](https://arxiv.org/abs/2404.05719).'
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 由等人 [2024] 余键，张昊天，埃尔登·肖普，弗洛里斯·维尔斯，阿曼达·斯威尔金，杰弗里·尼科尔斯，尹飞扬，甘哲。Ferret-ui：基于多模态大语言模型的移动UI理解，2024。网址
+    [https://arxiv.org/abs/2404.05719](https://arxiv.org/abs/2404.05719)。
+- en: 'You et al. [2023] Haoxuan You, Haotian Zhang, Zhe Gan, Xianzhi Du, Bowen Zhang,
+    Zirui Wang, Liangliang Cao, Shih-Fu Chang, and Yinfei Yang. Ferret: Refer and
+    ground anything anywhere at any granularity, 2023. URL [https://arxiv.org/abs/2310.07704](https://arxiv.org/abs/2310.07704).'
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 由等人 [2023] 何孝宣，张昊天，甘哲，杜贤志，张博文，王梓睿，曹亮亮，张世富，尹飞扬。Ferret：在任意粒度下参照并定位任意事物，2023。网址
+    [https://arxiv.org/abs/2310.07704](https://arxiv.org/abs/2310.07704)。
+- en: Radford et al. [2021] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh,
+    Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack
+    Clark, Gretchen Krueger, and Ilya Sutskever. Learning transferable visual models
+    from natural language supervision, 2021. URL [https://arxiv.org/abs/2103.00020](https://arxiv.org/abs/2103.00020).
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Radford 等人 [2021] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh,
+    Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack
+    Clark, Gretchen Krueger, 和 Ilya Sutskever. 从自然语言监督中学习可转移的视觉模型, 2021. URL [https://arxiv.org/abs/2103.00020](https://arxiv.org/abs/2103.00020).
+- en: Zhai et al. [2023] Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, and Lucas
+    Beyer. Sigmoid loss for language image pre-training, 2023. URL [https://arxiv.org/abs/2303.15343](https://arxiv.org/abs/2303.15343).
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhai 等人 [2023] Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, 和 Lucas Beyer.
+    Sigmoid 损失用于语言图像预训练, 2023. URL [https://arxiv.org/abs/2303.15343](https://arxiv.org/abs/2303.15343).
+- en: 'Oquab et al. [2024] Maxime Oquab, Timothée Darcet, Théo Moutakanni, Huy Vo,
+    Marc Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa,
+    Alaaeldin El-Nouby, Mahmoud Assran, Nicolas Ballas, Wojciech Galuba, Russell Howes,
+    Po-Yao Huang, Shang-Wen Li, Ishan Misra, Michael Rabbat, Vasu Sharma, Gabriel
+    Synnaeve, Hu Xu, Hervé Jegou, Julien Mairal, Patrick Labatut, Armand Joulin, and
+    Piotr Bojanowski. Dinov2: Learning robust visual features without supervision,
+    2024. URL [https://arxiv.org/abs/2304.07193](https://arxiv.org/abs/2304.07193).'
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Oquab 等人 [2024] Maxime Oquab, Timothée Darcet, Théo Moutakanni, Huy Vo, Marc
+    Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa,
+    Alaaeldin El-Nouby, Mahmoud Assran, Nicolas Ballas, Wojciech Galuba, Russell Howes,
+    Po-Yao Huang, Shang-Wen Li, Ishan Misra, Michael Rabbat, Vasu Sharma, Gabriel
+    Synnaeve, Hu Xu, Hervé Jegou, Julien Mairal, Patrick Labatut, Armand Joulin, 和
+    Piotr Bojanowski. Dinov2: 无监督学习稳健的视觉特征, 2024. URL [https://arxiv.org/abs/2304.07193](https://arxiv.org/abs/2304.07193).'
+- en: 'DeepSeek-AI et al. [2024] DeepSeek-AI, :, Xiao Bi, Deli Chen, Guanting Chen,
+    Shanhuang Chen, Damai Dai, Chengqi Deng, Honghui Ding, Kai Dong, Qiushi Du, Zhe
+    Fu, Huazuo Gao, Kaige Gao, Wenjun Gao, Ruiqi Ge, Kang Guan, Daya Guo, Jianzhong
+    Guo, Guangbo Hao, Zhewen Hao, Ying He, Wenjie Hu, Panpan Huang, Erhang Li, Guowei
+    Li, Jiashi Li, Yao Li, Y. K. Li, Wenfeng Liang, Fangyun Lin, A. X. Liu, Bo Liu,
+    Wen Liu, Xiaodong Liu, Xin Liu, Yiyuan Liu, Haoyu Lu, Shanghao Lu, Fuli Luo, Shirong
+    Ma, Xiaotao Nie, Tian Pei, Yishi Piao, Junjie Qiu, Hui Qu, Tongzheng Ren, Zehui
+    Ren, Chong Ruan, Zhangli Sha, Zhihong Shao, Junxiao Song, Xuecheng Su, Jingxiang
+    Sun, Yaofeng Sun, Minghui Tang, Bingxuan Wang, Peiyi Wang, Shiyu Wang, Yaohui
+    Wang, Yongji Wang, Tong Wu, Y. Wu, Xin Xie, Zhenda Xie, Ziwei Xie, Yiliang Xiong,
+    Hanwei Xu, R. X. Xu, Yanhong Xu, Dejian Yang, Yuxiang You, Shuiping Yu, Xingkai
+    Yu, B. Zhang, Haowei Zhang, Lecong Zhang, Liyue Zhang, Mingchuan Zhang, Minghua
+    Zhang, Wentao Zhang, Yichao Zhang, Chenggang Zhao, Yao Zhao, Shangyan Zhou, Shunfeng
+    Zhou, Qihao Zhu, and Yuheng Zou. Deepseek llm: Scaling open-source language models
+    with longtermism, 2024. URL [https://arxiv.org/abs/2401.02954](https://arxiv.org/abs/2401.02954).'
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'DeepSeek-AI 等人 [2024] DeepSeek-AI, :, Xiao Bi, Deli Chen, Guanting Chen, Shanhuang
+    Chen, Damai Dai, Chengqi Deng, Honghui Ding, Kai Dong, Qiushi Du, Zhe Fu, Huazuo
+    Gao, Kaige Gao, Wenjun Gao, Ruiqi Ge, Kang Guan, Daya Guo, Jianzhong Guo, Guangbo
+    Hao, Zhewen Hao, Ying He, Wenjie Hu, Panpan Huang, Erhang Li, Guowei Li, Jiashi
+    Li, Yao Li, Y. K. Li, Wenfeng Liang, Fangyun Lin, A. X. Liu, Bo Liu, Wen Liu,
+    Xiaodong Liu, Xin Liu, Yiyuan Liu, Haoyu Lu, Shanghao Lu, Fuli Luo, Shirong Ma,
+    Xiaotao Nie, Tian Pei, Yishi Piao, Junjie Qiu, Hui Qu, Tongzheng Ren, Zehui Ren,
+    Chong Ruan, Zhangli Sha, Zhihong Shao, Junxiao Song, Xuecheng Su, Jingxiang Sun,
+    Yaofeng Sun, Minghui Tang, Bingxuan Wang, Peiyi Wang, Shiyu Wang, Yaohui Wang,
+    Yongji Wang, Tong Wu, Y. Wu, Xin Xie, Zhenda Xie, Ziwei Xie, Yiliang Xiong, Hanwei
+    Xu, R. X. Xu, Yanhong Xu, Dejian Yang, Yuxiang You, Shuiping Yu, Xingkai Yu, B.
+    Zhang, Haowei Zhang, Lecong Zhang, Liyue Zhang, Mingchuan Zhang, Minghua Zhang,
+    Wentao Zhang, Yichao Zhang, Chenggang Zhao, Yao Zhao, Shangyan Zhou, Shunfeng
+    Zhou, Qihao Zhu, 和 Yuheng Zou. Deepseek llm: 以长期主义扩展开源语言模型, 2024. URL [https://arxiv.org/abs/2401.02954](https://arxiv.org/abs/2401.02954).'
+- en: 'Huang et al. [2022] Yupan Huang, Tengchao Lv, Lei Cui, Yutong Lu, and Furu
+    Wei. Layoutlmv3: Pre-training for document ai with unified text and image masking,
+    2022. URL [https://arxiv.org/abs/2204.08387](https://arxiv.org/abs/2204.08387).'
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Huang 等人 [2022] Yupan Huang, Tengchao Lv, Lei Cui, Yutong Lu, 和 Furu Wei. Layoutlmv3:
+    统一文本和图像遮罩的文档AI预训练, 2022. URL [https://arxiv.org/abs/2204.08387](https://arxiv.org/abs/2204.08387).'
+- en: 'Devlin et al. [2019] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina
+    Toutanova. Bert: Pre-training of deep bidirectional transformers for language
+    understanding, 2019. URL [https://arxiv.org/abs/1810.04805](https://arxiv.org/abs/1810.04805).'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Devlin 等人 [2019] Jacob Devlin, Ming-Wei Chang, Kenton Lee, 和 Kristina Toutanova.
+    Bert: 深度双向变换器的预训练用于语言理解, 2019. URL [https://arxiv.org/abs/1810.04805](https://arxiv.org/abs/1810.04805).'
+- en: 'Bao et al. [2022] Hangbo Bao, Li Dong, Songhao Piao, and Furu Wei. Beit: Bert
+    pre-training of image transformers, 2022. URL [https://arxiv.org/abs/2106.08254](https://arxiv.org/abs/2106.08254).'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bao 等人 [2022] Hangbo Bao, Li Dong, Songhao Piao 和 Furu Wei. Beit：图像变换器的 Bert
+    预训练，2022年。网址 [https://arxiv.org/abs/2106.08254](https://arxiv.org/abs/2106.08254)。
+- en: Jiang et al. [2024] Albert Q. Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur
+    Mensch, Blanche Savary, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas,
+    Emma Bou Hanna, Florian Bressand, Gianna Lengyel, Guillaume Bour, Guillaume Lample,
+    Lélio Renard Lavaud, Lucile Saulnier, Marie-Anne Lachaux, Pierre Stock, Sandeep
+    Subramanian, Sophia Yang, Szymon Antoniak, Teven Le Scao, Théophile Gervet, Thibaut
+    Lavril, Thomas Wang, Timothée Lacroix, and William El Sayed. Mixtral of experts,
+    2024. URL [https://arxiv.org/abs/2401.04088](https://arxiv.org/abs/2401.04088).
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jiang 等人 [2024] Albert Q. Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur
+    Mensch, Blanche Savary, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas,
+    Emma Bou Hanna, Florian Bressand, Gianna Lengyel, Guillaume Bour, Guillaume Lample,
+    Lélio Renard Lavaud, Lucile Saulnier, Marie-Anne Lachaux, Pierre Stock, Sandeep
+    Subramanian, Sophia Yang, Szymon Antoniak, Teven Le Scao, Théophile Gervet, Thibaut
+    Lavril, Thomas Wang, Timothée Lacroix 和 William El Sayed. Mixtral of experts,
+    2024年。网址 [https://arxiv.org/abs/2401.04088](https://arxiv.org/abs/2401.04088)。
+- en: Appendix A Action Space
+  id: totrans-130
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 动作空间
+- en: 'A GUI Agent requires ongoing interaction with the Graphical User Interface
+    (GUI) to accomplish tasks set forth by human. An interaction can be interpreted
+    as either a singular action or an amalgamation of multiple actions. Hence, the
+    judicious design of the action space is crucial for enhancing the effect of a
+    GUI Agent. An overly simplistic action space could limit the variety of tasks
+    that the GUI Agent is capable of executing. Thus, it becomes imperative to devise
+    an elaborate action space capable of encompassing the majority of tasks within
+    mobile GUI contexts. As illustrated in Tab.[5](https://arxiv.org/html/2407.04346v3#A1.T5
+    "Table 5 ‣ Appendix A Action Space ‣ MobileFlow: A Multimodal LLM for Mobile GUI
+    Agent"), based on actual usage requirements, we have designed a total of 8 actions
+    and provided detailed explanations for each.'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'GUI 代理需要与图形用户界面（GUI）进行持续交互，以完成由人类设定的任务。一次交互可以解释为一个单独的动作，或是多个动作的结合。因此，合理设计动作空间对于增强
+    GUI 代理的效果至关重要。过于简化的动作空间可能限制 GUI 代理能够执行的任务种类。因此，设计一个能够涵盖大多数移动 GUI 环境下任务的复杂动作空间显得尤为重要。如表
+    [5](https://arxiv.org/html/2407.04346v3#A1.T5 "Table 5 ‣ Appendix A Action Space
+    ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent") 所示，根据实际使用需求，我们设计了总共 8 种动作，并为每个动作提供了详细解释。'
+- en: 'Table 5: Action Space'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：动作空间
+- en: '| Action | Parameters | Explanation |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| 动作 | 参数 | 说明 |'
+- en: '| --- | --- | --- |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Click | Position | Click at a specified location |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| 点击 | 位置 | 在指定位置点击 |'
+- en: '| Long Press | Position | Long press at a specified location |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| 长按 | 位置 | 在指定位置长按 |'
+- en: '| Input | Text | Input the text at the current cursor position |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输入 | 文本 | 在当前光标位置输入文本 |'
+- en: '| Scroll | Position List | Slide along a list of positions |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| 滚动 | 位置列表 | 在位置列表中滑动 |'
+- en: '| Drag | Position List | Long press, then slide along a list of positions |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| 拖动 | 位置列表 | 长按后，沿着位置列表滑动 |'
+- en: '| Wait | Time | Wait without performing any actions |'
+  id: totrans-140
+  prefs: []
+  type: TYPE_TB
+  zh: '| 等待 | 时间 | 等待而不执行任何动作 |'
+- en: '| Task Finish | - | Upon completion of the current task, the agent ceases operation
+    |'
+  id: totrans-141
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务完成 | - | 当前任务完成后，代理停止操作 |'
+- en: Appendix B MobileFlow Details
+  id: totrans-142
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B MobileFlow 详情
+- en: B.1 Prompt structure
+  id: totrans-143
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.1 提示结构
+- en: 'The ultimate detailed prompt structure is as follows:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终的详细提示结构如下：
+- en: '[PRE0]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Appendix C Evaluation Details
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 C 评估详情
+- en: C.1 Positive Sample Determination
+  id: totrans-147
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.1 正样本确定
+- en: '![Refer to caption](img/bbef2209613428a7bab40ceb6751c94e.png)'
+  id: totrans-148
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/bbef2209613428a7bab40ceb6751c94e.png)'
+- en: 'Figure 4: Matching cases for positive and negative samples.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：正负样本匹配情况。
+- en: 'Determining the correctness of a prediction is not always a clear-cut or binary
+    decision. To address this, our proposed metrics employ a combination of methods:
+    matching the predicted action type and calculating the Intersection over Union
+    (IoU) of the coordinate areas to assign a true or false label to each prediction.
+    This approach allows for a more nuanced evaluation that accounts for the complexity
+    of the tasks and the subtleties of the predictions made by the LLM-agent. Specifically,
+    we illustrate all the matching cases in Fig.[4](https://arxiv.org/html/2407.04346v3#A3.F4
+    "Figure 4 ‣ C.1 Positive Sample Determination ‣ Appendix C Evaluation Details
+    ‣ MobileFlow: A Multimodal LLM for Mobile GUI Agent"), providing a visual representation
+    of how these metrics are applied to assess the accuracy of predictions.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '确定预测的正确性并非总是一个明确或二元的决策。为了解决这个问题，我们提出的指标结合了多种方法：匹配预测的动作类型，并计算坐标区域的交并比（IoU），以为每个预测分配一个正确或错误的标签。这种方法可以进行更细致的评估，考虑到任务的复杂性以及LLM-agent所做预测的细微差异。具体来说，我们在图[4](https://arxiv.org/html/2407.04346v3#A3.F4
+    "图 4 ‣ C.1 正样本确定 ‣ 附录 C 评估详情 ‣ MobileFlow: 用于移动GUI代理的多模态LLM")中展示了所有匹配案例，提供了这些指标如何应用于评估预测准确性的可视化表示。'
+- en: C.2 Deployment Details
+  id: totrans-151
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.2 部署详情
+- en: C.3 Dataset
+  id: totrans-152
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.3 数据集
+- en: 'To fully train the MobileFlow pipeline, we have specifically trained two models:
+    UI Encoder for user-interface understanding and Qwen-vl-chat for token prediction.'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了充分训练MobileFlow管道，我们特别训练了两个模型：用于用户界面理解的UI编码器和用于标记预测的Qwen-vl-chat。
+- en: For the training of UI Encoder, we meticulously curated and cleaned a dataset
+    of 100K manually labeled instances that are directly relevant to our current business
+    domains. This dataset was then used to fine-tune UI Encoder
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于UI编码器的训练，我们精心挑选并清理了一个包含10万个手工标注实例的数据集，这些实例与我们当前的业务领域直接相关。随后，我们使用该数据集对UI编码器进行了微调。
+- en: For the multimodal alignment, we employed a blend of the RefCoCo[29], ScreenQa[28],
+    Flickr30K[9] and in-house UI datasets. Subsequently, for supervised fine-tuning,
+    we utilized 70k manually labeled business-specific data. These data were collected
+    across 10 distinct business sectors, such as food delivery applications, medical
+    service platforms, insurance applications, financial applications, and more. In
+    constructing these data, we concurrently devised a comprehensive action space,
+    details of which can be found in Appendix A.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于多模态对齐，我们采用了RefCoCo[29]、ScreenQa[28]、Flickr30K[9]以及内部UI数据集的混合数据。随后，在监督微调阶段，我们使用了70K手工标注的特定业务数据。这些数据涵盖了10个不同的业务领域，例如外卖应用、医疗服务平台、保险应用、金融应用等。在构建这些数据时，我们同时设计了一个全面的动作空间，详细信息见附录A。
+- en: C.4 Training and Evaluation details
+  id: totrans-156
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.4 训练和评估详情
+- en: In our experiments, we pre-train UI Encoder with approximately 200k UI images,
+    improving the model’s comprehension of fonts, images, controls, and other elements
+    within UI imagery, building upon its fundamental ability to understand documents.
+    The effectiveness of the pre-training tasks was specifically validated through
+    multiple UI image downstream tasks, such as image classification and ui component
+    recognition.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们用大约20万个UI图像预训练了UI编码器，提高了模型对字体、图像、控件及UI图像中其他元素的理解能力，并在其理解文档的基础能力上进行了增强。预训练任务的有效性通过多个UI图像下游任务进行了验证，例如图像分类和UI组件识别。
+- en: During the training of UI Encoder, we conducted fine-tuning on our 100K labeled
+    business dataset over a span of 2 epochs. For the supervised fine-tuning phase
+    of Qwen-vl-chat, after closely monitoring the loss function outcomes, we determined
+    that training it for 2 epochs with a learning rate of yielded the optimal performance.
+    For the evaluation phase, we employed MobileAgent, making necessary adjustments
+    to the data format and interface to ensure compatibility with our test data, all
+    the while keeping the model parameters intact. Additionally, we directly utilized
+    the GPT-4v interface for token prediction on our test data. All experiments were
+    conducted on a robust setup of 8 GPUs (Nvidia A100).
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在UI编码器的训练过程中，我们对10万个标注的业务数据集进行了2个epoch的微调。对于Qwen-vl-chat的监督微调阶段，在密切监控损失函数结果后，我们确定使用学习率进行2个epoch的训练能够获得最佳性能。在评估阶段，我们使用了MobileAgent，进行了必要的数据格式和接口调整，以确保与我们的测试数据兼容，同时保持模型参数不变。此外，我们直接使用GPT-4v接口对测试数据进行标记预测。所有实验都在8个GPU（Nvidia
+    A100）强大配置下进行。
+- en: C.5 Definition of Metrics
+  id: totrans-159
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.5 指标定义
+- en: Whole Task Success Rate(WTSR) The Whole Task Success Rate (WTSR) is a metric
+    that measures the proportion of instances where the Large Language Model (LLM)
+    agent can successfully predict every step within a single task across the entire
+    dataset.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 整体任务成功率（WTSR） 整体任务成功率（WTSR）是一个衡量指标，用于衡量大语言模型（LLM）代理能否成功预测整个数据集中单个任务每一步的比例。
+- en: '|  | $WTSR=\frac{\#SuccessIntentions}{\#AllIntentions-\#TimeOut}$ |  | (1)
+    |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $WTSR=\frac{\#SuccessIntentions}{\#AllIntentions-\#TimeOut}$ |  | (1)
+    |'
+- en: Step Success Rate(SSR) Given a specific intention, the Step Success Rate (SSR)
+    measures the frequency at which the Large Language Model (LLM) agent can accurately
+    predict each individual step within all multi-step tasks.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 步骤成功率（SSR） 给定特定意图，步骤成功率（SSR）衡量大语言模型（LLM）代理能够准确预测多步骤任务中每个独立步骤的频率。
+- en: '|  | $SSR=\frac{\#SuccessSteps}{\#AllSteps}$ |  | (2) |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $SSR=\frac{\#SuccessSteps}{\#AllSteps}$ |  | (2) |'
+- en: Endpoint Determination Rate(EDR) The Endpoint Determination Rate (EDR) is a
+    metric that quantifies the proportion of tasks that the Large Language Model (LLM)
+    agent successfully concludes on the final page of the entire dataset.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 终端确定率（EDR） 终端确定率（EDR）是一个量化指标，用于衡量大语言模型（LLM）代理在整个数据集的最终页面成功完成任务的比例。
+- en: '|  | $EDR=\frac{\#SuccessTerminalIntentions}{\#AllIntentions-\#TimeOut}$ |  |
+    (3) |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $EDR=\frac{\#SuccessTerminalIntentions}{\#AllIntentions-\#TimeOut}$ |  |
+    (3) |'
+- en: Appendix D Applications
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 D 应用
+- en: D.1 Software Testing
+  id: totrans-167
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.1 软件测试
+- en: Software testing is an ideal scenario for MobileFlow. First of all, software
+    testing requires significant amount of work to complete. Based on internal survey,
+    software testing in average takes 150% longer compare to development in time.
+    In practice, testing account status, testing data, pop-ups, algo driven UI displays,
+    a/b tests may create UI route noises in traditional automation executions, causing
+    false alarms. The success rate is usually low. Automation script frequently require
+    updates to be compatible to thses noise in UI routes.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件测试是MobileFlow的理想场景。首先，软件测试需要大量的工作来完成。根据内部调查，软件测试的时间平均比开发多出150%。在实践中，测试账户状态、测试数据、弹出窗口、算法驱动的UI显示、A/B测试可能会在传统自动化执行中产生UI路由噪声，导致误报。成功率通常较低。自动化脚本需要频繁更新，以适应UI路由中的这些噪声。
+- en: 'MobileFlow solves this issue from three aspects:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MobileFlow从三个方面解决了这个问题：
+- en: •
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Replacing test automation script by natual language reduces the complexity of
+    testing system and programming skill prerequisite for testing engineers.
+  id: totrans-171
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 用自然语言替代测试自动化脚本，减少了测试系统的复杂性和测试工程师对编程技能的要求。
+- en: •
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Natual language has good capacity to deal with UI noises, and sometimes can
+    be compatible to testing account/data differences.
+  id: totrans-173
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 自然语言具有良好的处理UI噪声的能力，有时能够兼容测试账号/数据的差异。
+- en: •
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Some alarms can be automatically analyzed and closed by VAQ task.
+  id: totrans-175
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一些警报可以通过VAQ任务自动分析并关闭。
+- en: D.2 Advertisement Preview And Audit
+  id: totrans-176
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.2 广告预览与审查
+- en: Advertisement contains multimedia contents and requires muti-step interactions
+    to trigger. This cause manual and traditional automation are costly to execute
+    and unstable in success rate.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 广告包含多媒体内容，需要多步骤的互动来触发。这使得人工和传统自动化执行成本高，且成功率不稳定。
+- en: In this scenario, MobileFlow can serve from both advertiser and advertising
+    platform perspectives.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种场景下，MobileFlow可以同时服务于广告主和广告平台的角度。
+- en: •
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Advertiser: Trigger ads, preview the ads as expected.'
+  id: totrans-180
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 广告主：触发广告，按预期预览广告。
+- en: •
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Advertising platform: Monitoring ads trigger stragegy and interaction logic,
+    audit ads content to prevent improper content to display.'
+  id: totrans-182
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 广告平台：监控广告触发策略和互动逻辑，审查广告内容以防止不当内容展示。
+- en: D.3 E-Commerce Operation And Monitoring
+  id: totrans-183
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.3 电子商务运营与监控
+- en: Most of small merchants in China have their E-Commerce business and they are
+    operated on different platforms, such as Taobao store, Jingdong store, PDD store,
+    Alipay mini app, WeChat mini app, Tiktok shop, Meituan shop, RED shop, etc. Daily
+    marketing and operation are a burden for business owners, and small mistakes may
+    cause big loss, even lead to bankruptcy.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 中国的大多数小型商户都有自己的电子商务业务，并且在不同的平台上运营，如淘宝店、京东店、拼多多店、支付宝小程序、微信小程序、抖音店、美团店、RED店等。日常营销和运营是商户的负担，甚至小小的错误可能导致巨大的损失，甚至破产。
+- en: 'A small tool based on MobileFlow is developed for small merchants to perform
+    the following tasks:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发了一款基于MobileFlow的小工具，供小型商户执行以下任务：
+- en: •
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Inspecting price discrepencies cross platforms, usually caused by mistakes in
+    coupon/discount setup.
+  id: totrans-187
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 检查跨平台的价格差异，通常是由优惠券/折扣设置错误引起的。
+- en: •
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Inspecting price discrepencies cross dates, usually caused by platform level
+    marketing event.
+  id: totrans-189
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 检查跨日期的价格差异，通常由平台级别的营销活动引起。
+- en: •
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Monitoring competitive stores marketing events and follow-up.
+  id: totrans-191
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 监控竞争商店的营销活动并跟进。
+- en: Appendix E More Samples
+  id: totrans-192
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录E 更多示例
+- en: '![Refer to caption](img/061f7a16c108a9bbbec66be8742ee4d4.png)'
+  id: totrans-193
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/061f7a16c108a9bbbec66be8742ee4d4.png)'
+- en: 'Figure 5: User’s instruction: Check my claim records.'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：用户指令：查看我的理赔记录。
+- en: '![Refer to caption](img/b29ce17b2b76d82db3f57ecab72f953f.png)'
+  id: totrans-195
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/b29ce17b2b76d82db3f57ecab72f953f.png)'
+- en: 'Figure 6: Showcase of the MobileFlow’s application for GUI agent. User’s instruction:
+    Help me buy a cup of strawberry custard in the self-service order, choose Jiao
+    Tong University Campus store of Haidian District.'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：展示MobileFlow在GUI代理中的应用。用户指令：帮我在自助点单中购买一杯草莓奶油布丁，选择海淀区的交通大学校园店。
+- en: '![Refer to caption](img/4ad62c6dfb50591dfd0ec4ed91303164.png)'
+  id: totrans-197
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/4ad62c6dfb50591dfd0ec4ed91303164.png)'
+- en: 'Figure 7: User’s instruction: Check out the top health insurance lists.'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：用户指令：查看排名前列的健康保险清单。
+- en: '![Refer to caption](img/e21328d939bb1e4358838e9eb8df9041.png)'
+  id: totrans-199
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/e21328d939bb1e4358838e9eb8df9041.png)'
+- en: 'Figure 8: User’s instruction: Please make an appointment for the gastroenterology
+    clinic on April 14th. Choose Wuhou Hospital of Sichuan Modern Hospital.'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 8：用户指令：请预约4月14日的胃肠科门诊，选择四川现代医院的武侯医院。

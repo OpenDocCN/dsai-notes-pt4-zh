@@ -1,0 +1,1605 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 12:05:51'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'date: 2025-01-11 12:05:51'
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Enhancing LLM Agents for Code Generation with Possibility and Pass-rate Prioritized
+    Experience Replay
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 通过可能性和通过率优先经验回放增强LLM代理的代码生成能力
+- en: 来源：[https://arxiv.org/html/2410.12236/](https://arxiv.org/html/2410.12236/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2410.12236/](https://arxiv.org/html/2410.12236/)
+- en: Yuyang Chen^($\dagger$1,2), Kaiyan Zhao^($\dagger$1), Yiming Wang³, Ming Yang³,
+    Jian Zhang¹, Xiaoguang Niu¹
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Yuyang Chen^($\dagger$1,2), Kaiyan Zhao^($\dagger$1), Yiming Wang³, Ming Yang³,
+    Jian Zhang¹, Xiaoguang Niu¹
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Abstract
+- en: 'Nowadays transformer-based Large Language Models (LLM) for code generation
+    tasks usually apply sampling and filtering pipelines. Due to the sparse reward
+    problem in code generation tasks caused by one-token incorrectness, transformer-based
+    models will sample redundant programs till they find a correct one, leading to
+    low efficiency. To overcome the challenge, we incorporate Experience Replay (ER)
+    in the fine-tuning phase, where codes and programs produced are stored and will
+    be replayed to give the LLM agent a chance to learn from past experiences. Based
+    on the spirit of ER, we introduce a novel approach called BTP pipeline which consists
+    of three phases: beam search sampling, testing phase, and prioritized experience
+    replay phase. The approach makes use of failed programs collected by code models
+    and replays programs with high Possibility and Pass-rate Prioritized value (P2Value)
+    from the replay buffer to improve efficiency. P2Value comprehensively considers
+    the possibility of transformers’ output and pass rate and can make use of the
+    redundant resources caused by the problem that most programs collected by LLMs
+    fail to pass any tests. We empirically apply our approach in several LLMs, demonstrating
+    that it enhances their performance in code generation tasks and surpasses existing
+    baselines.'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当今，用于代码生成任务的基于Transformer的大型语言模型（LLM）通常应用抽样和过滤管道。由于代码生成任务中由于一个令牌错误引起的稀疏奖励问题，基于Transformer的模型会抽样冗余程序直到找到正确的程序，导致效率低下。为了克服这一挑战，我们在微调阶段引入了经验回放（ER），其中生成的代码和程序将被存储并将被重放，以便LLM代理有机会从过去的经验中学习。基于ER的精神，我们引入了一种称为BTP管线的新方法，该方法包括三个阶段：波束搜索抽样阶段、测试阶段和优先经验回放阶段。该方法利用代码模型收集的失败程序，并从重放缓冲区中重播具有高可能性和通过率优先值（P2Value）的程序，以提高效率。P2Value全面考虑了Transformer输出的可能性和通过率，并可以利用LLM收集的大多数程序无法通过任何测试的问题所造成的冗余资源。我们在多个LLM中经验性地应用了我们的方法，表明它提升了它们在代码生成任务中的性能，并超过了现有的基准线。
+- en: 1 Introduction
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 Introduction
+- en: In recent years, there has been significant progress in the development of Large
+    Language Models (LLMs) like Transformer (Vaswani et al. [2017](https://arxiv.org/html/2410.12236v1#bib.bib27))
+    and Llama (Touvron et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib26))
+    across various domains. A particular trend has emerged in leveraging LLMs for
+    automatic code generation tasks. Models such as WizardCode (Luo et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib18))
+    and StarCode (Li et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib14))
+    have been developed to address these tasks. To evaluate the effectiveness and
+    performance of LLMs in code generation, various benchmarks have been established.
+    For instance, APPS (Hendrycks et al. [2021](https://arxiv.org/html/2410.12236v1#bib.bib11))
+    is widely used in evaluations of code models, and Code-Contests (Li et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib15))
+    has been established as a standard for competition-level coding tasks. Among all
+    models, transformers have demonstrated significant success in benchmarking tasks
+    such as code translation, code completion, and challenging problem-solving (Svyatkovskiy
+    et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib25)). Some transformer-based
+    pipelines have even achieved remarkable results on difficult tasks (Zhang et al.
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib34)).
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，大型语言模型（LLM）的发展取得了显著进展，像Transformer（Vaswani et al. [2017](https://arxiv.org/html/2410.12236v1#bib.bib27)）和Llama（Touvron
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib26)）等模型在多个领域得到了应用。一个特别的趋势是将LLM用于自动代码生成任务。像WizardCode（Luo
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib18)）和StarCode（Li et al.
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib14)）等模型被开发出来以应对这些任务。为了评估LLM在代码生成中的有效性和表现，已经建立了各种基准测试。例如，APPS（Hendrycks
+    et al. [2021](https://arxiv.org/html/2410.12236v1#bib.bib11)）广泛用于代码模型的评估，而Code-Contests（Li
+    et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib15)）已成为竞赛级编程任务的标准。在所有模型中，变换器在代码翻译、代码补全和挑战性问题解决等基准任务中表现出显著的成功（Svyatkovskiy
+    et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib25)）。一些基于变换器的管道甚至在困难任务中取得了显著成果（Zhang
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib34)）。
+- en: However, traditional transformer-based pipelines, which consist of sampling
+    and filtering phases, have obvious shortcomings due to their structure. A salient
+    problem in code generation tasks is the significant waste of redundant resources
+    caused by low efficiency. Specifically, when tasks are provided as input, the
+    code agent samples a large number of programs from pre-trained transformer-based
+    LLMs and passes them through public test sets, where they are tested and filtered
+    based on their pass rates. Low efficiency arises in cases where most programs
+    fail to pass the tests due to even a single incorrect token (Zhang et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib34)).
+    As a result, models must sample many incorrect programs to find a precisely accurate
+    one, leading to the wastage of redundant resources, including unsuccessful programs
+    that are not reused.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，传统的基于变换器（transformer）的管道，由采样和过滤阶段组成，由于其结构原因存在明显的缺点。在代码生成任务中，一个突出的问题是低效率导致的冗余资源的显著浪费。具体来说，当任务作为输入提供时，代码代理从预训练的基于变换器的LLM中采样大量程序，并通过公共测试集进行测试，在那里根据通过率进行测试和过滤。低效率发生在大多数程序由于单个错误的标记而未能通过测试的情况下（Zhang
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib34)）。因此，模型必须采样许多错误的程序，才能找到一个完全准确的程序，这导致冗余资源的浪费，包括未被重用的不成功程序。
+- en: However, programs that fail some tests do not necessarily lack value. On the
+    contrary, most pre-trained LLMs are well-trained on large corpora, which means
+    that the programs they generate are almost accurate but may fail due to minor
+    errors. Thus, it would save time and improve efficiency if we could reduce the
+    waste of these valuable resources.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，通过某些测试失败的程序并不一定没有价值。相反，大多数预训练的大型语言模型（LLM）在大规模语料库上得到了很好的训练，这意味着它们生成的程序几乎是准确的，但可能因为一些小错误而失败。因此，如果我们能够减少这些宝贵资源的浪费，将节省时间并提高效率。
+- en: 'To leverage the value hidden in these redundant resources and increase efficiency,
+    we introduce Experience Replay (ER), a buffer that stores programs sampled by
+    LLMs along with each program’s P2Value (possibility and pass rate value), which
+    we consider as its value. P2Value comprehensively considers both the likelihood
+    of a transformer’s output and the pass rate. On one hand, a program with a higher
+    pass rate in public test sets demonstrates good performance in a particular task;
+    on the other hand, a program with a higher likelihood of output is considered
+    to have higher value according to the results calculated by pre-trained transformers.
+    Based on ER, we introduce a novel approach called the BTP pipeline, which consists
+    of three phases: beam search sampling, testing, and prioritized experience replay.
+    The core algorithm, PPER (P2Value-Prioritized Experience Replay), utilizes beam
+    search to sample and store programs in ER, and then replays programs in ER based
+    on a probability dependent on their P2Value.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了利用这些冗余资源中的价值并提高效率，我们引入了经验重放（Experience Replay，ER），这是一种存储LLMs采样程序的缓冲区，同时记录每个程序的P2Value（可能性和通过率值），我们将其视为程序的价值。P2Value综合考虑了变换器输出的可能性和通过率。一方面，在公共测试集中通过率较高的程序在特定任务中表现良好；另一方面，输出可能性较高的程序根据预训练变换器的计算结果被认为具有更高的价值。基于ER，我们提出了一种名为BTP管道的新方法，它由三个阶段组成：束搜索采样、测试和优先经验重放。核心算法PPER（P2Value优先经验重放）利用束搜索采样并将程序存储在ER中，然后根据程序的P2Value依赖的概率在ER中进行重放。
+- en: 'We empirically demonstrate that our pipeline improves the performance of LLMs
+    in code generation tasks, outperforming the original models regardless of whether
+    the training data is self-generated or generated by models of higher quality.
+    More specifically, our contributions are as follows:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过实验证明，我们的管道在代码生成任务中提升了大语言模型（LLMs）的性能，无论训练数据是自生成的还是由更高质量的模型生成的，均优于原始模型。更具体地说，我们的贡献如下：
+- en: •
+  id: totrans-15
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: First, we propose a novel algorithm, BTP pipeline, consisting of beam search
+    sampling phase testing phase and experience replay phase to fine-tune LLMs.
+  id: totrans-16
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 首先，我们提出了一种新型算法——BTP管道，它由束搜索采样阶段、测试阶段和经验重放阶段组成，用于微调LLMs。
+- en: •
+  id: totrans-17
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We empirically demonstrate that our algorithm performs well not only in scenarios
+    where better LLMs generate data to fine-tune normal LLMs, but also in scenarios
+    where LLMs sample programs to fine-tune themselves. That is to say, our BTP pipeline
+    is generic.
+  id: totrans-18
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们通过实验证明，我们的算法不仅在更好的LLMs生成数据以微调普通LLMs的场景下表现良好，在LLMs自行采样程序进行自我微调的场景下也同样有效。也就是说，我们的BTP管道是通用的。
+- en: •
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: At last, we introduce a novel buffer called experience replay buffer which is
+    efficient in fine-tuning. In the future, we can combine it with other algorithms
+    to find more efficient way to fine-tune LLMs.
+  id: totrans-20
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 最后，我们引入了一种名为经验重放缓冲区（experience replay buffer）的新型缓冲区，它在微调过程中非常高效。未来，我们可以将其与其他算法结合，找到更高效的微调方式。
+- en: 2 Related Work
+  id: totrans-21
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Considering the association of ER and LLMs in our pipeline, here we will introduce
+    them respectively.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑到我们管道中ER和LLMs的关联，接下来我们将分别介绍它们。
+- en: 'LLMs for code generation: Our work is closely related to LLMs for code generation.
+    In recent years, high-performing LLMs such as GPT-4 (OpenAI [2023](https://arxiv.org/html/2410.12236v1#bib.bib19)),
+    Llama (Touvron et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib26)),
+    PaLM (Chowdhery et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib6)),
+    and Chinchilla (Hoffmann et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib12))
+    have emerged in different areas. Particularly, our work is based on transformers
+    (Vaswani et al. [2017](https://arxiv.org/html/2410.12236v1#bib.bib27)) for code
+    generation tasks (Roziere et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib22)).
+    Code models such as BERT (Devlin et al. [2019](https://arxiv.org/html/2410.12236v1#bib.bib7);
+    Feng et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib9); Guo et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib10)),
+    T5 (Raffel et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib21)), GPT-2
+    (Radford et al. [2019](https://arxiv.org/html/2410.12236v1#bib.bib20)), Codex
+    (Chen et al. [2021a](https://arxiv.org/html/2410.12236v1#bib.bib4)), CodeT5 (Wang
+    et al. [2021](https://arxiv.org/html/2410.12236v1#bib.bib29)), StarCode (Li et al.
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib14)), and WizardCoder (Luo et al.
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib18)) have become backbones for
+    code understanding and generation. Meanwhile, to evaluate the performance of code
+    models, different benchmarks have been created, such as APPS (Hendrycks et al.
+    [2021](https://arxiv.org/html/2410.12236v1#bib.bib11)), CODE-CONTESTS (Li et al.
+    [2022](https://arxiv.org/html/2410.12236v1#bib.bib15)), OpenOrca (Lian et al.
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib16)), and HumanEval (Chen et al.
+    [2021b](https://arxiv.org/html/2410.12236v1#bib.bib5)). Additionally, (Roziere
+    et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib23)) constructs training
+    datasets for unsupervised code translation tasks, and (Ellis et al. [2019](https://arxiv.org/html/2410.12236v1#bib.bib8))
+    constructs test cases from different specific areas to train an RL agent. Moreover,
+    many new methods have been proposed in code generation. For example, (Chen et al.
+    [2021b](https://arxiv.org/html/2410.12236v1#bib.bib5)) fine-tunes powerful pre-trained
+    LLMs to index knowledge and refine performance in code completion. (Austin et al.
+    [2022](https://arxiv.org/html/2410.12236v1#bib.bib2)) summarizes that LLMs can
+    be applied to code generation tasks, and (Wei et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib30))
+    introduces Chain-of-Thought (CoT) prompting to encourage LLMs to think step by
+    step and reduce error rates.'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码生成的LLM：我们的工作与代码生成的LLM密切相关。近年来，像GPT-4（OpenAI [2023](https://arxiv.org/html/2410.12236v1#bib.bib19)）、Llama（Touvron
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib26)）、PaLM（Chowdhery et
+    al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib6)）、Chinchilla（Hoffmann
+    et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib12)）等高性能LLM在不同领域相继出现。特别是，我们的工作基于用于代码生成任务的transformer（Vaswani
+    et al. [2017](https://arxiv.org/html/2410.12236v1#bib.bib27)）（Roziere et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib22)）。像BERT（Devlin
+    et al. [2019](https://arxiv.org/html/2410.12236v1#bib.bib7); Feng et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib9);
+    Guo et al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib10)）、T5（Raffel et
+    al. [2020](https://arxiv.org/html/2410.12236v1#bib.bib21)）、GPT-2（Radford et al.
+    [2019](https://arxiv.org/html/2410.12236v1#bib.bib20)）、Codex（Chen et al. [2021a](https://arxiv.org/html/2410.12236v1#bib.bib4)）、CodeT5（Wang
+    et al. [2021](https://arxiv.org/html/2410.12236v1#bib.bib29)）、StarCode（Li et al.
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib14)）和WizardCoder（Luo et al.
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib18)）等代码模型已成为代码理解与生成的核心工具。同时，为了评估代码模型的性能，创建了不同的基准测试，如APPS（Hendrycks
+    et al. [2021](https://arxiv.org/html/2410.12236v1#bib.bib11)）、CODE-CONTESTS（Li
+    et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib15)）、OpenOrca（Lian et
+    al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib16)）和HumanEval（Chen et al.
+    [2021b](https://arxiv.org/html/2410.12236v1#bib.bib5)）。此外，（Roziere et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib23)）为无监督代码翻译任务构建了训练数据集，（Ellis
+    et al. [2019](https://arxiv.org/html/2410.12236v1#bib.bib8)）为训练RL代理构建了来自不同特定领域的测试用例。此外，许多新方法已经在代码生成中提出。例如，（Chen
+    et al. [2021b](https://arxiv.org/html/2410.12236v1#bib.bib5)）通过微调强大的预训练LLM来索引知识并优化代码完成的性能。（Austin
+    et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib2)）总结了LLM可以应用于代码生成任务，（Wei
+    et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib30)）引入了Chain-of-Thought（CoT）提示，鼓励LLM逐步思考并减少错误率。
+- en: 'RL for Code Generation: (Bunel et al. [2018](https://arxiv.org/html/2410.12236v1#bib.bib3))
+    claims that code generation tasks can be broken down into a series of decision-making
+    problems, which are similar to problem definitions in RL. This implies that RL
+    algorithms can be applied to transformers, effectively leveraging their sequential
+    decision-making capabilities. For instance, (Zhang et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib34))
+    combine Monte Carlo Tree Search (MCTS) with transformers in code generation tasks.
+    In this approach, MCTS is used to explore potential sequences of code by simulating
+    different code paths, evaluating them based on a reward function that measures
+    code correctness and efficiency. This enables the model to select the most promising
+    code sequences during inference(Yang et al. [2024a](https://arxiv.org/html/2410.12236v1#bib.bib32)).
+    Similarly, (Le et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib13)) optimize
+    the correctness of generated programs by framing it as a reward maximization problem,
+    a common objective in RL(Yang et al. [2024b](https://arxiv.org/html/2410.12236v1#bib.bib33)).
+    They employ policy gradient methods, where the transformer model’s policy is iteratively
+    improved by sampling code sequences, estimating the reward (e.g., program correctness)(Wang
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib28)), and updating the
+    model to increase the likelihood of generating correct code sequences in future
+    iterations. These approaches demonstrate how RL’s exploration-exploitation(Yang
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib31)) mechanisms can be
+    integrated with transformers to enhance the performance of code generation models
+    by not just predicting the next token but optimizing over entire sequences based
+    on cumulative rewards.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于强化学习的代码生成： (Bunel et al. [2018](https://arxiv.org/html/2410.12236v1#bib.bib3))
+    声称，代码生成任务可以分解为一系列决策问题，这些问题类似于强化学习中的问题定义。这意味着可以将强化学习算法应用于变换器，充分利用其序列决策能力。例如，(Zhang
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib34)) 在代码生成任务中将蒙特卡洛树搜索（MCTS）与变换器结合。在这种方法中，MCTS
+    用于通过模拟不同的代码路径来探索潜在的代码序列，并基于一个衡量代码正确性和效率的奖励函数评估它们。这使得模型在推理过程中能够选择最有前景的代码序列（Yang
+    et al. [2024a](https://arxiv.org/html/2410.12236v1#bib.bib32)）。类似地，(Le et al.
+    [2022](https://arxiv.org/html/2410.12236v1#bib.bib13)) 通过将生成程序的正确性框架化为奖励最大化问题（这是强化学习中的常见目标），优化生成程序的正确性（Yang
+    et al. [2024b](https://arxiv.org/html/2410.12236v1#bib.bib33)）。他们采用策略梯度方法，通过采样代码序列、估算奖励（例如，程序正确性）（Wang
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib28)）并更新模型，从而逐步改进变换器模型的策略，以增加未来迭代中生成正确代码序列的概率。这些方法展示了强化学习的探索-利用（Yang
+    et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib31)）机制如何与变换器相结合，通过不仅仅预测下一个标记，而是基于累积奖励优化整个序列，从而增强代码生成模型的性能。
+- en: 'Experience Replay: (Lin [1992](https://arxiv.org/html/2410.12236v1#bib.bib17))
+    first introduced the concept of experience replay, suggesting that an agent can
+    store its experiences in a buffer and later sample from this buffer to break the
+    temporal correlation of consecutive observations, thus stabilizing the learning
+    process. By replaying these experiences multiple times, the agent can improve
+    sample efficiency, as it can learn from past experiences that may have been missed
+    during the initial training phase.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 经验重放： (Lin [1992](https://arxiv.org/html/2410.12236v1#bib.bib17)) 首次提出了经验重放的概念，建议代理可以将其经验存储在缓冲区中，然后从这个缓冲区中进行抽样，以打破连续观察之间的时间相关性，从而稳定学习过程。通过多次重放这些经验，代理可以提高样本效率，因为它可以从在初始训练阶段可能被遗漏的过去经验中学习。
+- en: Hindsight Experience Replay (HER) (Andrychowicz et al. [2017](https://arxiv.org/html/2410.12236v1#bib.bib1))
+    expanded on this by addressing the sparse reward problem in goal-conditioned reinforcement
+    learning (RL). In HER, after a failed episode, the transitions leading up to the
+    failure are stored in the replay buffer. During training, these transitions are
+    re-labeled with different goals than originally intended, particularly goals that
+    were actually achieved in the failed episode. By assigning new rewards corresponding
+    to these new goals, HER enables the agent to learn from episodes where the original
+    goal was not achieved, effectively turning failures into learning opportunities.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '回顾经验重放（HER）(Andrychowicz et al. [2017](https://arxiv.org/html/2410.12236v1#bib.bib1))通过解决目标条件强化学习（RL）中的稀疏奖励问题进行了扩展。在HER中，失败的回合之后，导致失败的过渡会存储在重放缓冲区。在训练过程中，这些过渡会被重新标记为与原本目标不同的目标，特别是那些在失败的回合中实际实现的目标。通过为这些新目标分配新的奖励，HER使得智能体能够从原本未达到目标的回合中学习，从而有效地将失败转化为学习机会。  '
+- en: Meanwhile, Prioritized Experience Replay (PER) (Schaul et al. [2016](https://arxiv.org/html/2410.12236v1#bib.bib24))
+    introduced the idea that not all transitions are equally valuable for learning.
+    PER modifies the experience replay mechanism by sampling transitions with a probability
+    proportional to their temporal-difference (TD) error, which indicates how surprising
+    or unexpected the transition is. High TD-error transitions, where the agent’s
+    prediction was significantly different from the actual outcome, are more informative
+    and thus are replayed more frequently. This approach ensures that the agent focuses
+    on learning from the most informative experiences, speeding up the convergence
+    of the learning process by reducing the time spent on less useful transitions.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '与此同时，优先经验重放（PER）(Schaul et al. [2016](https://arxiv.org/html/2410.12236v1#bib.bib24))提出了并非所有过渡对学习同等重要的观点。PER通过按时间差分（TD）误差的大小抽样过渡来修改经验重放机制，TD误差表示过渡的惊讶性或意外性。高TD误差的过渡，即智能体的预测与实际结果差异较大的过渡，更具信息性，因此会被更频繁地重放。这种方法确保了智能体集中精力从最有信息量的经历中学习，通过减少在不太有用的过渡上浪费的时间，加速了学习过程的收敛。  '
+- en: 3 Methodology
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '3 方法论  '
+- en: '![Refer to caption](img/f04ae86dc49c9284bf9b21c08af76e4d.png)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/f04ae86dc49c9284bf9b21c08af76e4d.png)  '
+- en: 'Figure 1: The pass rate of GPT2-Wizard using BTP in different $\alpha$'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图1：在不同$\alpha$值下，使用BTP的GPT2-Wizard的通过率  '
+- en: In this section, we first briefly present the framework of the BTP pipeline,
+    which is composed of beam search sampling, testing, and PPER. Then, we illustrate
+    the details of the proposed framework. Figure 1 provides a complete process of
+    the BTP pipeline.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本节首先简要介绍BTP管道的框架，该框架由束搜索采样、测试和PPER组成。接着，我们将详细说明所提框架的细节。图1提供了BTP管道的完整过程。  '
+- en: 3.1 BTP pipeline
+  id: totrans-32
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: '3.1 BTP管道  '
+- en: As shown in Figure 2, most previous works adopt a traditional framework where
+    the transformer model utilizes a sampling and filtering pipeline. In the sampling
+    phase, LLM simply finds best code sequences in every time step according to
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图2所示，大多数以往的工作采用传统框架，其中变换器模型利用采样和过滤管道。在采样阶段，LLM仅根据
+- en: '|  | $\displaystyle P(Y&#124;X)$ | $\displaystyle=P(y_{1}&#124;X)P(y_{2}&#124;X,y_{1})\dots$
+    |  | (1) |'
+  id: totrans-34
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle P(Y|X)$ | $\displaystyle=P(y_{1}|X)P(y_{2}|X,y_{1})\dots$
+    |  | (1) |  '
+- en: '|  |  | $\displaystyle\quad P(y_{T}&#124;X,y_{1},y_{2},\dots,y_{T-1})$ |  |'
+  id: totrans-35
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | $\displaystyle\quad P(y_{T}|X,y_{1},y_{2},\dots,y_{T-1})$ |  |  '
+- en: where X is the input, $y_{i}$ is the token generated in time step i, $P(y_{i}|X,y_{1},y_{2},\dots,y_{i-1})$
+    is the conditional probability of $y_{i}$ given X, $y_{1}$,…,$y_{i-1}$.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '其中X是输入，$y_{i}$是第i个时间步生成的token，$P(y_{i}|X,y_{1},y_{2},\dots,y_{i-1})$是给定X，$y_{1}$,…,$y_{i-1}$的条件概率。  '
+- en: Particularly, in code generation tasks, X is a code task in the formulation
+    of prompt.Traditional LLM simply uses greedy algorithm and maximizes $P(y_{i}|X,y_{1},y_{2},\dots,y_{i-1})$
+    for every time step i till gets a complete code sequence $y_{1}y_{2}\dots y_{T}$
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '特别是在代码生成任务中，X是提示语的代码任务。传统的LLM仅使用贪心算法，在每个时间步i最大化$P(y_{i}|X,y_{1},y_{2},\dots,y_{i-1})$，直到生成完整的代码序列$y_{1}y_{2}\dots
+    y_{T}$  '
+- en: In the filtering phase, the code sequence is sent to public test sets. However,
+    it may fail due to some token mistakes. One main reason is that the greedy algorithm
+    ignores the values hidden in other sequences with lower probabilities. Therefore,
+    we introduce beam search sampling in our pipeline.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在过滤阶段，代码序列被发送到公共测试集。然而，由于某些令牌错误，可能会导致失败。一个主要原因是贪心算法忽略了其他概率较低的序列中隐藏的值。因此，我们在我们的管道中引入了束搜索采样。
+- en: 3.2 Beam search sampling phase
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 束搜索采样阶段
+- en: As shown in Figure 4, at every time step, the code model finds the top-k most
+    probable candidate sequences and keeps them in a container called ”beams.” At
+    each step i, all candidate sequences explore all possible tokens from the vocabulary,
+    generating different new sequences. Then, the LLM selects the top-k sequences
+    based on the combined probability and adds them to the new beam for the next time
+    step.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如图 4 所示，在每个时间步，代码模型会找到最有可能的前 k 个候选序列，并将它们保存在一个名为“beams”的容器中。在每一步 i，所有候选序列会从词汇表中探索所有可能的令牌，生成不同的新序列。然后，LLM
+    会根据组合概率选择前 k 个序列，并将它们添加到新束中以供下一时间步使用。
+- en: '|  | $P(y_{1}y_{2}\dots y_{i})=P(y_{1}y_{2}\dots y_{i-1})P(y_{i})$ |  | (2)
+    |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $P(y_{1}y_{2}\dots y_{i})=P(y_{1}y_{2}\dots y_{i-1})P(y_{i})$ |  | (2)
+    |'
+- en: 'Repeat the process till the model finds a complete program $y_{1}y_{2}\dots
+    y_{T}$where T is the end time step. Store the top-k programs $t_{1}t_{2}\dots
+    t_{k}$ in the experience replay buffer along with their possibilities $P(t_{1})P(t_{2})\dots
+    P(t_{k})$, the code task X and its corresponding test sets S in the following
+    tuple form:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重复该过程，直到模型找到一个完整的程序 $y_{1}y_{2}\dots y_{T}$，其中 T 是结束时间步。将前 k 个程序 $t_{1}t_{2}\dots
+    t_{k}$ 及其可能性 $P(t_{1})P(t_{2})\dots P(t_{k})$、代码任务 X 及其对应的测试集 S 存储在经验回放缓冲区中，格式如下：
+- en: '|  | $T=(X,S,t_{i},P(t_{i}))$ |  | (3) |'
+  id: totrans-43
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $T=(X,S,t_{i},P(t_{i}))$ |  | (3) |'
+- en: 3.3 Testing phase
+  id: totrans-44
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 测试阶段
+- en: 'In the testing phase, the model will sequentially take out every tuple from
+    T and test $t_{i}$ in every test case of test set S, and compute the pass rate
+    $pass\_rate_{i}$:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在测试阶段，模型将顺序地从 T 中取出每个元组，并在测试集 S 的每个测试用例中测试 $t_{i}$，并计算通过率 $pass\_rate_{i}$：
+- en: '|  | $\text{pass\_rate}_{i}=\sum_{forS_{k}\in S}\mathbf{1}(\text{if }t_{i}\text{
+    % pass }S_{k})$ |  | (4) |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{pass\_rate}_{i}=\sum_{forS_{k}\in S}\mathbf{1}(\text{if }t_{i}\text{
+    % pass }S_{k})$ |  | (4) |'
+- en: The pass rate, together with the combined probability, will be stored in the
+    experience replay buffer (ER).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过率以及组合概率将存储在经验回放缓冲区（ER）中。
+- en: '|  | $ER_{i}=(X,S,t_{i},P(t_{i}),pass\_rate_{i})$ |  | (5) |'
+  id: totrans-48
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $ER_{i}=(X,S,t_{i},P(t_{i}),pass\_rate_{i})$ |  | (5) |'
+- en: 3.4 PPER phase
+  id: totrans-49
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 PPER 阶段
+- en: In the Possibility and Pass-rate Prioritized Experience Replay (PPER) phase,
+    the code model will be fine-tuned using the method we call PPER. Specifically,
+    the programs stored in the replay buffer will be sampled with probabilities that
+    are associated with their possibility and pass rate. The sampled programs will
+    then be used to construct a minibatch, which will be used to fine-tune the code
+    model.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在可能性和通过率优先经验回放（PPER）阶段，代码模型将使用我们称之为 PPER 的方法进行微调。具体来说，存储在回放缓冲区中的程序将根据其可能性和通过率的概率进行采样。然后，采样的程序将用于构建一个小批量，用于微调代码模型。
+- en: P2Value
+  id: totrans-51
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: P2Value
+- en: 'In our PPER method, the most important factor is to establish a standard for
+    defining the priorities of every program in the ER. While it is challenging to
+    determine an accurate measurement standard for priority, a reasonable alternative
+    is to consider the P2Value, which combines the output probability of the transformer
+    and the pass rate on test sets. Particularly for any tuple $ER_{i}=(X,S,t_{i},P(t_{i}),pass\_rate_{i})$
+    sampled from ER, P2value is calculated as followed:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的 PPER 方法中，最重要的因素是建立一个标准来定义 ER 中每个程序的优先级。虽然很难确定一个准确的优先级测量标准，但一个合理的替代方案是考虑
+    P2Value，它结合了变换器的输出概率和在测试集上的通过率。特别是，对于从 ER 中采样的任何元组 $ER_{i}=(X,S,t_{i},P(t_{i}),pass\_rate_{i})$，P2Value
+    的计算方式如下：
+- en: '|  | $\text{P2Value}=\alpha\cdot P(t_{i})+(1-\alpha)\cdot pass\_rate_{i}$ |  |
+    (6) |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{P2Value}=\alpha\cdot P(t_{i})+(1-\alpha)\cdot pass\_rate_{i}$ |  |
+    (6) |'
+- en: Where $\alpha$ is a parameter that determines the weights of possibility and
+    pass rate.The closer it gets to 1, the more important the possibility becomes.
+    Correspondingly, sampled programs that the original code model prefers will have
+    more influence in the fine-tuning process. Conversely, programs that pass the
+    most test sets but are not as highly preferred by the original code model will
+    carry more weight in the fine-tuning process.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$\alpha$是一个参数，用于确定可能性和通过率的权重。它越接近1，可能性就越重要。相应地，原始代码模型更偏好的采样程序将在微调过程中产生更大的影响。相反，通过最多测试集的程序，但原始代码模型的偏好较低，将在微调过程中承载更多的权重。
+- en: The reason we consider such a formula is that programs with higher pass rates
+    are more suitable and valuable for particular code tasks. However, due to the
+    possibility of low pass rates, which can even approach zero, we consider applying
+    possibility to value a program. It is evident that a program preferred by the
+    pre-trained LLM holds higher value in the LLM’s corpus. And how to balance their
+    weights is the reason why we set parameter $\alpha$
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们考虑这种公式的原因是，具有更高通过率的程序更适合且对特定代码任务更有价值。然而，由于可能存在低通过率，甚至接近零的情况，我们考虑将可能性应用于程序的价值评估。显然，一个被预训练LLM偏好的程序在LLM的语料库中具有更高的价值。而如何平衡它们的权重正是我们设定参数$\alpha$的原因。
+- en: Random Proprotization sampling
+  id: totrans-56
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 随机优先级采样
+- en: It is straightforward to uniformly sample programs from the ER or to fine-tune
+    the LLM using the entire ER. However, it is more efficient to give programs with
+    higher value a greater chance of being selected. Therefore, we introduce a random
+    sampling method to ensure that every program stored in the ER is sampled in a
+    strictly monotonic manner with respect to its priority. This method increases
+    the likelihood of sampling programs with higher priority, while still maintaining
+    a fixed non-zero probability of sampling the program with the lowest priority,
+    ensuring that every trajectory in the ER is utilized.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从ER中均匀地采样程序或使用整个ER对LLM进行微调是简单的。然而，给予较高值的程序更大的被选中概率更为高效。因此，我们引入了一种随机采样方法，以确保ER中存储的每个程序都按其优先级以严格单调的方式进行采样。这种方法增加了采样高优先级程序的可能性，同时仍保持固定的非零概率来采样最低优先级的程序，确保ER中的每个轨迹都能得到利用。
+- en: Specifically, we define the sampling probability of a transition i in Equation
+    5.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体来说，我们在公式5中定义了转换i的采样概率。
+- en: '|  | $P(i)=\frac{p_{i}^{\alpha}}{\sum_{k}p_{k}^{\alpha}}$ |  | (7) |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $P(i)=\frac{p_{i}^{\alpha}}{\sum_{k}p_{k}^{\alpha}}$ |  | (7) |'
+- en: where pi is the priority of program $t_{i}$. The index $\alpha$ determines the
+    level of prioritization, with $\alpha$ = 0 We consider two ways to define pi.
+    In the first case, we directly define $p_{i}$ as P2Value. It intuitively depicts
+    the relationship between sampling possibility and priority.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中pi是程序$t_{i}$的优先级。索引$\alpha$决定了优先级的级别，当$\alpha$ = 0时，我们考虑两种方式来定义pi。在第一种情况下，我们直接将$p_{i}$定义为P2Value。这直观地描述了采样可能性与优先级之间的关系。
+- en: However, this method is sensitive to points that deviate significantly from
+    the average value. For instance, trajectories with much higher P2Value will be
+    sampled too frequently.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这种方法对与平均值显著偏离的点非常敏感。例如，P2Value值远高的轨迹将被过于频繁地采样。
+- en: To solve this problem, we introduce the second definition
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这个问题，我们引入了第二个定义
+- en: '|  | $p_{i}=\frac{1}{\text{rank}(i)}$ |  | (8) |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $p_{i}=\frac{1}{\text{rank}(i)}$ |  | (8) |'
+- en: where rank(i) represents the rank of the program’s priority among all trajectories.
+    This method has several advantages compared with the previous approach. Firstly,
+    it follows a power law distribution, meaning that most data are concentrated around
+    the centroid, while a small proportion is distributed around the very large and
+    very small values. Moreover, it is more robust and less sensitive to points that
+    deviate significantly from the average value. For instance, P(i) of a trajectory
+    with the lowest rank will not vary significantly even if its P2Value decreases
+    substantially.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中rank(i)表示程序在所有轨迹中的优先级排名。与之前的方法相比，这种方法有几个优势。首先，它遵循幂律分布，意味着大部分数据集中在重心附近，而少部分数据分布在极大或极小值周围。此外，它更加稳健，对显著偏离平均值的点不那么敏感。例如，即使轨迹的P2Value大幅下降，最低排名轨迹的P(i)也不会有显著变化。
+- en: It is noteworthy that the possibility of the code model’s output is non-zero,
+    which means that P2Value is also non-zero, so there is no need for a constant
+    to prevent zero probability.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值得注意的是，代码模型的输出可能性非零，这意味着P2Value也非零，因此不需要常数来防止零概率。
+- en: Algorithm 1 BTP Pipeline
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法1 BTP管道
+- en: '1:$T$: Code model; $beam$: a buffer that stores programs in the beam search
+    sampling phase; $k$: size of beam; $X_{\text{set}}$: task sets with test sets;
+    $ER$: experience replay buffer; $batch$: a minibatch that stockpiles programs
+    used to fine-tune $T$; $n$: size of minibatch2:Beam Search Sampling Phase3:for each
+    $(X,S)$ in $X_{\text{set}}$ do4:     $beam\leftarrow\text{Beam\_search}(X,k)$5:     for each
+    $(t,P)$ in $beam$ do6:         Store $(X,S,t,P)$ in $ER$7:     end for8:end for9:Test
+    Phase10:for each $(X,S,t,P)$ in $ER$ do11:     Test $t$ in $S$ and get $pass\_rate$12:     Replace
+    $(X,S,t,P)$ with $(X,S,t,P,pass\_rate)$13:end for14:PPER Phase15:for $i\leftarrow
+    1$ to $n$ do16:     Sample $(X,S,t,P,pass\_rate)$ from $ER$ with probability according
+    to P2Value17:     Store $(X,S,t)$ in $batch$18:end for19:Fine-tune $T$ with $batch$'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1:$T$: 代码模型；$beam$: 在束搜索采样阶段存储程序的缓冲区；$k$: 束的大小；$X_{\text{set}}$: 任务集，包含测试集；$ER$:
+    经验回放缓冲区；$batch$: 用于微调$T$的程序小批量；$n$: 小批量的大小2:束搜索采样阶段3:对每一个$(X,S)$在$X_{\text{set}}$中执行4:     $beam\leftarrow\text{Beam\_search}(X,k)$5:     对每一个$(t,P)$在$beam$中执行6:         将$(X,S,t,P)$存入$ER$7:     结束循环8:结束循环9:测试阶段10:对每一个$(X,S,t,P)$在$ER$中执行11:     在$S$中测试$t$并获得$pass\_rate$12:     将$(X,S,t,P)$替换为$(X,S,t,P,pass\_rate)$13:结束循环14:PPER阶段15:对$i\leftarrow
+    1$到$n$执行16:     以P2Value的概率从$ER$中抽取$(X,S,t,P,pass\_rate)$17:     将$(X,S,t)$存入$batch$18:结束循环19:用$batch$微调$T$'
+- en: 4 Experiments
+  id: totrans-68
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验
+- en: '|  | Pass Rate (%) | Accuracy rate(%) |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 通过率 (%) | 准确率 (%) |'
+- en: '| --- | --- | --- |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '|  | APPS Intro. | APPS Inter. | APPS comp. | APPS mixed | APPS Intro. | APPS
+    Inter. | APPS comp. | APPS mixed |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | APPS 初级 | APPS 中级 | APPS 复杂 | APPS 混合 | APPS 初级 | APPS 中级 | APPS 复杂 |
+    APPS 混合 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| APPS GPT-2 |  |  |  |  |  |  |  |  |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| APPS GPT-2 |  |  |  |  |  |  |  |  |'
+- en: '| GPT-2 | 12.37 | 10.67 | 4.33 | 7.30 | 5.30 | 3.30 | 1.32 | 2.72 |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2 | 12.37 | 10.67 | 4.33 | 7.30 | 5.30 | 3.30 | 1.32 | 2.72 |'
+- en: '| GPT-2-GPT4 | 50.79 | 43.27 | 37.68 | 40.91 | 25.84 | 19.87 | 15.34 | 20.21
+    |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2-GPT4 | 50.79 | 43.27 | 37.68 | 40.91 | 25.84 | 19.87 | 15.34 | 20.21
+    |'
+- en: '| GPT-2-GPT3.5 | 41.68 | 37.62 | 28.59 | 32.25 | 19.42 | 16.25 | 12.21 | 15.63
+    |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2-GPT3.5 | 41.68 | 37.62 | 28.59 | 32.25 | 19.42 | 16.25 | 12.21 | 15.63
+    |'
+- en: '| GPT-2-Llama | 35.82 | 31.14 | 24.37 | 27.60 | 14.35 | 11.40 | 8.27 | 11.69
+    |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2-Llama | 35.82 | 31.14 | 24.37 | 27.60 | 14.35 | 11.40 | 8.27 | 11.69
+    |'
+- en: '| GPT-2-Wizard | 33.76 | 29.08 | 22.31 | 25.54 | 12.29 | 9.34 | 6.21 | 9.63
+    |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2-Wizard | 33.76 | 29.08 | 22.31 | 25.54 | 12.29 | 9.34 | 6.21 | 9.63
+    |'
+- en: '| APPS GPT-Neo |  |  |  |  |  |  |  |  |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| APPS GPT-Neo |  |  |  |  |  |  |  |  |'
+- en: '| GPT-Neo | 14.32 | 9.80 | 6.39 | 5.73 | 6.70 | 2.00 | 2.10 | 3.31 |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo | 14.32 | 9.80 | 6.39 | 5.73 | 6.70 | 2.00 | 2.10 | 3.31 |'
+- en: '| GPT-Neo-GPT4 | 51.23 | 46.39 | 38.89 | 42.12 | 26.88 | 23.34 | 17.12 | 20.54
+    |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo-GPT4 | 51.23 | 46.39 | 38.89 | 42.12 | 26.88 | 23.34 | 17.12 | 20.54
+    |'
+- en: '| GPT-Neo-GPT3.5 | 39.23 | 34.39 | 26.89 | 30.12 | 14.88 | 11.34 | 5.12 | 8.54
+    |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo-GPT3.5 | 39.23 | 34.39 | 26.89 | 30.12 | 14.88 | 11.34 | 5.12 | 8.54
+    |'
+- en: '| GPT-Neo-Llama | 38.24 | 33.40 | 25.90 | 29.13 | 13.89 | 10.35 | 4.13 | 7.55
+    |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo-Llama | 38.24 | 33.40 | 25.90 | 29.13 | 13.89 | 10.35 | 4.13 | 7.55
+    |'
+- en: '| GPT-Neo-Wizard | 35.83 | 30.99 | 23.49 | 26.72 | 11.48 | 8.54 | 2.32 | 5.74
+    |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo-Wizard | 35.83 | 30.99 | 23.49 | 26.72 | 11.48 | 8.54 | 2.32 | 5.74
+    |'
+- en: 'Table 1: Result of ”Better models help fine-tune normal models” experiment.
+    On the top and bottom of the table, we show the performance of GPT-2 and GPT-Neo,
+    and how they perform after they are fine-tuned by programs sampled by better models
+    including GPT-4-turbo, GPT-3.5-turbo, CodeLlama- 34B, WizardCoder-34B'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：”更好的模型帮助微调普通模型“实验结果。在表的上下部分，我们展示了GPT-2和GPT-Neo的表现，以及它们在被更好的模型（包括GPT-4-turbo,
+    GPT-3.5-turbo, CodeLlama-34B, WizardCoder-34B）采样的程序微调后表现如何。
+- en: In this section, we empirically measure the effectiveness of our BTP pipeline.
+    We conduct experiments sequentially to verify the following conjectures.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们通过实验测量了我们的BTP管道的有效性。我们顺序进行实验，以验证以下猜想。
+- en: '|  | Pass Rate (%) | Accuracy rate(%) |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 通过率 (%) | 准确率 (%) |'
+- en: '| --- | --- | --- |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '|  | APPS Intro. | APPS Inter. | APPS comp. | APPS mixed | APPS Intro. | APPS
+    Inter. | APPS comp. | APPS mixed |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | APPS 初级 | APPS 中级 | APPS 复杂 | APPS 混合 | APPS 初级 | APPS 中级 | APPS 复杂 |
+    APPS 混合 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GPT-2 | 12.37 | 10.67 | 4.33 | 7.30 | 5.30 | 3.30 | 1.32 | 2.72 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2 | 12.37 | 10.67 | 4.33 | 7.30 | 5.30 | 3.30 | 1.32 | 2.72 |'
+- en: '| GPT-2-2 | 15.36 | 11.23 | 5.11 | 8.12 | 4.25 | 2.78 | 2.25 | 3.92 |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2-2 | 15.36 | 11.23 | 5.11 | 8.12 | 4.25 | 2.78 | 2.25 | 3.92 |'
+- en: '| GPT-Neo | 14.32 | 9.80 | 6.39 | 5.73 | 6.70 | 2.00 | 2.10 | 3.31 |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo | 14.32 | 9.80 | 6.39 | 5.73 | 6.70 | 2.00 | 2.10 | 3.31 |'
+- en: '| GPT-Neo-Neo | 14.02 | 9.23 | 7.25 | 5.39 | 6.32 | 2.13 | 2.92 | 3.72 |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo-Neo | 14.02 | 9.23 | 7.25 | 5.39 | 6.32 | 2.13 | 2.92 | 3.72 |'
+- en: '| WizardCoder | 45.24 | 41.56 | 37.46 | 40.24 | 20.13 | 17.92 | 14.92 | 16.29
+    |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| WizardCoder | 45.24 | 41.56 | 37.46 | 40.24 | 20.13 | 17.92 | 14.92 | 16.29
+    |'
+- en: '| WizardCoder-Wizard | 45.25 | 40.23 | 35.36 | 41.25 | 22.25 | 15.31 | 13.92
+    | 17.55 |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| WizardCoder-Wizard | 45.25 | 40.23 | 35.36 | 41.25 | 22.25 | 15.31 | 13.92
+    | 17.55 |'
+- en: 'Table 2: Result of ”Models help fine-tune themselves” experiment. we show the
+    performance of GPT-2, GPT-Neo, WizardCoder and how they perform after they are
+    fine-tuned by programs sampled by themselves'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2： ”模型自我微调”实验结果。我们展示了GPT-2、GPT-Neo、WizardCoder的性能，以及它们在通过自己采样的程序微调后的表现。
+- en: '1: Our BTP pipeline helps code models generate better programs in the scenario
+    where programs sampled from a better model are used to fine-tune a standard model.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1：我们的BTP管道帮助代码模型在使用从更好的模型中采样的程序微调标准模型的情况下生成更好的程序。
+- en: '2: Our BTP pipeline helps code models generate better programs in the scenario
+    where programs sampled from the code model itself are used to fine-tune the model.'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2：我们的BTP管道帮助代码模型在使用从代码模型本身采样的程序微调模型的情况下生成更好的程序。
+- en: '3: The best code model fine-tuned by our BTP pipeline is competitive compared
+    to baseline methods.'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3：通过我们的BTP管道微调的最佳代码模型，与基线方法相比具有竞争力。
+- en: '4: Is there a better way to maximize the effectiveness of our BTP pipeline?
+    (e.g., mixing sampled programs in the ER)'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4：有没有更好的方式来最大化我们的BTP管道的效果？（例如，在ER中混合采样的程序）
+- en: 4.1 Experiment Settings
+  id: totrans-102
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 实验设置
+- en: Datasets
+  id: totrans-103
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 数据集
+- en: In recent years, a variety of open-source programming datasets have emerged,
+    providing a robust foundation for evaluating code models. To ensure the robustness
+    and generalizability of our proposed BTP pipeline, we applied it to fine-tune
+    several state-of-the-art code models and evaluated them on a diverse set of popular
+    benchmark datasets, including CodeContests from AlphaCode (Li et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib15)),
+    APPS (Hendrycks et al. [2021](https://arxiv.org/html/2410.12236v1#bib.bib11)),
+    and HumanEval (Chen et al. [2021b](https://arxiv.org/html/2410.12236v1#bib.bib5)).
+    For HumanEval, which comprises 164 programming problems complete with function
+    signatures, docstrings, bodies, and unit tests, we utilized all unit tests for
+    a given problem as the test set, while the remaining descriptions were used as
+    code generation tasks. For CodeContests, we similarly treated the problem descriptions
+    as code generation tasks and combined all public and private test cases into a
+    unified test set. In the case of APPS, where public and private test cases are
+    not differentiated, we aggregated all test cases to form a comprehensive test
+    set for each code generation task.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，各种开源编程数据集涌现，为评估代码模型提供了坚实的基础。为了确保我们提出的BTP管道的鲁棒性和普适性，我们将其应用于对多个最先进的代码模型进行微调，并在一系列流行的基准数据集上对其进行评估，包括来自AlphaCode的CodeContests
+    (Li等人[2022](https://arxiv.org/html/2410.12236v1#bib.bib15))、APPS (Hendrycks等人[2021](https://arxiv.org/html/2410.12236v1#bib.bib11))和HumanEval
+    (Chen等人[2021b](https://arxiv.org/html/2410.12236v1#bib.bib5))。对于HumanEval，它包含164个编程问题，带有函数签名、文档字符串、主体和单元测试，我们将每个问题的所有单元测试作为测试集，而剩余的描述则作为代码生成任务。对于CodeContests，我们类似地将问题描述视为代码生成任务，并将所有公共和私有测试用例合并为统一的测试集。对于APPS，由于公共和私有测试用例没有区分，我们将所有测试用例聚合为每个代码生成任务的综合测试集。
+- en: Models
+  id: totrans-105
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 模型
+- en: 'We categorized the models used in our experiments into two distinct groups.
+    The first group comprises models that undergo fine-tuning, including GPT-2 and
+    GPT-Neo. The second group consists of models employed for generating code samples.
+    Within this latter category, we explored two scenarios: in the first, we utilized
+    advanced code models such as GPT-4-turbo (OpenAI [2023](https://arxiv.org/html/2410.12236v1#bib.bib19)),
+    GPT-3.5-turbo, CodeLlama-34B (Roziere et al. [2022](https://arxiv.org/html/2410.12236v1#bib.bib23)),
+    and WizardCoder-34B (Luo et al. [2023](https://arxiv.org/html/2410.12236v1#bib.bib18));
+    in the second, we utilized code models that were identical to those used for fine-tuning.'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将实验中使用的模型分为两个不同的组。第一组包括进行微调的模型，如GPT-2和GPT-Neo。第二组包括用于生成代码样本的模型。在这一类别中，我们探讨了两种场景：第一种，我们使用先进的代码模型，如GPT-4-turbo（OpenAI
+    [2023](https://arxiv.org/html/2410.12236v1#bib.bib19)）、GPT-3.5-turbo、CodeLlama-34B（Roziere等人[2022](https://arxiv.org/html/2410.12236v1#bib.bib23)）和WizardCoder-34B（Luo等人[2023](https://arxiv.org/html/2410.12236v1#bib.bib18)）；第二种，我们使用与微调时相同的代码模型。
+- en: '|  | Pass Rate (%) | Accuracy Rate (%) |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 通过率 (%) | 准确率 (%) |'
+- en: '| --- | --- | --- |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '|  | APPS Intro. | APPS Inter. | APPS Comp. | APPS Mixed | APPS Intro. | APPS
+    Inter. | APPS Comp. | APPS Mixed |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | APPS Intro. | APPS Inter. | APPS Comp. | APPS Mixed | APPS Intro. | APPS
+    Inter. | APPS Comp. | APPS Mixed |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GPT-Neo-GPT4 | 51.23 | 46.39 | 38.89 | 42.12 | 26.88 | 23.34 | 17.12 | 20.54
+    |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo-GPT4 | 51.23 | 46.39 | 38.89 | 42.12 | 26.88 | 23.34 | 17.12 | 20.54
+    |'
+- en: '| WizardCoder | 45.24 | 41.56 | 37.46 | 40.24 | 29.73 | 25.36 | 21.25 | 23.34
+    |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| WizardCoder | 45.24 | 41.56 | 37.46 | 40.24 | 29.73 | 25.36 | 21.25 | 23.34
+    |'
+- en: '| GPT-4-turbo | 84.24 | 80.36 | 78.46 | 81.25 | 65.25 | 60.45 | 53.59 | 59.27
+    |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4-turbo | 84.24 | 80.36 | 78.46 | 81.25 | 65.25 | 60.45 | 53.59 | 59.27
+    |'
+- en: '| GPT-3.5-turbo | 55.75 | 52.26 | 51.37 | 52.64 | 45.47 | 37.41 | 30.29 | 38.25
+    |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-turbo | 55.75 | 52.26 | 51.37 | 52.64 | 45.47 | 37.41 | 30.29 | 38.25
+    |'
+- en: '| CodeLlama | 53.45 | 51.26 | 49.24 | 52.27 | 28.35 | 25.92 | 23.25 | 26.78
+    |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| CodeLlama | 53.45 | 51.26 | 49.24 | 52.27 | 28.35 | 25.92 | 23.25 | 26.78
+    |'
+- en: 'Table 3: Comparison of fine-tuned code models and baseline models on the APPS
+    dataset across different difficulty levels.'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：在不同难度级别下，对比微调代码模型与基准模型在APPS数据集上的表现。
+- en: '|  | Pass Rate (%) | Accuracy Rate (%) |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 通过率 (%) | 准确率 (%) |'
+- en: '| --- | --- | --- |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '|  | APPS Mixed | CodeContests | HumanEval | APPS Mixed | CodeContests | HumanEval
+    |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | APPS Mixed | CodeContests | HumanEval | APPS Mixed | CodeContests | HumanEval
+    |'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '| GPT-2 GPT4 | 43.27 | 35.38 | 29.25 | 5.39 | 4.25 | 4.11 |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-2 GPT4 | 43.27 | 35.38 | 29.25 | 5.39 | 4.25 | 4.11 |'
+- en: '| CodeContests | 36.32 | 46.93 | 38.25 | 4.82 | 6.10 | 5.25 |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| CodeContests | 36.32 | 46.93 | 38.25 | 4.82 | 6.10 | 5.25 |'
+- en: '| HumanEval | 31.92 | 25.21 | 47.93 | 2.62 | 4.25 | 8.25 |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| HumanEval | 31.92 | 25.21 | 47.93 | 2.62 | 4.25 | 8.25 |'
+- en: '| Mixed | 40.25 | 42.98 | 41.52 | 5.21 | 5.87 | 6.23 |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| Mixed | 40.25 | 42.98 | 41.52 | 5.21 | 5.87 | 6.23 |'
+- en: '| GPT-Neo GPT4 | 45.22 | 38.18 | 30.92 | 6.48 | 5.25 | 5.59 |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-Neo GPT4 | 45.22 | 38.18 | 30.92 | 6.48 | 5.25 | 5.59 |'
+- en: '| CodeContests | 39.11 | 48.52 | 39.26 | 5.29 | 7.20 | 6.23 |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| CodeContests | 39.11 | 48.52 | 39.26 | 5.29 | 7.20 | 6.23 |'
+- en: '| HumanEval | 33.74 | 27.93 | 50.92 | 4.92 | 6.24 | 10.29 |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| HumanEval | 33.74 | 27.93 | 50.92 | 4.92 | 6.24 | 10.29 |'
+- en: '| Mixed | 42.85 | 45.21 | 43.58 | 9.24 | 8.53 | 8.39 |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| Mixed | 42.85 | 45.21 | 43.58 | 9.24 | 8.53 | 8.39 |'
+- en: 'Table 4: Performance of GPT-4-turbo fine-tuned with BTP pipeline on different
+    datasets compared with baseline models.'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4：在不同数据集上，比较微调过的GPT-4-turbo与基准模型的表现。
+- en: Hyperparameter Optimization
+  id: totrans-130
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 超参数优化
+- en: We conducted a series of experiments to determine the most effective hyperparameters
+    for our models. Initially, we investigated whether beam search sampling outperforms
+    simple sampling in terms of effectiveness. The results confirmed the superiority
+    of beam search sampling, prompting further experiments to determine the optimal
+    value for the beam search parameter $k$. Balancing effectiveness and resource
+    consumption, we selected $k=3$ for our primary experiments, sampling the top-3
+    programs based on their probabilities. Detailed results and analysis are provided
+    in Appendix A.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进行了一系列实验，以确定最有效的超参数。最初，我们研究了束搜索采样是否在效果上优于简单采样。结果证实了束搜索采样的优越性，这促使我们进一步实验，寻找束搜索参数$k$的最优值。在平衡效果和资源消耗后，我们选择了$k=3$作为主要实验的参数，基于程序的概率采样排名前3的程序。详细的结果和分析已在附录A中提供。
+- en: Additionally, we explored the impact of the hyperparameter $\alpha$ during the
+    PPER phase. However, our findings revealed that the optimal $\alpha$ value varies
+    across different models and datasets. To address this, we conducted targeted experiments
+    across various datasets to identify the best-performing $\alpha$ for each scenario.
+    The outcomes of these experiments, along with a comprehensive analysis, are presented
+    in Appendix B and Appendix C.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们还探讨了在PPER阶段超参数$\alpha$的影响。然而，我们的研究结果表明，最优的$\alpha$值在不同的模型和数据集之间存在差异。为了解决这个问题，我们在多个数据集上进行了针对性的实验，以确定每种场景下表现最好的$\alpha$值。这些实验结果及其综合分析已在附录B和附录C中展示。
+- en: 4.2 Fine-tuning Code Models with the BTP Pipeline
+  id: totrans-133
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 使用BTP管道对代码模型进行微调
+- en: In this section, we systematically address the four key questions posed earlier
+    by dividing our experiments into four distinct parts.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们通过将实验分为四个不同的部分，系统地回答了之前提出的四个关键问题。
+- en: Leveraging Advanced Models to Enhance Baseline Models
+  id: totrans-135
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 利用先进模型提升基准模型
+- en: 'To investigate our first hypothesis, denoted as C1, we conducted an experiment
+    to test whether the performance of baseline models can be significantly improved
+    by leveraging advanced models within our proposed BTP (Better Transformer Programming)
+    pipeline. Specifically, we employed the APPS dataset, which is structured into
+    three levels of difficulty: introductory, intermediate, and competition-level
+    tasks. These tasks were designed to assess the models’ capabilities across a range
+    of programming challenges.'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证我们的第一个假设，记作C1，我们进行了一项实验，测试通过利用我们提出的BTP（更好的变压器编程）管道，基线模型的表现是否能得到显著提升。具体而言，我们使用了APPS数据集，该数据集分为三个难度级别：入门级、中级和竞赛级任务。这些任务旨在评估模型在不同编程挑战中的能力。
+- en: As described in Table [1](https://arxiv.org/html/2410.12236v1#S4.T1 "Table 1
+    ‣ 4 Experiments ‣ Enhancing LLM Agents for Code Generation with Possibility and
+    Pass-rate Prioritized Experience Replay"), we consolidated all three sections
+    of the APPS dataset into a single, comprehensive dataset referred to as APPS mixed.
+    This combined dataset was used to train and evaluate the models, ensuring that
+    they were exposed to a diverse array of task difficulties, thereby providing a
+    robust assessment of their generalization capabilities.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如表[1](https://arxiv.org/html/2410.12236v1#S4.T1 "表 1 ‣ 4 实验 ‣ 通过可能性和通过率优先的经验回放增强LLM代理的代码生成能力")所述，我们将APPS数据集的三个部分合并成一个单一的、综合的数据集，称为APPS混合数据集。这个合并后的数据集用于训练和评估模型，确保它们接触到多样化的任务难度，从而提供对其泛化能力的稳健评估。
+- en: 'For this experiment, we selected four state-of-the-art transformer-based models:
+    GPT-4-turbo, GPT-3.5-turbo, CodeLlama-34B, and WizardCoder-34B. These models were
+    tasked with generating sample programs, which were subsequently used to fine-tune
+    two baseline models: GPT-2 and GPT-Neo. The fine-tuning process involved using
+    the sample programs generated by each advanced model to create eight fine-tuned
+    variants of the baseline models, named as follows:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本次实验中，我们选择了四个最先进的基于变压器的模型：GPT-4-turbo、GPT-3.5-turbo、CodeLlama-34B和WizardCoder-34B。这些模型的任务是生成示例程序，随后这些程序被用来微调两个基线模型：GPT-2和GPT-Neo。微调过程涉及使用每个先进模型生成的示例程序，创建基线模型的八个微调版本，具体命名如下：
+- en: 'We utilized four advanced transformer models to generate sample programs, which
+    were then used to fine-tune two baseline models. Specifically, the GPT-4-turbo,
+    GPT-3.5-turbo, CodeLlama-34B, and WizardCoder-34B models were employed to generate
+    samples that were subsequently used to fine-tune GPT-2 and GPT-Neo. This process
+    resulted in eight fine-tuned models: GPT-2 fine-tuned with samples from GPT-4-turbo,
+    GPT-3.5-turbo, CodeLlama-34B, and WizardCoder-34B, respectively named GPT-2-GPT4,
+    GPT-2-GPT3.5, GPT-2-Llama, and GPT-2-Wizard; similarly, GPT-Neo was fine-tuned
+    with samples from these four models, resulting in GPT-Neo-GPT4, GPT-Neo-GPT3.5,
+    GPT-Neo-Llama, and GPT-Neo-Wizard.'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用了四个先进的变压器模型来生成示例程序，随后这些程序被用来微调两个基线模型。具体来说，GPT-4-turbo、GPT-3.5-turbo、CodeLlama-34B和WizardCoder-34B模型被用来生成样本，这些样本随后用于微调GPT-2和GPT-Neo。这个过程产生了八个微调后的模型：分别为使用GPT-4-turbo、GPT-3.5-turbo、CodeLlama-34B和WizardCoder-34B样本微调的GPT-2，命名为GPT-2-GPT4、GPT-2-GPT3.5、GPT-2-Llama和GPT-2-Wizard；类似地，GPT-Neo也使用这四个模型的样本进行了微调，结果得到了GPT-Neo-GPT4、GPT-Neo-GPT3.5、GPT-Neo-Llama和GPT-Neo-Wizard。
+- en: After the fine-tuning process, we evaluated each of these models on the three
+    distinct sections of the APPS dataset as well as on the combined APPS mixed dataset.
+    The objective was to assess the extent to which the fine-tuned models could improve
+    their performance on code generation tasks of varying complexity.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在微调过程后，我们评估了这些模型在APPS数据集的三个不同部分以及组合后的APPS混合数据集上的表现。目标是评估微调模型在不同复杂度的代码生成任务中的表现改进程度。
+- en: The results, presented in Table [2](https://arxiv.org/html/2410.12236v1#S4.T2
+    "Table 2 ‣ 4 Experiments ‣ Enhancing LLM Agents for Code Generation with Possibility
+    and Pass-rate Prioritized Experience Replay"), reveal a substantial improvement
+    in the performance of the fine-tuned models compared to their original, unmodified
+    versions. This improvement is observed consistently across all sections of the
+    APPS dataset, which underscores the effectiveness of our BTP pipeline. By incorporating
+    advanced models for program sampling, we significantly enhance the capabilities
+    of baseline transformer models like GPT-2 and GPT-Neo.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果如表[2](https://arxiv.org/html/2410.12236v1#S4.T2 "Table 2 ‣ 4 Experiments ‣
+    Enhancing LLM Agents for Code Generation with Possibility and Pass-rate Prioritized
+    Experience Replay")所示，经过微调的模型在性能上相比原始未修改版本有了显著提升。这个改进在APPS数据集的所有部分中都有一致的表现，强调了我们BTP流程的有效性。通过引入用于程序采样的高级模型，我们显著增强了基础变换器模型（如GPT-2和GPT-Neo）的能力。
+- en: These findings strongly suggest that even relatively simple models can achieve
+    notable performance gains when they are exposed to more advanced models during
+    the training process, thus enabling them to perform better on complex code generation
+    tasks.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些发现强烈表明，即使是相对简单的模型，在训练过程中接触到更先进的模型后，也能取得显著的性能提升，从而使它们在复杂的代码生成任务中表现更好。
+- en: Self-Improvement Through Model Self-Fine-Tuning
+  id: totrans-143
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 通过模型自我微调实现自我提升
+- en: In our second experiment, we aimed to validate our second hypothesis, C2, which
+    proposes that models can improve their own performance through a self-sampling
+    approach within the BTP pipeline. For this experiment, we once again utilized
+    the APPS dataset, divided into introductory, intermediate, and competition-level
+    tasks, to evaluate the models comprehensively across different levels of difficulty.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的第二个实验中，我们旨在验证第二个假设C2，该假设认为模型可以通过BTP流程中的自我采样方法提高自身性能。在此实验中，我们再次使用了APPS数据集，按照入门级、中级和竞赛级任务进行划分，以便全面评估模型在不同难度级别上的表现。
+- en: As with our first experiment, we combined the three parts of the APPS dataset
+    into a single, unified dataset termed APPS mixed. This ensured that each model
+    was trained and evaluated on a diverse set of tasks, providing a rigorous test
+    of the self-fine-tuning approach.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与我们的第一个实验一样，我们将APPS数据集的三部分合并为一个统一的数据集，命名为APPS混合数据集。这确保了每个模型都在多样化的任务集上进行训练和评估，为自我微调方法提供了严格的测试。
+- en: 'We selected three models for this experiment: GPT-2, GPT-Neo, and WizardCoder-34B.
+    Each of these models was used to sample programs from the APPS mixed dataset,
+    and the sampled programs were subsequently employed to fine-tune the same models
+    that generated them. This process effectively creates a feedback loop, allowing
+    the models to refine their own capabilities using their generated outputs.'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为此实验选择了三种模型：GPT-2、GPT-Neo和WizardCoder-34B。每个模型都从APPS混合数据集中采样程序，并将采样的程序用于微调生成这些程序的同一模型。这个过程有效地创建了一个反馈循环，允许模型通过自己的生成输出来优化自身能力。
+- en: 'The resulting self-fine-tuned models were named as follows:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由此产生的自我微调模型命名如下：
+- en: 'GPT-2, GPT-Neo, and WizardCoder-34B were each fine-tuned using programs that
+    they sampled themselves. This self-fine-tuning process resulted in the following
+    models: GPT-2-2, which is GPT-2 fine-tuned with its own sampled programs; GPT-Neo-Neo,
+    which is GPT-Neo fine-tuned with its own sampled programs; and WizardCoder-Wizard,
+    which is WizardCoder-34B fine-tuned with its own sampled programs.'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GPT-2、GPT-Neo和WizardCoder-34B都使用它们自己采样的程序进行了微调。这个自我微调过程产生了以下模型：GPT-2-2，即使用自己采样的程序微调的GPT-2；GPT-Neo-Neo，即使用自己采样的程序微调的GPT-Neo；以及WizardCoder-Wizard，即使用自己采样的程序微调的WizardCoder-34B。
+- en: We then evaluated these self-fine-tuned models on the different sections of
+    the APPS dataset, as well as on the APPS mixed dataset, to determine the effectiveness
+    of this self-sampling and fine-tuning approach.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们在APPS数据集的不同部分以及APPS混合数据集上评估了这些自我微调模型，以确定这种自我采样和微调方法的有效性。
+- en: The results, shown in Table 1, indicate that while the performance improvements
+    are modest, there is a consistent positive trend across most tasks. This suggests
+    that the BTP pipeline can indeed enhance model performance even when models are
+    fine-tuning themselves using their generated programs. This experiment supports
+    the notion that models can incrementally improve their capabilities through self-guided
+    learning, highlighting the potential of self-improvement mechanisms in transformer-based
+    models.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果如表1所示，尽管性能提升是适度的，但大多数任务上都有一致的正向趋势。这表明，即使模型使用自身生成的程序进行微调，BTP管道仍然能够提升模型性能。这项实验支持了模型可以通过自我引导学习逐步提高能力的观点，突显了基于变换器的模型中自我改进机制的潜力。
+- en: Comparative Analysis of the Best BTP-Generated Model and Baseline Models
+  id: totrans-151
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 最佳BTP生成模型与基准模型的对比分析
+- en: Among all the fine-tuned code models generated through the BTP pipeline, GPT-Neo-GPT4
+    demonstrated the best overall performance, as shown in Table [3](https://arxiv.org/html/2410.12236v1#S4.T3
+    "Table 3 ‣ Models ‣ 4.1 Experiment Settings ‣ 4 Experiments ‣ Enhancing LLM Agents
+    for Code Generation with Possibility and Pass-rate Prioritized Experience Replay").
+    To further assess the effectiveness of our approach, we conducted a comparative
+    analysis between GPT-Neo-GPT4 and other baseline models, as presented in Table
+    [4](https://arxiv.org/html/2410.12236v1#S4.T4 "Table 4 ‣ Models ‣ 4.1 Experiment
+    Settings ‣ 4 Experiments ‣ Enhancing LLM Agents for Code Generation with Possibility
+    and Pass-rate Prioritized Experience Replay"). Although GPT-Neo-GPT4 does not
+    outperform the most advanced baseline models, it exhibits significant improvements
+    over its original performance and narrows the performance gap with baseline models.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在所有通过BTP管道生成的微调代码模型中，GPT-Neo-GPT4展示了最佳的整体性能，如表[3](https://arxiv.org/html/2410.12236v1#S4.T3
+    "Table 3 ‣ Models ‣ 4.1 Experiment Settings ‣ 4 Experiments ‣ Enhancing LLM Agents
+    for Code Generation with Possibility and Pass-rate Prioritized Experience Replay")所示。为了进一步评估我们方法的有效性，我们进行了GPT-Neo-GPT4与其他基准模型之间的对比分析，结果如表[4](https://arxiv.org/html/2410.12236v1#S4.T4
+    "Table 4 ‣ Models ‣ 4.1 Experiment Settings ‣ 4 Experiments ‣ Enhancing LLM Agents
+    for Code Generation with Possibility and Pass-rate Prioritized Experience Replay")所示。尽管GPT-Neo-GPT4的表现未超过最先进的基准模型，但它相较于原始表现有显著提升，并缩小了与基准模型之间的性能差距。
+- en: This comparative analysis underscores the capability of the BTP pipeline to
+    enhance the performance of baseline models, bringing them closer to the state-of-the-art
+    models, albeit with some remaining performance differences.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这项对比分析强调了BTP管道能够提升基准模型性能的能力，使它们更接近最先进模型，尽管仍存在一些性能差距。
+- en: Optimizing the BTP Pipeline for Maximum Effectiveness
+  id: totrans-154
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 优化BTP管道以实现最大效果
+- en: 'To address our fourth question (Q4), we explored different strategies to maximize
+    the effectiveness of the BTP pipeline. Specifically, we conducted experiments
+    where we sampled programs using GPT-4-turbo from four different datasets: APPS-only,
+    CodeContests-only, HumanEval-only, and a mixture of these datasets. We then fine-tuned
+    GPT-2 and GPT-Neo using the sampled programs within the BTP pipeline and subsequently
+    tested these fine-tuned models on the three datasets.'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了回答我们的第四个问题（Q4），我们探索了不同的策略，以最大化BTP管道的效果。具体来说，我们进行了实验，使用GPT-4-turbo从四个不同的数据集中采样程序：仅APPS、仅CodeContests、仅HumanEval，以及这些数据集的混合体。然后，我们在BTP管道内使用这些采样程序对GPT-2和GPT-Neo进行了微调，并随后在这三个数据集上测试了这些微调后的模型。
+- en: The results, as depicted in Table [4](https://arxiv.org/html/2410.12236v1#S4.T4
+    "Table 4 ‣ Models ‣ 4.1 Experiment Settings ‣ 4 Experiments ‣ Enhancing LLM Agents
+    for Code Generation with Possibility and Pass-rate Prioritized Experience Replay"),
+    indicate that when mixed datasets are used for sampling programs in the BTP pipeline,
+    the resulting fine-tuned models show improved performance across a broader range
+    of tasks compared to models fine-tuned on single, non-mixed datasets. However,
+    the performance of these models on a specific dataset may not reach the level
+    of models that were fine-tuned exclusively on that dataset.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果如表[4](https://arxiv.org/html/2410.12236v1#S4.T4 "Table 4 ‣ Models ‣ 4.1 Experiment
+    Settings ‣ 4 Experiments ‣ Enhancing LLM Agents for Code Generation with Possibility
+    and Pass-rate Prioritized Experience Replay")所示，当使用混合数据集对BTP管道中的程序进行采样时，最终微调的模型在更多任务上显示出比单一数据集微调的模型更好的表现。然而，这些模型在特定数据集上的性能可能无法达到那些仅在该数据集上进行微调的模型的水平。
+- en: These findings suggest that varying the datasets used for program sampling is
+    a viable strategy to enhance the overall effectiveness of the BTP pipeline. By
+    incorporating a diverse range of tasks during the fine-tuning process, models
+    can achieve better generalization and performance across different code generation
+    tasks.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些发现表明，改变用于程序采样的数据集是一种可行的策略，可以增强 BTP 流水线的整体效果。通过在微调过程中加入多样化的任务，模型可以在不同的代码生成任务中实现更好的泛化能力和性能。
+- en: 5 Conclusion
+  id: totrans-158
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结论
+- en: In code generation tasks, large language models (LLMs) often need to sample
+    a large number of programs to find a completely correct one, as even a single
+    incorrect token can lead to failure in testing. Consequently, many sampled programs
+    are wasted.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在代码生成任务中，大型语言模型（LLMs）通常需要生成大量的程序以找到一个完全正确的程序，因为即便是一个错误的符号也可能导致测试失败。因此，许多生成的程序都被浪费了。
+- en: To utilize these resources and improve efficiency, in this work, we propose
+    a novel algorithm called the BTP pipeline, which combines beam search sampling
+    with prioritized experience replay to fine-tune LLMs. We empirically applied our
+    algorithm to fine-tune several LLMs and found that they showed improvement compared
+    to previous models. We also demonstrate that our algorithm is effective not only
+    in scenarios where programs sampled by a better code model are used to enhance
+    a standard code model, but also in scenarios where a code model enhances itself
+    using programs it has sampled.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了利用这些资源并提高效率，在这项工作中，我们提出了一种新颖的算法——BTP 流水线，它将束搜索采样与优先经验回放相结合，用于微调 LLM。我们通过实验证明了该算法对多种
+    LLM 的微调效果，并发现其相较于以前的模型有所提升。我们还展示了该算法不仅在使用更好的代码模型采样程序来增强标准代码模型的场景中有效，而且在代码模型利用自己采样的程序来增强自身的场景中也同样有效。
+- en: Beyond improving LLM performance in code generation tasks, we believe our BTP
+    pipeline can be beneficial for enhancing general LLMs, particularly in cases where
+    results sampled from LLMs are difficult to pass tests. A key limitation of this
+    work is its reliance on code tasks and corresponding test cases. Tasks with few
+    test cases typically result in pass rates close to zero, which can hinder the
+    effectiveness of our algorithm. In future work, we plan to explore similar test
+    sets and expand the available test sets to address this limitation.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了在代码生成任务中提升 LLM 性能外，我们认为我们的 BTP 流水线对于增强通用 LLM 也具有潜力，特别是在 LLM 生成的结果难以通过测试的情况下。这项工作的一个关键限制是其依赖于代码任务及相应的测试用例。测试用例较少的任务通常会导致接近零的通过率，这可能会影响我们算法的有效性。在未来的工作中，我们计划探索类似的测试集，并扩展可用的测试集以解决这一限制。
+- en: References
+  id: totrans-162
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: Andrychowicz et al. (2017) Andrychowicz, M.; et al. 2017. Hindsight Experience
+    Replay. In *Proceedings of the 31st International Conference on Neural Information
+    Processing Systems (NeurIPS)*, 5048–5058\. NeurIPS.
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Andrychowicz 等（2017）Andrychowicz, M.; 等. 2017. 事后经验回放. 在 *第31届国际神经信息处理系统会议（NeurIPS）论文集*
+    中, 5048–5058. NeurIPS.
+- en: Austin et al. (2022) Austin, J.; et al. 2022. Program synthesis with large language
+    models. In *Proceedings of the 2022 International Conference on Learning Representations
+    (ICLR)*. ICLR.
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Austin 等（2022）Austin, J.; 等. 2022. 使用大型语言模型进行程序合成. 在 *2022年国际学习表征会议（ICLR）论文集*
+    中. ICLR.
+- en: Bunel et al. (2018) Bunel, R.; et al. 2018. Leveraging grammar and reinforcement
+    learning for neural program synthesis. In *Proceedings of the 2018 International
+    Conference on Learning Representations (ICLR)*. ICLR.
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bunel 等（2018）Bunel, R.; 等. 2018. 利用语法和强化学习进行神经程序合成. 在 *2018年国际学习表征会议（ICLR）论文集*
+    中. ICLR.
+- en: 'Chen et al. (2021a) Chen, M.; et al. 2021a. Codex: Evaluating large language
+    models trained on code. In *Proceedings of the 2021 Conference on Empirical Methods
+    in Natural Language Processing (EMNLP)*, 6730–6736\. Association for Computational
+    Linguistics.'
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chen 等（2021a）Chen, M.; 等. 2021a. Codex: 评估训练在代码上的大型语言模型. 在 *2021年自然语言处理实证方法会议（EMNLP）论文集*
+    中, 6730–6736. 计算语言学协会.'
+- en: Chen et al. (2021b) Chen, M.; et al. 2021b. Evaluating Large Language Models
+    Trained on Code. In *Proceedings of the 2021 Conference on Empirical Methods in
+    Natural Language Processing (EMNLP)*, 6730–6736\. Association for Computational
+    Linguistics.
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等（2021b）Chen, M.; 等. 2021b. 评估训练在代码上的大型语言模型. 在 *2021年自然语言处理实证方法会议（EMNLP）论文集*
+    中, 6730–6736. 计算语言学协会.
+- en: 'Chowdhery et al. (2022) Chowdhery, A.; et al. 2022. PaLM: Scaling Language
+    Modeling with Pathways. In *Advances in Neural Information Processing Systems
+    (NeurIPS)*. NeurIPS.'
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chowdhery et al. (2022) Chowdhery, A.; et al. 2022. PaLM：通过Pathways扩展语言建模. 载于*神经信息处理系统进展（NeurIPS）论文集*，NeurIPS。
+- en: 'Devlin et al. (2019) Devlin, J.; et al. 2019. BERT: Pre-training of deep bidirectional
+    transformers for language understanding. In *Proceedings of the 2019 Conference
+    of the North American Chapter of the Association for Computational Linguistics
+    (NAACL)*, 4171–4186\. Association for Computational Linguistics.'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Devlin et al. (2019) Devlin, J.; et al. 2019. BERT：用于语言理解的深度双向变换器预训练. 载于*2019年北美计算语言学协会会议（NAACL）论文集*，4171–4186.
+    计算语言学协会出版。
+- en: Ellis et al. (2019) Ellis, K.; et al. 2019. Synthesizing program input grammars.
+    In *Proceedings of the 2019 International Conference on Learning Representations
+    (ICLR)*. ICLR.
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ellis et al. (2019) Ellis, K.; et al. 2019. 合成程序输入语法. 载于*2019年国际学习表示会议（ICLR）论文集*，ICLR。
+- en: 'Feng et al. (2020) Feng, Z.; et al. 2020. CodeBERT: A pre-trained model for
+    programming and natural languages. In *Proceedings of the 2020 Conference on Empirical
+    Methods in Natural Language Processing (EMNLP)*, 1536–1547\. Association for Computational
+    Linguistics.'
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Feng et al. (2020) Feng, Z.; et al. 2020. CodeBERT: 一种用于编程和自然语言的预训练模型. 载于*2020年自然语言处理实证方法会议（EMNLP）论文集*，1536–1547.
+    计算语言学协会出版。'
+- en: 'Guo et al. (2020) Guo, D.; et al. 2020. GraphCodeBERT: Pre-training code representations
+    with data flow. In *Proceedings of the 2020 Conference on Empirical Methods in
+    Natural Language Processing (EMNLP)*, 1548–1559\. Association for Computational
+    Linguistics.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Guo et al. (2020) Guo, D.; et al. 2020. GraphCodeBERT: 使用数据流进行代码表示的预训练. 载于*2020年自然语言处理实证方法会议（EMNLP）论文集*，1548–1559.
+    计算语言学协会出版。'
+- en: Hendrycks et al. (2021) Hendrycks, D.; et al. 2021. Measuring Coding Challenge
+    Competence with APPS. In *Proceedings of the 35th Conference on Neural Information
+    Processing Systems (NeurIPS)*. NeurIPS.
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hendrycks et al. (2021) Hendrycks, D.; et al. 2021. 使用APPS衡量编程挑战能力. 载于*第35届神经信息处理系统会议（NeurIPS）论文集*，NeurIPS。
+- en: 'Hoffmann et al. (2022) Hoffmann, J.; et al. 2022. Chinchilla: Training compute-optimal
+    large language models. In *Advances in Neural Information Processing Systems*.
+    NeurIPS.'
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hoffmann et al. (2022) Hoffmann, J.; et al. 2022. Chinchilla：训练计算最优的大型语言模型.
+    载于*神经信息处理系统进展论文集*，NeurIPS。
+- en: Le et al. (2022) Le, H.; et al. 2022. Reinforcement learning with augmented
+    data for program synthesis. In *Proceedings of the 2022 International Conference
+    on Learning Representations (ICLR)*. ICLR.
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Le et al. (2022) Le, H.; et al. 2022. 基于增强数据的程序合成强化学习. 载于*2022年国际学习表示会议（ICLR）论文集*，ICLR。
+- en: 'Li et al. (2023) Li, R.; et al. 2023. StarCoder: May the Source Be With You!
+    In *Proceedings of the 2023 International Conference on Learning Representations
+    (ICLR)*. ICLR.'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li et al. (2023) Li, R.; et al. 2023. StarCoder：愿源代码与你同在！ 载于*2023年国际学习表示会议（ICLR）论文集*，ICLR。
+- en: Li et al. (2022) Li, Y.; et al. 2022. Competition-Level Code Generation with
+    AlphaCode. https://www.deepmind.com/publications/alphacode.
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li et al. (2022) Li, Y.; et al. 2022. AlphaCode：竞争级代码生成. https://www.deepmind.com/publications/alphacode.
+- en: 'Lian et al. (2023) Lian, Z. X.; et al. 2023. OpenOrca: An open dataset of GPT
+    augmented FLAN reasoning traces. https://github.com/OpenOrca.'
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lian et al. (2023) Lian, Z. X.; et al. 2023. OpenOrca：一个开放的GPT增强FLAN推理轨迹数据集.
+    https://github.com/OpenOrca.
+- en: 'Lin (1992) Lin, L.-J. 1992. Self-improving reactive agents based on reinforcement
+    learning, planning and teaching. *Machine learning*, 8(3-4): 293–321.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lin (1992) Lin, L.-J. 1992. 基于强化学习、规划与教学的自我改善反应代理. *机器学习*，8(3-4)：293–321。
+- en: 'Luo et al. (2023) Luo, Z.; et al. 2023. WizardCoder: Empowering Code Large
+    Language Models with Evol-Instruct. In *Proceedings of the 2023 International
+    Conference on Learning Representations*. ICLR.'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Luo et al. (2023) Luo, Z.; et al. 2023. WizardCoder：通过Evol-Instruct赋能代码大型语言模型.
+    载于*2023年国际学习表示会议论文集*，ICLR。
+- en: OpenAI (2023) OpenAI. 2023. GPT-4 technical report. https://openai.com/research/gpt-4.
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2023) OpenAI. 2023. GPT-4技术报告. https://openai.com/research/gpt-4.
+- en: Radford et al. (2019) Radford, A.; et al. 2019. Language models are unsupervised
+    multitask learners. https://openai.com/blog/better-language-models.
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Radford et al. (2019) Radford, A.; et al. 2019. 语言模型是无监督的多任务学习者. https://openai.com/blog/better-language-models.
+- en: Raffel et al. (2020) Raffel, C.; et al. 2020. Exploring the limits of transfer
+    learning with a unified text-to-text transformer. In *Proceedings of the 2020
+    International Conference on Learning Representations (ICLR)*. ICLR.
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Raffel 等（2020）Raffel, C.; 等. 2020. 使用统一的文本到文本变压器探索迁移学习的极限. 见于 *2020年国际学习表征会议（ICLR）论文集*。ICLR。
+- en: Roziere et al. (2020) Roziere, B.; et al. 2020. Transformers for program synthesis.
+    In *Proceedings of the 2020 Conference on Neural Information Processing Systems
+    (NeurIPS)*. NeurIPS.
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Roziere 等（2020）Roziere, B.; 等. 2020. 用于程序合成的变压器. 见于 *2020年神经信息处理系统会议（NeurIPS）论文集*。NeurIPS。
+- en: Roziere et al. (2022) Roziere, B.; et al. 2022. Leveraging automatically generated
+    unit tests for unsupervised code translation. In *Proceedings of the 2022 International
+    Conference on Learning Representations (ICLR)*. ICLR.
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Roziere 等（2022）Roziere, B.; 等. 2022. 利用自动生成的单元测试进行无监督代码翻译. 见于 *2022年国际学习表征会议（ICLR）论文集*。ICLR。
+- en: Schaul et al. (2016) Schaul, T.; Quan, J.; Antonoglou, I.; and Silver, D. 2016.
+    Prioritized Experience Replay. In *Proceedings of the 4th International Conference
+    on Learning Representations (ICLR)*. ICLR.
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schaul 等（2016）Schaul, T.; Quan, J.; Antonoglou, I.; 和 Silver, D. 2016. 优先经验回放.
+    见于 *第4届国际学习表征会议（ICLR）论文集*。ICLR。
+- en: Svyatkovskiy et al. (2020) Svyatkovskiy, A.; et al. 2020. Code Completion with
+    Transformers. In *Proceedings of the 25th ACM SIGKDD International Conference
+    on Knowledge Discovery & Data Mining*, 1803–1813\. ACM.
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Svyatkovskiy 等（2020）Svyatkovskiy, A.; 等. 2020. 使用变压器进行代码补全. 见于 *第25届ACM SIGKDD国际知识发现与数据挖掘会议论文集*，1803–1813。ACM。
+- en: 'Touvron et al. (2023) Touvron, H.; et al. 2023. Llama: Open and efficient foundation
+    language models. https://arxiv.org/abs/2302.13971.'
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron 等（2023）Touvron, H.; 等. 2023. Llama: 开放且高效的基础语言模型. https://arxiv.org/abs/2302.13971.'
+- en: Vaswani et al. (2017) Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones,
+    L.; Gomez, A. N.; Kaiser, L.; and Polosukhin, I. 2017. Attention is all you need.
+    In *Advances in Neural Information Processing Systems*, 5998–6008\. NeurIPS.
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Vaswani 等（2017）Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.;
+    Gomez, A. N.; Kaiser, L.; 和 Polosukhin, I. 2017. 注意力即一切. 见于 *神经信息处理系统进展*，5998–6008。NeurIPS。
+- en: Wang et al. (2023) Wang, Y.; Yang, M.; Dong, R.; Sun, B.; Liu, F.; and U, L. H.
+    2023. Efficient Potential-based Exploration in Reinforcement Learning using Inverse
+    Dynamic Bisimulation Metric. In Oh, A.; Naumann, T.; Globerson, A.; Saenko, K.;
+    Hardt, M.; and Levine, S., eds., *Advances in Neural Information Processing Systems*,
+    volume 36, 38786–38797\. Curran Associates, Inc.
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等（2023）Wang, Y.; Yang, M.; Dong, R.; Sun, B.; Liu, F.; 和 U, L. H. 2023.
+    使用逆动态双重仿真度量在强化学习中的高效潜力基础探索. 见于 Oh, A.; Naumann, T.; Globerson, A.; Saenko, K.;
+    Hardt, M.; 和 Levine, S., 编辑，*神经信息处理系统进展*，第36卷，38786–38797。Curran Associates, Inc.
+- en: 'Wang et al. (2021) Wang, Y.; et al. 2021. CodeT5: Identifier-aware unified
+    pre-trained encoder-decoder models for code understanding and generation. In *Proceedings
+    of the 2021 Conference on Empirical Methods in Natural Language Processing (EMNLP)*,
+    8697–8708\. Association for Computational Linguistics.'
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wang 等（2021）Wang, Y.; 等. 2021. CodeT5: 面向代码理解与生成的标识符感知统一预训练编码器-解码器模型. 见于 *2021年自然语言处理实证方法会议（EMNLP）论文集*，8697–8708。计算语言学协会。'
+- en: Wei et al. (2022) Wei, J.; et al. 2022. Chain-of-thought (CoT) prompting. In
+    *Advances in Neural Information Processing Systems (NeurIPS)*. NeurIPS.
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等（2022）Wei, J.; 等. 2022. 思维链（CoT）提示. 见于 *神经信息处理系统进展（NeurIPS）*。NeurIPS。
+- en: 'Yang et al. (2023) Yang, M.; Dong, R.; Wang, Y.; Liu, F.; Du, Y.; Zhou, M.;
+    and U, L. H. 2023. TieComm: Learning a Hierarchical Communication Topology Based
+    on Tie Theory. In *Database Systems for Advanced Applications*, 604–613\. Cham:
+    Springer Nature Switzerland. ISBN 978-3-031-30637-2.'
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Yang 等（2023）Yang, M.; Dong, R.; Wang, Y.; Liu, F.; Du, Y.; Zhou, M.; 和 U, L.
+    H. 2023. TieComm: 基于纽带理论学习层次化通信拓扑. 见于 *高级应用数据库系统*，604–613。瑞士：施普林格自然出版集团。ISBN 978-3-031-30637-2。'
+- en: 'Yang et al. (2024a) Yang, M.; Wang, Y.; Yu, Y.; Zhou, M.; and U, L. H. 2024a.
+    MixLight: Mixed-Agent Cooperative Reinforcement Learning for Traffic Light Control.
+    *IEEE Transactions on Industrial Informatics*, 20(2): 2653–2661.'
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Yang 等（2024a）Yang, M.; Wang, Y.; Yu, Y.; Zhou, M.; 和 U, L. H. 2024a. MixLight:
+    基于混合代理的协作强化学习用于交通信号灯控制. *IEEE工业信息学报*，20(2)：2653–2661。'
+- en: 'Yang et al. (2024b) Yang, M.; Zhao, K.; Wang, Y.; Dong, R.; Du, Y.; Liu, F.;
+    Zhou, M.; and U, L. H. 2024b. Team-wise effective communication in multi-agent
+    reinforcement learning. *Autonomous Agents and Multi-Agent Systems*, 38(2): 36.'
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Yang 等人（2024b）Yang, M.; Zhao, K.; Wang, Y.; Dong, R.; Du, Y.; Liu, F.; Zhou,
+    M.; 和 U, L. H. 2024b. 多智能体强化学习中的团队有效沟通. *自主智能体与多智能体系统*，38(2): 36。'
+- en: Zhang et al. (2023) Zhang, K.; et al. 2023. Planning with Large Language Models
+    for Code Generation. In *Proceedings of the 2023 International Conference on Learning
+    Representations (ICLR)*. ICLR.
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人（2023）Zhang, K.; 等人. 2023. 使用大型语言模型进行代码生成的规划. 收录于 *2023年国际学习表征会议（ICLR）论文集*。ICLR。

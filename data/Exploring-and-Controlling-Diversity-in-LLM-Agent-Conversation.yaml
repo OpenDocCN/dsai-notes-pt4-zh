@@ -1,0 +1,2193 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 11:41:45'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 11:41:45
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Exploring and Controlling Diversity in LLM-Agent Conversation
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 探索与控制LLM-智能体对话中的多样性
+- en: 来源：[https://arxiv.org/html/2412.21102/](https://arxiv.org/html/2412.21102/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2412.21102/](https://arxiv.org/html/2412.21102/)
+- en: KuanChao Chu, Yi-Pei Chen, Hideki Nakayama
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 朱宽超、陈易培、中山英树
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Diversity is a critical aspect of multi-agent communication. In this paper,
+    we focus on controlling and exploring diversity in the context of open-domain
+    multi-agent conversations, particularly for world simulation applications. We
+    propose Adaptive Prompt Pruning (APP), a novel method that dynamically adjusts
+    the content of the utterance generation prompt to control diversity using a single
+    parameter, $\lambda$. Through extensive experiments, we show that APP effectively
+    controls the output diversity across models and datasets, with pruning more information
+    leading to more diverse output. We comprehensively analyze the relationship between
+    prompt content and conversational diversity. Our findings reveal that information
+    from all components of the prompt generally constrains the diversity of the output,
+    with the Memory block exerting the most significant influence. APP is compatible
+    with established techniques like temperature sampling and top-p sampling, providing
+    a versatile tool for diversity management. To address the trade-offs of increased
+    diversity, such as inconsistencies with omitted information, we incorporate a
+    post-generation correction step, which effectively balances diversity enhancement
+    with output consistency. Additionally, we examine how prompt structure, including
+    component order and length, impacts diversity. This study addresses key questions
+    surrounding diversity in multi-agent world simulation, offering insights into
+    its control, influencing factors, and associated trade-offs. Our contributions
+    lay the foundation for systematically engineering diversity in LLM-based multi-agent
+    collaborations, advancing their effectiveness in real-world applications.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多样性是多智能体通信中的一个关键方面。在本文中，我们聚焦于在开放领域的多智能体对话背景下，特别是在世界仿真应用中的多样性控制与探索。我们提出了一种新的方法——自适应提示剪枝（Adaptive
+    Prompt Pruning，简称APP），该方法通过一个单一参数$\lambda$动态调整生成提示的内容，从而控制多样性。通过广泛的实验，我们表明APP能够有效控制不同模型和数据集之间的输出多样性，其中剪枝更多的信息会导致更具多样性的输出。我们全面分析了提示内容与对话多样性之间的关系。我们的研究结果揭示，提示中的所有组件的信息通常会约束输出的多样性，其中内存模块对输出的多样性有着最显著的影响。APP与温度采样和top-p采样等已有技术兼容，提供了一个多功能的多样性管理工具。为了应对多样性增加所带来的权衡，例如与省略信息的不一致性，我们引入了一个后生成修正步骤，有效地平衡了多样性增强与输出一致性。此外，我们还研究了提示结构（包括组件顺序和长度）如何影响多样性。本研究解决了多智能体世界仿真中多样性相关的关键问题，提供了关于其控制、影响因素和相关权衡的见解。我们的贡献为基于LLM的多智能体协作中的多样性系统化工程奠定了基础，推动其在现实应用中的有效性。
+- en: 1 Introduction
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: '![Refer to caption](img/62d412c469dbccfe4ea33125bca5f426.png)'
+  id: totrans-10
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/62d412c469dbccfe4ea33125bca5f426.png)'
+- en: 'Figure 1: Diversity control in LLM-agent conversations. By increasing $\lambda$,
+    more components are removed from the prompt, selected by their attention weights,
+    thereby enhancing the diversity of the dialogue content.'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：LLM-智能体对话中的多样性控制。通过增加$\lambda$，从提示中移除更多组件，这些组件根据它们的注意力权重被选择，从而增强对话内容的多样性。
+- en: Communication is central to multi-agent collaboration. Particularly, diversity
+    plays a pivotal role for multi-agent communication, as it directly influences
+    the adaptability and creativity of agents in addressing complex, dynamic tasks.
+    Diverse communication allows agents to explore a broader solution space, avoid
+    redundancy, and introduce unique perspectives, thereby enhancing collective problem-solving
+    capabilities for goal-oriented tasks and increasing realism for world simulation.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 沟通是多智能体协作的核心。特别地，多样性在多智能体通信中起着至关重要的作用，因为它直接影响智能体在处理复杂动态任务时的适应性和创造力。多样化的沟通使智能体能够探索更广泛的解决方案空间，避免冗余，并引入独特的视角，从而提升集体问题解决能力，增强目标导向任务的解决效果，并提高世界仿真的真实性。
+- en: 'In this work, we define diversity as the range of variations generated under
+    identical initial conditions, with a specific focus on multi-agent systems for
+    world simulation (Park et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib20)).
+    The prompt for open-domain multi-agent conversations typically comprises several
+    key components: an environment description, agent profiles and memory, dialogue
+    history, and the current dialogue. While most previous works integrate these components
+    into the prompt, it is unclear how these components affect the diversity. Does
+    reducing the provided information lead to generalized but less diverse responses?
+    Or does it encourage more open and varied outputs? Although previous studies have
+    explored the influence of communication structures, the impact of communication
+    content on interaction quality remains underexplored (Guo et al. [2024](https://arxiv.org/html/2412.21102v1#bib.bib11)).'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这项工作中，我们将多样性定义为在相同初始条件下生成的变化范围，特别关注用于世界模拟的多智能体系统（Park等人 [2023](https://arxiv.org/html/2412.21102v1#bib.bib20)）。开放领域多智能体对话的提示通常包括几个关键组件：环境描述、智能体配置文件和记忆、对话历史以及当前对话。虽然大多数先前的研究将这些组件整合到提示中，但这些组件如何影响多样性仍不清楚。减少提供的信息会导致更为通用但缺乏多样性的回答吗？还是它促使输出更开放和多样？尽管之前的研究探讨了沟通结构的影响，但沟通内容对互动质量的影响仍然未得到充分探讨（Guo等人
+    [2024](https://arxiv.org/html/2412.21102v1#bib.bib11)）。
+- en: To address this gap, we propose Adaptive Prompt Pruning (APP), a removal-based
+    approach for controlling diversity by dynamically adjusting the prompt content
+    via a single parameter, $\lambda$. We structured the prompt into blocks, each
+    containing one or more items. Leveraging attention weights from raw output utterances,
+    APP selectively removes items from the modularized prompt. A higher $\lambda$
+    corresponds to more aggressive pruning and, consequently, a greater potential
+    for diversity. We investigate various design choices for the pruning selection,
+    and comprehensively analyze the relation between prompt content and output diversity.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了填补这一空白，我们提出了自适应提示修剪（APP），这是一种基于移除的多样性控制方法，通过一个单一参数$\lambda$动态调整提示内容。我们将提示结构化为多个块，每个块包含一个或多个项。通过利用原始输出语句中的注意力权重，APP从模块化提示中选择性地移除项。较高的$\lambda$对应于更激进的修剪，因此具有更大的多样性潜力。我们研究了多种修剪选择的设计方案，并全面分析了提示内容与输出多样性之间的关系。
+- en: Using data from Park et al. ([2023](https://arxiv.org/html/2412.21102v1#bib.bib20))
+    and Wang, Chiu, and Chiu ([2023](https://arxiv.org/html/2412.21102v1#bib.bib25)),
+    we demonstrate that APP effectively modulates the degree of diversity by pruning
+    influential prompt components. Our findings reveal that all prompt components
+    constrain diversity to some extent, with the Memory block having the most significant
+    impact. In addition, APP is compatible with established diversity control techniques,
+    such as temperature sampling (Ackley, Hinton, and Sejnowski [1985](https://arxiv.org/html/2412.21102v1#bib.bib1))
+    or top-p sampling (Holtzman et al. [2020](https://arxiv.org/html/2412.21102v1#bib.bib12)).
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用来自Park等人（[2023](https://arxiv.org/html/2412.21102v1#bib.bib20)）和Wang、Chiu和Chiu（[2023](https://arxiv.org/html/2412.21102v1#bib.bib25)）的数据，展示了APP通过修剪影响力较大的提示组件有效地调节多样性的程度。我们的研究结果表明，所有提示组件在一定程度上都对多样性产生约束，其中Memory块的影响最大。此外，APP与已知的多样性控制技术兼容，如温度采样（Ackley、Hinton和Sejnowski
+    [1985](https://arxiv.org/html/2412.21102v1#bib.bib1)）或top-p采样（Holtzman等人 [2020](https://arxiv.org/html/2412.21102v1#bib.bib12)）。
+- en: While increasing diversity through prompt pruning can result in inconsistencies
+    with omitted information, we mitigate this issue by introducing a correction step
+    post-dialogue generation. Experimental results show that this approach balances
+    the trade-off between enhancing diversity and preserving information consistency.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管通过提示修剪增加多样性可能导致省略信息的不一致性，但我们通过在对话生成后引入修正步骤来减轻这个问题。实验结果表明，这种方法在增强多样性与保持信息一致性之间达到了平衡。
+- en: Beyond pruning, we investigate the role of prompt structure, including the order
+    and length of components, in influencing diversity. Our results indicate that
+    component order significantly affects diversity, while excessively lengthy prompts
+    hinder it. Moreover, we analyze the role of pre-existing knowledge within LLMs
+    and its interaction with diversity by replacing agents’ names with well-known
+    or rare ones.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了剪枝，我们还研究了提示结构的作用，包括组件的顺序和长度对多样性的影响。我们的结果表明，组件顺序显著影响多样性，而过长的提示则会妨碍多样性。此外，我们通过将智能体的名字替换为知名或罕见的名字，分析了大语言模型（LLM）中预存知识的作用及其与多样性的互动。
+- en: 'In summary, this paper tackles three fundamental questions related to diversity
+    in multi-agent simulation: (1) How can diversity be effectively controlled in
+    multi-agent communication? (2) How does prompt content influence the level of
+    conversational diversity? (3) What trade-offs arise in diversity management, and
+    how can they be mitigated? Our contributions are as follows:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结而言，本文解决了与多智能体仿真中多样性相关的三个基本问题：（1）如何有效控制多智能体通信中的多样性？（2）提示内容如何影响对话的多样性水平？（3）多样性管理中会产生哪些权衡问题，如何缓解这些问题？我们的贡献如下：
+- en: •
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We introduce Adaptive Prompt Pruning (APP), a novel approach for controlling
+    output diversity in multi-agent communication while maintaining consistency.
+  id: totrans-20
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出了自适应提示剪枝（APP），这是一种新颖的方法，旨在控制多智能体通信中的输出多样性，同时保持一致性。
+- en: •
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We provide one of the first systematic investigations into the relationship
+    between prompt content and diversity in multi-agent simulations.
+  id: totrans-22
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提供了关于提示内容与多智能体仿真中多样性之间关系的首批系统性研究之一。
+- en: By addressing these questions, we aim to lay the groundwork for understanding
+    and engineering diversity in LLM-based multi-agent systems.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过解决这些问题，我们旨在为理解和工程化LLM基础的多智能体系统中的多样性奠定基础。
+- en: 2 Data, Model, and Task for Diversity Evaluation
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 数据、模型与多样性评估任务
+- en: '| Block | Item | Word | Type |'
+  id: totrans-25
+  prefs: []
+  type: TYPE_TB
+  zh: '| 块 | 项目 | 词语 | 类型 |'
+- en: '| Basic Info | 5 | 71.5 | Fixed |'
+  id: totrans-26
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基本信息 | 5 | 71.5 | 固定 |'
+- en: '| Human Needs* | 2~6 | 20.4 | Fixed in dial. |'
+  id: totrans-27
+  prefs: []
+  type: TYPE_TB
+  zh: '| 人类需求* | 2~6 | 20.4 | 在对话中固定 |'
+- en: '| Memory | 30~45 | 1318.8 | Trajectory |'
+  id: totrans-28
+  prefs: []
+  type: TYPE_TB
+  zh: '| 记忆 | 30~45 | 1318.8 | 轨迹 |'
+- en: '| Previous Dialogues | 1~3 | 327.4 | Trajectory |'
+  id: totrans-29
+  prefs: []
+  type: TYPE_TB
+  zh: '| 先前对话 | 1~3 | 327.4 | 轨迹 |'
+- en: '| Environment | 2 | 69.5 | Context |'
+  id: totrans-30
+  prefs: []
+  type: TYPE_TB
+  zh: '| 环境 | 2 | 69.5 | 上下文 |'
+- en: '| Current Dialogue | 1 | 284.3 | Context |'
+  id: totrans-31
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前对话 | 1 | 284.3 | 上下文 |'
+- en: 'Table 1: The statistics of modularized blocks in the utterance generation prompt,
+    each containing one or more items. *Human Needs block only appears in the HA dataset.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：话语生成提示中模块化块的统计，每个块包含一个或多个项目。*人类需求块仅出现在HA数据集中。
+- en: Data
+  id: totrans-33
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 数据
+- en: We leveraged the simulation logs released by Generative Agents (Park et al.
+    [2023](https://arxiv.org/html/2412.21102v1#bib.bib20)) as our primary dataset,
+    referred to as GA. The logs consist of 290 dialogues simulating a day in a small
+    town, which we treated as independent cases. From these, we evenly sampled 20
+    cases in chronological order for generation. In a conversation, each utterance
+    generated by an LLM agent involves several dynamic steps simulating the internal
+    cognitive behaviors, such as querying related memories, verifying the current
+    environmental states, and integrating these pieces of information into a prompt
+    to produce the final response. For each case, we extracted all necessary contextual
+    information from the logs, including memory bases, location context, and dialogue
+    history, ensuring accurate simulations.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们利用由生成型智能体（Park et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib20)）发布的仿真日志作为我们的主要数据集，称为GA。日志包含了模拟小镇一天生活的290个对话，我们将其视为独立的案例。从中，我们按时间顺序均匀抽取了20个案例进行生成。在每次对话中，由LLM智能体生成的每个发言都涉及几个动态步骤，模拟内部认知行为，例如查询相关记忆、验证当前环境状态，并将这些信息整合到提示中以生成最终回复。对于每个案例，我们从日志中提取了所有必要的上下文信息，包括记忆库、位置信息和对话历史，确保了准确的仿真。
+- en: We also utilized an extended dataset based on Humanoid Agents (Wang, Chiu, and
+    Chiu [2023](https://arxiv.org/html/2412.21102v1#bib.bib25)), referred to as HA,
+    which extends GA by introducing new agent states such as basic needs, emotions,
+    and relationship closeness. Following the same methodology, we augmented GA’s
+    20 cases with these states, collectively referred to as human needs. Together,
+    these two datasets cover key components of LLM agents and simulation content for
+    human-like behavior (Xi et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib27);
+    Cheng et al. [2024](https://arxiv.org/html/2412.21102v1#bib.bib5); Sumers et al.
+    [2024](https://arxiv.org/html/2412.21102v1#bib.bib23)).
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还利用了基于类人代理（Wang, Chiu, 和Chiu [2023](https://arxiv.org/html/2412.21102v1#bib.bib25)）的扩展数据集，称为HA，该数据集通过引入基本需求、情感和关系亲密度等新代理状态扩展了GA。遵循相同的方法论，我们将这些状态加入到GA的20个案例中，统称为人类需求。两者共同覆盖了LLM代理的关键组成部分以及模拟人类行为的内容（Xi等人
+    [2023](https://arxiv.org/html/2412.21102v1#bib.bib27); Cheng等人 [2024](https://arxiv.org/html/2412.21102v1#bib.bib5);
+    Sumers等人 [2024](https://arxiv.org/html/2412.21102v1#bib.bib23)）。
+- en: To better manipulate the prompt for response generation, we adapted GA’s templates
+    by modularizing its content. We treated the prompt as a sequence comprising distinct
+    blocks, each of which is a subsequence of multiple units. A unit represents the
+    smallest element, which could be either a piece of information (an “item”, e.g.,
+    a single memory string) or an instruction (a “text”, e.g., ”Here is the memory
+    that is in Eddy Lin’s head:”). Table [1](https://arxiv.org/html/2412.21102v1#S2.T1
+    "Table 1 ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation") summarizes the specifications for blocks.
+    For detailed dataset information, please refer to the appendix or original papers.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更好地操作提示词以生成响应，我们通过模块化其内容来改编GA的模板。我们将提示词视为由不同模块组成的序列，每个模块都是多个单元的子序列。单元代表最小元素，可以是信息片段（“项”，例如单个记忆字符串）或指令（“文本”，例如“这是Eddy
+    Lin脑中的记忆：”）。表[1](https://arxiv.org/html/2412.21102v1#S2.T1 "Table 1 ‣ 2 Data,
+    Model, and Task for Diversity Evaluation ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation")总结了各模块的规范。有关数据集的详细信息，请参阅附录或原始论文。
+- en: Model
+  id: totrans-37
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 模型
+- en: We employed LLaMA 3 and LLaMA 3.1 (Dubey et al. [2024](https://arxiv.org/html/2412.21102v1#bib.bib9))
+    as the backbone LLMs. Released in mid-2024, these models are among the most powerful
+    and widely adopted open-source LLM families. LLaMA 3.1 demonstrates superior performance
+    at the same scale, offering enhanced capabilities (AI [2024](https://arxiv.org/html/2412.21102v1#bib.bib2))
+    and a significantly extended context window (128,000 compared to 8,192 tokens).
+    For practical purposes, we used the 8B-Instruct models in half precision.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们采用了LLaMA 3和LLaMA 3.1（Dubey等人 [2024](https://arxiv.org/html/2412.21102v1#bib.bib9)）作为主干LLM。这些模型在2024年中期发布，是目前最强大且广泛采用的开源LLM家族之一。LLaMA
+    3.1在相同规模下表现优越，提供了增强的能力（AI [2024](https://arxiv.org/html/2412.21102v1#bib.bib2)）和显著扩展的上下文窗口（128,000与8,192个token相比）。在实际应用中，我们使用了半精度的8B-Instruct模型。
+- en: Task
+  id: totrans-39
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 任务
+- en: 'We define diversity as the variation between dialogues generated under identical
+    initial conditions across trials. In other words, it measures how different the
+    dialogues are when simulating among the same set of LLM agents at the same moment.
+    For each case, we conducted $n=10$ simulations and measured diversity among these
+    $n$ dialogues. Two metrics were employed: sim and dist-N, which quantify diversity
+    from lexical and semantic perspectives. The former calculates the mean pairwise
+    cosine similarity of dialogue embeddings (Reimers [2019](https://arxiv.org/html/2412.21102v1#bib.bib21);
+    Wang et al. [2021](https://arxiv.org/html/2412.21102v1#bib.bib24)), while the
+    latter computes the proportion of unique N-grams across all n dialogues (Li et al.
+    [2016](https://arxiv.org/html/2412.21102v1#bib.bib15)). We report the average
+    scores on all cases.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将多样性定义为在相同初始条件下，通过多次试验生成的对话之间的变化。换句话说，它衡量了在同一时刻模拟相同一组LLM代理时，对话的差异性。对于每个案例，我们进行了$n=10$次模拟，并衡量了这$n$个对话之间的多样性。我们采用了两种度量：sim和dist-N，分别从词汇和语义角度量化多样性。前者计算对话嵌入的平均配对余弦相似度（Reimers
+    [2019](https://arxiv.org/html/2412.21102v1#bib.bib21); Wang等人 [2021](https://arxiv.org/html/2412.21102v1#bib.bib24)），而后者计算所有n个对话中的独特N-gram的比例（Li等人
+    [2016](https://arxiv.org/html/2412.21102v1#bib.bib15)）。我们报告了所有案例的平均得分。
+- en: In this paper, the results are mainly from GA on LLaMA 3 unless otherwise specified.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，除非另有说明，否则结果主要来自GA在LLaMA 3上的表现。
+- en: '![Refer to caption](img/2be3de6547e28bb1053d992b8df3e195.png)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/2be3de6547e28bb1053d992b8df3e195.png)'
+- en: (a) $\lambda$ vs. diversity
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) $\lambda$与多样性
+- en: '![Refer to caption](img/1d97e6b0ef4b40b6dfc9136c975df44c.png)'
+  id: totrans-44
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/1d97e6b0ef4b40b6dfc9136c975df44c.png)'
+- en: (b) $\lambda$ vs. removal ratio
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) $\lambda$与移除比例
+- en: '![Refer to caption](img/f12b579b77196ea673a1d5c42d426399.png)'
+  id: totrans-46
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/f12b579b77196ea673a1d5c42d426399.png)'
+- en: (c) Word removal ratio vs. diversity
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) 词语移除比例与多样性
+- en: 'Figure 2: Dialogue diversity under our control parameter $\lambda$. As $\lambda$
+    increases from 0 to 1, diversity generally increases. Removing units based on
+    attention scores in descending order (default) is more word-efficient than removing
+    them in ascending order (asc). Annotated numbers in (a) represent diversity at
+    the endpoints.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：在我们控制参数$\lambda$下的对话多样性。随着$\lambda$从0增加到1，多样性通常会增加。根据注意力得分按降序移除单元（默认）比按升序移除（asc）更加节省词汇。在(a)中标注的数字表示端点的多样性。
+- en: 3 Adaptive Prompt Pruning
+  id: totrans-49
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 自适应提示修剪
+- en: While longer prompts offer more contextual clues and topics (Weston and Sukhbaatar
+    [2023](https://arxiv.org/html/2412.21102v1#bib.bib26)), potentially enriching
+    outputs, they can also impose stronger constraints, leading to more deterministic
+    results.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然较长的提示提供了更多的上下文线索和主题（Weston和Sukhbaatar [2023](https://arxiv.org/html/2412.21102v1#bib.bib26)），可能会丰富输出，但它们也可能施加更强的约束，导致更加确定性的结果。
+- en: 'We conducted a preliminary ablation study: in each utterance generation, specific
+    blocks were pruned from the prompt, and we observed the resulting changes in diversity.
+    The findings are recorded in Table [2](https://arxiv.org/html/2412.21102v1#S3.T2
+    "Table 2 ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling Diversity in
+    LLM-Agent Conversation"). It was observed that removing different blocks led to
+    varying degrees of changes in diversity, with pruning all four blocks (RMbmpe)
+    resulting in a significant increase in diversity. Under this condition, the prompt
+    retained only the instructions and the current dialogue, leaving no agent-related
+    information. This suggests such information collectively plays a constraining
+    role in multi-agent simulation.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进行了一项初步的消融研究：在每次生成话语时，特定的块被从提示中修剪，并观察了多样性变化的结果。研究结果记录在表[2](https://arxiv.org/html/2412.21102v1#S3.T2
+    "表 2 ‣ 3 自适应提示修剪 ‣ 探索与控制LLM-Agent对话中的多样性")中。观察发现，移除不同的块会导致多样性发生不同程度的变化，其中修剪所有四个块（RMbmpe）会显著增加多样性。在这种情况下，提示只保留了指令和当前对话，不包含任何与代理相关的信息。这表明这些信息在多代理仿真中共同起到了约束作用。
+- en: Building on these findings, we aim to design a more granular approach to control
+    the transition in diversity using a single parameter. We propose leveraging attention
+    scores to guide content removal, targeting overemphasized portions of the prompt
+    to regulate diversity. This strategy avoids directly altering attention mechanisms,
+    thereby preserving the model’s general abilities, while operating independently
+    of specific block content, offering greater generality and applicability.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于这些发现，我们旨在设计一种更加细粒度的方法，通过使用单一参数来控制多样性的变化过渡。我们建议利用注意力得分来引导内容的移除，针对提示中过度强调的部分来调节多样性。该策略避免了直接改变注意力机制，从而保持了模型的整体能力，同时不依赖于特定块的内容，提供了更大的通用性和适用性。
+- en: '|  | sim ($\downarrow$) | dist-1 | dist-2 | dist-3 ($\uparrow$) |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | sim ($\downarrow$) | dist-1 | dist-2 | dist-3 ($\uparrow$) |'
+- en: '| Full | 0.791 | 0.095 | 0.350 | 0.535 |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| Full | 0.791 | 0.095 | 0.350 | 0.535 |'
+- en: '| RMb | 0.806 | 0.091 | 0.335 | 0.513 |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMb | 0.806 | 0.091 | 0.335 | 0.513 |'
+- en: '| RMm | 0.736 | 0.119 | 0.429 | 0.636 |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMm | 0.736 | 0.119 | 0.429 | 0.636 |'
+- en: '| RMp | 0.802 | 0.095 | 0.352 | 0.538 |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMp | 0.802 | 0.095 | 0.352 | 0.538 |'
+- en: '| RMe | 0.764 | 0.091 | 0.326 | 0.497 |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMe | 0.764 | 0.091 | 0.326 | 0.497 |'
+- en: '| RMbmpe | 0.511 | 0.202 | 0.610 | 0.800 |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMbmpe | 0.511 | 0.202 | 0.610 | 0.800 |'
+- en: 'Table 2: Diversity changes as blocks are removed from the prompt. RMx represents
+    removing block x, where x corresponds to the initials of the blocks listed in
+    Table [1](https://arxiv.org/html/2412.21102v1#S2.T1 "Table 1 ‣ 2 Data, Model,
+    and Task for Diversity Evaluation ‣ Exploring and Controlling Diversity in LLM-Agent
+    Conversation").'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：当从提示中移除块时，多样性的变化。RMx表示移除块x，其中x对应于表[1](https://arxiv.org/html/2412.21102v1#S2.T1
+    "表 1 ‣ 2 数据、模型和多样性评估任务 ‣ 探索与控制LLM-Agent对话中的多样性")中列出的块的首字母。
+- en: 3.1 Method
+  id: totrans-61
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 方法
+- en: We calculate the attention score for each unit using the response generated
+    by the model. Using the full prompt as the input, the output response is a sequence
+    of tokens denoted as $r=\{t_{r_{1}},t_{r_{2}},...,t_{r_{n}}\}$. For any unit $u$,
+    defined as $u=\{t_{u_{1}},t_{u_{2}},...,t_{u_{m}}\}$, the attention values from
+    $r$ to $u$ can be represented as a tensor $a\in\mathbb{R}^{L\times H\times m\times
+    n}$, where $L$ is the number of attention layers in the model, and $H$ is the
+    number of attention heads. To facilitate comparison among units, we further compress
+    the two-dimensional attention values between token sequences by applying $a^{\prime}=R(a)$,
+    where $a^{\prime}\in\mathbb{R}^{L\times H}$. Here, $R(\cdot)$ is a “sum-mean”
+    reducer, which first sums over the $m$ dimension and then averages over the $n$
+    dimension. This operation aggregates the total impacts from all tokens in $u$,
+    averaged across $r$. Finally, we take the mean across the heads and sum across
+    the layers¹¹1In practice, when the operations are commutative, we first compress
+    the raw attention values over the $L$ or $H$ dimensions during inference to reduce
+    memory usage. to obtain the scalar attention score $a_{u}$ for unit $u$,
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用模型生成的响应来计算每个单元的注意力分数。使用完整的提示作为输入，输出响应是一个符号为 $r=\{t_{r_{1}},t_{r_{2}},...,t_{r_{n}}\}$
+    的标记序列。对于任何单元 $u$，定义为 $u=\{t_{u_{1}},t_{u_{2}},...,t_{u_{m}}\}$，从 $r$ 到 $u$ 的注意力值可以表示为张量
+    $a\in\mathbb{R}^{L\times H\times m\times n}$，其中 $L$ 是模型中的注意力层数，$H$ 是注意力头的数量。为了便于在单元之间进行比较，我们通过应用
+    $a^{\prime}=R(a)$ 进一步压缩标记序列之间的二维注意力值，其中 $a^{\prime}\in\mathbb{R}^{L\times H}$。这里，$R(\cdot)$
+    是一个“求和均值”缩减器，首先在 $m$ 维度上求和，然后在 $n$ 维度上取平均。此操作聚合了 $u$ 中所有标记的总影响，并在 $r$ 上取平均。最后，我们在头部上取均值，在层上求和¹¹1在实践中，当操作是交换律的时，我们首先在推理期间压缩
+    $L$ 或 $H$ 维度上的原始注意力值，以减少内存使用。得到单元 $u$ 的标量注意力分数 $a_{u}$，
+- en: '|  | $a_{u}=\sum_{i=1}^{L}\frac{1}{H}\sum_{j=1}^{H}a^{\prime}_{i,j}$ |  | (1)
+    |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $a_{u}=\sum_{i=1}^{L}\frac{1}{H}\sum_{j=1}^{H}a^{\prime}_{i,j}$ |  | (1)
+    |'
+- en: After obtaining scores for all units, a single parameter is introduced to control
+    the intensity of removal. First, a subset of all units, denoted as $U_{rm}$ and
+    referred to as “removable units”, is selected based on user requirements. Units
+    outside $U_{rm}$, such as task or output instruction units, are excluded from
+    consideration for removal. Next, the elements in $U_{rm}$ are sorted in descending
+    order based on their corresponding $a_{u}$ values. A parameter $\lambda\in[0,1]$
+    is defined to determine the units to remove, such that the cumulative score of
+    the selected units reaches $\lambda$ times the total score of $U_{rm}$. To meet
+    this condition, elements are selected sequentially from the top of the sorted
+    list (i.e., units with higher scores) until the cumulative score satisfies the
+    threshold. Finally, the selected units are removed from the full prompt, after
+    which utterance generation proceeds. This process is applied individually to each
+    utterance generation in the dialogues. A detailed description is provided in Alg. [1](https://arxiv.org/html/2412.21102v1#alg1
+    "Algorithm 1 ‣ 3.1 Method ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation").
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在获得所有单元的分数后，引入一个单一参数来控制移除的强度。首先，根据用户要求选择一个所有单元的子集，记作 $U_{rm}$，并称为“可移除单元”。$U_{rm}$
+    之外的单元，如任务或输出指令单元，将被排除在移除考虑之外。接下来，按对应的 $a_{u}$ 值对 $U_{rm}$ 中的元素进行降序排序。定义一个参数 $\lambda\in[0,1]$
+    来确定需要移除的单元，使得所选单元的累计分数达到 $U_{rm}$ 总分的 $\lambda$ 倍。为了满足这一条件，从排序列表的顶部（即分数较高的单元）开始按顺序选择元素，直到累计分数满足阈值。最后，将选中的单元从完整的提示中移除，之后开始生成发言。这个过程会单独应用于对话中的每个发言生成。有关详细描述，请参见算法
+    [1](https://arxiv.org/html/2412.21102v1#alg1 "算法 1 ‣ 3.1 方法 ‣ 3 自适应提示修剪 ‣ 探索和控制
+    LLM-代理对话的多样性")。
+- en: In our implementation, the $a_{u}$ values are computed as the average of results
+    from three output responses. All items in the original prompt, except from “Current
+    dialogue”, are included in $U_{rm}$, as removing it would prevent the conversation
+    from continuing. If all items within a single block are removed, the block is
+    removed entirely.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实现中，$a_{u}$ 值是通过对三个输出响应的结果取平均计算的。原始提示中的所有项目（除了“当前对话”）都包含在 $U_{rm}$ 中，因为移除它会导致对话无法继续进行。如果单个块内的所有项目都被移除，则该块将被完全移除。
+- en: Algorithm 1 Attention-based Unit Removal
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 基于注意力的单元移除
+- en: 'Input: Units $U$, Scores $\{a_{u}\}$, Removal factor $\lambda$'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输入：单元 $U$，分数 $\{a_{u}\}$，移除因子 $\lambda$
+- en: 1:  Sort removable units $U_{rm}\subseteq U$ by $a_{u}$ in descending order2:  Set
+    $S_{target}=\lambda\cdot\sum_{u\in U_{rm}}a_{u}$, $current\_sum\leftarrow 0$,
+    $U_{rm}^{\prime}\leftarrow\emptyset$3:  for each $u\in U_{rm}$ do4:      if $current\_sum+a_{u}\leq
+    S_{target}$ then5:         $current\_sum\leftarrow current\_sum+a_{u}$6:        
+    Add $u$ to $U_{rm}^{\prime}$7:      if $current\_sum\geq S_{target}$ then8:        
+    break9:  Remove $U_{rm}^{\prime}$ from full prompt
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '1:  按照 $a_{u}$ 对可移除单元 $U_{rm}\subseteq U$ 进行降序排序'
+- en: 3.2 Discussion
+  id: totrans-69
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 讨论
+- en: '![Refer to caption](img/177a8555b4bc1970535c6d71f9badb4f.png)'
+  id: totrans-70
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/177a8555b4bc1970535c6d71f9badb4f.png)'
+- en: (a) LLaMA 3, HA
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) LLaMA 3, HA
+- en: '![Refer to caption](img/4e755406e6ae9bcb2ef953a69f172775.png)'
+  id: totrans-72
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/4e755406e6ae9bcb2ef953a69f172775.png)'
+- en: (b) LLaMA 3.1, GA
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) LLaMA 3.1, GA
+- en: '![Refer to caption](img/d568d16051401afc7af8d5a84e453fca.png)'
+  id: totrans-74
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/d568d16051401afc7af8d5a84e453fca.png)'
+- en: (c) LLaMA 3.1, HA
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (c) LLaMA 3.1, HA
+- en: 'Figure 3: Results for $\lambda$ vs. diversity under different model and data
+    settings. Similar trends are observed as in the LLaMA 3 with GA setting, despite
+    differences in initial diversity. Annotated numbers indicate diversity at the
+    endpoints.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：在不同模型和数据设置下，$\lambda$ 与多样性之间的结果。尽管初始多样性有所不同，但在 LLaMA 3 与 GA 设置下观察到了类似的趋势。注释的数字表示端点的多样性。
+- en: '![Refer to caption](img/e8a04a73bfb48ba476d978ff1915b3fe.png)![Refer to caption](img/f8d3641f88478280fa6e5d1b7d27e1bb.png)![Refer
+    to caption](img/f6dc27af32db61bab6a0785ee44a0daf.png)'
+  id: totrans-77
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/e8a04a73bfb48ba476d978ff1915b3fe.png)![参见标题说明](img/f8d3641f88478280fa6e5d1b7d27e1bb.png)![参见标题说明](img/f6dc27af32db61bab6a0785ee44a0daf.png)'
+- en: 'Figure 4: More results of Adaptive Prompt Pruning discussed in Section [3.2](https://arxiv.org/html/2412.21102v1#S3.SS2
+    "3.2 Discussion ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation"): (a) Lambda vs. diversity for different reducer choices.
+    (b) Post-removal stats for different lambda: Top 3 unit score share (bars) and
+    total score retention (line). (c) Retain-1: Keep only one removable unit in the
+    prompt, selected from various blocks.'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：关于自适应提示剪枝的更多结果，讨论见第[3.2节](https://arxiv.org/html/2412.21102v1#S3.SS2 "3.2
+    讨论 ‣ 3 自适应提示剪枝 ‣ 探索与控制LLM-代理对话中的多样性")： (a) Lambda 与多样性之间的关系，不同减小器选择下的结果。(b) 不同
+    Lambda 值下的移除后统计：前 3 个单元分数占比（柱状图）与总分保留率（折线图）。(c) Retain-1：仅保留一个可移除单元，从不同块中选择。
+- en: Main results
+  id: totrans-79
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 主要结果
+- en: 'We measured dialogue diversity under different $\lambda$ values. Fig. [2(a)](https://arxiv.org/html/2412.21102v1#S2.F2.sf1
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation") and Fig. [2(b)](https://arxiv.org/html/2412.21102v1#S2.F2.sf2
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation") represent the diversity
+    scores and the corresponding unit/word removal ratio. As $\lambda$ increases,
+    diversity generally rises until all removable units are eliminated, demonstrating
+    that $\lambda$ effectively controls diversity enhancement. Since the units were
+    selected for removal in descending order of attention scores, only a small fraction
+    of content needed to be removed in the early stages of increasing $\lambda$, as
+    these units had higher scores. This observation inspired a new efficiency criterion:
+    in general, a method that enhances diversity with less content removal is likely
+    to be more efficient. Consequently, Fig. [2(c)](https://arxiv.org/html/2412.21102v1#S2.F2.sf3
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation") plots diversity changes
+    with the word removal ratio on the x-axis.'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在不同的$\lambda$值下测量了对话的多样性。图[2(a)](https://arxiv.org/html/2412.21102v1#S2.F2.sf1
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation")和图[2(b)](https://arxiv.org/html/2412.21102v1#S2.F2.sf2
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation")展示了多样性分数和相应的单元/词移除比例。随着$\lambda$的增加，多样性通常会提高，直到所有可移除单元被消除，这证明了$\lambda$在有效控制多样性增强方面的作用。由于单元是按照注意力分数的降序选择进行移除的，在$\lambda$值初期，由于这些单元的分数较高，因此只需要移除少量内容。这一观察启发了一个新的效率标准：通常，能够通过较少的内容移除来增强多样性的方法可能更高效。因此，图[2(c)](https://arxiv.org/html/2412.21102v1#S2.F2.sf3
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation")绘制了多样性变化与词移除比例的关系。
+- en: To validate the rationale behind descending-order selection, we compared it
+    with ascending-order selection (dashed lines in the figures), where lower-score
+    units are prioritized for removal. While ascending-order selection appears to
+    yield greater diversity improvement, particularly for the dist-3 metric, this
+    comes at the cost of removing more units for the same $\lambda$. From an efficiency
+    standpoint, Fig. [2(c)](https://arxiv.org/html/2412.21102v1#S2.F2.sf3 "In Figure
+    2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation") shows that descending-order selection is
+    generally more efficient, except when $\lambda$ approaches 1.0.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证降序选择背后的原理，我们将其与升序选择进行了比较（图中的虚线），在升序选择中，优先移除低分单元。尽管升序选择似乎能带来更大的多样性提升，特别是在dist-3指标上，但这也意味着在相同的$\lambda$值下需要移除更多单元。从效率角度来看，图[2(c)](https://arxiv.org/html/2412.21102v1#S2.F2.sf3
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation")显示，降序选择通常更高效，除非$\lambda$接近1.0。
+- en: We repeated the experiments across different models and datasets, with the results
+    shown in Fig. [3](https://arxiv.org/html/2412.21102v1#S3.F3 "Figure 3 ‣ 3.2 Discussion
+    ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling Diversity in LLM-Agent
+    Conversation"). Among the models, LLaMA 3.1 exhibits higher initial diversity
+    ($\lambda=0.0$). For HA, despite its longer prompts, it also achieves higher initial
+    diversity (e.g., dist-3 increases from 0.535 to 0.546 on LLaMA 3). This can be
+    attributed to the additional information regarding human needs, which provides
+    more options for dialogue content. Nevertheless, as units are gradually removed,
+    diversity continues to increase, peaking at $\lambda=1.0$. This demonstrates that
+    such information primarily functions as a conditioning factor when generating
+    utterances.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在不同的模型和数据集上重复进行了实验，结果如图[3](https://arxiv.org/html/2412.21102v1#S3.F3 "Figure
+    3 ‣ 3.2 Discussion ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation")所示。在各个模型中，LLaMA 3.1展现了较高的初始多样性（$\lambda=0.0$）。对于HA，尽管它的提示词较长，但也实现了更高的初始多样性（例如，在LLaMA
+    3上，dist-3从0.535增加到0.546）。这可以归因于关于人类需求的额外信息，它为对话内容提供了更多的选择。然而，随着单元逐渐被移除，多样性持续增加，并在$\lambda=1.0$时达到峰值。这表明，这种信息在生成发言时主要作为一个条件因子起作用。
+- en: Reducer
+  id: totrans-83
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: Reducer
+- en: We evaluate the effects of different reducers $R(\cdot)$ on the selection results
+    of unit removal. As shown in Fig. [4](https://arxiv.org/html/2412.21102v1#S3.F4
+    "Figure 4 ‣ 3.2 Discussion ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation")a, the solid line represents the “sum-mean”
+    method we adopted, while the dotted lines correspond to the “mean-mean” method.
+    Unlike “sum-mean”, the “mean-mean” method averages the attention scores across
+    all tokens within a unit instead of summing them, thereby reducing the scoring
+    advantage of longer units. However, we observe that “mean-mean” achieves inferior
+    improvements in diversity when the $\lambda$ value is large. Additionally, changes
+    under the sim metric initially decrease and then increase, indicating a weaker
+    linear relationship with $\lambda$. Given the goal of serving as a control parameter,
+    we argue that the “sum-mean” method, which preserves the length bias of units,
+    is a more suitable choice.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们评估了不同减法器 $R(\cdot)$ 对单元移除选择结果的影响。如图[4](https://arxiv.org/html/2412.21102v1#S3.F4
+    "Figure 4 ‣ 3.2 Discussion ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation")a所示，实线代表我们采用的“sum-mean”方法，而虚线则对应于“mean-mean”方法。与“sum-mean”不同，“mean-mean”方法将单元内所有词元的注意力分数取平均，而不是求和，从而减少了较长单元的评分优势。然而，我们观察到，当$\lambda$值较大时，“mean-mean”在多样性上的提升较为有限。此外，在sim度量下，变化呈现先减小后增大的趋势，表明与$\lambda$之间的线性关系较弱。鉴于其作为控制参数的目标，我们认为“sum-mean”方法更适合，它保留了单元的长度偏差。
+- en: Post-removal attention scores
+  id: totrans-85
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 移除后的注意力分数
+- en: 'Although Fig. [2](https://arxiv.org/html/2412.21102v1#S2.F2 "Figure 2 ‣ Task
+    ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation") shows positive correlations of diversity
+    with $\lambda$ (a) and word removal ratio (c), the reasons for the subtle changes
+    in diversity when $\lambda$ or the word removal ratio is low remain unclear. Fig. [4](https://arxiv.org/html/2412.21102v1#S3.F4
+    "Figure 4 ‣ 3.2 Discussion ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation")b presents two metrics after pruning: (1)
+    the proportion of the total scores for the remaining removable units ($U_{rm}$)
+    relative to the total scores in $U_{rm}$ before removal (independent of $\lambda$),
+    represented by the red line, and (2) the proportion of scores contributed by the
+    top three removable units. Since attention scores are redistributed after unit
+    removal, the actual reduction in attention allocated to removable units does not
+    perfectly align with $\lambda$. The figure shows that this reduction is consistently
+    smaller than $\lambda$. For example, when $\lambda=0.6$, attention decreases by
+    only 19%. This phenomenon is particularly evident for smaller $\lambda$ values,
+    which may explain the limited growth in diversity during the early stages shown
+    in Fig. [2](https://arxiv.org/html/2412.21102v1#S2.F2 "Figure 2 ‣ Task ‣ 2 Data,
+    Model, and Task for Diversity Evaluation ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation"): attention on removable units decreases only marginally,
+    and the score proportion of the top-1 unit even increases. Moreover, when $\lambda$
+    exceeds 0.8, the attention proportion of the top units begins to rise, contradicting
+    the trend of increasing diversity. This behavior may result from the substantial
+    reduction in the number of remaining removable units.'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管图[2](https://arxiv.org/html/2412.21102v1#S2.F2 "Figure 2 ‣ Task ‣ 2 Data,
+    Model, and Task for Diversity Evaluation ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation")显示了多样性与$\lambda$ (a)和词移除比例(c)之间的正相关，但当$\lambda$或词移除比例较低时，多样性变化的原因仍不明确。图[4](https://arxiv.org/html/2412.21102v1#S3.F4
+    "Figure 4 ‣ 3.2 Discussion ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation")b展示了修剪后两个指标：(1) 剩余可移除单元($U_{rm}$)的总分与移除前$U_{rm}$的总分之比（与$\lambda$无关），由红线表示；(2)
+    前三个可移除单元的得分所占比例。由于单元移除后注意力分数被重新分配，分配给可移除单元的实际注意力减少与$\lambda$并不完全一致。图中显示这一减少始终小于$\lambda$。例如，当$\lambda=0.6$时，注意力仅减少了19%。这一现象在较小的$\lambda$值下尤为明显，这可能解释了图[2](https://arxiv.org/html/2412.21102v1#S2.F2
+    "Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation")中初期多样性增长受限的原因：可移除单元上的注意力减少仅为微乎其微，且最高得分单元的得分比例甚至增加。此外，当$\lambda$超过0.8时，最高单元的注意力比例开始上升，这与多样性增加的趋势相矛盾。这一行为可能是由于剩余可移除单元数量的大幅减少所导致。
+- en: Retain-1
+  id: totrans-87
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: Retain-1
+- en: We conducted a specialized pruning experiment to investigate the impact on diversity
+    when only a single item remains. This setup was designed to minimize the confounding
+    effects of attention redistribution. Figure [4](https://arxiv.org/html/2412.21102v1#S3.F4
+    "Figure 4 ‣ 3.2 Discussion ‣ 3 Adaptive Prompt Pruning ‣ Exploring and Controlling
+    Diversity in LLM-Agent Conversation")c illustrates the outcomes of keeping items
+    with the highest (Hi) or lowest (Lo) attention scores from each block. The findings
+    indicate that, for nearly all blocks and metrics, retaining items with the highest
+    score (Hi) results in lower diversity compared to those with the lowest scores
+    (Lo). This reinforces the notion that items with high attention scores adversely
+    affect diversity.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进行了一个专门的修剪实验，调查当仅剩下一个单元时对多样性的影响。该设置旨在最小化注意力重分配的干扰效应。图 [4](https://arxiv.org/html/2412.21102v1#S3.F4
+    "图 4 ‣ 3.2 讨论 ‣ 3 自适应提示修剪 ‣ 探索和控制 LLM-Agent 对话中的多样性")c 说明了保留每个块中具有最高（Hi）或最低（Lo）注意力分数项的结果。研究结果表明，对于几乎所有块和指标，保留具有最高分数（Hi）的项会导致较低的多样性，而保留最低分数（Lo）的项则会有较高的多样性。这进一步证明了高注意力分数的项会对多样性产生负面影响。
+- en: For the Previous Dialogues block, the inter-group differences (p1Lo and p1Hi)
+    are smaller, likely due to cases where the number of items is zero. By contrast,
+    the Memory block has the most detrimental effect on diversity across all groups,
+    even when only a single Memory item remains (e.g., dist-3 drops from 0.800 to
+    0.595 for m1Hi). This result likely reflects the behaviors learned by the pre-trained
+    model for different block types.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于先前对话块，组间差异（p1Lo 和 p1Hi）较小，可能是由于某些项数量为零的情况。相比之下，记忆块对所有组的多样性影响最为不利，即使只剩下一个记忆项（例如，当
+    m1Hi 时，dist-3 从 0.800 降到 0.595）。这一结果可能反映了预训练模型对不同块类型的学习行为。
+- en: Interestingly, this outcome also explains the efficiency reversal between the
+    two sorting settings observed in the tail of Fig. [2(c)](https://arxiv.org/html/2412.21102v1#S2.F2.sf3
+    "In Figure 2 ‣ Task ‣ 2 Data, Model, and Task for Diversity Evaluation ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation"). When $\lambda=0.95$, under
+    the “descending” setting, approximately 83.4% of the remaining items belong to
+    the Memory block. In contrast, under the “ascending” setting, the dominant block
+    type is Previous Dialogues (59.3%), with Memory accounting for only 1.6%. This
+    disparity likely underpins the “ascending” setting’s advantage toward the end.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有趣的是，这一结果也解释了在图 [2(c)](https://arxiv.org/html/2412.21102v1#S2.F2.sf3 "图 2 ‣
+    任务 ‣ 2 数据、模型和任务的多样性评估 ‣ 探索和控制 LLM-Agent 对话中的多样性")尾部观察到的两种排序设置之间的效率反转。当$\lambda=0.95$时，在“降序”设置下，约83.4%的剩余项属于记忆块。相比之下，在“升序”设置下，占主导地位的块类型是先前对话（59.3%），而记忆块仅占1.6%。这种差异可能是“升序”设置在最后阶段占优的原因。
+- en: 4 Trade-off of Diversity Management
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 多样性管理的权衡
+- en: Using unit removal is an effective method to control and enhance dialogue diversity.
+    However, the generated responses may conflict with the pruned information. To
+    address this issue, we introduce a second step for revision to rectify potential
+    discrepancies in the generated utterances.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用去除单元是控制和增强对话多样性的一种有效方法。然而，生成的响应可能与被修剪的信息发生冲突。为了解决这个问题，我们引入了第二步修正，以纠正生成语句中的潜在不一致。
+- en: '![Refer to caption](img/c64228c9cd9ff86b635bbc2d628207f9.png)'
+  id: totrans-93
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/c64228c9cd9ff86b635bbc2d628207f9.png)'
+- en: 'Figure 5: An illustrative figure depicting the revision process after generation
+    with a units-removed prompt.'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：一幅插图，展示了在去除单元提示下生成后的修正过程。
+- en: 4.1 Method
+  id: totrans-95
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 方法
+- en: 'After generating a response controlled by $\lambda$, we collect the removed
+    units and the generated utterance to assess whether the utterance conflicts with
+    the content of the removed units. If a conflict is detected, the utterance undergoes
+    revision; otherwise, it is accepted as is. Figure [5](https://arxiv.org/html/2412.21102v1#S4.F5
+    "Figure 5 ‣ 4 Trade-off of Diversity Management ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation") illustrates this workflow. In our implementation,
+    we use the same LLM for conflict detection, utilizing the following task prompt:
+    “{name of agent A} is now in a chat with {name of agent B} and going to say ’{response}’.
+    Are there any inconsistencies between this response and the statements above?”
+    The LLM generates a comment and assigns a score from 1 to 10, where higher scores
+    indicate greater inconsistency. We take the average of three scoring runs as the
+    final score and set a threshold $\theta=6.67$. If the score exceeds $\theta$,
+    a conflict is identified. When a conflict occurs, there are two common approaches
+    to revision: (1) Regenerating the utterance: Reverting to the previous stage to
+    generate a new response. (2) Comment-based modification: Revising the utterance
+    based on the generated comments (Pan et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib19)).
+    For simplicity, this study adopts the first approach by preparing multiple backup
+    responses during the initial generation. The rollback process is repeated up to
+    three times until the score drops below $\theta$, or the utterance with the lowest
+    score is selected.'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在生成由 $\lambda$ 控制的响应后，我们收集被移除的单元和生成的发言，以评估该发言是否与被移除单元的内容冲突。如果检测到冲突，发言将进行修订；否则，接受原样发言。图
+    [5](https://arxiv.org/html/2412.21102v1#S4.F5 "Figure 5 ‣ 4 Trade-off of Diversity
+    Management ‣ Exploring and Controlling Diversity in LLM-Agent Conversation") 展示了这一工作流程。在我们的实现中，我们使用相同的
+    LLM 进行冲突检测，利用以下任务提示：“{agent A 的名字} 现在正在与 {agent B 的名字} 聊天，并准备说‘{response}’。该回应与之前的陈述是否存在不一致？”
+    LLM 生成评论并给出一个 1 到 10 的评分，分数越高表示不一致性越大。我们取三次评分的平均值作为最终得分，并设定阈值 $\theta=6.67$。如果得分超过
+    $\theta$，则认为发生了冲突。发生冲突时，有两种常见的修订方法：（1）重新生成发言：回到之前的阶段重新生成回应。（2）基于评论的修改：根据生成的评论修改发言（Pan
+    et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib19)）。为简化起见，本研究采用第一种方法，在初始生成时准备多个备份响应。回滚过程最多重复三次，直到得分低于
+    $\theta$，或选择得分最低的发言。
+- en: '![Refer to caption](img/28c34f8f81e4cd964ff9db0c53a7033d.png)'
+  id: totrans-97
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/28c34f8f81e4cd964ff9db0c53a7033d.png)'
+- en: (a) $\lambda$ vs. inconsistency score
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) $\lambda$ 与不一致性得分的关系
+- en: '![Refer to caption](img/3761587a1bd7c771949108f1e871d31b.png)'
+  id: totrans-99
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/3761587a1bd7c771949108f1e871d31b.png)'
+- en: (b) $\lambda$ vs. diversity
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) $\lambda$ 与多样性的关系
+- en: 'Figure 6: Comparison of results with and without revision. $\lambda=0.0$ is
+    a special case without pruning and revision. Its inconsistency score is estimated
+    and illustrated as the red line in (a).'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：有无修订结果的比较。$\lambda=0.0$ 是一个没有修剪和修订的特殊情况。其不一致性得分通过红线在 (a) 中估算并展示。
+- en: 4.2 Discussion
+  id: totrans-102
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 讨论
+- en: Figure [6(a)](https://arxiv.org/html/2412.21102v1#S4.F6.sf1 "In Figure 6 ‣ 4.1
+    Method ‣ 4 Trade-off of Diversity Management ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation") compares the average inconsistency scores of dialogues
+    before and after applying revision. As a baseline, we also estimate the score
+    for $\lambda=0.0$, which does not involve unit removal but uses the same task
+    prompt to assess consistency between the content of all items in the full prompt
+    and the response. The results indicate that $\lambda=0.0$ and $\lambda=1.0$ correspond
+    to the lowest and highest inconsistency scores without revision, respectively.
+    However, the correlation between the degree of removal and the inconsistency score
+    is not significant (e.g., the second-highest score occurs for $\lambda=0.15$,
+    where fewer words are removed compared to higher $\lambda$ values). This may be
+    because the error space for open-ended conversations is smaller than that for
+    task-oriented ones, making higher $\lambda$ values unnecessary for introducing
+    errors.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图[6(a)](https://arxiv.org/html/2412.21102v1#S4.F6.sf1 "在图6 ‣ 4.1方法 ‣ 4 多样性管理的权衡
+    ‣ 探索和控制LLM-代理对话中的多样性")比较了应用修改前后对话的一致性得分平均值。作为基线，我们还估算了$\lambda=0.0$的得分，该值不涉及单位删除，而是使用相同的任务提示来评估完整提示中所有项目内容与回答之间的一致性。结果表明，$\lambda=0.0$和$\lambda=1.0$分别对应未修改情况下的最低和最高不一致得分。然而，删除程度与不一致得分之间的相关性不显著（例如，第二高的得分出现在$\lambda=0.15$时，此时删除的单词比更高$\lambda$值时要少）。这可能是因为开放式对话的错误空间比任务导向对话的错误空间小，使得更高的$\lambda$值对于引入错误来说并不必要。
+- en: After revision, the scores are consistently reduced, indicating that the model
+    finds the revised responses more faithful. Notably, the revised scores are even
+    lower than those for $\lambda=0.0$, suggesting that the model perceives flaws
+    in outputs generated with the full prompt, which the revision process helps to
+    improve. Regarding diversity, Figure [6(b)](https://arxiv.org/html/2412.21102v1#S4.F6.sf2
+    "In Figure 6 ‣ 4.1 Method ‣ 4 Trade-off of Diversity Management ‣ Exploring and
+    Controlling Diversity in LLM-Agent Conversation") shows the diversity metrics
+    with and without revision. While some metrics reveal slight reductions within
+    certain $\lambda$ ranges, the overall results demonstrate that our method effectively
+    enhances diversity while maintaining consistency between the utterance and all
+    items.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修改后，得分一致性地降低，表明模型认为修改后的回答更加忠实。值得注意的是，修改后的得分甚至低于$\lambda=0.0$的得分，这表明模型意识到使用完整提示生成的输出存在缺陷，而修改过程有助于改进这些输出。关于多样性，图[6(b)](https://arxiv.org/html/2412.21102v1#S4.F6.sf2
+    "在图6 ‣ 4.1方法 ‣ 4 多样性管理的权衡 ‣ 探索和控制LLM-代理对话中的多样性")展示了修改前后多样性度量的变化。虽然某些度量在某些$\lambda$范围内略有减少，但整体结果表明我们的方法在保持发言与所有项目之间的一致性的同时，有效地增强了多样性。
+- en: Despite these promising results, several directions warrant further exploration.
+    First, investigating potential biases in the LLM’s judgments and their correlation
+    with dialogue diversity presents a valuable avenue for future research. Second,
+    attention is needed for utterances that are difficult to revise solely by rolling
+    back, such as when the agent is asked, “What is your major?” and lacks relevant
+    information to respond faithfully. Drawing on the distinction between discrimination
+    and criticism (Saunders et al. [2022](https://arxiv.org/html/2412.21102v1#bib.bib22)),
+    the LLM could be queried to assess its ability to “know” the appropriate revision
+    direction using the removed units. If capable, a comment-based modification could
+    be applied; otherwise, rolling back could be used to benefit from diversity in
+    generation. Combining these two approaches may improve pipeline efficiency.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这些结果令人鼓舞，但仍有多个方向值得进一步探索。首先，调查LLM判断中的潜在偏见及其与对话多样性的相关性，是未来研究的重要方向。其次，针对那些仅通过回滚无法轻易修改的发言，需要特别关注，例如当代理被问到“你的专业是什么？”并且缺乏相关信息以忠实回答时。借鉴歧视与批评之间的区分（Saunders等人
+    [2022](https://arxiv.org/html/2412.21102v1#bib.bib22)），可以对LLM进行提问，评估其是否能够“知道”使用删除的单位进行适当的修改方向。如果能够识别，可以应用基于评论的修改；否则，可以通过回滚来利用生成中的多样性。结合这两种方法可能有助于提高管道效率。
+- en: 5 Extended Analysis on Removal
+  id: totrans-106
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 扩展分析：删除操作
+- en: In this section, we present additional perspectives to deepen the understanding
+    of the unit removal method. Since the results for “Remove memory (RMm)” exhibit
+    the most significant differences, we use this setting as a representative case
+    to conduct the following experiments.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们展示了额外的视角，以加深对单位移除方法的理解。由于“移除记忆（RMm）”的结果显示出最显著的差异，我们选择这一设置作为代表性案例，进行以下实验。
+- en: Our method is compatible with established diversity control approaches.
+  id: totrans-108
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 我们的方法与现有的多样性控制方法兼容。
+- en: We evaluated unit removal alongside other prevalent methods for enhancing generation
+    diversity, specifically (1) adjusting decoding parameters and (2) sequential generation.
+    The results are summarized in Table [3](https://arxiv.org/html/2412.21102v1#S5.T3
+    "Table 3 ‣ Our method is compatible with established diversity control approaches.
+    ‣ 5 Extended Analysis on Removal ‣ Exploring and Controlling Diversity in LLM-Agent
+    Conversation").
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们评估了单位移除方法与其他流行的生成多样性增强方法的效果，具体包括（1）调整解码参数和（2）顺序生成。结果总结在表[3](https://arxiv.org/html/2412.21102v1#S5.T3
+    "Table 3 ‣ 我们的方法与现有的多样性控制方法兼容。 ‣ 5 扩展分析：移除方法 ‣ 探索和控制LLM-AGENT对话中的多样性")中。
+- en: Adjusting decoding parameters (e.g., increasing temperature $T$, top-p) is a
+    widely adopted strategy for enhancing diversity. This approach increases the likelihood
+    of selecting low-probability tokens but may compromise coherence within a single
+    sentence. As shown in Table 3, neither increasing $T$ nor $p$ achieved diversity
+    improvements as significant as using RMm alone. Notably, combining RMm with these
+    methods led to further enhancements in diversity. For instance, in LLaMA 3, the
+    dist-3 metric increased from 0.578 to 0.674 when RMm was combined with $T=1.0$.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调整解码参数（例如，增加温度$T$、top-p）是提高多样性的常见策略。该方法增加了选择低概率词汇的可能性，但可能会影响单句中的连贯性。如表3所示，增加$T$或$p$并未显著提升多样性，远不如仅使用RMm显著。值得注意的是，将RMm与这些方法结合，进一步提高了多样性。例如，在LLaMA
+    3中，当RMm与$T=1.0$结合时，dist-3指标从0.578提高到0.674。
+- en: 'Sequential generation modifies the generation process by producing multiple
+    responses simultaneously rather than a single response. Under this setup, the
+    model conditions on previous responses, deliberately varying topics to avoid duplication.
+    For this approach, our implementation appends “Please output TEN candidates” to
+    the task instruction and randomly selects one of the generated candidates as the
+    final output utterance. The results demonstrate that this method yields a notable
+    improvement in diversity, consistent with findings in Yao et al. ([2023](https://arxiv.org/html/2412.21102v1#bib.bib28)),
+    which observed better performance for this setup when the space of response generation
+    was more constrained. Moreover, combining sequential generation with RMm further
+    enhances diversity. However, sequential generation has its drawbacks: response
+    lengths tend to shorten due to the simultaneous generation of multiple candidates;
+    some candidates may lack coherence with the given context; and the increased generation
+    complexity occasionally leads to challenges when producing outputs in the correct
+    JSON format.'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 顺序生成通过同时生成多个响应而不是单个响应来修改生成过程。在这种设置下，模型会基于先前的响应进行调整，故意改变话题以避免重复。在这种方法中，我们的实现将“请输出十个候选项”附加到任务指令中，并从生成的候选项中随机选择一个作为最终输出。结果表明，该方法在多样性方面有显著提高，与Yao等人（[2023](https://arxiv.org/html/2412.21102v1#bib.bib28)）的研究发现一致，该研究表明，当响应生成空间更加受限时，这种设置表现更好。此外，将顺序生成与RMm结合，进一步增强了多样性。然而，顺序生成也有其缺点：由于同时生成多个候选项，响应的长度往往会缩短；部分候选项可能与给定的上下文不连贯；并且增加的生成复杂度有时会导致输出格式（如JSON）不正确。
+- en: '|  | config | sim ($\downarrow$) | dist-1 | dist-2 | dist-3 ($\uparrow$) |
+    len |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 配置 | 相似度 ($\downarrow$) | dist-1 | dist-2 | dist-3 ($\uparrow$) | 长度 |'
+- en: '| Full | default | 0.791 | 0.095 | 0.350 | 0.535 | 39.9 |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| 完整 | 默认 | 0.791 | 0.095 | 0.350 | 0.535 | 39.9 |'
+- en: '| RMm | default | 0.736 | 0.119 | 0.429 | 0.636 | 40.4 |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMm | 默认 | 0.736 | 0.119 | 0.429 | 0.636 | 40.4 |'
+- en: '| Full | T=1.0 | 0.791 | 0.103 | 0.381 | 0.578 | 40.1 |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 完整 | T=1.0 | 0.791 | 0.103 | 0.381 | 0.578 | 40.1 |'
+- en: '| RMm | T=1.0 | 0.739 | 0.124 | 0.455 | 0.674 | 40.6 |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMm | T=1.0 | 0.739 | 0.124 | 0.455 | 0.674 | 40.6 |'
+- en: '| Full | p=0.99 | 0.800 | 0.102 | 0.375 | 0.569 | 40.0 |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| 完整 | p=0.99 | 0.800 | 0.102 | 0.375 | 0.569 | 40.0 |'
+- en: '| RMm | p=0.99 | 0.732 | 0.124 | 0.452 | 0.669 | 41.2 |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMm | p=0.99 | 0.732 | 0.124 | 0.452 | 0.669 | 41.2 |'
+- en: '| Full | sequential | 0.634 | 0.197 | 0.524 | 0.695 | 21.9 |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| 完整 | 顺序生成 | 0.634 | 0.197 | 0.524 | 0.695 | 21.9 |'
+- en: '| RMm | sequential | 0.623 | 0.228 | 0.594 | 0.771 | 22.7 |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMm | 顺序 | 0.623 | 0.228 | 0.594 | 0.771 | 22.7 |'
+- en: 'Table 3: Compatibility results: RMm is efficient and further improves diversity
+    under different configurations. The default decoding parameters are T=0.8 and
+    p=0.9.'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：兼容性结果：RMm在不同配置下有效，并进一步提升了多样性。默认解码参数为T=0.8和p=0.9。
+- en: Diversity improvement is driven by the first few rounds.
+  id: totrans-122
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 多样性提升由前几轮推动。
+- en: In previous sections, we examined diversity across different dialogue trials.
+    But at what point does the divergence between dialogues occur? Using utterances
+    as the unit of analysis, we calculated the diversity of utterances at corresponding
+    positions across dialogues, employing the same similarity and dist-N metrics.
+    As shown in Fig. [7](https://arxiv.org/html/2412.21102v1#S5.F7 "Figure 7 ‣ Diversity
+    improvement is driven by the first few rounds. ‣ 5 Extended Analysis on Removal
+    ‣ Exploring and Controlling Diversity in LLM-Agent Conversation"), we compared
+    the differences between the full prompt and RMm. Regardless of whether the removal
+    operation was applied, diversity consistently increased during the initial rounds
+    of dialogue, with index 1 (the listener’s first response) being particularly critical.
+    Building on this foundation, RMm further amplifies its divergence from the full
+    prompt around indices 2 to 3, before stabilizing in the later stages of the dialogue.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前几节中，我们考察了不同对话实验中的多样性。但对话之间的分歧究竟在什么时刻出现呢？以发话为分析单位，我们计算了在对应位置上不同对话中的发话多样性，采用相同的相似度和dist-N指标。如图[7](https://arxiv.org/html/2412.21102v1#S5.F7
+    "图7 ‣ 多样性提升由前几轮推动 ‣ 5 删除的扩展分析 ‣ 探索和控制LLM-Agent对话中的多样性")所示，我们比较了全提示与RMm之间的差异。无论是否应用了删除操作，在对话的初期轮次中，多样性始终增加，特别是索引1（听者的第一次回应）至关重要。在此基础上，RMm进一步增强了与全提示的差异，尤其是在索引2到3之间，之后在对话后期趋于稳定。
+- en: '![Refer to caption](img/196fc7be52926a5db03f5941a9b5a662.png)'
+  id: totrans-124
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/196fc7be52926a5db03f5941a9b5a662.png)'
+- en: (a) utterance index vs. dist-3
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 发话索引与dist-3
+- en: '![Refer to caption](img/6884c68bc45010c345f421362a0faece.png)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/6884c68bc45010c345f421362a0faece.png)'
+- en: (b) utterance index vs. sim
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 发话索引与相似度
+- en: 'Figure 7: Tracking the progression of dialogue diversity through per-utterance
+    measures.'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图7：通过每次发话的度量跟踪对话多样性的进展。
+- en: Measuring the exclusiveness of content across settings.
+  id: totrans-129
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 测量在不同设置下内容的独特性。
+- en: 'After applying the RMm setting, the diversity among different trials increases
+    significantly. To further investigate whether RMm generates more novel content
+    or whether most of the generated content overlaps with the dialogues produced
+    under the full-prompt setting, we measure the exclusiveness of the generated dialogues
+    between two settings. Given N dialogues generated under settings A and B, respectively,
+    we compute the following metrics:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用RMm设置后，不同实验之间的多样性显著增加。为了进一步探讨RMm是否生成了更多新颖内容，或者大部分生成内容是否与全提示设置下的对话内容重叠，我们衡量了两种设置下生成对话的独特性。假设在设置A和B下分别生成了N个对话，我们计算以下指标：
+- en: '1.'
+  id: totrans-131
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'Avg. B-to-A max similarity: The average of the maximum similarity scores for
+    each dialogue in B compared to the dialogues in A.'
+  id: totrans-132
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 平均B到A最大相似度：B中每个对话与A中对话的最大相似度分数的平均值。
+- en: '2.'
+  id: totrans-133
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'Exclusive unique n-gram ratio for B: The proportion of unique n-grams in all
+    dialogues of B that do not appear in A.'
+  id: totrans-134
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: B的独特n-gram比例：B中所有对话中未出现在A中的独特n-gram所占的比例。
+- en: The calculations for similarity and unique n-grams follow the same methodology
+    used in this study. We compare the differences between the full-to-full (averaged
+    over three different seeds) and full-to-RMm settings, with the results presented
+    in Table [4](https://arxiv.org/html/2412.21102v1#S5.T4 "Table 4 ‣ Measuring the
+    exclusiveness of content across settings. ‣ 5 Extended Analysis on Removal ‣ Exploring
+    and Controlling Diversity in LLM-Agent Conversation"). These findings indicate
+    that RMm indeed generates more exclusive content.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相似度和独特n-gram的计算遵循本研究中使用的相同方法。我们比较了全对全（对三种不同种子取平均）和全对RMm设置之间的差异，结果见表[4](https://arxiv.org/html/2412.21102v1#S5.T4
+    "表4 ‣ 测量不同设置下内容的独特性 ‣ 5 删除的扩展分析 ‣ 探索和控制LLM-Agent对话中的多样性")。这些发现表明RMm确实生成了更多独特的内容。
+- en: '|  | avg. max sim ($\downarrow$) | excl. 1-gram | excl. 2-gram | excl. 3-gram
+    ($\uparrow$) |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 平均最大相似度 ($\downarrow$) | 排除1-gram | 排除2-gram | 排除3-gram ($\uparrow$) |'
+- en: '| Full to Full | 0.881 | 0.382 | 0.580 | 0.720 |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| 全对全 | 0.881 | 0.382 | 0.580 | 0.720 |'
+- en: '| Full to RMm | 0.815 | 0.484 | 0.699 | 0.814 |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| Full 到 RMm | 0.815 | 0.484 | 0.699 | 0.814 |'
+- en: 'Table 4: Exclusiveness measure: RMm performs better in these metrics, demonstrating
+    its ability to generate novel content compared to Full.'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4：排他性度量：RMm在这些指标上表现更好，展示了其在生成新颖内容方面相较于Full的优势。
+- en: 6 Factors Affecting Diversity in Text
+  id: totrans-140
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 影响文本多样性的6个因素
+- en: In addition to employing unit removal to control and enhance diversity, we also
+    explored the factors influencing diversity from the perspective of the original
+    text space. Specifically, we examined the effects of block order, block length,
+    and name frequency. The results are presented in Table [5](https://arxiv.org/html/2412.21102v1#S6.T5
+    "Table 5 ‣ A frequent name can enhance diversity as parametric knowledge is amplified.
+    ‣ 6 Factors Affecting Diversity in Text ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation").
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了通过移除单元来控制和增强多样性外，我们还从原始文本空间的角度探讨了影响多样性的因素。具体来说，我们研究了块顺序、块长度和名称频率的影响。结果如表[5](https://arxiv.org/html/2412.21102v1#S6.T5
+    "表5 ‣ 高频名称可以增强多样性，因为参数化知识被放大。 ‣ 影响文本多样性的6个因素 ‣ 探索和控制LLM-Agent对话中的多样性")所示。
+- en: Block order critically affects diversity.
+  id: totrans-142
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 块的顺序对多样性有着至关重要的影响。
+- en: The reasoning abilities of LLMs are known to be influenced by the order of premises
+    (Chen et al. [2024b](https://arxiv.org/html/2412.21102v1#bib.bib4)) and the placement
+    of critical information (Liu et al. [2024a](https://arxiv.org/html/2412.21102v1#bib.bib16)).
+    In this experiment, we investigated whether the order of input elements also impacts
+    dialogue diversity. To this end, we rearranged the blocks in the prompt (denoted
+    by the sequence of their initials) in various orders and observed that the sequence
+    in which the model processes agent information substantially influences diversity.
+    For instance, reversing the order from bpmec to cempb resulted in a dramatic decline
+    in quality and diversity, with the dist-3 metric dropping from 0.535 to 0.191.
+    Under the cempb configuration, the generated dialogue started to repetitively
+    cycle through the same round²²2We calculate the duplication rate of the final
+    utterance in a dialogue. In the cempb setting, the rate is 66.5%, compared to
+    7.9% in the original Full results., leading to a significant degradation in dist-N.
+    Notably, the amplified context differences caused by such repetition also reduced
+    sim scores, an embedding-based measure. One notable negative pattern was placing
+    c at the beginning and b at the end. Additionally, a comparison of bmepc and bmecp
+    (with dist-3 scores of 0.514 and 0.413, respectively) revealed that positioning
+    p before c mitigates significant drops in diversity. This pattern aligns with
+    the chronological order, underscoring that carefully adjusting the block order
+    is crucial for a greater initial diversity.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已知LLM的推理能力受到前提顺序（Chen等人，[2024b](https://arxiv.org/html/2412.21102v1#bib.bib4)）和关键信息位置（Liu等人，[2024a](https://arxiv.org/html/2412.21102v1#bib.bib16)）的影响。在此实验中，我们调查了输入元素的顺序是否也会影响对话的多样性。为此，我们重新排列了提示中的块（由其首字母顺序表示）并观察到，模型处理代理信息的顺序对多样性有显著影响。例如，将顺序从bpmec逆转为cempb，质量和多样性急剧下降，dist-3指标从0.535降至0.191。在cempb配置下，生成的对话开始重复循环相同的回合²²2我们计算了对话中最终发言的重复率。在cempb设置下，该比率为66.5%，而原始Full结果的重复率为7.9%。，导致dist-N显著下降。值得注意的是，由于这种重复引起的上下文差异放大，也降低了基于嵌入的度量sim分数。一个明显的负面模式是将c放在开头，b放在末尾。此外，bmepc与bmecp的对比（dist-3得分分别为0.514和0.413）表明，将p放在c之前可以缓解多样性的大幅下降。这一模式与时间顺序一致，强调了仔细调整块顺序对于更大初始多样性的重要性。
+- en: Effect of block length.
+  id: totrans-144
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 块长度的影响。
+- en: We simulate variations in block length by randomly duplicating or deleting items
+    within the blocks. The word count for each block containing items is adjusted
+    to either 250 or 750 words (BLN250 and BLN750). For blocks other than memory,
+    these operations effectively result in either an increase or no change in length.
+    To isolate the effect of memory, we exclude it from the analysis. The results
+    indicate that, compared to RMm, BLN250+RMm exhibits minimal differences in diversity,
+    whereas BLN750+RMm shows a significant decline in the dist-N metric. This finding
+    underscores the detrimental impact of excessive redundant content on diversity.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过在块内随机复制或删除项来模拟块长度的变化。每个包含项的块的字数被调整为 250 或 750 字（BLN250 和 BLN750）。对于非内存块，这些操作有效地导致了长度的增加或没有变化。为了隔离内存的影响，我们将其排除在分析之外。结果表明，与
+    RMm 相比，BLN250+RMm 在多样性方面差异最小，而 BLN750+RMm 显示出 dist-N 指标显著下降。这一发现强调了过多冗余内容对多样性的不利影响。
+- en: A frequent name can enhance diversity as parametric knowledge is amplified.
+  id: totrans-146
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 高频名称可以增强多样性，因为参数化知识得到了放大。
+- en: 'We employed name replacement to analyze the agent’s reliance on parametric
+    and in-context knowledge during dialogue generation, as well as its impact on
+    diversity. Inspired by frequency sensitivity experiments in (McCoy et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib18)),
+    we replaced prompt names with two sets of fictional characters: “Harry Potter
+    with Severus Snape (HPSS)” and “Tifa Lockhart with Cloud Strife (TLCS).” According
+    to the C4 dataset (Dodge et al. [2021](https://arxiv.org/html/2412.21102v1#bib.bib8)),
+    a widely-used LLM pretraining corpus, these names vary significantly in frequency:
+    “Harry Potter” appears 762,023 times, while “Tifa Lockhart” appears only 432 times.
+    This disparity suggests differing learned strengths for these names and is one
+    potential factor affecting the model’s ability to leverage parametric knowledge.'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过名称替换分析了代理在对话生成过程中对参数化和上下文知识的依赖程度，以及它对多样性的影响。受到（McCoy et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib18)）中的频率敏感性实验启发，我们用两组虚构人物替换了提示中的名称：“哈利·波特与塞弗勒斯·斯内普（HPSS）”和“蒂法·洛克哈特与克劳德·斯特莱夫（TLCS）”。根据广泛使用的
+    LLM 预训练语料库 C4 数据集（Dodge et al. [2021](https://arxiv.org/html/2412.21102v1#bib.bib8)），这些名称在频率上有显著差异：“哈利·波特”出现了
+    762,023 次，而“蒂法·洛克哈特”仅出现了 432 次。这一差异表明这些名称在学习中的强度不同，是影响模型利用参数化知识能力的一个潜在因素。
+- en: Results show that replacing names alone did not improve diversity (HPSS to full).
+    However, when prompt content was further pruned (RMbmp), name replacement significantly
+    increased diversity, as measured by dist-N (HPSS+RMbmp to RMbmp). Comparing name
+    combinations (HPSS+RMbmp to TLCS+RMbmp) revealed that high-frequency names produced
+    a more pronounced diversity boost. This suggests that pruning prompt content strengthens
+    parametric knowledge, enabling outputs to integrate both parametric and in-context
+    information, enhancing diversity. Notably, this improvement largely manifests
+    as additional vocabulary³³3e.g., potion, wizard (HPSS); shinra, soldier (TLCS)
+    in dialogue generation, increasing distinct n-grams but with minimal impact on
+    dialogue embeddings. In summary, this experiment highlights how LLM agents utilize
+    both knowledge resources, offering insights into their interplay and impact on
+    diversity.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果表明，仅仅替换名称并没有改善多样性（HPSS 到 Full）。然而，当提示内容进一步修剪（RMbmp）时，名称替换显著增加了多样性，正如通过 dist-N
+    测量（HPSS+RMbmp 到 RMbmp）。比较名称组合（HPSS+RMbmp 到 TLCS+RMbmp）表明，高频率的名称带来了更明显的多样性提升。这表明，修剪提示内容增强了参数化知识，使输出能够整合参数化知识和上下文信息，从而提高多样性。值得注意的是，这一改善主要表现为对话生成中额外的词汇³³3e.g.,
+    potion, wizard (HPSS); shinra, soldier (TLCS)，增加了不同的 n-grams，但对话嵌入的影响较小。总之，这项实验突出了
+    LLM 代理如何利用两种知识资源，为它们的相互作用及其对多样性的影响提供了见解。
+- en: '|  | sim ($\downarrow$) | dist-1 | dist-2 | dist-3 ($\uparrow$) |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 相似度 ($\downarrow$) | dist-1 | dist-2 | dist-3 ($\uparrow$) |'
+- en: '| Full | 0.791 | 0.095 | 0.350 | 0.535 |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| 全部 | 0.791 | 0.095 | 0.350 | 0.535 |'
+- en: '|  |  | Order |  |  |'
+  id: totrans-151
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 顺序 |  |  |'
+- en: '| bpmec | 0.789 | 0.098 | 0.352 | 0.535 |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| bpmec | 0.789 | 0.098 | 0.352 | 0.535 |'
+- en: '| bmepc | 0.787 | 0.094 | 0.339 | 0.514 |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| bmepc | 0.787 | 0.094 | 0.339 | 0.514 |'
+- en: '| bmecp | 0.761 | 0.081 | 0.276 | 0.413 |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| bmecp | 0.761 | 0.081 | 0.276 | 0.413 |'
+- en: '| cepmb | 0.744 | 0.053 | 0.145 | 0.206 |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| cepmb | 0.744 | 0.053 | 0.145 | 0.206 |'
+- en: '| cempb | 0.747 | 0.050 | 0.135 | 0.191 |'
+  id: totrans-156
+  prefs: []
+  type: TYPE_TB
+  zh: '| cempb | 0.747 | 0.050 | 0.135 | 0.191 |'
+- en: '|  |  | Length |  |  |'
+  id: totrans-157
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 长度 |  |  |'
+- en: '| RMm | 0.736 | 0.119 | 0.429 | 0.636 |'
+  id: totrans-158
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMm | 0.736 | 0.119 | 0.429 | 0.636 |'
+- en: '| BLN250+RMm | 0.734 | 0.118 | 0.423 | 0.627 |'
+  id: totrans-159
+  prefs: []
+  type: TYPE_TB
+  zh: '| BLN250+RMm | 0.734 | 0.118 | 0.423 | 0.627 |'
+- en: '| BLN750+RMm | 0.744 | 0.110 | 0.377 | 0.556 |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| BLN750+RMm | 0.744 | 0.110 | 0.377 | 0.556 |'
+- en: '|  |  | Frequency |  |  |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 频率 |  |  |'
+- en: '| HPSS | 0.828 | 0.093 | 0.337 | 0.518 |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| HPSS | 0.828 | 0.093 | 0.337 | 0.518 |'
+- en: '| RMbmp | 0.693 | 0.143 | 0.495 | 0.706 |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| RMbmp | 0.693 | 0.143 | 0.495 | 0.706 |'
+- en: '| HPSS+RMbmp | 0.693 | 0.176 | 0.553 | 0.761 |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| HPSS+RMbmp | 0.693 | 0.176 | 0.553 | 0.761 |'
+- en: '| TLCS+RMbmp | 0.733 | 0.143 | 0.501 | 0.713 |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| TLCS+RMbmp | 0.733 | 0.143 | 0.501 | 0.713 |'
+- en: 'Table 5: Diversity changes resulting from altering various factors in the text
+    space.'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：在文本空间中改变各种因素所导致的多样性变化。
+- en: 7 Related Work
+  id: totrans-167
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 相关工作
+- en: Research in LLM-based multi-agents has explored effective collaboration and
+    meaningful interaction between multiple agents to achieve a predefined goal or
+    to simulate human behavior. The former are task-oriented, studying the communication
+    strategy (Liu et al. [2024b](https://arxiv.org/html/2412.21102v1#bib.bib17)) or
+    the collaboration between agents of different roles such as a program manager
+    and a software engineer for software development (Chen et al. [2024a](https://arxiv.org/html/2412.21102v1#bib.bib3);
+    Hong et al. [2024](https://arxiv.org/html/2412.21102v1#bib.bib13)). The latter
+    are open-domain, investigating emergent human behavior or social simulation (Park
+    et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib20); Gao et al. [2024](https://arxiv.org/html/2412.21102v1#bib.bib10)).
+    However, most of these works focus on task performance metrics rather than the
+    intrinsic qualities of agent interactions. Chu, Chen, and Nakayama ([2024](https://arxiv.org/html/2412.21102v1#bib.bib6))
+    revealed the repetition, inconsistency, and hallucination problems in LLM-based
+    multi-agent conversations.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于大型语言模型（LLM）的多智能体研究探索了多个智能体之间有效的协作和有意义的互动，以实现预定目标或模拟人类行为。前者是面向任务的，研究了通信策略（Liu
+    等人 [2024b](https://arxiv.org/html/2412.21102v1#bib.bib17)）或不同角色智能体之间的协作，例如程序经理和软件工程师之间的协作用于软件开发（Chen
+    等人 [2024a](https://arxiv.org/html/2412.21102v1#bib.bib3); Hong 等人 [2024](https://arxiv.org/html/2412.21102v1#bib.bib13)）。后者是开放领域的，研究了突现的人类行为或社会模拟（Park
+    等人 [2023](https://arxiv.org/html/2412.21102v1#bib.bib20); Gao 等人 [2024](https://arxiv.org/html/2412.21102v1#bib.bib10)）。然而，这些研究大多数侧重于任务性能指标，而非智能体互动的内在质量。Chu、Chen
+    和 Nakayama（[2024](https://arxiv.org/html/2412.21102v1#bib.bib6)）揭示了基于LLM的多智能体对话中的重复性、不一致性和幻觉问题。
+- en: Diversity in natural language generation has long been a critical research challenge.
+    Techniques such as temperature scaling (Ackley, Hinton, and Sejnowski [1985](https://arxiv.org/html/2412.21102v1#bib.bib1))
+    or nucleus sampling (Holtzman et al. [2020](https://arxiv.org/html/2412.21102v1#bib.bib12))
+    have been explored to generate varied responses while maintaining coherence. To
+    reduce the cost of enhancing diversity, Lee et al. ([2022](https://arxiv.org/html/2412.21102v1#bib.bib14))
+    further improves upon nucleus sampling, achieving better trade-offs between generation
+    diversity and factuality. Similarly, Chung, Kamar, and Amershi ([2023](https://arxiv.org/html/2412.21102v1#bib.bib7))
+    increases text generation diversity while maintaining data accuracy through human
+    interventions.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自然语言生成中的多样性长期以来一直是一个关键的研究挑战。温度缩放（Ackley、Hinton 和 Sejnowski [1985](https://arxiv.org/html/2412.21102v1#bib.bib1)）或核心采样（Holtzman
+    等 [2020](https://arxiv.org/html/2412.21102v1#bib.bib12)）等技术已经被研究用于生成多样化的响应，同时保持连贯性。为了降低提高多样性的成本，Lee
+    等人（[2022](https://arxiv.org/html/2412.21102v1#bib.bib14)）进一步改进了核心采样，达到了生成多样性与事实性之间更好的权衡。同样，Chung、Kamar
+    和 Amershi（[2023](https://arxiv.org/html/2412.21102v1#bib.bib7)）通过人工干预，提升了文本生成的多样性，同时保持了数据的准确性。
+- en: Balancing diversity and relevance in multi-turn dialogues remains non-trivial.
+    Studies such as Li et al. ([2016](https://arxiv.org/html/2412.21102v1#bib.bib15))
+    have investigated diversity-promoting objectives like Maximum Mutual Information
+    (MMI) to address response repetition in dialogue systems. Zhou et al. ([2023](https://arxiv.org/html/2412.21102v1#bib.bib29))
+    generated a large number of utterance candidates and selected the best one using
+    NLI entailment scores to achieve the generation of diverse and coherent dialogues.
+    However, controlling diversity in multi-agent conversations is still underdeveloped.
+    Chu, Chen, and Nakayama ([2024](https://arxiv.org/html/2412.21102v1#bib.bib6))
+    applied dynamic similarity threshold to remove overly repetitive utterances. Our
+    work bridges the gap of diversity control while maintaining consistency.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在多轮对话中平衡多样性和相关性仍然是一个复杂的问题。像李等人（[2016](https://arxiv.org/html/2412.21102v1#bib.bib15)）的研究探讨了促进多样性的目标，如最大互信息（MMI），以解决对话系统中的回应重复问题。周等人（[2023](https://arxiv.org/html/2412.21102v1#bib.bib29)）生成了大量的发言候选，并利用NLI蕴含得分选择最佳候选，以实现多样性和连贯性并存的对话生成。然而，在多智能体对话中控制多样性仍然处于起步阶段。Chu、Chen和Nakayama（[2024](https://arxiv.org/html/2412.21102v1#bib.bib6)）应用了动态相似度阈值来去除过于重复的发言。我们的工作弥补了在保持一致性的同时对多样性控制的空白。
+- en: 8 Conclusion
+  id: totrans-171
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 结论
+- en: Diversity is crucial in LLM-based multi-agent systems. We introduced Adaptive
+    Prompt Pruning (APP), a novel approach to control diversity in multi-agent conversations.
+    APP modularly removes prompt items based on a single parameter, $\lambda$, providing
+    a flexible way to balance diversity and coherence.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多样性在基于LLM的多智能体系统中至关重要。我们提出了自适应提示修剪（APP），一种控制多智能体对话多样性的新方法。APP根据一个单一参数$\lambda$模块化地去除提示项，为平衡多样性与连贯性提供了灵活的方式。
+- en: Experiments confirmed APP enhances diversity while retaining most of the original
+    prompt. Our analysis validated the descending selection method and sum-mean attention
+    reducing mechanism underpinning APP, as attention scores correlate positively
+    with diversity. We also demonstrated that APP integrates well with existing methods
+    like temperature and top-p sampling.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实验结果确认APP增强了多样性，同时保留了大部分原始提示。我们的分析验证了下降选择方法和总和均值注意力减少机制，这些机制支持了APP的工作原理，因为注意力得分与多样性正相关。我们还证明了APP能够很好地与现有方法如温度采样和top-p采样结合。
+- en: To address pruning-induced inconsistency, we proposed a post-generation correction
+    step, effectively maintaining coherence. Additionally, we found that block order
+    significantly affects diversity, while lengthy prompts hinder it, emphasizing
+    concise, structured inputs.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决修剪引发的不一致性问题，我们提出了一种生成后修正步骤，能够有效地保持一致性。此外，我们发现块顺序显著影响多样性，而冗长的提示会阻碍多样性，强调了简洁且结构化的输入。
+- en: APP offers a practical solution to manage diversity, fostering improved communication
+    and collaboration among LLM-based agents, with implications for future advancements
+    in multi-agent systems.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: APP提供了一种实际的解决方案，用于管理多样性，促进基于大语言模型（LLM）的智能体之间的改进沟通与协作，对未来多智能体系统的进展具有重要影响。
+- en: References
+  id: totrans-176
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Ackley, Hinton, and Sejnowski (1985) Ackley, D. H.; Hinton, G. E.; and Sejnowski,
+    T. J. 1985. A learning algorithm for Boltzmann machines. *Cognitive science*,
+    9(1): 147–169.'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ackley、Hinton和Sejnowski（1985）Ackley, D. H.; Hinton, G. E.; 和 Sejnowski, T.
+    J. 1985. 一种Boltzmann机器的学习算法。*认知科学*，9(1): 147–169。'
+- en: AI (2024) AI, M. 2024. Llama 3.1 - 8B.
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: AI (2024) AI, M. 2024. Llama 3.1 - 8B.
+- en: 'Chen et al. (2024a) Chen, W.; Su, Y.; Zuo, J.; Yang, C.; Yuan, C.; Chan, C.-M.;
+    Yu, H.; Lu, Y.; Hung, Y.-H.; Qian, C.; Qin, Y.; Cong, X.; Xie, R.; Liu, Z.; Sun,
+    M.; and Zhou, J. 2024a. AgentVerse: Facilitating Multi-Agent Collaboration and
+    Exploring Emergent Behaviors. In *The Twelfth International Conference on Learning
+    Representations*.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '陈等人 (2024a) 陈, W.; 苏, Y.; 左, J.; 杨, C.; 袁, C.; 陈, C.-M.; 余, H.; 陆, Y.; 洪, Y.-H.;
+    钱, C.; 秦, Y.; 丛, X.; 谢, R.; 刘, Z.; 孙, M.; 和 周, J. 2024a. AgentVerse: 促进多智能体协作与探索新兴行为。在*第十二届国际学习表征会议*上。'
+- en: Chen et al. (2024b) Chen, X.; Chi, R. A.; Wang, X.; and Zhou, D. 2024b. Premise
+    Order Matters in Reasoning with Large Language Models. In *Forty-first International
+    Conference on Machine Learning*.
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 陈等人 (2024b) 陈, X.; 池, R. A.; 王, X.; 和 周, D. 2024b. 推理中大语言模型的前提顺序问题。在*第四十一届国际机器学习会议*上。
+- en: 'Cheng et al. (2024) Cheng, Y.; Zhang, C.; Zhang, Z.; Meng, X.; Hong, S.; Li,
+    W.; Wang, Z.; Wang, Z.; Yin, F.; Zhao, J.; et al. 2024. Exploring large language
+    model based intelligent agents: Definitions, methods, and prospects. *arXiv preprint
+    arXiv:2401.03428*.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cheng等人（2024）Cheng, Y.; Zhang, C.; Zhang, Z.; Meng, X.; Hong, S.; Li, W.; Wang,
+    Z.; Wang, Z.; Yin, F.; Zhao, J.; 等人。2024. 探索基于大型语言模型的智能代理：定义、方法和前景。*arXiv预印本 arXiv:2401.03428*。
+- en: 'Chu, Chen, and Nakayama (2024) Chu, K.; Chen, Y.-P.; and Nakayama, H. 2024.
+    Cohesive Conversations: Enhancing Authenticity in Multi-Agent Simulated Dialogues.
+    In *First Conference on Language Modeling*.'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chu, Chen和Nakayama（2024）Chu, K.; Chen, Y.-P.; 和 Nakayama, H. 2024. 连贯的对话：增强多代理模拟对话的真实性。发表于*《第一次语言建模会议》*。
+- en: 'Chung, Kamar, and Amershi (2023) Chung, J.; Kamar, E.; and Amershi, S. 2023.
+    Increasing Diversity While Maintaining Accuracy: Text Data Generation with Large
+    Language Models and Human Interventions. In *Proceedings of the 61st Annual Meeting
+    of the Association for Computational Linguistics (Volume 1: Long Papers)*, 575–593\.
+    Association for Computational Linguistics.'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chung, Kamar和Amershi（2023）Chung, J.; Kamar, E.; 和 Amershi, S. 2023. 在保持准确性的同时增加多样性：利用大型语言模型和人类干预生成文本数据。发表于*《第61届计算语言学协会年会论文集（卷1：长篇论文）》*，575–593。计算语言学协会。
+- en: 'Dodge et al. (2021) Dodge, J.; Sap, M.; Marasović, A.; Agnew, W.; Ilharco,
+    G.; Groeneveld, D.; Mitchell, M.; and Gardner, M. 2021. Documenting Large Webtext
+    Corpora: A Case Study on the Colossal Clean Crawled Corpus. In *Proceedings of
+    the 2021 Conference on Empirical Methods in Natural Language Processing*, 1286–1305\.
+    Association for Computational Linguistics.'
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dodge等人（2021）Dodge, J.; Sap, M.; Marasović, A.; Agnew, W.; Ilharco, G.; Groeneveld,
+    D.; Mitchell, M.; 和 Gardner, M. 2021. 大型网页文本语料库的文档化：一个关于巨型清洁爬取语料库的案例研究。发表于*《2021年自然语言处理经验方法会议论文集》*，1286–1305。计算语言学协会。
+- en: Dubey et al. (2024) Dubey, A.; Jauhri, A.; Pandey, A.; Kadian, A.; Al-Dahle,
+    A.; Letman, A.; Mathur, A.; Schelten, A.; Yang, A.; Fan, A.; et al. 2024. The
+    llama 3 herd of models. *arXiv preprint arXiv:2407.21783*.
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dubey等人（2024）Dubey, A.; Jauhri, A.; Pandey, A.; Kadian, A.; Al-Dahle, A.; Letman,
+    A.; Mathur, A.; Schelten, A.; Yang, A.; Fan, A.; 等人。2024. Llama 3模型群体。*arXiv预印本
+    arXiv:2407.21783*。
+- en: 'Gao et al. (2024) Gao, C.; Xu, F.; Chen, X.; Wang, X.; He, X.; and Li, Y. 2024.
+    Simulating Human Society with Large Language Model Agents: City, Social Media,
+    and Economic System. In *Companion Proceedings of the ACM Web Conference 2024*,
+    WWW ’24, 1290–1293\. New York, NY, USA: Association for Computing Machinery. ISBN
+    9798400701726.'
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gao等人（2024）Gao, C.; Xu, F.; Chen, X.; Wang, X.; He, X.; 和 Li, Y. 2024. 使用大型语言模型代理模拟人类社会：城市、社交媒体和经济系统。发表于*《2024年ACM网页会议同行评审论文集》*，WWW
+    ’24，1290–1293。纽约，纽约州，美国：计算机协会。ISBN 9798400701726。
+- en: 'Guo et al. (2024) Guo, T.; Chen, X.; Wang, Y.; Chang, R.; Pei, S.; Chawla,
+    N. V.; Wiest, O.; and Zhang, X. 2024. Large Language Model Based Multi-agents:
+    A Survey of Progress and Challenges. In Larson, K., ed., *Proceedings of the Thirty-Third
+    International Joint Conference on Artificial Intelligence, IJCAI-24*, 8048–8057\.
+    International Joint Conferences on Artificial Intelligence Organization. Survey
+    Track.'
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Guo等人（2024）Guo, T.; Chen, X.; Wang, Y.; Chang, R.; Pei, S.; Chawla, N. V.; Wiest,
+    O.; 和 Zhang, X. 2024. 基于大型语言模型的多代理：进展与挑战综述。发表于Larson, K.主编，*《第33届国际人工智能联合会议论文集，IJCAI-24》*，8048–8057。国际人工智能联合会议组织。综述篇。
+- en: Holtzman et al. (2020) Holtzman, A.; Buys, J.; Du, L.; Forbes, M.; and Choi,
+    Y. 2020. The Curious Case of Neural Text Degeneration. In *International Conference
+    on Learning Representations*.
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Holtzman等人（2020）Holtzman, A.; Buys, J.; Du, L.; Forbes, M.; 和 Choi, Y. 2020.
+    神经文本退化的奇怪案例。发表于*《国际学习表征会议》*。
+- en: 'Hong et al. (2024) Hong, S.; Zhuge, M.; Chen, J.; Zheng, X.; Cheng, Y.; Wang,
+    J.; Zhang, C.; Wang, Z.; Yau, S. K. S.; Lin, Z.; Zhou, L.; Ran, C.; Xiao, L.;
+    Wu, C.; and Schmidhuber, J. 2024. MetaGPT: Meta Programming for A Multi-Agent
+    Collaborative Framework. In *The Twelfth International Conference on Learning
+    Representations*.'
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hong等人（2024）Hong, S.; Zhuge, M.; Chen, J.; Zheng, X.; Cheng, Y.; Wang, J.; Zhang,
+    C.; Wang, Z.; Yau, S. K. S.; Lin, Z.; Zhou, L.; Ran, C.; Xiao, L.; Wu, C.; 和 Schmidhuber,
+    J. 2024. MetaGPT：多代理协作框架的元编程。发表于*《第十二届国际学习表征会议》*。
+- en: 'Lee et al. (2022) Lee, N.; Ping, W.; Xu, P.; Patwary, M.; Fung, P. N.; Shoeybi,
+    M.; and Catanzaro, B. 2022. Factuality enhanced language models for open-ended
+    text generation. *Advances in Neural Information Processing Systems*, 35: 34586–34599.'
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Lee等人（2022）Lee, N.; Ping, W.; Xu, P.; Patwary, M.; Fung, P. N.; Shoeybi, M.;
+    和 Catanzaro, B. 2022. 增强事实性的语言模型用于开放式文本生成。*《神经信息处理系统进展》*，35: 34586–34599。'
+- en: 'Li et al. (2016) Li, J.; Galley, M.; Brockett, C.; Gao, J.; and Dolan, B. 2016.
+    A Diversity-Promoting Objective Function for Neural Conversation Models. In Knight,
+    K.; Nenkova, A.; and Rambow, O., eds., *Proceedings of the 2016 Conference of
+    the North American Chapter of the Association for Computational Linguistics: Human
+    Language Technologies*, 110–119\. San Diego, California: Association for Computational
+    Linguistics.'
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li et al. (2016) Li, J.; Galley, M.; Brockett, C.; Gao, J.; 和 Dolan, B. 2016.
+    用于神经对话模型的多样性促进目标函数。在 Knight, K.; Nenkova, A.; 和 Rambow, O. 编辑的 *2016年北美计算语言学协会：人类语言技术会议论文集*
+    中，110–119。加利福尼亚州圣地亚哥：计算语言学会。
+- en: 'Liu et al. (2024a) Liu, N. F.; Lin, K.; Hewitt, J.; Paranjape, A.; Bevilacqua,
+    M.; Petroni, F.; and Liang, P. 2024a. Lost in the middle: How language models
+    use long contexts. *Transactions of the Association for Computational Linguistics*,
+    12: 157–173.'
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Liu et al. (2024a) Liu, N. F.; Lin, K.; Hewitt, J.; Paranjape, A.; Bevilacqua,
+    M.; Petroni, F.; 和 Liang, P. 2024a. 陷入中间：语言模型如何使用长上下文。*计算语言学会会刊*, 12: 157–173。'
+- en: Liu et al. (2024b) Liu, Z.; Zhang, Y.; Li, P.; Liu, Y.; and Yang, D. 2024b.
+    A Dynamic LLM-Powered Agent Network for Task-Oriented Agent Collaboration. In
+    *First Conference on Language Modeling*.
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu et al. (2024b) Liu, Z.; Zhang, Y.; Li, P.; Liu, Y.; 和 Yang, D. 2024b. 基于动态大语言模型（LLM）的任务导向智能体协作网络。在
+    *首次语言建模会议* 上。
+- en: 'McCoy et al. (2023) McCoy, R. T.; Yao, S.; Friedman, D.; Hardy, M.; and Griffiths,
+    T. L. 2023. Embers of autoregression: Understanding large language models through
+    the problem they are trained to solve. *arXiv preprint arXiv:2309.13638*.'
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: McCoy et al. (2023) McCoy, R. T.; Yao, S.; Friedman, D.; Hardy, M.; 和 Griffiths,
+    T. L. 2023. 自回归的火种：通过它们被训练来解决的问题理解大语言模型。*arXiv 预印本 arXiv:2309.13638*。
+- en: 'Pan et al. (2023) Pan, L.; Saxon, M.; Xu, W.; Nathani, D.; Wang, X.; and Wang,
+    W. Y. 2023. Automatically Correcting Large Language Models: Surveying the landscape
+    of diverse self-correction strategies. arXiv:2308.03188.'
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pan et al. (2023) Pan, L.; Saxon, M.; Xu, W.; Nathani, D.; Wang, X.; 和 Wang,
+    W. Y. 2023. 自动纠正大语言模型：调查多样化自我纠错策略的领域。arXiv:2308.03188。
+- en: 'Park et al. (2023) Park, J. S.; O’Brien, J.; Cai, C. J.; Morris, M. R.; Liang,
+    P.; and Bernstein, M. S. 2023. Generative Agents: Interactive Simulacra of Human
+    Behavior. In *Proceedings of the 36th Annual ACM Symposium on User Interface Software
+    and Technology*, UIST ’23.'
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Park et al. (2023) Park, J. S.; O’Brien, J.; Cai, C. J.; Morris, M. R.; Liang,
+    P.; 和 Bernstein, M. S. 2023. 生成型智能体：人类行为的互动模拟物。在 *第36届ACM用户界面软件与技术年会* 论文集中，UIST
+    '23。
+- en: 'Reimers (2019) Reimers, N. 2019. Sentence-BERT: Sentence Embeddings using Siamese
+    BERT-Networks. *arXiv preprint arXiv:1908.10084*.'
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Reimers (2019) Reimers, N. 2019. Sentence-BERT：使用孪生BERT网络的句子嵌入。*arXiv 预印本 arXiv:1908.10084*。
+- en: Saunders et al. (2022) Saunders, W.; Yeh, C.; Wu, J.; Bills, S.; Ouyang, L.;
+    Ward, J.; and Leike, J. 2022. Self-critiquing models for assisting human evaluators.
+    *arXiv preprint arXiv:2206.05802*.
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Saunders et al. (2022) Saunders, W.; Yeh, C.; Wu, J.; Bills, S.; Ouyang, L.;
+    Ward, J.; 和 Leike, J. 2022. 自我批评模型用于协助人类评估者。*arXiv 预印本 arXiv:2206.05802*。
+- en: Sumers et al. (2024) Sumers, T.; Yao, S.; Narasimhan, K.; and Griffiths, T.
+    2024. Cognitive Architectures for Language Agents. *Transactions on Machine Learning
+    Research*. Survey Certification.
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sumers et al. (2024) Sumers, T.; Yao, S.; Narasimhan, K.; 和 Griffiths, T. 2024.
+    语言智能体的认知架构。*机器学习研究会刊*。调查认证。
+- en: 'Wang et al. (2021) Wang, W.; Bao, H.; Huang, S.; Dong, L.; and Wei, F. 2021.
+    MiniLMv2: Multi-Head Self-Attention Relation Distillation for Compressing Pretrained
+    Transformers. In *Findings of the Association for Computational Linguistics: ACL-IJCNLP
+    2021*, 2140–2151.'
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2021) Wang, W.; Bao, H.; Huang, S.; Dong, L.; 和 Wei, F. 2021. MiniLMv2：用于压缩预训练变换器的多头自注意力关系蒸馏。在
+    *计算语言学会的研究成果：ACL-IJCNLP 2021* 中，2140–2151。
+- en: 'Wang, Chiu, and Chiu (2023) Wang, Z.; Chiu, Y. Y.; and Chiu, Y. C. 2023. Humanoid
+    Agents: Platform for Simulating Human-like Generative Agents. In *Proceedings
+    of the 2023 Conference on Empirical Methods in Natural Language Processing: System
+    Demonstrations*, 167–176.'
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang, Chiu, 和 Chiu (2023) Wang, Z.; Chiu, Y. Y.; 和 Chiu, Y. C. 2023. 类人智能体：用于模拟类人生成智能体的平台。在
+    *2023年自然语言处理经验方法会议：系统演示* 会议记录中，167–176。
+- en: Weston and Sukhbaatar (2023) Weston, J.; and Sukhbaatar, S. 2023. System 2 Attention
+    (is something you might need too). *arXiv preprint arXiv:2311.11829*.
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Weston 和 Sukhbaatar (2023) Weston, J.; 和 Sukhbaatar, S. 2023. 系统 2 注意力（这可能也是你需要的）。*arXiv
+    预印本 arXiv:2311.11829*。
+- en: 'Xi et al. (2023) Xi, Z.; Chen, W.; Guo, X.; He, W.; Ding, Y.; Hong, B.; Zhang,
+    M.; Wang, J.; Jin, S.; Zhou, E.; et al. 2023. The rise and potential of large
+    language model based agents: A survey. *arXiv preprint arXiv:2309.07864*.'
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xi 等人（2023）Xi, Z.; Chen, W.; Guo, X.; He, W.; Ding, Y.; Hong, B.; Zhang, M.;
+    Wang, J.; Jin, S.; Zhou, E.; 等人 2023. 大型语言模型代理的崛起与潜力：一项调查。《arXiv 预印本 arXiv:2309.07864》。
+- en: 'Yao et al. (2023) Yao, S.; Yu, D.; Zhao, J.; Shafran, I.; Griffiths, T.; Cao,
+    Y.; and Narasimhan, K. 2023. Tree of thoughts: Deliberate problem solving with
+    large language models. *Advances in Neural Information Processing Systems*.'
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao 等人（2023）Yao, S.; Yu, D.; Zhao, J.; Shafran, I.; Griffiths, T.; Cao, Y.;
+    和 Narasimhan, K. 2023. 思维树：使用大型语言模型进行深思熟虑的问题解决。《神经信息处理系统进展》。
+- en: 'Zhou et al. (2023) Zhou, J.; Pang, L.; Shen, H.; and Cheng, X. 2023. SimOAP:
+    Improve Coherence and Consistency in Persona-based Dialogue Generation via Over-sampling
+    and Post-evaluation. In Rogers, A.; Boyd-Graber, J.; and Okazaki, N., eds., *Proceedings
+    of the 61st Annual Meeting of the Association for Computational Linguistics (Volume
+    1: Long Papers)*, 9945–9959\. Toronto, Canada: Association for Computational Linguistics.'
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhou 等人（2023）Zhou, J.; Pang, L.; Shen, H.; 和 Cheng, X. 2023. SimOAP: 通过过采样和后评估改善基于人物的对话生成中的连贯性和一致性。载于
+    Rogers, A.; Boyd-Graber, J.; 和 Okazaki, N. 编，《第61届计算语言学协会年会论文集（第一卷：长篇论文）》9945–9959，
+    加拿大多伦多：计算语言学协会。'
+- en: Appendix A Details of the Datasets
+  id: totrans-206
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 数据集详细信息
+- en: A.1 Dialogue Cases
+  id: totrans-207
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 对话案例
+- en: Table [6](https://arxiv.org/html/2412.21102v1#A1.T6 "Table 6 ‣ A.1 Dialogue
+    Cases ‣ Appendix A Details of the Datasets ‣ Exploring and Controlling Diversity
+    in LLM-Agent Conversation") lists the 20 cases used in this study.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[6](https://arxiv.org/html/2412.21102v1#A1.T6 "表 6 ‣ A.1 对话案例 ‣ 附录 A 数据集详细信息
+    ‣ 探索与控制大型语言模型代理对话的多样性")列出了本研究中使用的20个案例。
+- en: '| Time Stamp | Agent A | Agent B |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间戳 | 代理 A | 代理 B |'
+- en: '| 2023-02-13 07:40:50 | Tamara Taylor | Carmen Ortiz |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 07:40:50 | Tamara Taylor | Carmen Ortiz |'
+- en: '| 2023-02-13 09:00:40 | Arthur Burton | Sam Moore |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 09:00:40 | Arthur Burton | Sam Moore |'
+- en: '| 2023-02-13 09:46:20 | Francisco Lopez | Abigail Chen |'
+  id: totrans-212
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 09:46:20 | Francisco Lopez | Abigail Chen |'
+- en: '| 2023-02-13 10:21:20 | John Lin | Tom Moreno |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 10:21:20 | John Lin | Tom Moreno |'
+- en: '| 2023-02-13 11:03:40 | Giorgio Rossi | Klaus Mueller |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 11:03:40 | Giorgio Rossi | Klaus Mueller |'
+- en: '| 2023-02-13 11:10:40 | Arthur Burton | Ryan Park |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 11:10:40 | Arthur Burton | Ryan Park |'
+- en: '| 2023-02-13 12:23:50 | Hailey Johnson | Giorgio Rossi |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 12:23:50 | Hailey Johnson | Giorgio Rossi |'
+- en: '| 2023-02-13 12:28:10 | Sam Moore | Yuriko Yamamoto |'
+  id: totrans-217
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 12:28:10 | Sam Moore | Yuriko Yamamoto |'
+- en: '| 2023-02-13 13:09:10 | Ayesha Khan | Mei Lin |'
+  id: totrans-218
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 13:09:10 | Ayesha Khan | Mei Lin |'
+- en: '| 2023-02-13 13:33:20 | Sam Moore | Abigail Chen |'
+  id: totrans-219
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 13:33:20 | Sam Moore | Abigail Chen |'
+- en: '| 2023-02-13 14:28:10 | Carmen Ortiz | Rajiv Patel |'
+  id: totrans-220
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 14:28:10 | Carmen Ortiz | Rajiv Patel |'
+- en: '| 2023-02-13 14:46:50 | Maria Lopez | Ayesha Khan |'
+  id: totrans-221
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 14:46:50 | Maria Lopez | Ayesha Khan |'
+- en: '| 2023-02-13 15:05:20 | Jennifer Moore | Tamara Taylor |'
+  id: totrans-222
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 15:05:20 | Jennifer Moore | Tamara Taylor |'
+- en: '| 2023-02-13 15:36:50 | Ayesha Khan | Wolfgang Schulz |'
+  id: totrans-223
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 15:36:50 | Ayesha Khan | Wolfgang Schulz |'
+- en: '| 2023-02-13 15:53:50 | Ayesha Khan | Mei Lin |'
+  id: totrans-224
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 15:53:50 | Ayesha Khan | Mei Lin |'
+- en: '| 2023-02-13 16:44:20 | Carmen Ortiz | Latoya Williams |'
+  id: totrans-225
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 16:44:20 | Carmen Ortiz | Latoya Williams |'
+- en: '| 2023-02-13 17:18:20 | Maria Lopez | Ayesha Khan |'
+  id: totrans-226
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 17:18:20 | Maria Lopez | Ayesha Khan |'
+- en: '| 2023-02-13 17:27:00 | Mei Lin | Eddy Lin |'
+  id: totrans-227
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 17:27:00 | Mei Lin | Eddy Lin |'
+- en: '| 2023-02-13 19:36:20 | Francisco Lopez | Rajiv Patel |'
+  id: totrans-228
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 19:36:20 | Francisco Lopez | Rajiv Patel |'
+- en: '| 2023-02-13 20:04:40 | Rajiv Patel | Hailey Johnson |'
+  id: totrans-229
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2023-02-13 20:04:40 | Rajiv Patel | Hailey Johnson |'
+- en: 'Table 6: Cases sampled from Park et al. ([2023](https://arxiv.org/html/2412.21102v1#bib.bib20))
+    for our study.'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 6: 来自 Park 等人（[2023](https://arxiv.org/html/2412.21102v1#bib.bib20)）的样本案例，供本研究使用。'
+- en: A.2 Data Access for GA
+  id: totrans-231
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 GA的数据访问
+- en: The simulation logs of (Park et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib20))
+    can be accessed from the following URL.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (Park 等人 [2023](https://arxiv.org/html/2412.21102v1#bib.bib20))的模拟日志可以通过以下网址访问。
+- en: '`https://reverie.herokuapp.com/arXiv_Demo/`'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`https://reverie.herokuapp.com/arXiv_Demo/`'
+- en: A.3 Implementation Details for HA
+  id: totrans-234
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 HA的实现细节
+- en: 'As described in the main paper, HA extends GA by introducing a human needs
+    block. This block captures three types of information: basic needs, emotions,
+    and relationship closeness.'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如主文所述，HA通过引入一个人类需求模块扩展了GA。这个模块捕捉三种类型的信息：基本需求、情感和关系亲密度。
+- en: •
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Basic needs: These include five states—fullness, social, fun, health, and energy—each
+    corresponding to an unsatisfied adjective: hungry, lonely, bored, unwell, and
+    tired. In the original paper, these states are represented by values ranging from
+    0 to 10\. A state is considered unsatisfied when its value falls below 4\. When
+    this occurs, the following item is added to the block: “Agent A is {modifier}
+    {unsatisfied adjective}.” Modifier includes: “slightly”, “”, “very”, and “extremely”.'
+  id: totrans-237
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '基本需求：这些包括五种状态——饱腹感、社交、娱乐、健康和能量——每种状态对应一个未满足的形容词：饥饿、孤独、无聊、不舒服和疲劳。在原始论文中，这些状态由从
+    0 到 10 的数值表示。当一个状态的值低于 4 时，视为未满足。在这种情况下，以下项将添加到阻塞中：“代理人 A 是 {modifier} {unsatisfied
+    adjective}。”修饰语包括：“稍微”、“”、 “非常”和“极度”。 '
+- en: •
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Emotions: Emotional states include disgusted, afraid, sad, surprised, happy,
+    angry, and neutral. If the emotional state is not neutral, the following item
+    is added to the block: “Agent A is feeling extremely {emotion}.”'
+  id: totrans-239
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 情绪：情绪状态包括厌恶、害怕、悲伤、惊讶、快乐、生气和中立。如果情绪状态不是中立的，以下项将添加到阻塞中：“代理人 A 感到极度 {emotion}。”
+- en: •
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Relationship closeness: Based on the relationship between speaker and listener,
+    the following item is added to the block: “Agent A is feeling {closeness level}
+    to Agent B.” Closeness levels are distant, rather close, close, and very close.'
+  id: totrans-241
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 关系亲密度：根据说话者与听者之间的关系，以下项将添加到阻塞中：“代理人 A 感到与代理人 B 的亲密度为 {closeness level}。”亲密度等级包括远距离、相当亲近、亲近和非常亲近。
+- en: 'In our implementation, agent states are sampled probabilistically:'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实现中，代理人的状态是通过概率抽样的：
+- en: •
+  id: totrans-243
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Basic needs: 40% chance of being unsatisfied (20% for energy), with modifiers
+    assigned equally.'
+  id: totrans-244
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 基本需求：有 40% 的概率未得到满足（能量为 20%），修改项均匀分配。
+- en: •
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Emotions: Each non-“neutral” emotion has an 8% chance of selection.'
+  id: totrans-246
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 情绪：每种非“中立”情绪有 8% 的选择概率。
+- en: •
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Relationship closeness: The probabilities are distributed as 50%, 20%, 20%,
+    and 10%, respectively.'
+  id: totrans-248
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 关系亲密度：概率分别为 50%、20%、20% 和 10%。
+- en: For each case, the human needs of each agent are sampled independently (using
+    separate seeds for agents), and remain constant within a single case.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个案例，每个代理人的人类需求是独立抽样的（为每个代理人使用不同的种子），并且在单一案例中保持不变。
+- en: Appendix B Prompt
+  id: totrans-250
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 B 提示
+- en: Table [7](https://arxiv.org/html/2412.21102v1#A2.T7 "Table 7 ‣ Appendix B Prompt
+    ‣ Exploring and Controlling Diversity in LLM-Agent Conversation") presents an
+    example prompt and their composition used for utterance generation in our study.
+    The wording of the content has been modified or adopted from (Park et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib20);
+    Wang, Chiu, and Chiu [2023](https://arxiv.org/html/2412.21102v1#bib.bib25)).
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 [7](https://arxiv.org/html/2412.21102v1#A2.T7 "Table 7 ‣ Appendix B Prompt
+    ‣ Exploring and Controlling Diversity in LLM-Agent Conversation") 展示了我们研究中用于话语生成的示例提示及其组成。内容的措辞已从
+    (Park et al. [2023](https://arxiv.org/html/2412.21102v1#bib.bib20); Wang, Chiu,
+    和 Chiu [2023](https://arxiv.org/html/2412.21102v1#bib.bib25)) 修改或采用。
+- en: '| Block | Unit | Content |'
+  id: totrans-252
+  prefs: []
+  type: TYPE_TB
+  zh: '| 阻塞 | 单元 | 内容 |'
+- en: '| Opening | text | Context for the task: |'
+  id: totrans-253
+  prefs: []
+  type: TYPE_TB
+  zh: '| 开篇 | 文本 | 任务的背景： |'
+- en: '| Basic info | text | Here is a brief description of Arthur Burton. |'
+  id: totrans-254
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基本信息 | 文本 | 这是对 Arthur Burton 的简要描述。 |'
+- en: '|  | item | Name: Arthur Burton |'
+  id: totrans-255
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | 姓名：Arthur Burton |'
+- en: '|  | item | Age: 42 |'
+  id: totrans-256
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | 年龄：42 |'
+- en: '|  | item | Learned traits: Arthur Burton is a bartender and bar owner of The
+    Rose and Crown Pub who loves to make people feel welcome. He is always looking
+    for ways to make his customers feel special. |'
+  id: totrans-257
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | 学到的特征：Arthur Burton 是 The Rose and Crown Pub 的酒吧老板和酒吧调酒师，他喜欢让人们感到宾至如归。他总是寻找让顾客感到特别的方式。
+    |'
+- en: '|  | item | [more items…] |'
+  id: totrans-258
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | [更多项目…] |'
+- en: '| (Human needs) | text | Here are Arthur Burton’s status of psychological needs:
+    |'
+  id: totrans-259
+  prefs: []
+  type: TYPE_TB
+  zh: '| （人类需求） | 文本 | 这是 Arthur Burton 心理需求的状态： |'
+- en: '|  | item | Arthur Burton is slightly hungry. |'
+  id: totrans-260
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | Arthur Burton 有点饿。 |'
+- en: '|  | item | Arthur Burton is feeling extremely surprised. |'
+  id: totrans-261
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | Arthur Burton 感到非常惊讶。 |'
+- en: '|  | item | Arthur Burton is feeling rather close to Sam Moore. |'
+  id: totrans-262
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | Arthur Burton 感觉与 Sam Moore 相当亲近。 |'
+- en: '|  | item | [more items…] |'
+  id: totrans-263
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | [更多项目…] |'
+- en: '| Memory | text | Here is the memory that is in Arthur Burton’s head: |'
+  id: totrans-264
+  prefs: []
+  type: TYPE_TB
+  zh: '| 记忆 | 文本 | 这是 Arthur Burton 脑海中的记忆： |'
+- en: '|  | item | - Arthur Burton knows Sam Moore as a customer at his bar, The Rose
+    and Crown Pub. |'
+  id: totrans-265
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | - Arthur Burton 认识 Sam Moore，作为他酒吧 The Rose and Crown Pub 的顾客。 |'
+- en: '|  | item | - Arthur Burton does not tolerate fighting in his bar. |'
+  id: totrans-266
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | - Arthur Burton 不容忍酒吧中的打斗。 |'
+- en: '|  | item | - Arthur Burton is friends with Isabella Rodriguez. |'
+  id: totrans-267
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | - Arthur Burton 与 Isabella Rodriguez 是朋友。 |'
+- en: '|  | item | [more items…] |'
+  id: totrans-268
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | [更多项目…] |'
+- en: '| Previous dialogues | text | Past Context: |'
+  id: totrans-269
+  prefs: []
+  type: TYPE_TB
+  zh: '| 先前对话 | 文本 | 过去的背景： |'
+- en: '|  | item | [a previous dialogue between Arthur Burton and Sam Moore] |'
+  id: totrans-270
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | [亚瑟·伯顿和萨姆·穆尔之前的对话] |'
+- en: '|  | item | [more items…] |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | [更多项目…] |'
+- en: '|  | text | This context takes place after the above conversation. |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 文本 | 此情境发生在上述对话之后。 |'
+- en: '| Environment | item | Current Location: pub in The Rose and Crown Pub |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 环境 | 项目 | 当前地点：玫瑰与皇冠酒吧 |'
+- en: '|  | item | Current Context: Arthur Burton was having a light lunch (conversing
+    about discussing mixology and their favorite mayoral candidate while planning
+    to research together with Yuriko Yamamoto and possibly have lunch with Isabella,
+    as Arthur Burton and Adam Smith catch up at the bar.) when Arthur Burton saw Sam
+    Moore in the middle of taking a walk around Johnson Park (heading back home).
+    Arthur Burton is initiating a conversation with Sam Moore. |'
+  id: totrans-274
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | 当前情境：亚瑟·伯顿正在轻松地吃午餐（和亚当·史密斯在酒吧聊着调酒术以及他们最喜欢的市长候选人，计划与山本百合子一起做研究，并可能和伊莎贝拉共进午餐）。这时，亚瑟·伯顿看到萨姆·穆尔正在约翰逊公园附近散步（正准备回家）。亚瑟·伯顿开始和萨姆·穆尔交谈。
+    |'
+- en: '| Current dialogue | text | Arthur Burton and Sam Moore are chatting. Here
+    is their conversation so far: |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 当前对话 | 文本 | 亚瑟·伯顿和萨姆·穆尔正在聊天。到目前为止，他们的对话内容如下： |'
+- en: '|  | item | [the ongoing dialogue] |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 项目 | [正在进行的对话] |'
+- en: '| Task description | text | – – – Task: Given the above, what should Arthur
+    Burton say to Sam Moore next in the conversation? And did it end the conversation?
+    |'
+  id: totrans-277
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务描述 | 文本 | – – – 任务：根据上述内容，亚瑟·伯顿接下来应该对萨姆·穆尔说什么？这次对话是否结束了？ |'
+- en: '| Special rules |  |  |'
+  id: totrans-278
+  prefs: []
+  type: TYPE_TB
+  zh: '| 特别规则 |  |  |'
+- en: '| Output instruction | text | Output format: Output a json of the following
+    format: { “Arthur Burton”: “Arthur Burton’s utterance”, “Did the conversation
+    end with Arthur Burton’s utterance?”: “$<$json Boolean$>$” } |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| 输出指令 | 文本 | 输出格式：输出一个以下格式的json：{ “Arthur Burton”: “亚瑟·伯顿的发言”, “对话是否因亚瑟·伯顿的发言结束？”:
+    “$<$json 布尔值$>$” } |'
+- en: 'Table 7: An example list of blocks and units. Concatenating them in sequence
+    forms the prompt for utterance generation.'
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7：一个包含块和单元的示例列表。按顺序将它们连接起来构成生成发言的提示。

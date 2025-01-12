@@ -1,0 +1,2734 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:13:03'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:13:03
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将每个应用程序转化为代理：基于API优先的LLM代理实现高效的人机代理交互
+- en: 来源：[https://arxiv.org/html/2409.17140/](https://arxiv.org/html/2409.17140/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2409.17140/](https://arxiv.org/html/2409.17140/)
+- en: Junting Lu Peking UniversityChina ,  Zhiyang Zhang Nanjing UniversityChina , 
+    Fangkai Yang MicrosoftChina ,  Jue Zhang MicrosoftChina ,  Lu Wang MicrosoftChina
+    ,  Chao Du MicrosoftChina ,  Qingwei Lin MicrosoftChina ,  Saravan Rajmohan MicrosoftUSA
+    ,  Dongmei Zhang MicrosoftChina  and  Qi Zhang MicrosoftChina(2018)
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Junting Lu 北京大学中国，Zhiyang Zhang 南京大学中国，Fangkai Yang 微软中国，Jue Zhang 微软中国，Lu Wang
+    微软中国，Chao Du 微软中国，Qingwei Lin 微软中国，Saravan Rajmohan 微软美国，Dongmei Zhang 微软中国，Qi
+    Zhang 微软中国（2018）
+- en: Abstract.
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要。
+- en: Multimodal large language models (MLLMs) have enabled LLM-based agents to directly
+    interact with application user interfaces (UIs), enhancing agents’ performance
+    in complex tasks. However, these agents often suffer from high latency and low
+    reliability due to the extensive sequential UI interactions. To address this issue,
+    we propose AXIS, a novel LLM-based agents framework prioritize actions through
+    application programming interfaces (APIs) over UI actions. This framework also
+    facilitates the creation and expansion of APIs through automated exploration of
+    applications. Our experiments on Office Word demonstrate that AXIS reduces task
+    completion time by 65%-70% and cognitive workload by 38%-53%, while maintaining
+    accuracy of 97%-98% compare to humans. Our work contributes to a new human-agent-computer
+    interaction (HACI) framework and a fresh UI design principle for application providers
+    in the era of LLMs. It also explores the possibility of turning every applications
+    into agents, paving the way towards an agent-centric operating system (Agent OS).
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多模态大型语言模型（MLLMs）使基于LLM的代理能够直接与应用程序的用户界面（UIs）进行交互，从而提高了代理在复杂任务中的表现。然而，这些代理常常由于大量顺序的UI交互而面临较高的延迟和低可靠性问题。为了解决这个问题，我们提出了AXIS，这是一个新型的基于LLM的代理框架，通过应用程序编程接口（APIs）优先于UI操作来优化行动。该框架还通过自动化探索应用程序来促进API的创建和扩展。我们在Office
+    Word上的实验表明，AXIS相比人工操作，能够减少65%-70%的任务完成时间，降低38%-53%的认知负担，同时保持97%-98%的准确率。我们的工作为新的人机代理交互（HACI）框架和应用提供商在LLM时代的全新UI设计原则做出了贡献。它还探索了将每个应用程序转化为代理的可能性，为实现以代理为中心的操作系统（Agent
+    OS）铺平了道路。
+- en: 'large language models (LLMs), human-agent-computer interaction, LLM-based agent,
+    task completion, user interface (UI)^†^†copyright: acmlicensed^†^†journalyear:
+    2018^†^†doi: XXXXXXX.XXXXXXX^†^†conference: Make sure to enter the correct conference
+    title from your rights confirmation emai; June 03–05, 2018; Woodstock, NY^†^†isbn:
+    978-1-4503-XXXX-X/18/06^†^†ccs: Human-centered computing Natural language interfaces^†^†ccs:
+    Computing methodologies Planning and scheduling![Refer to caption](img/c30e917b3384970724f2ee1720322051.png)'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）、人机代理交互、基于LLM的代理、任务完成、用户界面（UI）^†^†版权：acmlicensed^†^†期刊年份：2018^†^†doi：XXXXXXX.XXXXXXX^†^†会议：请确保输入您通过权利确认邮件收到的正确会议标题；2018年6月3日–5日；纽约州伍德斯托克^†^†isbn：978-1-4503-XXXX-X/18/06^†^†ccs：以人为中心的计算
+    自然语言接口^†^†ccs：计算方法 规划与调度![参见说明](img/c30e917b3384970724f2ee1720322051.png)
+- en: 'Figure 1\. An illustration comparing task completion methods: manual operation,
+    UI Agent, and our approach AXIS. Manual operation risks wrong trails if users
+    are unfamiliar with the UI. The UI Agent requires numerous sequential interactions.
+    Our AXIS efficiently completes the task with a single API call.'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1\. 一张插图，比较任务完成方法：手动操作、UI代理和我们的AXIS方法。手动操作如果用户不熟悉UI，容易走错路径。UI代理需要大量的顺序交互。而我们的AXIS通过一次API调用高效地完成任务。
+- en: 1\. Introduction
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1\. 引言
+- en: As personal computer, mobile devices, and internet become an indispensable part
+    of every day’s work and life, application industries are under great pressure
+    to rapidly evolve their software applications with more features and functionalities
+    to meet peoples’ growing demand  (Ruparelia, [2010](https://arxiv.org/html/2409.17140v1#bib.bib39);
+    Abrahamsson et al., [2017](https://arxiv.org/html/2409.17140v1#bib.bib2)). Nonetheless,
+    those new applications also demand a much higher investment in both time and cognitive
+    effort from regular users. To learn how to use a new application effectively,
+    Users generally have to firstly spend significant time just to get familiar with
+    the user interface (UI) and corresponding functionalities. And to complete various
+    tasks with the new application efficiently, users need to further invest time
+    and effort to learn how to break complex tasks into steps and use the right UIs
+    and commands to complete each step. While both the application providers and research
+    community are fully aware of this pain point, existing efforts have been focusing
+    on providing detailed tutorials and establishing engaging learning platforms,
+    which could only provide limited support in alleviating users’ cognitive burden (Van Merrienboer
+    and Sweller, [2005](https://arxiv.org/html/2409.17140v1#bib.bib43); Biswas et al.,
+    [2005](https://arxiv.org/html/2409.17140v1#bib.bib7); Plass et al., [2010](https://arxiv.org/html/2409.17140v1#bib.bib36);
+    Darejeh et al., [2022](https://arxiv.org/html/2409.17140v1#bib.bib11)).
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着个人计算机、移动设备和互联网成为日常工作和生活中不可或缺的一部分，应用产业面临着巨大的压力，需要快速发展软件应用，增加更多功能，以满足人们日益增长的需求（Ruparelia，[2010](https://arxiv.org/html/2409.17140v1#bib.bib39)；Abrahamsson
+    等，[2017](https://arxiv.org/html/2409.17140v1#bib.bib2)）。尽管如此，这些新应用也要求普通用户在时间和认知上的投入显著增加。为了有效地学习如何使用一个新应用，用户通常需要首先花费大量时间熟悉用户界面（UI）及其相应功能。而为了高效地使用新应用完成各种任务，用户还需要进一步投入时间和精力，学习如何将复杂任务拆解为步骤，并使用正确的用户界面和命令来完成每一步。虽然应用提供商和研究界都充分意识到这一痛点，但现有的努力主要集中在提供详细的教程和建立互动学习平台，这些方法仅能在一定程度上减轻用户的认知负担（Van
+    Merrienboer 和 Sweller，[2005](https://arxiv.org/html/2409.17140v1#bib.bib43)；Biswas
+    等，[2005](https://arxiv.org/html/2409.17140v1#bib.bib7)；Plass 等，[2010](https://arxiv.org/html/2409.17140v1#bib.bib36)；Darejeh
+    等，[2022](https://arxiv.org/html/2409.17140v1#bib.bib11)）。
+- en: Large language models (LLMs) (Ouyang et al., [2022](https://arxiv.org/html/2409.17140v1#bib.bib35);
+    Achiam et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib3); Dubey et al.,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib14)) has demonstrated near-human
+    capabilities in reasoning, planning, and collaboration and are highly promising
+    in completing complex tasks  (Huang and Chang, [2022](https://arxiv.org/html/2409.17140v1#bib.bib23);
+    Wei et al., [2022](https://arxiv.org/html/2409.17140v1#bib.bib47); Mandi et al.,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib28)). Since then, researchers
+    has been exploring how LLMs can be utilized to reduce users’ cognitive burden
+    in learning and operating software applications. In particular, multimodal large
+    language models (MLLMs) (Yin et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib54);
+    Durante et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib15); Zhang et al.,
+    [2024c](https://arxiv.org/html/2409.17140v1#bib.bib57)) expand the usage scenarios
+    of LLMs to various tasks that require vision capability  (Wu et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib48);
+    Zheng et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib61)). Recent works (Zhang
+    et al., [2023b](https://arxiv.org/html/2409.17140v1#bib.bib56); Wang et al., [2024c](https://arxiv.org/html/2409.17140v1#bib.bib44);
+    Zhang et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55); Zheng et al.,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib61)) utilizes MLLMs to design
+    LLM-based UI agents capable of serving as users’ delegates, translating user requests
+    expressed in natural language, and directly interacting with the UI of software
+    applications to fulfill users’ needs. With the help of LLM-based UI agents, users
+    could simply ask the application to complete tasks without a deep understanding
+    of application’s UIs and functionalities, which significantly reduces users’ cognitive
+    load of learning new applications.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）（Ouyang 等人，[2022](https://arxiv.org/html/2409.17140v1#bib.bib35)；Achiam
+    等人，[2023](https://arxiv.org/html/2409.17140v1#bib.bib3)；Dubey 等人，[2024](https://arxiv.org/html/2409.17140v1#bib.bib14)）已在推理、规划和协作方面展示了接近人类的能力，并且在完成复杂任务方面具有极大的潜力（Huang
+    和 Chang，[2022](https://arxiv.org/html/2409.17140v1#bib.bib23)；Wei 等人，[2022](https://arxiv.org/html/2409.17140v1#bib.bib47)；Mandi
+    等人，[2024](https://arxiv.org/html/2409.17140v1#bib.bib28)）。从那时起，研究人员一直在探索如何利用LLMs来减少用户在学习和操作软件应用时的认知负担。特别是，多模态大型语言模型（MLLMs）（Yin
+    等人，[2023](https://arxiv.org/html/2409.17140v1#bib.bib54)；Durante 等人，[2024](https://arxiv.org/html/2409.17140v1#bib.bib15)；Zhang
+    等人，[2024c](https://arxiv.org/html/2409.17140v1#bib.bib57)）将LLMs的应用场景扩展到需要视觉能力的各种任务（Wu
+    等人，[2023](https://arxiv.org/html/2409.17140v1#bib.bib48)；Zheng 等人，[2024](https://arxiv.org/html/2409.17140v1#bib.bib61)）。近期的研究（Zhang
+    等人，[2023b](https://arxiv.org/html/2409.17140v1#bib.bib56)；Wang 等人，[2024c](https://arxiv.org/html/2409.17140v1#bib.bib44)；Zhang
+    等人，[2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)；Zheng 等人，[2024](https://arxiv.org/html/2409.17140v1#bib.bib61)）利用MLLMs设计了基于LLM的UI代理，能够作为用户的代表，翻译用户用自然语言表达的请求，并直接与软件应用的UI进行交互，以满足用户的需求。在LLM-based
+    UI代理的帮助下，用户只需简单地要求应用程序完成任务，而无需深入了解应用程序的UI和功能，从而大大减轻了用户学习新应用时的认知负担。
+- en: 'However, just like the transition from steam-powered to electric-powered industry
+    took much more than replacing central steam engines with electric motors in the
+    factories, simply building LLM-based agent upon the UIs of applications cannot
+    magically deliver a satisfied and worry-free user experience. In particular, today’s
+    application UIs are designed for human-computer interaction (HCI) (Lewis, [1998](https://arxiv.org/html/2409.17140v1#bib.bib26);
+    Bradshaw et al., [2017](https://arxiv.org/html/2409.17140v1#bib.bib8)), which
+    often involves multiple UI interactions for completing a single task. For instance,
+    inserting a 2$\times$2 table in an Office Word document requires a sequence of
+    UI interactions: “Insert $\rightarrow$ Table $\rightarrow$ 2$\times$2 Table”.
+    Although the HCI-based design suits the habits of humans, training LLM-based UI
+    agents to emulate such interactions would generate quite a few challenges that
+    are difficult to overcome.'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，就像从蒸汽动力到电力驱动的工业转型不仅仅是将工厂中的中央蒸汽机替换为电动机一样，仅仅在应用程序的UI上构建基于LLM的代理并不能神奇地提供一个令人满意和无忧的用户体验。特别是，今天的应用程序UI是为人机交互（HCI）设计的（Lewis，[1998](https://arxiv.org/html/2409.17140v1#bib.bib26)；Bradshaw
+    等人，[2017](https://arxiv.org/html/2409.17140v1#bib.bib8)），通常涉及多个UI交互才能完成单一任务。例如，在Office
+    Word文档中插入一个2$\times$2的表格需要一系列的UI交互：“插入 $\rightarrow$ 表格 $\rightarrow$ 2$\times$2
+    表格”。尽管基于HCI的设计适应了人类的习惯，但训练基于LLM的UI代理来模仿这种交互会带来相当多的挑战，这些挑战是难以克服的。
+- en: The first challenge for the LLM-based UI agent is the high latency and long
+    response time. Each individual UI interaction step requires one LLM call to reason
+    which UI to interact with. A task involves multiple UI interaction steps can thus
+    incur considerable time and monetary cost. The LLM call latency is also positively
+    correlated with the number of processed tokens (Levy et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib25);
+    Wang et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib46); Egiazarian
+    et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib16)). To ensure that
+    the LLM can return high quality outputs, the LLM-based UI agent must pass large
+    volume of UI information to precisely describe the current state, which also increases
+    the latency in each call. The second challenge lies in the reliability domain.
+    Studies have shown that LLMs are prone to hallucinations in generating responses (Bang
+    et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib6); Dhuliawala et al.,
+    [2023](https://arxiv.org/html/2409.17140v1#bib.bib12); Zhang et al., [2023a](https://arxiv.org/html/2409.17140v1#bib.bib58);
+    Guan et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib19)). During the
+    long sequential calls with LLM-based UI agents, the chance of taking a wrong UI
+    control or hallucinating a non-existing UI for interaction increases with each
+    reasoning step. As LLM-based UI agents often pass the previous interaction history
+    as additional context when reasoning on current UI interaction step (Zhang et al.,
+    [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)), hallucinations in earlier
+    steps could also increase the chance of hallucination in later steps. Thus, when
+    a long chain of UI interactions is required, the UI agents are more likely to
+    suffer from compounding errors and encounter task failure (Chen et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib9);
+    Zhao et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib60)). Lastly, the
+    LLM-based UI agent also faces the challenge of UI generalization. While recent
+    works had made advancements in UI grounding (Cheng et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib10);
+    Rawles et al., [2024b](https://arxiv.org/html/2409.17140v1#bib.bib38); Bai et al.,
+    [2023](https://arxiv.org/html/2409.17140v1#bib.bib5)), how the LLM-based UI agents
+    handle interactions with applications whose UIs are not included in the pretraining
+    stage of LLMs remain a critical obstacle without good solutions.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于LLM的UI代理的第一个挑战是高延迟和长响应时间。每个单独的UI交互步骤都需要一次LLM调用来推理与哪个UI进行交互。一个任务涉及多个UI交互步骤，因此可能会产生相当大的时间和金钱成本。LLM调用的延迟与处理的token数量是正相关的（Levy等，
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib25)；Wang等， [2024a](https://arxiv.org/html/2409.17140v1#bib.bib46)；Egiazarian等，
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib16)）。为了确保LLM能够返回高质量的输出，基于LLM的UI代理必须传递大量UI信息，以精确描述当前状态，这也增加了每次调用的延迟。第二个挑战涉及可靠性领域。研究表明，LLM在生成响应时容易出现幻觉（Bang等，
+    [2023](https://arxiv.org/html/2409.17140v1#bib.bib6)；Dhuliawala等， [2023](https://arxiv.org/html/2409.17140v1#bib.bib12)；Zhang等，
+    [2023a](https://arxiv.org/html/2409.17140v1#bib.bib58)；Guan等， [2024](https://arxiv.org/html/2409.17140v1#bib.bib19)）。在与基于LLM的UI代理进行长时间的连续调用过程中，每次推理步骤都会增加采取错误UI控制或幻觉出不存在的UI进行交互的可能性。由于基于LLM的UI代理通常会将之前的交互历史作为额外的上下文传递，用于推理当前的UI交互步骤（Zhang等，
+    [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)），早期步骤中的幻觉也可能增加后续步骤中出现幻觉的机会。因此，当需要长链UI交互时，UI代理更可能遭遇累积错误并导致任务失败（Chen等，
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib9)；Zhao等， [2024](https://arxiv.org/html/2409.17140v1#bib.bib60)）。最后，基于LLM的UI代理还面临UI泛化的挑战。尽管最近的研究在UI对接方面取得了一些进展（Cheng等，
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib10)；Rawles等， [2024b](https://arxiv.org/html/2409.17140v1#bib.bib38)；Bai等，
+    [2023](https://arxiv.org/html/2409.17140v1#bib.bib5)），但基于LLM的UI代理如何处理与那些UI未包含在LLM预训练阶段的应用程序交互，仍然是一个没有好解决方案的关键障碍。
+- en: We believe that a new human-agent-computer interaction (HACI) paradigm is needed
+    to address the challenges faced by LLM-based UI agents. In HACI paradigm, API-first
+    LLM-based agents will replace UI agents to prioritize API calls over unnecessary
+    multi-step UI interactions in task completion. Regular UI interactions are only
+    called when the related APIs are unavailable. Compared to the UI agents, API-first
+    agents require less tokens and can obtain more accurate code-formated responses
+    from LLMs. For instance, in the task of inserting a 2$\times$2 table in Word document,
+    the API call only requires one line of code, *i.e.*, doc.Tables.Add(NumRows=2,NumColumns=2)
+    to complete the task.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们认为，需要一种新的人与代理计算机（HACI）交互范式，以应对基于LLM的UI代理面临的挑战。在HACI范式中，基于API优先的LLM代理将取代UI代理，优先进行API调用，而非在任务完成中进行不必要的多步骤UI交互。只有当相关API不可用时，才会调用常规UI交互。与UI代理相比，基于API优先的代理需要更少的令牌，并能够从LLM中获取更准确的代码格式化响应。例如，在Word文档中插入一个2$\times$2的表格时，API调用只需要一行代码，*即*，doc.Tables.Add(NumRows=2,NumColumns=2)即可完成任务。
+- en: 'In this paper, we propose AXIS: Agent eXploring API for Skill integration,
+    a self-exploration LLM-based framework capable of automatically exploring existing
+    applications, learning insights from the support documents and action trajectories,
+    and constructing new APIs¹¹1The new APIs are also referred as “Skills” in Section [3](https://arxiv.org/html/2409.17140v1#S3
+    "3\. Design of AXIS ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents"), and we use
+    the term “API” loosely here to differentiate from the UI. based on the existing
+    APIs to empower API-first LLM-based agents with low latency and high reliability.
+    Based on our experiment on Office Word (Microsoft365, [2024a](https://arxiv.org/html/2409.17140v1#bib.bib31))
+    tasks, AXIS can significantly improve the task completion rate and reduce the
+    cognitive loads of users. Moreover, AXIS provides a practical approach for the
+    application providers to turn an application into agent by simply wrapping up
+    the application with an API set and adopting a simpler UI design suitable for
+    HACI. This application-as-an-agent paradigm also paves the way towards the agent
+    operating system (Agent OS) (Zhang et al., [2024b](https://arxiv.org/html/2409.17140v1#bib.bib59);
+    Mei et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib29); Wu et al.,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib49)), where the users only need
+    to communicate their intention in natural language and the Agent OS then automatically
+    forms actionable plans, distributes the sub-tasks to relevant applications, and
+    oversees the execution and completion of the tasks with minimal interventions
+    from users.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本文中，我们提出了AXIS：基于自我探索的API集成代理（Agent eXploring API for Skill integration），这是一个基于LLM的框架，能够自动探索现有应用程序，从支持文档和操作轨迹中学习见解，并基于现有API构建新的API¹¹1新的API在第[3](https://arxiv.org/html/2409.17140v1#S3
+    "3\. Design of AXIS ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents")节中也称为“技能”，我们在这里宽泛使用“API”一词，以区别于UI。该框架基于现有的API，使基于API优先的LLM代理具备低延迟和高可靠性。根据我们在Office
+    Word（Microsoft365，[2024a](https://arxiv.org/html/2409.17140v1#bib.bib31)）任务中的实验，AXIS显著提高了任务完成率，并减少了用户的认知负担。此外，AXIS为应用程序提供者提供了一种实用的方法，可以通过简单地用一组API封装应用程序，并采用适合HACI的简化UI设计，将应用程序转变为代理。这种应用程序即代理的范式也为代理操作系统（Agent
+    OS）（张等，[2024b](https://arxiv.org/html/2409.17140v1#bib.bib59)；梅等，[2024](https://arxiv.org/html/2409.17140v1#bib.bib29)；吴等，[2024](https://arxiv.org/html/2409.17140v1#bib.bib49)）的出现铺平了道路，其中用户只需用自然语言表达意图，代理操作系统即可自动形成可执行的计划，将子任务分配给相关应用程序，并监督任务的执行和完成，用户干预最少。'
+- en: 'Our work makes the following contributions:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的工作做出了以下贡献：
+- en: •
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We propose an HACI paradigm along with the implementation framework named AXIS
+    for creating API-first LLM-based agents capable of exploring the application and
+    its available APIs and constructing new APIs. This new paradigm provides a practical
+    approach to turn every application into an agent and paves the way of developing
+    a real Agent OS.
+  id: totrans-20
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出了一个HACI范式，并配套提出了名为AXIS的实现框架，用于创建基于API优先的LLM代理，这些代理能够探索应用程序及其可用API，并构建新的API。这个新范式提供了一种实用的方法，将每个应用程序转变为一个代理，并为开发真正的代理操作系统（Agent
+    OS）铺平道路。
+- en: •
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We address the cognitive load and learning effort challenge by reducing unnecessary
+    multi-step UI interactions and simplifying task completion through API calls.
+  id: totrans-22
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们通过减少不必要的多步骤UI交互，并通过API调用简化任务完成，解决了认知负担和学习努力的挑战。
+- en: •
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We conduct performance evaluations and extensive user study to fully examine
+    the efficiency and reliability of AXIS.
+  id: totrans-24
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们进行性能评估和广泛的用户研究，全面考察AXIS的效率和可靠性。
+- en: 2\. Related Work
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2\. 相关工作
+- en: 2.1\. LLM-based UI Agent
+  id: totrans-26
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1\. 基于LLM的UI代理
+- en: LLM-based agents are designed to utilize the advanced context understanding
+    and reasoning skills of LLMs to interact with and manipulate environments with
+    human-like cognitive abilities († et al.(2022), [FAIR](https://arxiv.org/html/2409.17140v1#bib.bib17);
+    Xi et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib50); Liu et al.,
+    [2023](https://arxiv.org/html/2409.17140v1#bib.bib27); Wang et al., [2024b](https://arxiv.org/html/2409.17140v1#bib.bib45)).
+    The advent of MLLM (Yin et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib54);
+    Durante et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib15); Zhang et al.,
+    [2024c](https://arxiv.org/html/2409.17140v1#bib.bib57)), including GPT-4o (OpenAI,
+    [2024a](https://arxiv.org/html/2409.17140v1#bib.bib33)) and Gemini (Team et al.,
+    [2023](https://arxiv.org/html/2409.17140v1#bib.bib42)), further broadens the scope
+    of LLMs in practical applications with the capability of processing multi-modal
+    inputs, including text and images. Supported by the vision understanding capability
+    of MLLM, new LLM-based UI agents can acquire crucial abilities of navigating and
+    controlling UIs in software applications for completing complex tasks. As such,
+    study on LLM-based UI agents has emerged as a hot area for developing intelligent
+    assistants that can automatically interact with applications following users’
+    commands. In the mobile platform, methods such as MM-Navigator (Yan et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib53)),
+    AppAgent (Zhang et al., [2023b](https://arxiv.org/html/2409.17140v1#bib.bib56)),
+    and MobileAgent (Wang et al., [2024c](https://arxiv.org/html/2409.17140v1#bib.bib44))
+    leverage GPT-4V (OpenAI, [2024b](https://arxiv.org/html/2409.17140v1#bib.bib34))
+    to operate smartphone applications through human-like interactions (tapping and
+    swiping) without requiring back-end access. More broadly, UFO (Zhang et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)),
+    SeeAct (Zheng et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib61)) and
+    Cradle (Tan et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib41)) support
+    the navigation and operation of UIs in Windows OS applications, websites and games
+    respectively following commands in natural language. Other notable examples include
+    CogAgent (Hong et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib21))
+    and SeeClick (Cheng et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib10)),
+    which focus on the training and finetuning of visual language models for UI understanding
+    and navigation in downstream mobile and desktop tasks. While these LLM-based UI
+    agents are trained to complete tasks in a human-like manner, UIs in existing applications
+    were originally designed for HCIs rather than for agent-computer interactions.
+    Consequently, emulating UI-based interactions directly can result in unnecessary
+    time costs, especially in complex tasks that require numerous or repeated UI interaction
+    steps, such as changing multiple titles to the same format. In contrast, application
+    providers usually offer APIs that can accomplish such tasks with a single API
+    call that eliminate the need of multi-step UI interactions. To overcome the limitation
+    of existing UI agents, reduce unnecessary UI interactions, and lower humans’ learning
+    curve for applications, we will study how the application APIs can be leveraged
+    for building LLM-based agents and explore the new design principles of UIs in
+    the era of LLMs.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于LLM的智能体旨在利用LLM的高级上下文理解和推理能力，与环境进行互动并操控环境，具有人类般的认知能力（† et al. (2022), [FAIR](https://arxiv.org/html/2409.17140v1#bib.bib17);
+    Xi et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib50); Liu et al.,
+    [2023](https://arxiv.org/html/2409.17140v1#bib.bib27); Wang et al., [2024b](https://arxiv.org/html/2409.17140v1#bib.bib45)）。MLLM的出现（Yin
+    et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib54); Durante et al.,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib15); Zhang et al., [2024c](https://arxiv.org/html/2409.17140v1#bib.bib57)），包括GPT-4o（OpenAI,
+    [2024a](https://arxiv.org/html/2409.17140v1#bib.bib33)）和Gemini（Team et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib42)），进一步拓宽了LLM在实际应用中的范围，具备了处理多模态输入（包括文本和图像）的能力。在MLLM的视觉理解能力支持下，新的基于LLM的UI智能体能够获得在软件应用中导航和控制UI的关键能力，从而完成复杂任务。因此，基于LLM的UI智能体研究已成为开发能够根据用户命令自动与应用程序互动的智能助手的热门领域。在移动平台上，诸如MM-Navigator（Yan
+    et al., [2023](https://arxiv.org/html/2409.17140v1#bib.bib53)）、AppAgent（Zhang
+    et al., [2023b](https://arxiv.org/html/2409.17140v1#bib.bib56)）和MobileAgent（Wang
+    et al., [2024c](https://arxiv.org/html/2409.17140v1#bib.bib44)）等方法利用GPT-4V（OpenAI,
+    [2024b](https://arxiv.org/html/2409.17140v1#bib.bib34)）通过类人交互（点击和滑动）操作智能手机应用，而无需后端访问。更广泛而言，UFO（Zhang
+    et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)）、SeeAct（Zheng et
+    al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib61)）和Cradle（Tan et al.,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib41)）分别支持Windows操作系统应用程序、网站和游戏中的UI导航和操作，且均可根据自然语言命令进行操作。其他值得注意的例子包括CogAgent（Hong
+    et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib21)）和SeeClick（Cheng
+    et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib10)），这些方法专注于训练和微调视觉语言模型，以实现下游移动和桌面任务中的UI理解和导航。虽然这些基于LLM的UI智能体被训练成以类人的方式完成任务，但现有应用中的UI最初是为人机交互（HCI）设计的，而非为智能体与计算机之间的互动设计。因此，直接模拟基于UI的交互可能会导致不必要的时间消耗，尤其是在那些需要多个或重复UI交互步骤的复杂任务中，比如将多个标题改为相同格式。相比之下，应用程序提供商通常提供API，能够通过一次API调用完成此类任务，从而避免多步骤的UI交互。为了克服现有UI智能体的局限性，减少不必要的UI交互，并降低用户对应用程序的学习曲线，我们将研究如何利用应用程序API构建基于LLM的智能体，并探索LLM时代UI设计的新原则。
+- en: 2.2\. Agent Operating System
+  id: totrans-28
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2\. 代理操作系统
+- en: 'The LLM-based agents discussed in Section [2.1](https://arxiv.org/html/2409.17140v1#S2.SS1
+    "2.1\. LLM-based UI Agent ‣ 2\. Related Work ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents") are usually designed to work within a narrow environment such as a specific
+    application or web page which limits their applicability in general computer tasks
+    that often involves cross-application collaboration. For example, a simple task
+    “Create a report with docs under the Presentation folder and send it to Jack.”
+    requires multiple steps with multiple applications to complete: read all docs,
+    summarize key contexts, compose a report with a word processing application like
+    Microsoft Word, and draft an email with attached report using an email client
+    like Outlook, and sent it to the recipient Jack. To support the completion of
+    complex tasks with minimal human interventions, emerging works have explored the
+    possibility of developing an operating system (OS) fully supported by LLMs. Works
+    like AIOS (Mei et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib29))
+    and OS-Copilot (Wu et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib49))
+    propose an OS-level agent that can effectively interact with the OS and a vast
+    number of third-party applications in completing complex tasks. OSWorld (Xie et al.,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib52)) and AndroidWorld (Rawles
+    et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib37)) also provide benchmarks
+    for evaluating the performance of multimodal agents with diverse tasks and cross-application
+    workflows across various OS. In the industry, commercial Agent OS such as Apple
+    Intelligence (Apple, [2024](https://arxiv.org/html/2409.17140v1#bib.bib4)), Copilot+PC (Microsoft,
+    [2024](https://arxiv.org/html/2409.17140v1#bib.bib30)), HarmonyOS (Huawei, [2024](https://arxiv.org/html/2409.17140v1#bib.bib24)),
+    and MagicOS (Honor, [2024](https://arxiv.org/html/2409.17140v1#bib.bib22)), are
+    evolving to be more accessible and productive for customers with the potential
+    of leading a new era of HCI. A common approach adopted by existing Agent OS is
+    to divide complex into sub-tasks and assign them to individual applications. However,
+    for each sub-task, the LLM-based agents still rely on human-like interactions
+    such as UI clicking and swiping for completion, which can be inefficient compared
+    to API calls. Moreover, when the LLM-based UI is processing the task, the control
+    is taken over from the user by the LLM-based agent.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在第[2.1](https://arxiv.org/html/2409.17140v1#S2.SS1 "2.1\. 基于LLM的UI代理 ‣ 2\. 相关工作
+    ‣ 将每个应用转变为代理：通过API优先的基于LLM的代理实现高效的人机计算机交互")节讨论的基于LLM的代理通常设计为在特定的环境中运行，如某个特定的应用或网页，这限制了它们在涉及跨应用协作的常规计算任务中的适用性。例如，一个简单的任务“创建一个报告，包含在‘Presentation’文件夹中的文档，并将其发送给Jack”需要多个应用程序的多个步骤才能完成：阅读所有文档，总结关键内容，使用像Microsoft
+    Word这样的文字处理应用编写报告，然后用像Outlook这样的电子邮件客户端草拟带有附件报告的邮件并发送给收件人Jack。为了支持在最少人工干预下完成复杂任务，新的研究工作已探讨开发一个完全由LLM支持的操作系统（OS）的可能性。像AIOS（梅等，[2024](https://arxiv.org/html/2409.17140v1#bib.bib29)）和OS-Copilot（吴等，[2024](https://arxiv.org/html/2409.17140v1#bib.bib49)）提出了一个操作系统级代理，能够有效地与操作系统及大量第三方应用程序互动，以完成复杂任务。OSWorld（谢等，[2024](https://arxiv.org/html/2409.17140v1#bib.bib52)）和AndroidWorld（罗尔斯等，[2024a](https://arxiv.org/html/2409.17140v1#bib.bib37)）还提供了评估多模态代理在不同操作系统中执行多样化任务和跨应用工作流程的基准。在工业界，像Apple
+    Intelligence（Apple，[2024](https://arxiv.org/html/2409.17140v1#bib.bib4)）、Copilot+PC（Microsoft，[2024](https://arxiv.org/html/2409.17140v1#bib.bib30)）、HarmonyOS（华为，[2024](https://arxiv.org/html/2409.17140v1#bib.bib24)）和MagicOS（荣耀，[2024](https://arxiv.org/html/2409.17140v1#bib.bib22)）等商业化的Agent
+    OS正在不断发展，以便为客户提供更便捷、高效的体验，具有引领人机交互新时代的潜力。现有Agent OS普遍采用的一个方法是将复杂任务拆解为子任务，并将其分配给各个独立的应用程序。然而，对于每个子任务，基于LLM的代理仍然依赖类似人类的交互方式，例如UI点击和滑动，这相比API调用可能效率较低。此外，当基于LLM的UI在处理任务时，控制权会被基于LLM的代理接管，用户无法再直接控制。
+- en: 2.3\. UI design in LLM era
+  id: totrans-30
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.3\. LLM时代的UI设计
+- en: UI design is an essential part of HCI and requires highly specialized expertises
+    along with iterative rounds of feedback and revision (Stone et al., [2005](https://arxiv.org/html/2409.17140v1#bib.bib40)).
+    With LLMs, UI design can be further empowered with automated procedures of design,
+    feedback and evaluation. Duan et al. ([2024](https://arxiv.org/html/2409.17140v1#bib.bib13))
+    use LLM-generated feedback to automaticly evcuate UI mockups. Similiarly, SimUser (Xiang
+    et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib51)) leverage LLMs to
+    simulate users with different characters to generate feedback on usability and
+    provide insights in UI design. MUD (Feng et al., [2024](https://arxiv.org/html/2409.17140v1#bib.bib18))
+    utilize LLMs to mimic human-like exploration to mine UI data from applications
+    and employs noise filtering to improve quality of UI data. Still, existing UI
+    designs largely follow the traditional human-machine interaction paradigm rather
+    than the human-agent-computer interaction (HACI) paradigm that could became the
+    central design principle in Agent OS. In this paper, we will leverage AXIS framework
+    to explore applications, identify the essential UIs, and examine which part of
+    UIs can be replaced by APIs callable by LLM-based agents. We hope that our exploration
+    would generate insights on how to design UIs that are more effective under the
+    HACI paradigm.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: UI设计是人机交互（HCI）的一个重要组成部分，要求具备高度专业化的技能，并通过多轮反馈和修订不断改进（Stone等，[2005](https://arxiv.org/html/2409.17140v1#bib.bib40)）。借助大型语言模型（LLMs），UI设计可以通过自动化的设计、反馈和评估程序进一步得到增强。Duan等（[2024](https://arxiv.org/html/2409.17140v1#bib.bib13)）使用LLM生成的反馈自动评估UI原型。同样，SimUser（Xiang等，[2024](https://arxiv.org/html/2409.17140v1#bib.bib51)）利用LLM模拟具有不同特征的用户，以生成关于可用性的反馈并为UI设计提供见解。MUD（Feng等，[2024](https://arxiv.org/html/2409.17140v1#bib.bib18)）利用LLM模拟类人探索，从应用程序中挖掘UI数据，并通过噪声过滤提高UI数据的质量。然而，现有的UI设计大多仍遵循传统的人机交互范式，而非人-代理-计算机交互（HACI）范式，后者可能成为代理操作系统（Agent
+    OS）中的核心设计原则。本文将利用AXIS框架探索应用程序，识别关键的UI，并检视哪些UI部分可以通过LLM代理调用的API进行替代。我们希望我们的探索能为如何在HACI范式下设计更有效的UI提供一些见解。
+- en: 3\. Design of AXIS
+  id: totrans-32
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3. AXIS设计
+- en: 'We develope AXIS as a framework that can automatically explore within existing
+    applications, learn insights from exploration trajectories, and consolidate available
+    insights and learned knowledge into actionable “skills”. Skill is a high-level
+    representation of UI- and API-based actions with a priority in API actions²²2If
+    the skill can be represented with UI or API actions, the skill is represented
+    in API-only actions., which is generated with AXIS exploration within the application.
+    Illustrated by Figure [2](https://arxiv.org/html/2409.17140v1#S3.F2 "Figure 2
+    ‣ 3\. Design of AXIS ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents"), AXIS system
+    consists of three major modules: the app environment, the skills, and the workflows.
+    AXIS employs numerous LLM-based agents to explore the app environment, usually
+    a set of applications running on the OS, through a unified interface to obtain
+    the state of the environment and to interact with it. The knowledge learnt during
+    this process will be consolidated into skills containing structured code segments
+    capable of accomplishing various tasks within the environment. Specific execution
+    and validation methods will also be designed to improve the performance of those
+    skills. Finally, we establish two workflows: the explorer workflow and the follower
+    workflow to facilitate the learning of skills from the environment.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们开发了AXIS框架，它可以自动地在现有应用程序中进行探索，从探索轨迹中学习见解，并将可用的见解和学到的知识整合为可执行的“技能”。技能是基于UI和API的高层次表现，优先考虑API操作²²2如果技能可以通过UI或API操作表示，则技能仅通过API操作表示。，这些技能是在应用程序中通过AXIS探索生成的。如图[2](https://arxiv.org/html/2409.17140v1#S3.F2
+    "Figure 2 ‣ 3\. Design of AXIS ‣ Turn Every Application into an Agent: Towards
+    Efficient Human-Agent-Computer Interaction with API-First LLM-Based Agents")所示，AXIS系统由三个主要模块组成：应用环境、技能和工作流。AXIS利用多个基于LLM的代理，通过统一的接口探索应用环境，通常是操作系统中运行的一组应用程序，以获取环境状态并与之互动。在此过程中学习到的知识将被整合为包含结构化代码片段的技能，这些代码片段能够在环境中执行各种任务。还将设计特定的执行和验证方法，以提高这些技能的性能。最后，我们建立了两个工作流：探索者工作流和跟随者工作流，以促进从环境中学习技能。'
+- en: In the subsequent sections, we will layout the details of all the 3 modules
+    and discuss how they work together to explore and discover valuable skills from
+    the applications.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在后续部分，我们将详细阐述所有三个模块，并讨论它们如何协同工作以从应用程序中探索和发现有价值的技能。
+- en: '![Refer to caption](img/add81e9b3de56d04ea9f27f77a8ac6be.png)'
+  id: totrans-35
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/add81e9b3de56d04ea9f27f77a8ac6be.png)'
+- en: Figure 2\. Overview of AXIS framework. AXIS first explore skills by Follower-driven
+    or Explorer-driven mode, then the exploration logs will be used to generate skill,
+    during which the skill code would be translated and validated. The dashed boxes
+    refer to the interaction between agents and application environment.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2\. AXIS 框架概述。AXIS 首先通过跟随者驱动模式或探索者驱动模式探索技能，然后使用探索日志生成技能，在此过程中，技能代码将被翻译和验证。虚线框表示代理与应用程序环境之间的交互。
+- en: 3.1\. Environment of Application
+  id: totrans-37
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1\. 应用环境
+- en: In the context of AXIS, the environment of applications refers to the collection
+    of interactive entities within the exploration scope of the agents. In this paper,
+    those entities mainly consist of a set of applications running on the Windows
+    operating system. Applications in the environment often share common elements,
+    such as controls  (Zhang et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55))
+    and XML elements obtained after unpacking.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 AXIS 的上下文中，应用环境是指在代理的探索范围内的交互实体集合。本文中，这些实体主要由一组在 Windows 操作系统上运行的应用程序组成。应用程序中的环境通常共享一些共同的元素，例如控件（Zhang
+    等，[2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)）和解包后的 XML 元素。
+- en: 'Agents in AXIS not only observe the state of the environment, but also actively
+    interact with the environment. To facilitate the observation and interaction between
+    agents and the environment, we have designed two general interfaces: state() and
+    step(). state() interface returns the state of the environment, which includes
+    detailed information on the current elements of the entities within the environment.
+    The environment state encompasses key UI information including the position of
+    controls, the type of controls, and whether a control is selected. For applications
+    that can be unpacked, the unpacked XML content is also included as a part of the
+    state. The control types in the application environment of AXIS are consistent
+    with those in  (Zhang et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)).
+    step() interface incorporates a skill executor that allows agents to perform operations
+    within the environment by executing skills. Upon completion, this interface also
+    returns the results of these operations.'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 AXIS 中，代理不仅观察环境的状态，还主动与环境进行交互。为了便于代理与环境之间的观察和交互，我们设计了两个通用接口：state() 和 step()。state()
+    接口返回环境的状态，包括环境中实体当前元素的详细信息。环境状态包括关键信息，例如控件的位置、控件的类型以及控件是否被选中。对于可以解包的应用程序，解包后的
+    XML 内容也作为状态的一部分。AXIS 应用环境中的控件类型与 (Zhang 等，[2024a](https://arxiv.org/html/2409.17140v1#bib.bib55))
+    中的控件类型一致。step() 接口包含一个技能执行器，允许代理通过执行技能在环境中进行操作。完成后，该接口还会返回这些操作的结果。
+- en: 3.2\. Skills in Application
+  id: totrans-40
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2\. 应用中的技能
+- en: A skill contains skill code, description, and usage example, and is designed
+    to accomplish one specified task within the environment.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 技能包含技能代码、描述和使用示例，旨在完成环境中指定任务。
+- en: 3.2.1\. skill structure
+  id: totrans-42
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.1\. 技能结构
+- en: •
+  id: totrans-43
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Skill Code: a piece of code structured to be compatible with the executor described
+    in the following section. Skill code includes a uniform set of parameters and
+    adheres to the standard PEP 257 documentation. The initial set of skills is generated
+    by the restructure of the fundamental APIs from the application provider. Based
+    on these initial skills, AXIS can explore and develop additional new skills. It
+    is worth noting that while AXIS prioritizes API-based skills, it is still designed
+    for general purpose and can incoporate both UI-based and API-based skill code.'
+  id: totrans-44
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 技能代码：一段与以下部分描述的执行器兼容的结构化代码。技能代码包括一组统一的参数，并遵循标准的 PEP 257 文档规范。初始的技能集是通过重构应用程序提供者的基础
+    API 生成的。在这些初始技能的基础上，AXIS 可以进一步探索和开发新的技能。值得注意的是，虽然 AXIS 优先考虑基于 API 的技能，但它仍然是为通用目的设计的，能够集成基于
+    UI 和基于 API 的技能代码。
+- en: •
+  id: totrans-45
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Description: A description of the functionality of a skill for assisting the
+    LLM in selecting and invoking the appropriate skil in the process of task execution.'
+  id: totrans-46
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 描述：描述一种技能的功能，旨在帮助 LLM 在任务执行过程中选择并调用适当的技能。
+- en: •
+  id: totrans-47
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Usage Example: One or more code examples including any specific parameters
+    typically associated with the code and the description. These examples can assist
+    the LLM in filling out the parameter fields in the correct format when the skill
+    is invoked.'
+  id: totrans-48
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 使用示例：一个或多个代码示例，包括与代码通常相关的任何特定参数和描述。这些示例可以帮助LLM在调用技能时以正确的格式填写参数字段。
+- en: 3.2.2\. skill executor
+  id: totrans-49
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.2\. 技能执行器
+- en: 'As discussed in Section [3.1](https://arxiv.org/html/2409.17140v1#S3.SS1 "3.1\.
+    Environment of Application ‣ 3\. Design of AXIS ‣ Turn Every Application into
+    an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents"), our application environment incorporates a step() interface to facilitate
+    the interaction between agents and the environment. This interface also hosts
+    the skill executor responsible for executing the skill generated or selected by
+    the agents. The skill executor keeps caching of application documents and simultaneously
+    supports multiple functionalities including locating application controls, invoking
+    methods on those controls, and calling application APIs (independent of controls),
+    to enable the UI actions and API actions in the same time and serve as an efficient
+    foundation for skill-driven operations.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如在第[3.1](https://arxiv.org/html/2409.17140v1#S3.SS1 "3.1\. 应用环境 ‣ 3\. AXIS 设计
+    ‣ 将每个应用转化为代理：面向高效人机计算机交互的 API 优先 LLM 基础代理")节中讨论的那样，我们的应用环境包含一个 step() 接口，以促进代理与环境之间的交互。该接口还承载了技能执行器，负责执行由代理生成或选择的技能。技能执行器会缓存应用文档，并同时支持多种功能，包括定位应用控件、调用控件上的方法以及调用应用
+    API（独立于控件），从而使 UI 操作和 API 操作能够同时进行，并作为技能驱动操作的高效基础。
+- en: 3.2.3\. skill types
+  id: totrans-51
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.3\. 技能类型
+- en: 'Following a versatile design principle, the skills in AXIS can be categorized
+    into four types based on the composition of their code fragments: Atomic UI Skill,
+    Atomic API Skill, Composite UI Skill, Composite API Skill, and API-UI Hybrid Skill.'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按照多功能设计原则，AXIS 中的技能可以根据其代码片段的组成分为四种类型：原子 UI 技能、原子 API 技能、复合 UI 技能、复合 API 技能以及
+    API-UI 混合技能。
+- en: Table 1\. Comparison of 4 types of skill.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1\. 四种技能类型的比较。
+- en: '| Type | Description | Example | Feature coverage |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类型 | 描述 | 示例 | 特性覆盖 |'
+- en: '| Atomic UI skill | Composed of one basic UI action. As the most primitive
+    skills, Atomic UI skills are stacked and transformed during the exploration process
+    to form new skills. | click_input | click on different UI controls |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| 原子 UI 技能 | 由一个基本的 UI 操作组成。作为最原始的技能，原子 UI 技能在探索过程中被堆叠和转化，形成新的技能。 | click_input
+    | 点击不同的 UI 控件 |'
+- en: '| Atomic API skill | Composed of one basic API actions. Unlike UI actions that
+    depend on UI controls for execution, API actions can be executed without the need
+    of interacting with any UI elements. | select_text | select text content in the
+    canvas. |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| 原子 API 技能 | 由一个基本的 API 操作组成。与依赖 UI 控件执行的 UI 操作不同，API 操作无需与任何 UI 元素交互即可执行。
+    | select_text | 选择画布中的文本内容。 |'
+- en: '| Composite UI skill | Composed of multiple atomic UI actions or composite
+    UI actions. Composite UI skill are formed by a simple stacking and combination
+    of UI actions. | search_for_help | clicking the search box and then editing text.
+    |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| 复合 UI 技能 | 由多个原子 UI 操作或复合 UI 操作组成。复合 UI 技能通过简单堆叠和组合 UI 操作形成。 | search_for_help
+    | 点击搜索框然后编辑文本。 |'
+- en: '| Composite API skill | Composed of multiple atomic API actions or composite
+    API actions. This type of skills often represents a higher-level combination of
+    functions. | insert_header_footer | insert header and footer with specified contents
+    by API, which is equal to sequential UI actions ”Insert-¿Header-¿footer edit-¿Footer-¿footer
+    edit”. |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| 复合 API 技能 | 由多个原子 API 操作或复合 API 操作组成。这类技能通常表示功能的更高级组合。 | insert_header_footer
+    | 通过 API 插入带有指定内容的页眉和页脚，相当于一系列顺序的 UI 操作：“插入-页眉-页脚编辑-页脚-页脚编辑”。 |'
+- en: '| API-UI hybrid skill | Composed of both API actions and UI actions. API-UI
+    hybrid skills sometimes appear as intermediate states during skill exploration
+    and may evolve into pure API actions during the later stage of exploration. |
+    format_text_in_word | combine select_text and a series of UI actions related to
+    text styling. |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| API-UI 混合技能 | 由 API 操作和 UI 操作组成。API-UI 混合技能有时作为技能探索过程中的中间状态出现，可能在探索后期发展为纯
+    API 操作。 | format_text_in_word | 结合 select_text 和一系列与文本样式相关的 UI 操作。 |'
+- en: 3.2.4\. Skill Hierarchy
+  id: totrans-60
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.2.4\. 技能层级
+- en: 'We define “skill hierarchy” as the number of skill components that make up
+    a skill. A single basic skill thus has a skill hierarchy of 1. The skill hierarchy
+    of insert_header_footer skill mentioned in table [1](https://arxiv.org/html/2409.17140v1#S3.T1
+    "Table 1 ‣ 3.2.3\. skill types ‣ 3.2\. Skills in Application ‣ 3\. Design of AXIS
+    ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents") is 2.'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们将“技能层级”定义为组成一个技能的技能组件数量。因此，单一的基础技能的技能层级为1。如表[1](https://arxiv.org/html/2409.17140v1#S3.T1
+    "Table 1 ‣ 3.2.3\. skill types ‣ 3.2\. Skills in Application ‣ 3\. Design of AXIS
+    ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents")中提到的insert_header_footer技能的技能层级为2。'
+- en: 3.3\. Workflows of Skill Exploration
+  id: totrans-62
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3\. 技能探索的工作流程
+- en: 'As shown in Figure [2](https://arxiv.org/html/2409.17140v1#S3.F2 "Figure 2
+    ‣ 3\. Design of AXIS ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents"), the skill
+    exploration in AXIS is guided by two driving mechanisms: follower-driven skill
+    exploration and explorer-driven skill exploration.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如图[2](https://arxiv.org/html/2409.17140v1#S3.F2 "Figure 2 ‣ 3\. Design of AXIS
+    ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents")所示，AXIS中的技能探索由两种驱动机制引导：追随者驱动的技能探索和探索者驱动的技能探索。'
+- en: 3.3.1\. Follower-driven skill exploration
+  id: totrans-64
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.1\. 追随者驱动的技能探索
+- en: 'Follower-driven skill exploration refers to the process of exploring skills
+    from the applications’ help documents, which is primarily accomplished through
+    the collaboration of the following agents:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 追随者驱动的技能探索是指从应用程序的帮助文档中探索技能的过程，主要通过以下代理的协作来完成：
+- en: •
+  id: totrans-66
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: FollowerAgent. FollowerAgent utilizes a skill library composed of a set of primitive
+    actions based on the step-to-step instructions provided by the help document.
+    At each step, it selects the most appropriate action according to the current
+    state of the environment.
+  id: totrans-67
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: FollowerAgent。FollowerAgent利用一个由一组原始操作组成的技能库，基于帮助文档提供的逐步指令。在每一步，它根据当前环境状态选择最合适的操作。
+- en: •
+  id: totrans-68
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: MonitorAgent. MonitorAgent monitors every action taken by the FollowerAgent
+    along with the impacts on the environment. It also tracks the entire trajectory
+    of the FollowerAgent. When deemed appropriate, it places a breakpoint and summarizes
+    the observed trajectory into a complete skill including the functional summary
+    of the skill and its logic. For initial skills composed of basic UI actions, the
+    summarized logic is also often closely tied to the UI.
+  id: totrans-69
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: MonitorAgent。MonitorAgent监控每个由FollowerAgent执行的操作及其对环境的影响。它还跟踪FollowerAgent的整个轨迹。当认为合适时，它会设置一个断点，并将观察到的轨迹总结为一个完整的技能，包括该技能的功能总结及其逻辑。对于由基本UI操作组成的初始技能，概括出的逻辑通常也与UI紧密相关。
+- en: •
+  id: totrans-70
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'SkillGeneratorAgent. Based on the summaries and logical descriptions provided
+    by the MonitorAgent, SkillGeneratorAgent generates the code, functional descriptions,
+    and use cases for the skill in accordance with the specifications outlined in
+    Section [3.2](https://arxiv.org/html/2409.17140v1#S3.SS2 "3.2\. Skills in Application
+    ‣ 3\. Design of AXIS ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents"). The generated
+    skill code is highly correlated with the logical descriptions generated by the
+    MonitorAgent, and therefore often involves the stacking of basic UI actions.'
+  id: totrans-71
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 'SkillGeneratorAgent。基于MonitorAgent提供的总结和逻辑描述，SkillGeneratorAgent根据第[3.2](https://arxiv.org/html/2409.17140v1#S3.SS2
+    "3.2\. Skills in Application ‣ 3\. Design of AXIS ‣ Turn Every Application into
+    an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents")节中概述的规范生成技能的代码、功能描述和使用案例。生成的技能代码与MonitorAgent生成的逻辑描述高度相关，因此通常涉及基本UI操作的堆叠。'
+- en: •
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: APITranslatorAgent. Based on the skill code generated by the SkillGeneratorAgent,
+    APITranslatorAgent queries the relevant API documentation to translate the UI-based
+    actions in the skill code into API calls, thus completing the API-ification of
+    the code. Finally, the generated skills are further validated through a skill
+    validation process.
+  id: totrans-73
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: APITranslatorAgent。基于SkillGeneratorAgent生成的技能代码，APITranslatorAgent查询相关的API文档，将技能代码中的基于UI的操作转换为API调用，从而完成代码的API化。最后，生成的技能通过技能验证过程进一步验证。
+- en: It is worth noting that both the SkillGeneratorAgent and the APITranslatorAgent
+    search for reusable skills from the original skill set during the skill code generation,
+    thereby obtaining skills at different hierarchies. This approach efficiently facilitates
+    the construction of skills.
+  id: totrans-74
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 值得注意的是，SkillGeneratorAgent 和 APITranslatorAgent 在技能代码生成过程中会从原始技能集搜索可重用的技能，从而获得不同层次的技能。这种方法有效地促进了技能的构建。
+- en: 3.3.2\. Explorer-driven skill exploration
+  id: totrans-75
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.2\. 探索者驱动的技能探索
+- en: 'Unlike Follower-driven skill exploration, the explorer-driven skill exploration
+    kicks off the exploration process with a different initialization method: the
+    step-to-step instructions are automatically generated rather than extracting from
+    the help document. During each step, explorer proposes the next action based on
+    the current environment information and the history of previously explored steps.
+    The subsequent steps utilize the same agents in the follower-driven mode to generate
+    skills with explored trajectories. In this process, application seed files with
+    varying pre-filled content are often required to obtain different initial environments
+    for discovering a more diverse range of skills.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与追随者驱动的技能探索不同，探索者驱动的技能探索以不同的初始化方法启动探索过程：步骤逐步指令是自动生成的，而不是从帮助文档中提取的。在每一步中，探索者根据当前环境信息和先前探索步骤的历史提出下一步行动。随后的步骤利用与追随者驱动模式相同的代理生成具有探索轨迹的技能。在这个过程中，通常需要带有不同预填充内容的应用种子文件，以获得不同的初始环境，从而发现更多样化的技能。
+- en: 3.3.3\. Skill Validation
+  id: totrans-77
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 3.3.3\. 技能验证
+- en: 'To validate the new skills generated from exploration, we have implemented
+    two verification methods: static validation and dynamic validation.'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证从探索中生成的新技能，我们实施了两种验证方法：静态验证和动态验证。
+- en: •
+  id: totrans-79
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Static Validation: This validation method utilizes structural method to verify
+    the skill code, including checking whether the skill’s parameters contain the
+    mandatory parameters (such as the executor instance and args list), whether the
+    methods and properties of the executor are correctly invoked in the code, and
+    whether any non-existent skills are imported when reusing the skill.'
+  id: totrans-80
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 静态验证：这种验证方法利用结构化方法验证技能代码，包括检查技能的参数是否包含必需的参数（如执行器实例和参数列表）、执行器的方法和属性是否在代码中正确调用，以及在重用技能时是否导入了不存在的技能。
+- en: •
+  id: totrans-81
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Dynamic Validation: This validation method evaluates a skill’s performance
+    in the app environment with the help of two agents: ValidatorAgent and EvaluateAgent.
+    When a skill is submitted for validation, ValidatorAgent firstly proposes a task
+    based on the skill’s functional description. It then executes the skill within
+    the same app environment used during the initial skill exploration and records
+    the responses and environmental changes during execution. Upon the completion,
+    the EvaluateAgent determines whether the skill has successfully completed the
+    task or not.'
+  id: totrans-82
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 动态验证：这种验证方法在应用环境中评估技能的性能，通过两个代理：ValidatorAgent 和 EvaluateAgent。提交技能进行验证时，ValidatorAgent
+    首先根据技能的功能描述提出一个任务。然后，它在与最初技能探索时相同的应用环境中执行技能，并记录执行过程中的响应和环境变化。执行完成后，EvaluateAgent
+    判断技能是否成功完成任务。
+- en: 4\. Feasibility Study
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4\. 可行性研究
+- en: To validate the usability and effectiveness of AXIS framework, we conducted
+    a feasibility study. We first use AXIS to explore Microsoft Office Word and discover
+    73 skills. Then we extracted 50 tasks from the wikihow ³³3https://www.wikihow.com/Use-Microsoft-Word
+    page ”Use Microsoft Word” and the official Microsoft Word website ⁴⁴4https://support.microsoft.com/en-us/word.
+    These tasks were executed using both AXIS and UI Agent, and the results were analyzed
+    and compared.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了验证 AXIS 框架的可用性和有效性，我们进行了可行性研究。我们首先使用 AXIS 探索了 Microsoft Office Word，并发现了 73
+    个技能。然后，我们从 wikihow ³³3https://www.wikihow.com/Use-Microsoft-Word 页面 "使用 Microsoft
+    Word" 和官方 Microsoft Word 网站 ⁴⁴4https://support.microsoft.com/en-us/word 提取了 50
+    个任务。这些任务使用 AXIS 和 UI Agent 执行，并对结果进行了分析和比较。
+- en: 4.1\. SKill Exploration
+  id: totrans-85
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1\. 技能探索
+- en: 'Before the exploration, AXIS was provided with 6 basic actions, as shown in
+    Table [2](https://arxiv.org/html/2409.17140v1#S4.T2 "Table 2 ‣ 4.1\. SKill Exploration
+    ‣ 4\. Feasibility Study ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents"). Then, 347
+    seed files were used for the AXIS to explore. After the exploration, AXIS discovered
+    73 skills with different hierarchies. Majority of the skills (44) discovered have
+    a skill hierarchy 1\. The rest is composed of 24 skills with hierarchy 2, 3 skills
+    with hierarchy 3, and 2 skills with hierarchy 4\. Table [3](https://arxiv.org/html/2409.17140v1#S4.T3
+    "Table 3 ‣ 4.1\. SKill Exploration ‣ 4\. Feasibility Study ‣ Turn Every Application
+    into an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First
+    LLM-Based Agents") displays several successfully validated skills discovered during
+    the exploration process.'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在探索之前，AXIS提供了6个基本操作，如表格[2](https://arxiv.org/html/2409.17140v1#S4.T2 "Table
+    2 ‣ 4.1\. SKill Exploration ‣ 4\. Feasibility Study ‣ Turn Every Application into
+    an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents")所示。然后，AXIS使用347个种子文件进行探索。探索后，AXIS发现了73个具有不同层级的技能。大多数发现的技能（44个）具有技能层级1，剩下的是24个技能具有层级2，3个技能具有层级3，2个技能具有层级4。表格[3](https://arxiv.org/html/2409.17140v1#S4.T3
+    "Table 3 ‣ 4.1\. SKill Exploration ‣ 4\. Feasibility Study ‣ Turn Every Application
+    into an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First
+    LLM-Based Agents")展示了在探索过程中成功验证的若干技能示例。'
+- en: Table 2\. The basic actions supported for AXIS exploration.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格2\. AXIS探索支持的基本操作。
+- en: '| Name | Description | Example |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| 名称 | 描述 | 示例 |'
+- en: '| set_edit_text | The function to Set the edit text of the control element,
+    can use to input content on Edit type controls. | set_edit_text(executor, args_dict=”control_id”:’119’,
+    ”control_name”:”Edit”, ’text’:”hi there”) |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| set_edit_text | 设置控制元素的编辑文本功能，可用于在编辑类型的控件中输入内容。 | set_edit_text(executor,
+    args_dict=”control_id”:’119’, ”control_name”:”Edit”, ’text’:”hi there”) |'
+- en: '| select_text | A function to select the text with the specified text content.
+    | select_text(executor, args_dict=”text”:”hello”) |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| select_text | 一个选择指定文本内容的功能。 | select_text(executor, args_dict=”text”:”hello”)
+    |'
+- en: '| select_table | A function to select the table with the specified number.
+    | select_table(executor, args_dict=”number”:1) |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| select_table | 一个选择指定编号的表格的功能。 | select_table(executor, args_dict=”number”:1)
+    |'
+- en: '| type_keys | A function to Type in keys on control item.Used to enter shortcuts
+    and so on. | type_keys(executor, args_dict=”control_id”:’119’, ”control_name”:”Edit”,
+    ”text”: ”VK_CONTROL down”, ”newline”: False) |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| type_keys | 一个在控制项上输入键的功能。用于输入快捷键等。 | type_keys(executor, args_dict=”control_id”:’119’,
+    ”control_name”:”Edit”, ”text”: ”VK_CONTROL down”, ”newline”: False) |'
+- en: '| click_input | A function to Click the control element.Usually be used to
+    switch to different ribbon,click the buttons in menu. | click_input(executor,
+    args_dict=”control_id”:”12”, ”control_name”:”Border”, ’button’:”left”,’double’:False)
+    |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| click_input | 一个点击控制元素的功能。通常用于切换不同的功能区，点击菜单中的按钮。 | click_input(executor,
+    args_dict=”control_id”:”12”, ”control_name”:”Border”, ’button’:”left”,’double’:False)
+    |'
+- en: '| wheel_mouse_input | A function for Wheel mouse input on the control element.
+    | wheel_mouse_input(executor, args_dict=”control_id”:”12”, ’wheel_dist’:-20) |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| wheel_mouse_input | 一个对控制元素进行鼠标滚轮输入的功能。 | wheel_mouse_input(executor, args_dict=”control_id”:”12”,
+    ’wheel_dist’:-20) |'
+- en: Table 3\. Samples of skills in different hierarchy explored by AXIS.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格3\. AXIS探索过程中发现的不同层级的技能示例。
+- en: '| Hierarchy | Name | Description | Example |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 层级 | 名称 | 描述 | 示例 |'
+- en: '| 1 | activate_dictation | The function is to activate dictation in Microsoft
+    Word. It is equal to the Dictate button in the Voice group to start dictation.
+    | activate_dictation(executor) |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | activate_dictation | 该功能用于在Microsoft Word中启动听写功能，相当于“语音”组中的“听写”按钮，用于开始听写。
+    | activate_dictation(executor) |'
+- en: '| 2 | align_text | The function aligns the text in a Microsoft Word document.
+    It first selects the text, then applies the desired alignment (left, center, right,
+    justify) using the Word API. | align_text(executor, args_dict=”text”: ”hello”,
+    ”alignment”: ”center”) |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | align_text | 该功能对Microsoft Word文档中的文本进行对齐。首先选择文本，然后使用Word API应用所需的对齐方式（左对齐、居中、右对齐、两端对齐）。
+    | align_text(executor, args_dict=”text”: ”hello”, ”alignment”: ”center”) |'
+- en: '| 3 | apply_text_style | A function to edit a text with specified text, font
+    size, font name. The title is set in the center. | apply_text_style(executor,
+    args_dict=”text”:”Hello”, ”font_name”:”Arial”, ”font_size”:13) |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | apply_text_style | 一个编辑指定文本、字体大小和字体名称的文本的功能。标题居中。 | apply_text_style(executor,
+    args_dict=”text”:”Hello”, ”font_name”:”Arial”, ”font_size”:13) |'
+- en: 4.2\. Task Completion
+  id: totrans-100
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2\. 任务完成
+- en: 'The 50 Word-related tasks collected above were used to test and compare the
+    performance of UI Agent and AXIS with the explored skills. In our experiment,
+    we choose UFO (Zhang et al., [2024a](https://arxiv.org/html/2409.17140v1#bib.bib55))
+    as the representative of UI Agent considering its good performance on word tasks.
+    The results are presented in Table [4](https://arxiv.org/html/2409.17140v1#S4.T4
+    "Table 4 ‣ 4.2\. Task Completion ‣ 4\. Feasibility Study ‣ Turn Every Application
+    into an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First
+    LLM-Based Agents"), which includes the average time taken to complete different
+    tasks, the success rates, the average number of steps per task, and the corresponding
+    costs of LLM backend (GPT-4o, version 20240513) for both agents.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '上述50个与词汇相关的任务用于测试和比较UI代理与AXIS在已探索技能下的表现。在我们的实验中，我们选择UFO（Zhang等人，[2024a](https://arxiv.org/html/2409.17140v1#bib.bib55)）作为UI代理的代表，因为它在词汇任务上表现良好。结果见表[4](https://arxiv.org/html/2409.17140v1#S4.T4
+    "Table 4 ‣ 4.2\. Task Completion ‣ 4\. Feasibility Study ‣ Turn Every Application
+    into an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First
+    LLM-Based Agents")，其中包括了完成不同任务的平均时间、成功率、每个任务的平均步骤数以及两个代理对应的LLM后端成本（GPT-4o，版本20240513）。'
+- en: In terms of execution time, AXIS significantly outperforms the UI Agent, with
+    an average task completion time of 29.9 seconds compared to 59.5 seconds for the
+    UI Agent. This result shows that AXIS is nearly twice as fast as the UI Agent.
+    AXIS also achieves a higher success rate in completing the tasks. Moreover, thanks
+    to the abstraction and integration of basic actions into higher-level skills,
+    AXIS could complete tasks with fewer steps on average, which also incurs lower
+    costs compared to the UI Agent UFO.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就执行时间而言，AXIS显著优于UI代理，平均任务完成时间为29.9秒，而UI代理为59.5秒。这个结果表明，AXIS的速度几乎是UI代理的两倍。AXIS在任务完成的成功率上也更高。此外，由于AXIS将基本操作抽象并整合为更高级的技能，它能够在更少的步骤下完成任务，且相较于UI代理，成本也更低。
+- en: Table 4\. Comparison of the performance of UI Agent and AXIS on 50 tasks.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4．UI代理与AXIS在50个任务中的表现比较。
+- en: '| Metric | UI Agent | AXIS | Pairwise Significance |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | UI 代理 | AXIS | 成对显著性 |'
+- en: '| Time(s) | 59.5 | 29.9 | u¿a (p ¡ 0.001) |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间(秒) | 59.5 | 29.9 | u¿a (p ¡ 0.001) |'
+- en: '| Success Rate(%) | 52.0 | 84.0 | u¡a (p ¡ 0.001) |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 成功率(%) | 52.0 | 84.0 | u¡a (p ¡ 0.001) |'
+- en: '| Steps | 3.2 | 2.0 | u¿a (p ¡ 0.01) |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| 步骤数 | 3.2 | 2.0 | u¿a (p ¡ 0.01) |'
+- en: '| Cost($) | 0.4 | 0.2 | u¿a (p ¡ 0.001) |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| 成本($) | 0.4 | 0.2 | u¿a (p ¡ 0.001) |'
+- en: 'To better understand the reasons behind AXIS’s higher efficiency, we analyzed
+    the number of UI and API-type actions invoked by AXIS and the UI Agent during
+    task execution and recorded the proportion of API and Advanced API (defined as
+    skills with a hierarchy level of 2 or higher) calls made by both methods. As shown
+    in Table [5](https://arxiv.org/html/2409.17140v1#S4.T5 "Table 5 ‣ 4.2\. Task Completion
+    ‣ 4\. Feasibility Study ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents"), AXIS invoked
+    significantly fewer UI actions compared to the UI Agent during task execution.
+    Notably, the total number of UI actions performed by AXIS across all tasks was
+    greater than the number of invoked API actions. Upon inspection, this was found
+    that AXIS tends to use a single and integrated API skill to complete a whole task,
+    resulting a low overall API actions count. We further calculated the API usage
+    rate and the proportion of Advanced API usage among the API actions. The data
+    shows that AXIS’s proportion of API actions reached 55.7% with a 23.1% usage rate
+    of advanced API. In contrast, the API usage rate of UI Agent is only 8.1%. Based
+    on the above results, we conclude that AXIS indeed adopts an API-first approach
+    and tends to use skills to complete tasks when the matching skills are available.
+    And the integration of skills into actions also significantly contributes to the
+    increased efficiency of AXIS.'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更好地理解AXIS更高效率背后的原因，我们分析了AXIS和UI代理在任务执行过程中调用的UI和API类型操作的数量，并记录了两种方法调用API和高级API（定义为具有层次级别2或更高的技能）所占的比例。如表[5](https://arxiv.org/html/2409.17140v1#S4.T5
+    "表 5 ‣ 4.2\. 任务完成 ‣ 4\. 可行性研究 ‣ 将每个应用转化为代理：朝着API优先的基于LLM代理高效的人机交互")所示，AXIS在任务执行过程中调用的UI操作明显少于UI代理。值得注意的是，AXIS在所有任务中执行的总UI操作次数大于调用的API操作次数。经过检查，发现AXIS倾向于使用单一的、集成的API技能来完成整个任务，导致整体API操作次数较低。我们进一步计算了API使用率以及API操作中高级API使用的比例。数据表明，AXIS的API操作比例达到了55.7%，其中高级API的使用率为23.1%。相比之下，UI代理的API使用率仅为8.1%。基于以上结果，我们得出结论，AXIS确实采用了API优先的策略，并且当匹配的技能可用时，倾向于使用技能完成任务。技能的集成到操作中也显著提高了AXIS的效率。
+- en: Table 5\. Comparison of hit UI actions and API actions of UI Agent and AXIS
+    on 50 tasks.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 5\. UI 代理和AXIS在50个任务中的UI操作和API操作对比。
+- en: '| Metric | UI Agent | AXIS |'
+  id: totrans-111
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | UI代理 | AXIS |'
+- en: '| Total UI actions | 103 | 48 |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总UI操作次数 | 103 | 48 |'
+- en: '| Total API actions | 9 | 39 |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总API操作次数 | 9 | 39 |'
+- en: '| API usage rate(%) | 8.1 | 55.7 |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| API使用率(%) | 8.1 | 55.7 |'
+- en: '| Advanced API usage rate(%) | - | 23.1 |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 高级API使用率(%) | - | 23.1 |'
+- en: 5\. User Study
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5\. 用户研究
+- en: 'We carry out extensive user experiment to evaluate the performance of AXIS.
+    The experiment and the associated evaluation metrics were designed to explore
+    the following research questions (RQs) regarding the roles of LLM-based agents
+    in work and life scenarios:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进行了广泛的用户实验，以评估AXIS的性能。该实验及相关的评估指标旨在探讨以下关于基于大语言模型（LLM）代理在工作和生活场景中作用的研究问题（RQ）：
+- en: •
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ1: Does LLM-based agent lower the cognitive load of the users and make them
+    have less effort to learn?'
+  id: totrans-119
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ1：基于LLM的代理是否降低了用户的认知负担，使他们学习时花费更少的精力？
+- en: •
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ2: Does LLM-based agent enhance the efficiency of users?'
+  id: totrans-121
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ2：基于LLM的代理是否提高了用户的效率？
+- en: •
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ3: What are the differences between a UI Agent and an API-based Agent in
+    user experience?'
+  id: totrans-123
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ3：UI代理和基于API的代理在用户体验上有哪些区别？
+- en: 'In our user experiment, participants were asked to complete specified tasks
+    within an application through three methods: manually, with the assistance of
+    a UI Agent, and with the assistance of AXIS and recorded the entire process. Microsoft
+    Word is chosen as the experimental application considering its popularity in our
+    daily work and life as well as the rich API documentations (Microsoft365, [2024b](https://arxiv.org/html/2409.17140v1#bib.bib32))).
+    Motivated by the RQs, we set three objectives for the user experiment:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的用户实验中，参与者被要求通过三种方式在一个应用程序中完成指定任务：手动完成、借助UI代理完成、以及借助AXIS完成，并记录了整个过程。我们选择Microsoft
+    Word作为实验应用程序，考虑到它在日常工作和生活中的普及性以及丰富的API文档（Microsoft365, [2024b](https://arxiv.org/html/2409.17140v1#bib.bib32)）。受研究问题的启发，我们为用户实验设定了三个目标：
+- en: (1) To evaluate the cognitive load on participants when completing tasks using
+    different methods. (2) To compare the efficiency and reliability of task completion
+    across the three methods. (3) To assess user preferences regarding the use of
+    different Agents. This study is approved by the Institutional Review Board (IRB)
+    of Peking University.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (1) 评估参与者在使用不同方法完成任务时的认知负荷。 (2) 比较三种方法在任务完成效率和可靠性方面的差异。 (3) 评估用户在使用不同助手时的偏好。本研究已获得北京大学伦理委员会（IRB）的批准。
+- en: 5.1\. Experiment Procedure
+  id: totrans-126
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1\. 实验程序
+- en: 'The entire user experiment lasted for 30 minutes. During the preparation phase,
+    we sampled five different tasks in Microsoft Word from both official Word documentation
+    and GPT-generated results. Those tasks were categorized into two levels of difficulty:
+    low difficulty (L1) and high difficulty (L2), based on factors such as the number
+    of UI interactions required, the depth of the UI functions, and the number of
+    ribbon switches. Our experimental results also confirmed that tasks in L2 are
+    indeed more difficult than tasks in L1\. In the subsequent discussion, we will
+    simply refers tasks in different categories as L1 tasks and L2 tasks. Additionally,
+    we designed a user information form to collect participants’ background information,
+    including their familiarity with Microsoft Word.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 整个用户实验持续了30分钟。在准备阶段，我们从官方Word文档和GPT生成的结果中抽取了五个不同的任务。根据任务所需的UI交互次数、UI功能的深度以及Ribbon切换的次数等因素，这些任务被分为两种难度级别：低难度（L1）和高难度（L2）。我们的实验结果也确认L2任务确实比L1任务更难。在后续讨论中，我们将简单地将不同类别的任务称为L1任务和L2任务。此外，我们设计了一份用户信息表格，用于收集参与者的背景信息，包括他们对Microsoft
+    Word的熟悉程度。
+- en: We provided users with a simple web interface during the formal experiment,
+    which consisted of two stages. In Stage 1, participants received a pre-printed
+    task list including both L1 and L2 tasks. Based on the task ID displayed on the
+    webpage, participants were asked to read the task requirements, click the ”start”
+    button, complete the task in the automatically opened Word document, and click
+    ”Finish.” upon task completion. In Stage 2, participants were instructed to use
+    both the UI Agent and AXIS to assist them in completing the Word tasks. The corresponding
+    webpage were featured with both input fields and buttons for activating the two
+    Agents. The participants need to enter task description to command the Agents
+    to complete the tasks. Throughout the formal experiment, all task execution processes
+    were recorded for subsequent analysis. After completing all assigned tasks manually
+    or with the assistant of agents, four different post-task questionnaires were
+    displayed on the experimental webpage to survey users’ subjective experiences.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在正式实验中，我们为用户提供了一个简单的网页界面，实验分为两个阶段。在第一个阶段，参与者会收到一份预先打印好的任务清单，包含L1和L2任务。根据网页上显示的任务ID，参与者需要阅读任务要求，点击“开始”按钮，完成自动打开的Word文档中的任务，并在完成任务后点击“完成”。在第二阶段，参与者需要使用UI助手和AXIS来辅助他们完成Word任务。相应的网页界面上包含输入框和按钮，用于激活这两个助手。参与者需要输入任务描述，通过命令助手完成任务。在整个正式实验过程中，所有的任务执行过程都会被记录下来，供后续分析使用。完成所有任务后，参与者将会看到四个不同的任务后问卷，供他们填写并调查用户的主观体验。
+- en: 5.2\. Participants
+  id: totrans-129
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2\. 参与者
+- en: We recruited candidates by posting on social media. 20 individuals were randomly
+    selected as participants for the experiment from the list of candidates who confirmed
+    their willingness to participate. Our participants ranged in age from 18 to 40
+    years with educational backgrounds spanning from undergraduate to postgraduate
+    levels. Their occupations included engineers, students, researchers, and full-time
+    homemakers, among others. 100% of the participants had some experience with Microsoft
+    Word with varying levels of proficiency and different usage frequency ranging
+    from daily to monthly. The user experiment lasted 30 minutes on average per participant
+    and each participant received 50 CNY as compensation.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过在社交媒体上发布招聘信息招募候选人。从确认愿意参与实验的候选人名单中，随机选取了20名个体作为实验参与者。我们的参与者年龄从18岁到40岁不等，教育背景涵盖本科至研究生水平。参与者的职业包括工程师、学生、研究员和全职家庭主妇等。100%的参与者都具有一定的Microsoft
+    Word使用经验，且熟练度和使用频率各不相同，使用频率从每日到每月不等。每位参与者的实验时长平均为30分钟，且每位参与者获得50元人民币的补偿。
+- en: 5.3\. Subjective Metric Collection
+  id: totrans-131
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3\. 主观指标收集
+- en: 'As mentioned in [5.1](https://arxiv.org/html/2409.17140v1#S5.SS1 "5.1\. Experiment
+    Procedure ‣ 5\. User Study ‣ Turn Every Application into an Agent: Towards Efficient
+    Human-Agent-Computer Interaction with API-First LLM-Based Agents"), we used four
+    questionnaires to collect users’ subjective experence for completing the tasks
+    using different methods. Questionnaires 1 to 4 were administered separately after
+    completing L1 tasks manually, completing L2 tasks manually, completing L1 tasks
+    with the assistance of an Agent, and completing L2 tasks with the assistance of
+    an Agent, respectively.'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如在[5.1](https://arxiv.org/html/2409.17140v1#S5.SS1 "5.1\. 实验程序 ‣ 5\. 用户研究 ‣
+    将每个应用程序转变为代理：基于 API 的 LLM 代理实现高效的人类-代理-计算机交互")中所述，我们使用了四份问卷来收集用户在使用不同方法完成任务时的主观体验。问卷
+    1 至 4 分别在用户手动完成 L1 任务后、手动完成 L2 任务后、在代理的帮助下完成 L1 任务后，以及在代理的帮助下完成 L2 任务后单独发放。
+- en: To determine whether LLM-based agents can indeed reduce users’ cognitive load
+    for completing tasks compared to manual work, in all the four questionnaires,
+    we include questions based on the NASA Task Load Index (NASA-TLX) (Hart, [1988](https://arxiv.org/html/2409.17140v1#bib.bib20))
+    and an additional question on the required learning efforts. For NASA-TLX, our
+    questions cover all the six metrics, including Mental Demand, Physical Demand,
+    Temporal Demand (how hurried or rushed of the tasks), performance (feeling of
+    success in completing the task), frustration level, and completion effort (how
+    hard the users need to work on the tasks). Lower values in those six metrics indicate
+    higher cognitive loads, better feeling of success, lower frustration level, and
+    less efforts during task completion. For the learning efforts, lower score also
+    indicates less learning efforts.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了确定基于 LLM 的代理是否能够确实减轻用户完成任务时的认知负担，与手动操作相比，在所有四份问卷中，我们都包含了基于 NASA 任务负荷指数（NASA-TLX）（Hart，[1988](https://arxiv.org/html/2409.17140v1#bib.bib20)）的问题，并增加了一个关于所需学习努力的问题。对于
+    NASA-TLX，我们的问题涵盖了六个指标，包括心理需求、身体需求、时间需求（任务的紧迫性）、表现（完成任务的成功感）、沮丧程度和完成努力（用户完成任务所需的努力）。这些六个指标的较低值表示较高的认知负担、较好的成功感、较低的沮丧感和较少的任务完成努力。对于学习努力，较低的分数也表示较少的学习努力。
+- en: To further compare users’ perceptions on the UI Agent and AXIS, Questionnaires
+    3 and 4 contained questions on the ratings on fluency, reliability, UI dependency,
+    decision consistency, and perceived speed for both Agents. Specifically, UI dependency
+    measures the degree of users’ reliance on the UI while observing the Agent complete
+    tasks. Decision consistency assesses how closely the decisions made by the Agent
+    align with the decisions users might make to complete the same tasks manually
+    (the experimental web page displayed all the decisions made by the Agents in a
+    step-by-step manner). Perceived speed refers to users’ subjective perception on
+    how fast the Agents completed the tasks.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进一步比较用户对 UI 代理和 AXIS 的感知，问卷 3 和 4 包含了关于两位代理的流畅性、可靠性、UI 依赖性、决策一致性和感知速度的评分问题。具体来说，UI
+    依赖性衡量用户在观察代理完成任务时对 UI 的依赖程度。决策一致性评估代理做出的决策与用户可能会做出的手动完成相同任务的决策之间的吻合程度（实验网页以逐步方式显示了代理做出的所有决策）。感知速度是指用户对代理完成任务速度的主观感知。
+- en: 5.4\. Objective Metric Collection
+  id: totrans-135
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.4\. 客观指标收集
+- en: We recorded experimental logs throughout the experiment, including screen recordings
+    of the manual completion of tasks by the users, screen recordings of the two Agents
+    (UI agent and AIXS) performing tasks, decision-making processes, UI interaction
+    paths, time taken, and the cost of the LLM backend (GPT-4o, version 20240513).
+    From on the logs, we extracted objective metrics including the time and success
+    rate of task completion across the three methods, the degree of UI dependency,
+    and cost for the two Agents.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实验过程中，我们记录了实验日志，包括用户手动完成任务的屏幕录制、两位代理（UI 代理和 AIXS）执行任务的屏幕录制、决策过程、UI 交互路径、所用时间以及
+    LLM 后端（GPT-4o，版本 20240513）的成本。通过这些日志，我们提取了客观指标，包括三种方法的任务完成时间和成功率、UI 依赖程度，以及两位代理的成本。
+- en: 6\. Results
+  id: totrans-137
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6\. 结果
+- en: In line with our research questions, we divided the experimental results into
+    three parts for analysis. Firstly, We investigate how the adoption of agent reduces
+    cognitive load for users. Secondly, We analyze and compare different agents’ abilities
+    of enhancing task efficiency. Finally, we discuss users’ preferences between the
+    traditional UI agent and our AXIS agent.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据我们的研究问题，我们将实验结果分为三部分进行分析。首先，我们研究智能体的采用如何减少用户的认知负担。其次，我们分析并比较不同智能体在提高任务效率方面的能力。最后，我们讨论用户在传统UI智能体和我们的AXIS智能体之间的偏好。
+- en: 6.1\. Cognitive load
+  id: totrans-139
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1\. 认知负担
+- en: 'To investigate the reduction of cognitive load by LLM-based Agents, we analyzed
+    the NASA-TLX and learning effort scoring collected from users during the task
+    execution process and summarized results in Table [6](https://arxiv.org/html/2409.17140v1#S6.T6
+    "Table 6 ‣ 6.1\. Cognitive load ‣ 6\. Results ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents") and Figure [3](https://arxiv.org/html/2409.17140v1#S6.F3 "Figure 3 ‣
+    6.1\. Cognitive load ‣ 6\. Results ‣ Turn Every Application into an Agent: Towards
+    Efficient Human-Agent-Computer Interaction with API-First LLM-Based Agents").
+    It is worthy noting that, in our experiment, L2 tasks generally scores higher
+    than L1 tasks across multiple dimensions of the NASA-TLX scale and learning efforts,
+    which indicates that our task difficulty classification is consistent with the
+    users’ experience.'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了研究基于LLM的智能体如何减轻认知负担，我们分析了在任务执行过程中从用户收集的NASA-TLX和学习努力评分，并将结果总结在表格[6](https://arxiv.org/html/2409.17140v1#S6.T6
+    "Table 6 ‣ 6.1\. Cognitive load ‣ 6\. Results ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents")和图[3](https://arxiv.org/html/2409.17140v1#S6.F3 "Figure 3 ‣ 6.1\. Cognitive
+    load ‣ 6\. Results ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents")中。值得注意的是，在我们的实验中，L2任务在NASA-TLX量表的多个维度和学习努力评分中普遍高于L1任务，这表明我们的任务难度分类与用户的体验是一致的。'
+- en: 'As shown in Table [6](https://arxiv.org/html/2409.17140v1#S6.T6 "Table 6 ‣
+    6.1\. Cognitive load ‣ 6\. Results ‣ Turn Every Application into an Agent: Towards
+    Efficient Human-Agent-Computer Interaction with API-First LLM-Based Agents"),
+    at both L1 and L2 difficulty levels, the agent based method shows significant
+    improvements over the manual based method in most of the NASA-TLX scales. In particular,
+    the agent based method is much less mentally and physically demanding, generate
+    less frustration for users, and requires less effort in completing tasks than
+    the manual based method. The reduction in the cognitive effort by the agent based
+    method is also generally more pronounced for the more difficulty L2 tasks. For
+    the performance metric, while the difference between agent based method and manual
+    method is insignficant for the easy L1 tasks, the agent based method does boost
+    the users’ feeling of success significantly (p¡0.05) for the difficult L2 tasks.
+    In Figure [3](https://arxiv.org/html/2409.17140v1#S6.F3 "Figure 3 ‣ 6.1\. Cognitive
+    load ‣ 6\. Results ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents") (b), we also summarized the average
+    scores across all the six NASA-TLX scales. This figure shows that, when using
+    the Agents, the users’ experiences in completing L1 and L2 tasks are similar,
+    which demonstrates the stability of LLM-based agents in addressing tasks with
+    different complexities. Finally, Figure [3](https://arxiv.org/html/2409.17140v1#S6.F3
+    "Figure 3 ‣ 6.1\. Cognitive load ‣ 6\. Results ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents") (c) shows that the LLM-based agents can also significantly reduced users’
+    learning efforts in completing the task compared to the manual approach. Similar
+    to the NASA-TLX scales, the reduction is also bigger at the higher task difficulty
+    level.'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如表[6](https://arxiv.org/html/2409.17140v1#S6.T6 "Table 6 ‣ 6.1\. Cognitive
+    load ‣ 6\. Results ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents")所示，在L1和L2难度级别下，基于代理的方法在大多数NASA-TLX量表中相比手动方法表现出显著的改善。特别是，基于代理的方法在精神和身体上的要求较低，给用户带来的挫败感较少，且完成任务所需的努力也比手动方法少。基于代理的方法在减少认知负担方面，尤其在较难的L2任务中，通常表现得更加明显。对于表现度量，虽然在简单的L1任务中，基于代理的方法和手动方法之间的差异不显著，但对于难度较高的L2任务，基于代理的方法显著提升了用户的成功感（p¡0.05）。在图[3](https://arxiv.org/html/2409.17140v1#S6.F3
+    "Figure 3 ‣ 6.1\. Cognitive load ‣ 6\. Results ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents")（b）中，我们还总结了六个NASA-TLX量表的平均得分。该图显示，使用代理时，用户完成L1和L2任务的体验相似，这证明了基于LLM的代理在处理不同复杂度的任务时具有稳定性。最后，图[3](https://arxiv.org/html/2409.17140v1#S6.F3
+    "Figure 3 ‣ 6.1\. Cognitive load ‣ 6\. Results ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents")（c）显示，与手动方法相比，基于LLM的代理还显著降低了用户完成任务时的学习努力。与NASA-TLX量表类似，任务难度越高，降低的程度也越大。'
+- en: 'All those results clearly demonstrate the value of agent based method in helping
+    users in completing various tasks and answer the first research question (RQ1):
+    the LLM-based agent does indeed lower the cognitive load of users and reduces
+    their effort to learn, especially for more difficult tasks.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些结果清楚地展示了基于代理的方法在帮助用户完成各种任务中的价值，并回答了第一个研究问题（RQ1）：基于LLM的代理确实降低了用户的认知负荷，并减少了他们的学习努力，尤其是在更难的任务中。
+- en: 'Table 6\. Comparison of NASA-TLX results of Level 1 and Level 2 tasks. (m:
+    Manual, a: Agents)'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表6\. Level 1和Level 2任务的NASA-TLX结果对比。（m: 手动，a: 代理）'
+- en: '| Metric | Task Level | Manual | Agents | Pairwise Significance |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 任务级别 | 手动 | 代理 | 配对显著性 |'
+- en: '| Mental Demand (0-100) | L1 L2 | 21.3 70.0 | 2.5 7.5 | L1: m¿a (p ¡ 0.001)
+    L2: m¿a (p ¡ 0.001) |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| 心理需求（0-100） | L1 L2 | 21.3 70.0 | 2.5 7.5 | L1: m¿a (p ¡ 0.001) L2: m¿a (p
+    ¡ 0.001) |'
+- en: '| Physical Demand (0-100) | L1 L2 | 31.3 57.5 | 5.0 6.3 | L1: m¿a (p ¡ 0.001)
+    L2: m¿a (p ¡ 0.001) |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| 身体需求（0-100） | L1 L2 | 31.3 57.5 | 5.0 6.3 | L1: m¿a (p ¡ 0.001) L2: m¿a (p
+    ¡ 0.001) |'
+- en: '| Temporal Demand (0-100) | L1 L2 | 52.5 37.5 | 28.8 35.0 | L1: m¿a (p ¡ 0.05)
+    L2: - |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间需求（0-100） | L1 L2 | 52.5 37.5 | 28.8 35.0 | L1: m¿a (p ¡ 0.05) L2: - |'
+- en: '| Performance (0-100) | L1 L2 | 21.2 47.5 | 21.2 26.2 | L1: - L2: m¿a (p ¡
+    0.05) |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| 表现（0-100） | L1 L2 | 21.2 47.5 | 21.2 26.2 | L1: - L2: m¿a (p ¡ 0.05) |'
+- en: '| Frustration Level (0-100) | L1 L2 | 31.3 62.5 | 7.5 10.0 | L1: m¿a (p ¡ 0.001)
+    L2: m¿a (p ¡ 0.001) |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| 挫败感等级（0-100） | L1 L2 | 31.3 62.5 | 7.5 10.0 | L1: m¿a (p ¡ 0.001) L2: m¿a
+    (p ¡ 0.001) |'
+- en: '| Completion Effort (0-100) | L1 L2 | 12.5 35.0 | 17.5 13.8 | L1: - L2: m¿a
+    (p ¡ 0.01) |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| 完成努力（0-100） | L1 L2 | 12.5 35.0 | 17.5 13.8 | L1: - L2: m¿a (p ¡ 0.01) |'
+- en: '![Refer to caption](img/5db69f974117c2541c72e73b1d07ab17.png)'
+  id: totrans-151
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/5db69f974117c2541c72e73b1d07ab17.png)'
+- en: 'Figure 3\. The results of NASA Workload and learn efforts on L1 and L2 tasks
+    of user study. Bars indicate standard errors (**: p ¡ 0.01, ***: p ¡ 0.001)'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图 3\. NASA 工作负载和学习努力对用户研究中 L1 和 L2 任务的结果。柱状图表示标准误差（**: p ¡ 0.01, ***: p ¡ 0.001）'
+- en: 6.2\. Efficiency and reliability
+  id: totrans-153
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2\. 效率与可靠性
+- en: 'To compare the efficiency and reliability between the manual method, UI agents,
+    and AXIS, we also collected metrics on the completion time, success rate, as well
+    as the number of steps and costs for completing tasks in our experiment. Those
+    information are summarized in Table [7](https://arxiv.org/html/2409.17140v1#S6.T7
+    "Table 7 ‣ 6.2\. Efficiency and reliability ‣ 6\. Results ‣ Turn Every Application
+    into an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First
+    LLM-Based Agents") and Table [8](https://arxiv.org/html/2409.17140v1#S6.T8 "Table
+    8 ‣ 6.2\. Efficiency and reliability ‣ 6\. Results ‣ Turn Every Application into
+    an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents").'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了比较手动方法、UI 代理和 AXIS 之间的效率和可靠性，我们还收集了完成时间、成功率、步骤数以及任务完成的成本等指标。这些信息总结在表格 [7](https://arxiv.org/html/2409.17140v1#S6.T7
+    "表 7 ‣ 6.2\. 效率与可靠性 ‣ 6\. 结果 ‣ 将每个应用程序转化为代理：朝着高效的人类-代理-计算机交互迈进，基于 API 的 LLM 代理")
+    和表格 [8](https://arxiv.org/html/2409.17140v1#S6.T8 "表 8 ‣ 6.2\. 效率与可靠性 ‣ 6\. 结果
+    ‣ 将每个应用程序转化为代理：朝着高效的人类-代理-计算机交互迈进，基于 API 的 LLM 代理") 中。
+- en: In terms of time efficiency, AXIS consistently took significantly less time
+    than both the manual and UI Agent methods for both L1 and L2 tasks (p ¡ 0.001),
+    with a larger advantage for the more difficult L2 tasks. For L1 tasks, the manual
+    method was actually faster than the UI Agent as the UI Agent generally took many
+    steps to complete a task.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在时间效率方面，AXIS 一直比手动方法和 UI 代理方法在 L1 和 L2 任务上花费的时间显著更少（p ¡ 0.001），对于较难的 L2 任务，AXIS
+    的优势更大。对于 L1 任务，手动方法实际上比 UI 代理更快，因为 UI 代理通常需要多次步骤才能完成任务。
+- en: For the accuracy, unsurprisingly the manual method is the best among all the
+    three methods. Still, AXIS can achieve a high level accuracy that is only slightly
+    worse than human performance. In contrast, the accuracy of the UI agent is considerably
+    lower, especially at the L2 tasks. Upon reviewing the video logs, we found that
+    incorrect positioning of UI elements and the invisibility of certain UI components
+    were the major causes of the errors made by the the UI agent.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于准确性，毫无意外，手动方法在三种方法中表现最佳。然而，AXIS 仍能达到一个高水平的准确性，仅略逊于人类表现。相比之下，UI 代理的准确性明显较低，尤其是在
+    L2 任务中。通过回顾视频日志，我们发现 UI 元素定位不准确以及某些 UI 组件不可见是 UI 代理出错的主要原因。
+- en: 'Finally, as shown in Table [8](https://arxiv.org/html/2409.17140v1#S6.T8 "Table
+    8 ‣ 6.2\. Efficiency and reliability ‣ 6\. Results ‣ Turn Every Application into
+    an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents")), UI agents often need to take more steps to finish the task, especially
+    the L2 tasks where where the target UI elements were buried deeper in the interface.
+    In contrast, empowered by the streamlined task execution enabled by API calls,
+    AXIS took significantly fewer steps, and thus lower overall costs for completing
+    tasks at both difficulty levels.'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，如表 [8](https://arxiv.org/html/2409.17140v1#S6.T8 "表 8 ‣ 6.2\. 效率与可靠性 ‣ 6\.
+    结果 ‣ 将每个应用程序转化为代理：朝着高效的人类-代理-计算机交互迈进，基于 API 的 LLM 代理") 所示，UI 代理往往需要更多的步骤来完成任务，特别是在
+    L2 任务中，目标 UI 元素被深埋在界面中。相比之下，借助 API 调用优化的简化任务执行，AXIS 需要显著更少的步骤，因此在两个难度级别下完成任务的整体成本较低。
+- en: Based on the above analysis, we can address our second research question (RQ2).
+    The use of a UI Agent provides a slight improvement in human efficiency for specific
+    complex tasks, but it suffers from reliability issues. In contrast, AXIS consistently
+    enhances human efficiency and demonstrates greater reliability.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于以上分析，我们可以回答第二个研究问题（RQ2）。UI 代理在特定复杂任务中为人类效率提供了轻微的提升，但它存在可靠性问题。相比之下，AXIS 一直在提高人类效率，并表现出更高的可靠性。
+- en: Table 7\. Comparison of Methods on Time and Success Rate in L1 and L2 tasks.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7\. L1 和 L2 任务中各方法在时间和成功率上的比较。
+- en: '| Metric | Task Level | Manual | UI Agent | AXIS | Pairwise Significance |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 任务级别 | 手动 | UI 代理 | AXIS | 配对显著性 |'
+- en: '| Time(s) | L1 L2 | 61.8 167.6 | 104.6 155.5 | 18.2 57.1 | L1: m¡u (p ¡ 0.001)
+    L1, L2: a¡m (p ¡ 0.001) L1, L2: a¡u (p ¡ 0.001) |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间（秒） | L1 L2 | 61.8 167.6 | 104.6 155.5 | 18.2 57.1 | L1: m¡u (p ¡ 0.001)
+    L1, L2: a¡m (p ¡ 0.001) L1, L2: a¡u (p ¡ 0.001) |'
+- en: '| Success Rate(%) | L1 L2 | 100.0 97.5 | 75.0 45.0 | 98.3 95.0 | L1, L2: m¿u
+    (p ¡ 0.001) L1, L2: a¿u (p ¡ 0.001) |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| 成功率（%） | L1 L2 | 100.0 97.5 | 75.0 45.0 | 98.3 95.0 | L1, L2: m¿u (p ¡ 0.001)
+    L1, L2: a¿u (p ¡ 0.001) |'
+- en: Table 8\. Comparison of Methods on Steps and Cost in L1 and L2 tasks.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 8\. L1 和 L2 任务中不同方法的步骤和成本比较。
+- en: '| Metric | Task Level | UI Agent | AXIS | Pairwise Significance |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 任务级别 | UI 代理 | AXIS | 配对显著性 |'
+- en: '| steps | L1 L2 | 6.4 11.1 | 1.0 4.2 | L1: a¡u (p ¡ 0.001) L2: a¡u (p ¡ 0.001)
+    |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| 步骤 | L1 L2 | 6.4 11.1 | 1.0 4.2 | L1: a¡u (p ¡ 0.001) L2: a¡u (p ¡ 0.001)
+    |'
+- en: '| cost($) | L1 L2 | 0.6 0.9 | 0.07 0.3 | L1: a¡u (p ¡ 0.001) L2: a¡u (p ¡ 0.001)
+    |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| 成本（美元） | L1 L2 | 0.6 0.9 | 0.07 0.3 | L1: a¡u (p ¡ 0.001) L2: a¡u (p ¡ 0.001)
+    |'
+- en: 6.3\. Affinity preference
+  id: totrans-167
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.3\. 偏好亲和力
+- en: 'To explore the differences in user experience when executing tasks with UI
+    agents versus AXIS, We also conducted a subjective preference evaluation on five
+    aspects for both L1 and L2 tasks and summarized the results in Figure [4](https://arxiv.org/html/2409.17140v1#S6.F4
+    "Figure 4 ‣ 6.3\. Affinity preference ‣ 6\. Results ‣ Turn Every Application into
+    an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents"). At both difficulty levels, participants showed a general preference
+    for AXIS over UI agents in term of the perceived speed, fluency, and reliability.'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了探讨在使用 UI 代理与 AXIS 执行任务时的用户体验差异，我们还对 L1 和 L2 任务的五个方面进行了主观偏好评估，并将结果总结在图 [4](https://arxiv.org/html/2409.17140v1#S6.F4
+    "Figure 4 ‣ 6.3\. Affinity preference ‣ 6\. Results ‣ Turn Every Application into
+    an Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents") 中。在两个难度级别下，参与者普遍偏好 AXIS 而非 UI 代理，尤其在感知的速度、流畅性和可靠性方面。'
+- en: For the perceived consistency of decision, the results varied between the L1
+    and L2 tasks. In the L1 tasks, AXIS usually can complete tasks with one or a few
+    steps due to the high encapsulation of its API, which resulted in a decision-making
+    style that is quite distant from the thinking pattern of human. However, in complex
+    tasks, AXIS’s decisions become more aligned with human’s thought processes and
+    were thus perceived better by humans in this aspect. For the UI dependency, AXIS
+    is much less reliant to the UI compared to the UI Agent, which needs to frequently
+    interact with the UI interface. This reduced dependency on the UI was clearly
+    perceived by users during their experience.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于决策一致性的感知，结果在 L1 和 L2 任务之间有所不同。在 L1 任务中，AXIS 通常可以通过一步或几步完成任务，因为其 API 的高度封装性，这导致了与人类思维模式差异较大的决策风格。然而，在复杂任务中，AXIS
+    的决策更接近人类的思维过程，因此在人类看来，在这一方面的表现更佳。对于 UI 依赖性，AXIS 与需要频繁与 UI 界面交互的 UI Agent 相比，依赖于
+    UI 的程度要低得多。这种对 UI 依赖性的减少在用户体验过程中得到了明显的感知。
+- en: 'In summary, for the third research question (RQ3): AXIS, compared to UI agents,
+    tends to leave users with a perception of better efficiency, smoothness, and reliability.
+    As task complexity increases, users are also more inclined to favor AXIS for task
+    resolution. Additionally, feedback from user surveys indicated a desire for greater
+    control when using LLM-based agents. Unlike UI agents, which often interrupt users’
+    mouse actions and occupy screen space, AXIS’s API-first approach addresses this
+    issue and improves users’ experience.'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，对于第三个研究问题（RQ3）：与 UI 代理相比，AXIS 更容易给用户留下更高效、更流畅、更可靠的印象。随着任务复杂性的增加，用户也更倾向于选择
+    AXIS 来解决任务。此外，用户调查反馈表明，用户希望在使用基于 LLM 的代理时能够获得更大的控制权。与常常打断用户鼠标操作并占用屏幕空间的 UI 代理不同，AXIS
+    的 API 优先方法解决了这一问题，并改善了用户体验。
+- en: '![Refer to caption](img/5f906f03f9c172a76a7cb499470b5a01.png)'
+  id: totrans-171
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/5f906f03f9c172a76a7cb499470b5a01.png)'
+- en: Figure 4\. The results of subjective preference on L1 and L2 tasks of user study.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4\. 用户研究中 L1 和 L2 任务的主观偏好结果。
+- en: 7\. Discussion
+  id: totrans-173
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7\. 讨论
+- en: 7.1\. AXIS help to digest unnecessary Application UIs
+  id: totrans-174
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.1\. AXIS 帮助消化不必要的应用程序 UI
+- en: To build new APIs on top of existing API and UI functions, AXIS leverages a
+    LLM-powered self-exploration framework to identify all control elements within
+    an application that can be converted into APIs. This exploration procedure helps
+    uncover potentially unnecessary UI elements or redundant UI designs for improvement
+    under the HACI paradigm.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了在现有的 API 和 UI 功能基础上构建新的 API，AXIS 利用 LLM 驱动的自我探索框架，识别应用程序中可以转换为 API 的所有控制元素。这个探索过程有助于揭示潜在的不必要的
+    UI 元素或冗余的 UI 设计，并在 HACI 模式下进行改进。
+- en: 'To illustrate this process, in Figure [5](https://arxiv.org/html/2409.17140v1#S7.F5
+    "Figure 5 ‣ 7.1\. AXIS help to digest unnecessary Application UIs ‣ 7\. Discussion
+    ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents"), the UI hierarchical relationships
+    between UIs are represented as a tree, in which each node represents a UI element
+    with higher-level UI elements as parent nodes and lower-level ones as child nodes.
+    We further use red nodes to represent UI locations that can be API-ified after
+    explored by AXIS, and use blue nodes represent general UI elements. In this example,
+    the root node that represents the ”Home” tab is a blue node as not all its sub-UI
+    nodes are red (API-ified). However, the second-level node ”Highlight Color” (node
+    2-2) and all its third-level child nodes can all be API-ified and are colored
+    in red. Generally, we define a node N as non-essential if this node along with
+    all their child nodes can all be API-ified:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了说明这一过程，在图[5](https://arxiv.org/html/2409.17140v1#S7.F5 "图5 ‣ 7.1\. AXIS有助于消化不必要的应用UI
+    ‣ 7\. 讨论 ‣ 将每个应用转化为代理：面向高效的人机代理交互，基于API的LLM代理")中，UI之间的层次关系以树状图表示，其中每个节点代表一个UI元素，高层UI元素为父节点，低层UI元素为子节点。我们进一步用红色节点表示通过AXIS探索后可以API化的UI位置，用蓝色节点表示普通UI元素。在此示例中，表示“主页”标签的根节点为蓝色节点，因为并非所有子UI节点都已变为红色（API化）。然而，二级节点“突出显示颜色”（节点2-2）及其所有三级子节点均可以API化，并显示为红色。一般来说，我们定义一个节点N为非必需节点，如果该节点及其所有子节点都可以API化：
+- en: '|  | $\text{NonEssential}(N)=\begin{cases}\text{True},&\text{if }N\text{ and
+    all its%  child nodes are red nodes ({API-enabled})}\\ \text{False},&\text{otherwise}\end{cases}$
+    |  |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{NonEssential}(N)=\begin{cases}\text{True},&\text{如果 }N\text{及其所有子节点都是红色节点（API启用）}\\
+    \text{False},&\text{否则}\end{cases}$ |  |'
+- en: Unlike the HCI paradigm that emphasizes the interactions between human and interfaces,
+    in the future Agent OS powered by LLM-based agents, non-essential UI elements
+    can be simplified or even eliminated from the application interface, with their
+    original functions replaced by the API calls. By categorizing UI elements as essential
+    or non-essential, AXIS can provide valuable insights on how the UI might be improved
+    and re-designed in an agent-based system for the application providers.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与强调人类与界面之间交互的HCI范式不同，在未来由基于LLM的代理驱动的Agent操作系统中，非必需的UI元素可以简化甚至从应用界面中移除，其原有功能将通过API调用来替代。通过将UI元素分类为必需和非必需，AXIS可以为应用提供商提供如何在基于代理的系统中改进和重新设计UI的有价值见解。
+- en: '![Refer to caption](img/2a945a83078806d687e28fcc34b0e635.png)'
+  id: totrans-179
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/2a945a83078806d687e28fcc34b0e635.png)'
+- en: Figure 5\. The figure illustrates rule of identifying the UI controls available
+    to be cropped. On the left, the relevant UI components from the original document
+    structure are displayed. On the right, the corresponding UI tree is shown, with
+    nodes matching the UI components by number and position, numbers indicating hierarchy
+    levels, and arrows representing parent-child relationships. The red nodes represent
+    UI controls that can be cropped.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5\. 该图展示了识别可以裁剪的UI控件的规则。左侧展示了原始文档结构中的相关UI组件。右侧展示了对应的UI树，其中节点通过数字和位置与UI组件相匹配，数字表示层级，箭头表示父子关系。红色节点代表可以裁剪的UI控件。
+- en: 7.2\. Turn An Application into an Agent
+  id: totrans-181
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.2\. 将应用转化为代理
+- en: 'In the experiment section, we use Microsoft Word to illustrate how to explore
+    and construct new API agents using the AXIS framework. It is worthy noting that
+    the AXIS framework is highly adaptable and scalable, and can be extended to any
+    new application with a basic API and documentation support. Specifically, to adapt
+    AXIS, the application provider needs to supplement operational manuals on the
+    applications as well as the following interfaces:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实验部分，我们使用Microsoft Word来说明如何利用AXIS框架探索和构建新的API代理。值得注意的是，AXIS框架具有高度的适应性和可扩展性，可以扩展到任何具有基本API和文档支持的新应用。具体来说，为了适应AXIS，应用提供商需要补充应用操作手册以及以下接口：
+- en: •
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Environment State Interface for obtaining information about the state of the
+    environment.
+  id: totrans-184
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 环境状态接口，用于获取环境状态信息。
+- en: •
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Basic Action Interface for supporting basic interactions with the environment.
+  id: totrans-186
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 基本操作接口，用于支持与环境的基本交互。
+- en: Starting from those basic resources, AXIS can automatically and continuously
+    explore the applications, discover new skills, and extend its functionalities.
+    This adaptability also means that AXIS can be integrated into various software
+    environments to enhance functionality and user experience with API-driven interactions.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这些基本资源开始，AXIS可以自动并持续地探索应用程序，发现新技能并扩展其功能。这种适应性也意味着AXIS可以集成到各种软件环境中，通过API驱动的交互来增强功能和用户体验。
+- en: 8\. Conclusion
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8. 结论
+- en: In this paper, we introduce AXIS, a pioneering framework designed to enhance
+    human-agent-computer interaction (HACI) and address the inefficiencies and cognitive
+    burdens associated with multimodal large language models (MLLMs) in complex task
+    execution by prioritizing API calls over traditional UI interactions. Through
+    user experiments with tasks from Office Word , AXIS has proven to be highly effective,
+    reducing task completion time by 65%-70% and cognitive workload by 38%-53%, while
+    maintaining a high level of accuracy comparable to human performance. These results
+    underscore the potential of API-first LLM-based agents to streamline interactions,
+    minimize latency, and enhance reliability in task execution.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们介绍了AXIS，一个旨在增强人机代理计算机交互（HACI）并解决多模态大型语言模型（MLLM）在复杂任务执行中所带来的低效和认知负担的开创性框架，优先考虑API调用而非传统UI交互。通过对Office
+    Word任务的用户实验，AXIS证明了其极高的有效性，任务完成时间减少了65%-70%，认知负荷降低了38%-53%，同时保持了与人类表现相当的高准确度。这些结果突显了基于API优先的LLM代理在简化交互、减少延迟和提高任务执行可靠性方面的潜力。
+- en: Our research contributes to the broader field of human-agent interaction by
+    highlighting the limitations of traditional UI-based approaches and proposing
+    a novel solution that leverages API calls to simplify and accelerate task completion.
+    By enabling applications to act as agents through a reduced set of essential UIs
+    and enhanced API sets, AXIS not only improves efficiency but also paves the way
+    towards the development of a comprehensive Agent OS. This paradigm shift suggests
+    that every application has the potential to transform into an intelligent agent
+    capable of executing tasks with minimal user intervention.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的研究通过突出了传统基于UI的方法的局限性，并提出了利用API调用简化和加速任务完成的创新解决方案，为人机代理交互领域作出了贡献。通过使应用程序能够通过简化的UI集合和增强的API集作为代理来运行，AXIS不仅提高了效率，还为全面代理操作系统的发展铺平了道路。这种范式的转变表明，每个应用程序都有潜力转变为智能代理，能够以最小的用户干预执行任务。
+- en: In conclusion, AXIS represents a significant step forward in reducing cognitive
+    load and enhancing the efficiency of task completion with LLM-based agents. Our
+    findings provide valuable insights for application developers and researchers,
+    encouraging them to rethink UI designs and explore new ways to integrate API-driven
+    interactions. In our future work, we will focus on extending this framework to
+    a broader range of applications, exploring its impact on various user groups,
+    and advancing the potential of LLMs in creating a more intuitive and efficient
+    human-computer interface.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总之，AXIS代表了在减少认知负荷和提高基于LLM的代理任务完成效率方面的重要进展。我们的研究结果为应用开发者和研究人员提供了宝贵的见解，鼓励他们重新思考UI设计，并探索集成API驱动交互的新方式。在未来的工作中，我们将专注于将这一框架扩展到更广泛的应用，探索其对不同用户群体的影响，并推动LLM在创建更加直观高效的人机界面方面的潜力。
+- en: References
+  id: totrans-192
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: (1)
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: （1）
+- en: 'Abrahamsson et al. (2017) Pekka Abrahamsson, Outi Salo, Jussi Ronkainen, and
+    Juhani Warsta. 2017. Agile software development methods: Review and analysis.
+    *arXiv preprint arXiv:1709.08439* (2017).'
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Abrahamsson等人（2017）Pekka Abrahamsson, Outi Salo, Jussi Ronkainen和Juhani Warsta。2017年。敏捷软件开发方法：回顾与分析。*arXiv预印本
+    arXiv:1709.08439*（2017）。
+- en: Achiam et al. (2023) Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad,
+    Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman,
+    Shyamal Anadkat, et al. 2023. Gpt-4 technical report. *arXiv preprint arXiv:2303.08774*
+    (2023).
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Achiam等人（2023）Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge
+    Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman,
+    Shyamal Anadkat等。2023年。Gpt-4技术报告。*arXiv预印本 arXiv:2303.08774*（2023）。
+- en: 'Apple (2024) Apple. 2024. Apple Intelligence. [https://developer.apple.com/apple-intelligence/](https://developer.apple.com/apple-intelligence/).
+    Accessed: 2024-08-28.'
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Apple（2024）Apple。2024年。Apple Intelligence。[https://developer.apple.com/apple-intelligence/](https://developer.apple.com/apple-intelligence/)。访问时间：2024-08-28。
+- en: 'Bai et al. (2023) Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan,
+    Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. 2023. Qwen-VL: A Versatile
+    Vision-Language Model for Understanding, Localization, Text Reading, and Beyond.
+    *arXiv preprint arXiv:2308.12966* (2023).'
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bai等人（2023）Jinze Bai、Shuai Bai、Shusheng Yang、Shijie Wang、Sinan Tan、Peng Wang、Junyang
+    Lin、Chang Zhou和Jingren Zhou。2023年。Qwen-VL：一种多功能的视觉-语言模型，用于理解、定位、文本阅读等。*arXiv预印本
+    arXiv:2308.12966*（2023）。
+- en: Bang et al. (2023) Yejin Bang, Samuel Cahyawijaya, Nayeon Lee, Wenliang Dai,
+    Dan Su, Bryan Wilie, Holy Lovenia, Ziwei Ji, Tiezheng Yu, Willy Chung, et al.
+    2023. A multitask, multilingual, multimodal evaluation of chatgpt on reasoning,
+    hallucination, and interactivity. *arXiv preprint arXiv:2302.04023* (2023).
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bang等人（2023）Yejin Bang、Samuel Cahyawijaya、Nayeon Lee、Wenliang Dai、Dan Su、Bryan
+    Wilie、Holy Lovenia、Ziwei Ji、Tiezheng Yu、Willy Chung等人。2023年。对ChatGPT在推理、幻觉和互动性方面的多任务、多语言、多模态评估。*arXiv预印本
+    arXiv:2302.04023*（2023）。
+- en: 'Biswas et al. (2005) Gautam Biswas, Krittaya Leelawong, Daniel Schwartz, Nancy
+    Vye, and The Teachable Agents Group at Vanderbilt. 2005. Learning by teaching:
+    A new agent paradigm for educational software. *Applied Artificial Intelligence*
+    19, 3-4 (2005), 363–392.'
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Biswas等人（2005）Gautam Biswas、Krittaya Leelawong、Daniel Schwartz、Nancy Vye，以及范德比尔特大学的可教学代理小组。2005年。通过教学学习：一种新的教育软件代理范式。*应用人工智能*
+    19, 3-4 (2005)，363–392。
+- en: Bradshaw et al. (2017) Jeffrey M Bradshaw, Paul J Feltovich, and Matthew Johnson.
+    2017. Human–agent interaction. In *The handbook of human-machine interaction*.
+    CRC Press, 283–300.
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bradshaw等人（2017）Jeffrey M Bradshaw、Paul J Feltovich和Matthew Johnson。2017年。人类与代理的互动。见于*人机互动手册*。CRC出版社，283–300。
+- en: Chen et al. (2024) Lingjiao Chen, Jared Quincy Davis, Boris Hanin, Peter Bailis,
+    Ion Stoica, Matei Zaharia, and James Zou. 2024. Are more llm calls all you need?
+    towards scaling laws of compound inference systems. *arXiv preprint arXiv:2403.02419*
+    (2024).
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen等人（2024）Lingjiao Chen、Jared Quincy Davis、Boris Hanin、Peter Bailis、Ion Stoica、Matei
+    Zaharia和James Zou。2024年。更多的LLM调用就是你所需要的吗？朝着复合推理系统的规模定律迈进。*arXiv预印本 arXiv:2403.02419*（2024）。
+- en: 'Cheng et al. (2024) Kanzhi Cheng, Qiushi Sun, Yougang Chu, Fangzhi Xu, Yantao
+    Li, Jianbing Zhang, and Zhiyong Wu. 2024. Seeclick: Harnessing gui grounding for
+    advanced visual gui agents. *arXiv preprint arXiv:2401.10935* (2024).'
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cheng等人（2024）Kanzhi Cheng、Qiushi Sun、Yougang Chu、Fangzhi Xu、Yantao Li、Jianbing
+    Zhang和Zhiyong Wu。2024年。Seeclick：利用图形界面基础进行高级视觉图形界面代理的开发。*arXiv预印本 arXiv:2401.10935*（2024）。
+- en: Darejeh et al. (2022) Ali Darejeh, Sara Mashayekh, and Nadine Marcus. 2022.
+    Cognitive-based methods to facilitate learning of software applications via E-learning
+    systems. *Cogent Education* 9, 1 (2022), 2082085.
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Darejeh等人（2022）Ali Darejeh、Sara Mashayekh和Nadine Marcus。2022年。基于认知的方法，通过电子学习系统促进软件应用学习。*Cogent教育*
+    9, 1 (2022)，2082085。
+- en: Dhuliawala et al. (2023) Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta
+    Raileanu, Xian Li, Asli Celikyilmaz, and Jason Weston. 2023. Chain-of-verification
+    reduces hallucination in large language models. *arXiv preprint arXiv:2309.11495*
+    (2023).
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dhuliawala等人（2023）Shehzaad Dhuliawala、Mojtaba Komeili、Jing Xu、Roberta Raileanu、Xian
+    Li、Asli Celikyilmaz和Jason Weston。2023年。验证链减少大语言模型中的幻觉。*arXiv预印本 arXiv:2309.11495*（2023）。
+- en: Duan et al. (2024) Peitong Duan, Jeremy Warner, Yang Li, and Bjoern Hartmann.
+    2024. Generating Automatic Feedback on UI Mockups with Large Language Models.
+    In *Proceedings of the CHI Conference on Human Factors in Computing Systems*.
+    1–20.
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Duan等人（2024）Peitong Duan、Jeremy Warner、Yang Li和Bjoern Hartmann。2024年。使用大语言模型生成UI原型的自动反馈。见于*CHI计算机系统中的人因会议论文集*。1–20。
+- en: Dubey et al. (2024) Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek
+    Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang,
+    Angela Fan, et al. 2024. The llama 3 herd of models. *arXiv preprint arXiv:2407.21783*
+    (2024).
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dubey等人（2024）Abhimanyu Dubey、Abhinav Jauhri、Abhinav Pandey、Abhishek Kadian、Ahmad
+    Al-Dahle、Aiesha Letman、Akhil Mathur、Alan Schelten、Amy Yang、Angela Fan等人。2024年。Llama
+    3系列模型。*arXiv预印本 arXiv:2407.21783*（2024）。
+- en: 'Durante et al. (2024) Zane Durante, Qiuyuan Huang, Naoki Wake, Ran Gong, Jae Sung
+    Park, Bidipta Sarkar, Rohan Taori, Yusuke Noda, Demetri Terzopoulos, Yejin Choi,
+    et al. 2024. Agent ai: Surveying the horizons of multimodal interaction. *arXiv
+    preprint arXiv:2401.03568* (2024).'
+  id: totrans-207
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Durante等人（2024）Zane Durante、Qiuyuan Huang、Naoki Wake、Ran Gong、Jae Sung Park、Bidipta
+    Sarkar、Rohan Taori、Yusuke Noda、Demetri Terzopoulos、Yejin Choi等人。2024年。Agent AI：探索多模态交互的前沿。*arXiv预印本
+    arXiv:2401.03568*（2024）。
+- en: Egiazarian et al. (2024) Vage Egiazarian, Andrei Panferov, Denis Kuznedelev,
+    Elias Frantar, Artem Babenko, and Dan Alistarh. 2024. Extreme compression of large
+    language models via additive quantization. *arXiv preprint arXiv:2401.06118* (2024).
+  id: totrans-208
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Egiazarian 等人 (2024) Vage Egiazarian, Andrei Panferov, Denis Kuznedelev, Elias
+    Frantar, Artem Babenko, 和 Dan Alistarh. 2024. 通过加性量化实现大型语言模型的极限压缩。*arXiv 预印本 arXiv:2401.06118*
+    (2024)。
+- en: (17) Meta Fundamental AI Research Diplomacy Team (FAIR)†, Anton Bakhtin, Noam
+    Brown, Emily Dinan, Gabriele Farina, Colin Flaherty, Daniel Fried, Andrew Goff,
+    Jonathan Gray, Hengyuan Hu, et al. 2022. Human-level play in the game of Diplomacy
+    by combining language models with strategic reasoning. *Science* 378, 6624 (2022),
+    1067–1074.
+  id: totrans-209
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: (17) Meta 基础 AI 研究外交团队 (FAIR)†, Anton Bakhtin, Noam Brown, Emily Dinan, Gabriele
+    Farina, Colin Flaherty, Daniel Fried, Andrew Goff, Jonathan Gray, Hengyuan Hu
+    等人. 2022. 通过将语言模型与战略推理相结合，实现在《外交》游戏中的人类级别表现。*Science* 378, 6624 (2022), 1067–1074。
+- en: 'Feng et al. (2024) Sidong Feng, Suyu Ma, Han Wang, David Kong, and Chunyang
+    Chen. 2024. MUD: Towards a Large-Scale and Noise-Filtered UI Dataset for Modern
+    Style UI Modeling. In *Proceedings of the CHI Conference on Human Factors in Computing
+    Systems*. 1–14.'
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Feng 等人 (2024) Sidong Feng, Suyu Ma, Han Wang, David Kong, 和 Chunyang Chen.
+    2024. MUD：面向现代风格用户界面建模的大规模且去噪的 UI 数据集。载于 *CHI 计算机系统中的人因会议论文集*。1–14。
+- en: Guan et al. (2024) Yanchu Guan, Dong Wang, Zhixuan Chu, Shiyu Wang, Feiyue Ni,
+    Ruihua Song, and Chenyi Zhuang. 2024. Intelligent Agents with LLM-based Process
+    Automation. In *Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery
+    and Data Mining*. 5018–5027.
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Guan 等人 (2024) Yanchu Guan, Dong Wang, Zhixuan Chu, Shiyu Wang, Feiyue Ni, Ruihua
+    Song, 和 Chenyi Zhuang. 2024. 基于大型语言模型的智能代理与流程自动化。载于 *第30届 ACM SIGKDD 知识发现与数据挖掘大会论文集*。5018–5027。
+- en: 'Hart (1988) SG Hart. 1988. Development of NASA-TLX (Task Load Index): Results
+    of empirical and theoretical research. *Human mental workload/Elsevier* (1988).'
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hart (1988) SG Hart. 1988. NASA-TLX（任务负载指数）的开发：经验与理论研究结果。*人类心理工作负荷/Elsevier*
+    (1988)。
+- en: 'Hong et al. (2024) Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng
+    Yu, Junhui Ji, Yan Wang, Zihan Wang, Yuxiao Dong, Ming Ding, et al. 2024. Cogagent:
+    A visual language model for gui agents. In *Proceedings of the IEEE/CVF Conference
+    on Computer Vision and Pattern Recognition*. 14281–14290.'
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hong 等人 (2024) Wenyi Hong, Weihan Wang, Qingsong Lv, Jiazheng Xu, Wenmeng Yu,
+    Junhui Ji, Yan Wang, Zihan Wang, Yuxiao Dong, Ming Ding 等人. 2024. Cogagent：一种用于图形用户界面代理的视觉语言模型。载于
+    *IEEE/CVF 计算机视觉与模式识别会议论文集*。14281–14290。
+- en: 'Honor (2024) Honor. 2024. MagicOS. [https://www.honor.com/global/magic-os/](https://www.honor.com/global/magic-os/).
+    Accessed: 2024-08-28.'
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Honor (2024) Honor. 2024. MagicOS。 [https://www.honor.com/global/magic-os/](https://www.honor.com/global/magic-os/)。访问时间：2024-08-28。
+- en: 'Huang and Chang (2022) Jie Huang and Kevin Chen-Chuan Chang. 2022. Towards
+    reasoning in large language models: A survey. *arXiv preprint arXiv:2212.10403*
+    (2022).'
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang 和 Chang (2022) Jie Huang 和 Kevin Chen-Chuan Chang. 2022. 面向大型语言模型的推理：一项调查。*arXiv
+    预印本 arXiv:2212.10403* (2022)。
+- en: 'Huawei (2024) Huawei. 2024. HarmonyOS. [https://www.harmonyos.com/en/](https://www.harmonyos.com/en/).
+    Accessed: 2024-08-28.'
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huawei (2024) Huawei. 2024. HarmonyOS。 [https://www.harmonyos.com/en/](https://www.harmonyos.com/en/)。访问时间：2024-08-28。
+- en: 'Levy et al. (2024) Mosh Levy, Alon Jacoby, and Yoav Goldberg. 2024. Same task,
+    more tokens: the impact of input length on the reasoning performance of large
+    language models. *arXiv preprint arXiv:2402.14848* (2024).'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Levy 等人 (2024) Mosh Levy, Alon Jacoby, 和 Yoav Goldberg. 2024. 相同任务，更多的令牌：输入长度对大型语言模型推理表现的影响。*arXiv
+    预印本 arXiv:2402.14848* (2024)。
+- en: Lewis (1998) Michael Lewis. 1998. Designing for human-agent interaction. *Ai
+    magazine* 19, 2 (1998), 67–67.
+  id: totrans-218
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lewis (1998) Michael Lewis. 1998. 面向人类-代理交互的设计。*人工智能杂志* 19, 2 (1998), 67–67。
+- en: 'Liu et al. (2023) Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu Lei, Hanyu
+    Lai, Yu Gu, Hangliang Ding, Kaiwen Men, Kejuan Yang, et al. 2023. Agentbench:
+    Evaluating llms as agents. *arXiv preprint arXiv:2308.03688* (2023).'
+  id: totrans-219
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人 (2023) Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu Lei, Hanyu Lai,
+    Yu Gu, Hangliang Ding, Kaiwen Men, Kejuan Yang 等人. 2023. Agentbench：评估大型语言模型作为代理的表现。*arXiv
+    预印本 arXiv:2308.03688* (2023)。
+- en: 'Mandi et al. (2024) Zhao Mandi, Shreeya Jain, and Shuran Song. 2024. Roco:
+    Dialectic multi-robot collaboration with large language models. In *2024 IEEE
+    International Conference on Robotics and Automation (ICRA)*. IEEE, 286–299.'
+  id: totrans-220
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mandi 等人 (2024) Zhao Mandi, Shreeya Jain, 和 Shuran Song. 2024. Roco：与大型语言模型的辩证式多机器人协作。载于
+    *2024 IEEE 国际机器人与自动化会议（ICRA）*。IEEE，286–299。
+- en: 'Mei et al. (2024) Kai Mei, Zelong Li, Shuyuan Xu, Ruosong Ye, Yingqiang Ge,
+    and Yongfeng Zhang. 2024. AIOS: LLM agent operating system. *arXiv e-prints, pp.
+    arXiv–2403* (2024).'
+  id: totrans-221
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mei 等人 (2024) Kai Mei, Zelong Li, Shuyuan Xu, Ruosong Ye, Yingqiang Ge, 和 Yongfeng
+    Zhang. 2024. AIOS：基于大型语言模型的操作系统代理。*arXiv 电子预印本，pp. arXiv–2403* (2024)。
+- en: 'Microsoft (2024) Microsoft. 2024. Copilot+PC. [https://www.microsoft.com/en-us/surface/do-more-with-surface/advantages-of-copilot-plus-pcs](https://www.microsoft.com/en-us/surface/do-more-with-surface/advantages-of-copilot-plus-pcs).
+    Accessed: 2024-08-28.'
+  id: totrans-222
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Microsoft (2024) Microsoft. 2024. Copilot+PC. [https://www.microsoft.com/en-us/surface/do-more-with-surface/advantages-of-copilot-plus-pcs](https://www.microsoft.com/en-us/surface/do-more-with-surface/advantages-of-copilot-plus-pcs).
+    访问时间：2024-08-28。
+- en: 'Microsoft365 (2024a) Microsoft365\. 2024a. Microsoft365 Word. [https://www.microsoft.com/en-us/microsoft-365/word](https://www.microsoft.com/en-us/microsoft-365/word).
+    Accessed: 2024-08-28.'
+  id: totrans-223
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Microsoft365 (2024a) Microsoft365\. 2024a. Microsoft365 Word. [https://www.microsoft.com/en-us/microsoft-365/word](https://www.microsoft.com/en-us/microsoft-365/word).
+    访问时间：2024-08-28。
+- en: 'Microsoft365 (2024b) Microsoft365\. 2024b. Microsoft365 Word API. [https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.word?view=word-pia](https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.word?view=word-pia).
+    Accessed: 2024-08-28.'
+  id: totrans-224
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Microsoft365 (2024b) Microsoft365\. 2024b. Microsoft365 Word API. [https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.word?view=word-pia](https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.word?view=word-pia).
+    访问时间：2024-08-28。
+- en: 'OpenAI (2024a) OpenAI. 2024a. GPT-4o. [https://platform.openai.com/docs/models/gpt-4o](https://platform.openai.com/docs/models/gpt-4o).
+    Accessed: 2024-08-28.'
+  id: totrans-225
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2024a) OpenAI. 2024a. GPT-4o. [https://platform.openai.com/docs/models/gpt-4o](https://platform.openai.com/docs/models/gpt-4o).
+    访问时间：2024-08-28。
+- en: 'OpenAI (2024b) OpenAI. 2024b. GPT-4V(ision). [https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4).
+    Accessed: 2024-08-28.'
+  id: totrans-226
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2024b) OpenAI. 2024b. GPT-4V(ision). [https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4).
+    访问时间：2024-08-28。
+- en: Ouyang et al. (2022) Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll
+    Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex
+    Ray, et al. 2022. Training language models to follow instructions with human feedback.
+    *Advances in neural information processing systems* 35 (2022), 27730–27744.
+  id: totrans-227
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ouyang et al. (2022) Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll
+    Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex
+    Ray, 等. 2022. 训练语言模型按照人类反馈遵循指令. *神经信息处理系统进展* 35 (2022), 27730–27744。
+- en: Plass et al. (2010) Jan L Plass, Roxana Moreno, and Roland Brünken. 2010. Cognitive
+    load theory. (2010).
+  id: totrans-228
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Plass et al. (2010) Jan L Plass, Roxana Moreno, 和 Roland Brünken. 2010. 认知负荷理论.
+    (2010)。
+- en: 'Rawles et al. (2024a) Christopher Rawles, Sarah Clinckemaillie, Yifan Chang,
+    Jonathan Waltz, Gabrielle Lau, Marybeth Fair, Alice Li, William Bishop, Wei Li,
+    Folawiyo Campbell-Ajala, et al. 2024a. AndroidWorld: A dynamic benchmarking environment
+    for autonomous agents. *arXiv preprint arXiv:2405.14573* (2024).'
+  id: totrans-229
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Rawles et al. (2024a) Christopher Rawles, Sarah Clinckemaillie, Yifan Chang,
+    Jonathan Waltz, Gabrielle Lau, Marybeth Fair, Alice Li, William Bishop, Wei Li,
+    Folawiyo Campbell-Ajala, 等. 2024a. AndroidWorld: 一种动态基准测试环境用于自主智能体. *arXiv 预印本
+    arXiv:2405.14573* (2024)。'
+- en: 'Rawles et al. (2024b) Christopher Rawles, Alice Li, Daniel Rodriguez, Oriana
+    Riva, and Timothy Lillicrap. 2024b. Androidinthewild: A large-scale dataset for
+    android device control. *Advances in Neural Information Processing Systems* 36
+    (2024).'
+  id: totrans-230
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Rawles et al. (2024b) Christopher Rawles, Alice Li, Daniel Rodriguez, Oriana
+    Riva, 和 Timothy Lillicrap. 2024b. Androidinthewild: 一项大规模的 Android 设备控制数据集. *神经信息处理系统进展*
+    36 (2024)。'
+- en: Ruparelia (2010) Nayan B Ruparelia. 2010. Software development lifecycle models.
+    *ACM SIGSOFT Software Engineering Notes* 35, 3 (2010), 8–13.
+  id: totrans-231
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ruparelia (2010) Nayan B Ruparelia. 2010. 软件开发生命周期模型. *ACM SIGSOFT 软件工程笔记* 35,
+    3 (2010), 8–13。
+- en: Stone et al. (2005) Debbie Stone, Caroline Jarrett, Mark Woodroffe, and Shailey
+    Minocha. 2005. *User interface design and evaluation*. Elsevier.
+  id: totrans-232
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Stone et al. (2005) Debbie Stone, Caroline Jarrett, Mark Woodroffe, 和 Shailey
+    Minocha. 2005. *用户界面设计与评估*. Elsevier。
+- en: 'Tan et al. (2024) Weihao Tan, Ziluo Ding, Wentao Zhang, Boyu Li, Bohan Zhou,
+    Junpeng Yue, Haochong Xia, Jiechuan Jiang, Longtao Zheng, Xinrun Xu, et al. 2024.
+    Towards general computer control: A multimodal agent for red dead redemption ii
+    as a case study. *arXiv preprint arXiv:2403.03186* (2024).'
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Tan et al. (2024) Weihao Tan, Ziluo Ding, Wentao Zhang, Boyu Li, Bohan Zhou,
+    Junpeng Yue, Haochong Xia, Jiechuan Jiang, Longtao Zheng, Xinrun Xu, 等. 2024.
+    朝着通用计算机控制迈进：以《荒野大镖客2》为案例研究的多模态智能体. *arXiv 预印本 arXiv:2403.03186* (2024)。
+- en: 'Team et al. (2023) Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu,
+    Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai,
+    Anja Hauth, et al. 2023. Gemini: a family of highly capable multimodal models.
+    *arXiv preprint arXiv:2312.11805* (2023).'
+  id: totrans-234
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Team et al. (2023) Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu,
+    Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai,
+    Anja Hauth, 等. 2023. Gemini：一系列高效能的多模态模型. *arXiv 预印本 arXiv:2312.11805* (2023)。
+- en: 'Van Merrienboer and Sweller (2005) Jeroen JG Van Merrienboer and John Sweller.
+    2005. Cognitive load theory and complex learning: Recent developments and future
+    directions. *Educational psychology review* 17 (2005), 147–177.'
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Van Merrienboer 和 Sweller（2005）Jeroen JG Van Merrienboer 和 John Sweller，2005年。认知负荷理论与复杂学习：近期发展与未来方向。*教育心理学评论*
+    17（2005年），147–177。
+- en: 'Wang et al. (2024c) Junyang Wang, Haiyang Xu, Jiabo Ye, Ming Yan, Weizhou Shen,
+    Ji Zhang, Fei Huang, and Jitao Sang. 2024c. Mobile-agent: Autonomous multi-modal
+    mobile device agent with visual perception. *arXiv preprint arXiv:2401.16158*
+    (2024).'
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人（2024c）王俊阳、徐海洋、叶佳波、严铭、沈伟洲、张季、黄飞、桑季涛等人，2024c年。Mobile-Agent：具有视觉感知能力的自主多模态移动设备代理人。*arXiv
+    预印本 arXiv:2401.16158*（2024年）。
+- en: Wang et al. (2024b) Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao Yang, Jingsen
+    Zhang, Zhiyuan Chen, Jiakai Tang, Xu Chen, Yankai Lin, et al. 2024b. A survey
+    on large language model based autonomous agents. *Frontiers of Computer Science*
+    18, 6 (2024), 186345.
+  id: totrans-237
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人（2024b）王磊、马晨、冯学阳、张泽宇、杨浩、张景森、陈志远、唐嘉凯、陈旭、林彦凯等人，2024b年。基于大型语言模型的自主代理人调查。*计算机科学前沿*
+    18卷，第6期（2024年），186345。
+- en: 'Wang et al. (2024a) Wenxiao Wang, Wei Chen, Yicong Luo, Yongliu Long, Zhengkai
+    Lin, Liye Zhang, Binbin Lin, Deng Cai, and Xiaofei He. 2024a. Model compression
+    and efficient inference for large language models: A survey. *arXiv preprint arXiv:2402.09748*
+    (2024).'
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人（2024a）王文晓、陈伟、罗逸聪、龙永柳、林郑凯、张立业、林彬彬、蔡邓、何晓飞等人，2024a年。大规模语言模型的模型压缩与高效推理：一项调查。*arXiv
+    预印本 arXiv:2402.09748*（2024年）。
+- en: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei
+    Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. 2022. Chain-of-thought prompting elicits
+    reasoning in large language models. *Advances in neural information processing
+    systems* 35 (2022), 24824–24837.
+  id: totrans-239
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei 等人（2022）Jason Wei、王学智、Dale Schuurmans、Maarten Bosma、费晓、Ed Chi、Quoc V Le、Denny
+    Zhou等人，2022年。链式思维提示法激发大型语言模型的推理能力。*神经信息处理系统进展* 35（2022年），24824–24837。
+- en: Wu et al. (2023) Chaoyi Wu, Jiayu Lei, Qiaoyu Zheng, Weike Zhao, Weixiong Lin,
+    Xiaoman Zhang, Xiao Zhou, Ziheng Zhao, Ya Zhang, Yanfeng Wang, et al. 2023. Can
+    gpt-4v (ision) serve medical applications? case studies on gpt-4v for multimodal
+    medical diagnosis. *arXiv preprint arXiv:2310.09909* (2023).
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu 等人（2023）吴超毅、雷家宇、郑巧瑜、赵威克、林伟雄、张晓曼、周晓、赵子恒、张雅、王彦峰等人，2023年。GPT-4V（视觉）能否为医学应用提供服务？GPT-4V在多模态医学诊断中的案例研究。*arXiv
+    预印本 arXiv:2310.09909*（2023年）。
+- en: 'Wu et al. (2024) Zhiyong Wu, Chengcheng Han, Zichen Ding, Zhenmin Weng, Zhoumianze
+    Liu, Shunyu Yao, Tao Yu, and Lingpeng Kong. 2024. Os-copilot: Towards generalist
+    computer agents with self-improvement. *arXiv preprint arXiv:2402.07456* (2024).'
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu 等人（2024）吴志勇、韩成成、丁子辰、翁振敏、刘周勉泽、姚顺宇、余涛、孔令鹏等人，2024年。Os-Copilot：朝着具有自我改进功能的通用计算机代理人迈进。*arXiv
+    预印本 arXiv:2402.07456*（2024年）。
+- en: 'Xi et al. (2023) Zhiheng Xi, Wenxiang Chen, Xin Guo, Wei He, Yiwen Ding, Boyang
+    Hong, Ming Zhang, Junzhe Wang, Senjie Jin, Enyu Zhou, et al. 2023. The rise and
+    potential of large language model based agents: A survey. *arXiv preprint arXiv:2309.07864*
+    (2023).'
+  id: totrans-242
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xi 等人（2023）席志恒、陈文祥、郭欣、何伟、丁怡文、洪博扬、张铭、王俊哲、金森杰、周恩宇等人，2023年。基于大型语言模型的代理人崛起与潜力：一项调查。*arXiv
+    预印本 arXiv:2309.07864*（2023年）。
+- en: 'Xiang et al. (2024) Wei Xiang, Hanfei Zhu, Suqi Lou, Xinli Chen, Zhenghua Pan,
+    Yuping Jin, Shi Chen, and Lingyun Sun. 2024. SimUser: Generating Usability Feedback
+    by Simulating Various Users Interacting with Mobile Applications. In *Proceedings
+    of the CHI Conference on Human Factors in Computing Systems*. 1–17.'
+  id: totrans-243
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xiang 等人（2024）向伟、朱汉飞、楼苏奇、陈欣礼、潘政华、金宇平、陈诗、孙凌云等人，2024年。SimUser：通过模拟不同用户与移动应用交互生成可用性反馈。在*CHI计算机系统人因会议录*，第1–17页。
+- en: 'Xie et al. (2024) Tianbao Xie, Danyang Zhang, Jixuan Chen, Xiaochuan Li, Siheng
+    Zhao, Ruisheng Cao, Toh Jing Hua, Zhoujun Cheng, Dongchan Shin, Fangyu Lei, et al.
+    2024. Osworld: Benchmarking multimodal agents for open-ended tasks in real computer
+    environments. *arXiv preprint arXiv:2404.07972* (2024).'
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xie 等人（2024）谢天宝、张丹阳、陈吉轩、李晓川、赵思恒、曹瑞生、黄东靖、程周俊、申东灿、雷方宇等人，2024年。Osworld：在真实计算环境中对开放式任务的多模态代理人进行基准测试。*arXiv
+    预印本 arXiv:2404.07972*（2024年）。
+- en: 'Yan et al. (2023) An Yan, Zhengyuan Yang, Wanrong Zhu, Kevin Lin, Linjie Li,
+    Jianfeng Wang, Jianwei Yang, Yiwu Zhong, Julian McAuley, Jianfeng Gao, et al.
+    2023. Gpt-4v in wonderland: Large multimodal models for zero-shot smartphone gui
+    navigation. *arXiv preprint arXiv:2311.07562* (2023).'
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yan 等人（2023）闫安、杨正源、朱万荣、林凯文、李林杰、王建峰、杨建伟、钟怡武、朱利安·麦考利、高建锋等人，2023年。GPT-4V的奇幻世界：大规模多模态模型用于零-shot智能手机图形界面导航。*arXiv
+    预印本 arXiv:2311.07562*（2023年）。
+- en: Yin et al. (2023) Shukang Yin, Chaoyou Fu, Sirui Zhao, Ke Li, Xing Sun, Tong
+    Xu, and Enhong Chen. 2023. A survey on multimodal large language models. *arXiv
+    preprint arXiv:2306.13549* (2023).
+  id: totrans-246
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yin 等人（2023）Shukang Yin, Chaoyou Fu, Sirui Zhao, Ke Li, Xing Sun, Tong Xu 和
+    Enhong Chen. 2023. 多模态大语言模型的调查。*arXiv 预印本 arXiv:2306.13549*（2023）。
+- en: 'Zhang et al. (2024a) Chaoyun Zhang, Liqun Li, Shilin He, Xu Zhang, Bo Qiao,
+    Si Qin, Minghua Ma, Yu Kang, Qingwei Lin, Saravan Rajmohan, et al. 2024a. Ufo:
+    A ui-focused agent for windows os interaction. *arXiv preprint arXiv:2402.07939*
+    (2024).'
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人（2024a）Chaoyun Zhang, Liqun Li, Shilin He, Xu Zhang, Bo Qiao, Si Qin,
+    Minghua Ma, Yu Kang, Qingwei Lin, Saravan Rajmohan 等人. 2024a. Ufo：一个面向 UI 的 Windows
+    OS 交互智能体。*arXiv 预印本 arXiv:2402.07939*（2024）。
+- en: 'Zhang et al. (2023b) Chi Zhang, Zhao Yang, Jiaxuan Liu, Yucheng Han, Xin Chen,
+    Zebiao Huang, Bin Fu, and Gang Yu. 2023b. AppAgent: Multimodal Agents as Smartphone
+    Users. *CoRR* abs/2312.13771 (2023). [https://doi.org/10.48550/ARXIV.2312.13771](https://doi.org/10.48550/ARXIV.2312.13771)
+    arXiv:2312.13771'
+  id: totrans-248
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人（2023b）Chi Zhang, Zhao Yang, Jiaxuan Liu, Yucheng Han, Xin Chen, Zebiao
+    Huang, Bin Fu, 和 Gang Yu. 2023b. AppAgent：作为智能手机用户的多模态智能体。*CoRR* abs/2312.13771（2023）。[https://doi.org/10.48550/ARXIV.2312.13771](https://doi.org/10.48550/ARXIV.2312.13771)
+    arXiv:2312.13771
+- en: 'Zhang et al. (2024c) Duzhen Zhang, Yahan Yu, Chenxing Li, Jiahua Dong, Dan
+    Su, Chenhui Chu, and Dong Yu. 2024c. Mm-llms: Recent advances in multimodal large
+    language models. *arXiv preprint arXiv:2401.13601* (2024).'
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人（2024c）Duzhen Zhang, Yahan Yu, Chenxing Li, Jiahua Dong, Dan Su, Chenhui
+    Chu, 和 Dong Yu. 2024c. Mm-llms：多模态大语言模型的最新进展。*arXiv 预印本 arXiv:2401.13601*（2024）。
+- en: 'Zhang et al. (2023a) Yue Zhang, Yafu Li, Leyang Cui, Deng Cai, Lemao Liu, Tingchen
+    Fu, Xinting Huang, Enbo Zhao, Yu Zhang, Yulong Chen, et al. 2023a. Siren’s song
+    in the AI ocean: a survey on hallucination in large language models. *arXiv preprint
+    arXiv:2309.01219* (2023).'
+  id: totrans-250
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人（2023a）Yue Zhang, Yafu Li, Leyang Cui, Deng Cai, Lemao Liu, Tingchen
+    Fu, Xinting Huang, Enbo Zhao, Yu Zhang, Yulong Chen 等人. 2023a. 人工智能海洋中的海妖之歌：关于大语言模型幻觉的调查。*arXiv
+    预印本 arXiv:2309.01219*（2023）。
+- en: 'Zhang et al. (2024b) Zhiyang Zhang, Fangkai Yang, Xiaoting Qin, Jue Zhang,
+    Qingwei Lin, Gong Cheng, Dongmei Zhang, Saravan Rajmohan, and Qi Zhang. 2024b.
+    The Vision of Autonomic Computing: Can LLMs Make It a Reality? *arXiv preprint
+    arXiv:2407.14402* (2024).'
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang 等人（2024b）Zhiyang Zhang, Fangkai Yang, Xiaoting Qin, Jue Zhang, Qingwei
+    Lin, Gong Cheng, Dongmei Zhang, Saravan Rajmohan 和 Qi Zhang. 2024b. 自主计算的愿景：大语言模型能使其成为现实吗？*arXiv
+    预印本 arXiv:2407.14402*（2024）。
+- en: Zhao et al. (2024) Zirui Zhao, Wee Sun Lee, and David Hsu. 2024. Large language
+    models as commonsense knowledge for large-scale task planning. *Advances in Neural
+    Information Processing Systems* 36 (2024).
+  id: totrans-252
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhao 等人（2024）Zirui Zhao, Wee Sun Lee 和 David Hsu. 2024. 大语言模型作为常识知识用于大规模任务规划。*神经信息处理系统进展*
+    36（2024）。
+- en: Zheng et al. (2024) Boyuan Zheng, Boyu Gou, Jihyung Kil, Huan Sun, and Yu Su.
+    2024. Gpt-4v (ision) is a generalist web agent, if grounded. *arXiv preprint arXiv:2401.01614*
+    (2024).
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zheng 等人（2024）Boyuan Zheng, Boyu Gou, Jihyung Kil, Huan Sun 和 Yu Su. 2024. GPT-4v（Vision）是一个通用的网页智能体，前提是已经接地。*arXiv
+    预印本 arXiv:2401.01614*（2024）。
+- en: Appendix A User Study Web Interface
+  id: totrans-254
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 用户研究网页界面
+- en: During the user study, we provided participants with a web interface to control
+    the user study procedure. Below are some screenshots of the web interface.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在用户研究过程中，我们提供了一个网页界面供参与者控制研究流程。以下是网页界面的一些截图。
+- en: '![Refer to caption](img/dc96663acdc16d68e60c66281202052f.png)'
+  id: totrans-256
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明文字](img/dc96663acdc16d68e60c66281202052f.png)'
+- en: Figure 6\. The figure of the login interface for user study. Each participant
+    was assigned an account and password.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6\. 用户研究中登录界面的图示。每位参与者都被分配了一个账号和密码。
+- en: '![Refer to caption](img/9e1bc1e5d45179d38f7f7c37ea596bbc.png)'
+  id: totrans-258
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明文字](img/9e1bc1e5d45179d38f7f7c37ea596bbc.png)'
+- en: Figure 7\. The figure of the introduction page of manual mode in user study.
+    Each participant was instructed to follow the steps to finish the task manually.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7\. 用户研究中手动模式介绍页面的图示。每位参与者都被指示按照步骤手动完成任务。
+- en: '![Refer to caption](img/7af373eb4762d1eab1eb0c2249e66d94.png)'
+  id: totrans-260
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明文字](img/7af373eb4762d1eab1eb0c2249e66d94.png)'
+- en: Figure 8\. The figure of the task page of manual mode in user study. Participant
+    should complete the tasks based on the guidelines printed on paper.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 8\. 用户研究中手动模式任务页面的图示。参与者应根据纸上打印的指导完成任务。
+- en: '![Refer to caption](img/0cdc43105502b7cd0b6d4e72d834ee0a.png)'
+  id: totrans-262
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明文字](img/0cdc43105502b7cd0b6d4e72d834ee0a.png)'
+- en: Figure 9\. The figure of the introduction page of agent mode in user study.
+    Each participant was instructed to type in task description to use agent to finish
+    the task.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 9\. 用户研究中智能体模式介绍页面的图示。每位参与者都被指示输入任务描述，使用智能体完成任务。
+- en: '![Refer to caption](img/aa1b4fe9e538ef21fc94257ea36d1e4a.png)'
+  id: totrans-264
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明文字](img/aa1b4fe9e538ef21fc94257ea36d1e4a.png)'
+- en: Figure 10\. The figure of the task page of agent mode in user study. Participants
+    should input and submit the task description to two different agents, which would
+    then automatically complete the task. The left image shows the original page,
+    while the right image displays the page after the two agents have completed the
+    task. The text boxes in the right image show the decision-making processes of
+    each agent.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图10\. 用户研究中智能体模式任务页面的图示。参与者应向两个不同的智能体输入并提交任务描述，然后这两个智能体将自动完成任务。左侧图像显示的是原始页面，右侧图像展示的是两个智能体完成任务后的页面。右侧图像中的文本框展示了每个智能体的决策过程。
+- en: '![Refer to caption](img/2d994a807045e1de60817f137512edfa.png)'
+  id: totrans-266
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/2d994a807045e1de60817f137512edfa.png)'
+- en: Figure 11\. The figure of the questionaire page in user study, which occurred
+    after the completion of tasks in different difficulty levels within both Manual
+    Mode and Agent Mode.
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图11\. 用户研究中问卷页面的图示，问卷是在完成不同难度级别的任务后进行的，涵盖手动模式和智能体模式。
+- en: Appendix B User Study Tasks
+  id: totrans-268
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 用户研究任务
+- en: 'We sampled five tasks about Microsoft Word in user study which were categorized
+    into low difficulty (L1) and high difficulty (L2). Here are the detailed tasks
+    in table  [9](https://arxiv.org/html/2409.17140v1#A2.T9 "Table 9 ‣ Appendix B
+    User Study Tasks ‣ Turn Every Application into an Agent: Towards Efficient Human-Agent-Computer
+    Interaction with API-First LLM-Based Agents").'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在用户研究中抽取了五个关于Microsoft Word的任务，这些任务被分为低难度（L1）和高难度（L2）。以下是表格中详细列出的任务[9](https://arxiv.org/html/2409.17140v1#A2.T9
+    "表格 9 ‣ 附录 B 用户研究任务 ‣ 将每个应用转化为智能体：面向高效人类-智能体-计算机交互的API优先LLM智能体")。
+- en: Table 9\. The sampled tasks in two levels of difficulty for user study.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表9\. 用户研究中两个难度级别的抽取任务。
+- en: '| Task id | Task description | Difficulty level |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务ID | 任务描述 | 难度级别 |'
+- en: '| 1 | Here is an article, type in a title ”Impossible Friendship between mouse
+    and cats” and set the title in the center with ”Arial” type of 20 font size. |
+    L1 |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 这里有一篇文章，输入标题“老鼠与猫之间不可能的友谊”，并将标题居中，字体设置为“Arial”，字号为20。 | L1 |'
+- en: '| 2 | Insert a header named ”header” and a footer named ”footer”. | L1 |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 插入一个名为“header”的页眉和一个名为“footer”的页脚。 | L1 |'
+- en: '| 3 | Change the titles style of each sections into heading1 style. | L1 |'
+  id: totrans-274
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | 将每个章节的标题样式更改为Heading1样式。 | L1 |'
+- en: '| 4 | I want to make a special format for company: insert a 2x2 table, then
+    change the paper size in Word to A4, change the text direction to vertical and
+    add water mark with confidential 1 type. | L2 |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | 我想为公司制作一个特殊格式：插入一个2x2表格，然后将Word中的纸张大小改为A4，将文本方向设置为竖直，并添加带有机密1类型的水印。 |
+    L2 |'
+- en: '| 5 | Insert 2 shapes into document:(1) Insert a rectangle with a width and
+    height of 1 inch, and set the fill color to red. (2) Insert a circle with a width
+    and height of 1 inch, and set the fill color to yellow. | L2 |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | 向文档中插入2个形状：(1) 插入一个宽度和高度为1英寸的矩形，并将填充颜色设置为红色。(2) 插入一个宽度和高度为1英寸的圆形，并将填充颜色设置为黄色。
+    | L2 |'
+- en: Appendix C User Study Survey Form
+  id: totrans-277
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录C 用户研究调查表
+- en: 'To obtain subjective metrics and analyze the results to address our research
+    questions, we included several questionnaires in the user study which are listed
+    below:'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了获取主观度量并分析结果以解答我们的研究问题，我们在用户研究中加入了若干问卷，具体如下所列：
+- en: C.1\. Cognitive load related forms
+  id: totrans-279
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.1\. 认知负荷相关表格
+- en: The cognitive load-related forms include the NASA-TLX survey and the learning
+    effort survey, which participants filled out after completing tasks in both manual
+    mode and agent mode.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与认知负荷相关的表格包括NASA-TLX调查表和学习努力调查表，参与者在完成手动模式和智能体模式任务后填写这些表格。
+- en: '![Refer to caption](img/5595e1627140f2e4671c17f697ed7f77.png)'
+  id: totrans-281
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/5595e1627140f2e4671c17f697ed7f77.png)'
+- en: Figure 12\. The survey form for NASA-TLX of manual mode in user study, which
+    was collected after the completion of tasks manually.
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图12\. 用户研究中手动模式下NASA-TLX调查表，该调查表是在手动完成任务后收集的。
+- en: '![Refer to caption](img/2e8ea2dbd3bf9ff62886615f0c304930.png)'
+  id: totrans-283
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/2e8ea2dbd3bf9ff62886615f0c304930.png)'
+- en: Figure 13\. The survey form for NASA-TLX of agent mode in user study, which
+    was collected after the completion of tasks using agents.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图13\. 用户研究中智能体模式下NASA-TLX调查表，该调查表是在使用智能体完成任务后收集的。
+- en: '![Refer to caption](img/7c29a98cc8b1eb3ed57f04c055c36f06.png)'
+  id: totrans-285
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/7c29a98cc8b1eb3ed57f04c055c36f06.png)'
+- en: Figure 14\. The survey form for learning efforts of using different methods
+    to finish tasks, which was collected after manual mode and agent mode.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图14\. 使用不同方法完成任务的学习努力调查表，该表格是在手动模式和智能体模式后收集的。
+- en: C.2\. Human Preference related forms
+  id: totrans-287
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.2\. 人类偏好相关表格
+- en: The forms related to human preferences include surveys on perceived speed, fluency,
+    reliability, decision consistency, and UI dependency.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与人类偏好相关的表单包括感知速度、流畅性、可靠性、决策一致性和UI依赖性的调查。
+- en: '![Refer to caption](img/f0dbbaaf0161b0214db377b3f7050a39.png)'
+  id: totrans-289
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/f0dbbaaf0161b0214db377b3f7050a39.png)'
+- en: Figure 15\. The survey form for perceived speed of using different methods to
+    finish tasks, which was collected after manual mode and agent mode.
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图15\. 关于使用不同方法完成任务的感知速度的调查表，数据收集于手动模式和代理模式之后。
+- en: '![Refer to caption](img/46b3d6da1c3a7187b4ec08b3c06eaddd.png)'
+  id: totrans-291
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/46b3d6da1c3a7187b4ec08b3c06eaddd.png)'
+- en: Figure 16\. The survey form for ui dependency of using different agents to finish
+    tasks, which was collected after agent mode.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图16\. 关于使用不同代理完成任务的UI依赖性的调查表，数据收集于代理模式之后。
+- en: '![Refer to caption](img/89f78a84a1a09b79c7c3d45837b9db79.png)'
+  id: totrans-293
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/89f78a84a1a09b79c7c3d45837b9db79.png)'
+- en: Figure 17\. The survey form for decision consistency, fluency and reliability
+    of using different agents to finish tasks, which was collected after agent mode.
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图17\. 关于使用不同代理完成任务的决策一致性、流畅性和可靠性的调查表，数据收集于代理模式之后。
+- en: Appendix D Feasibility Study Tasks
+  id: totrans-295
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录D 可行性研究任务
+- en: 'In the feasibility study, we randomly sampled 50 tasks from the WikiHow page
+    ’Use Microsoft Word’ and the official Microsoft Word website. To increase the
+    task difficulty, some of the 50 tasks were composed of smaller sub-tasks, thus
+    increasing the number of steps required for completion. As the tasks sampled in
+    user study, the 50 tasks were also divided into 2 levels of difficulty: low difficulty
+    (L1) and high difficulty (L2), based on factors such as the number of UI interactions
+    required, the depth of the UI functions, and the number of ribbon switches. Table [10](https://arxiv.org/html/2409.17140v1#A4.T10
+    "Table 10 ‣ Appendix D Feasibility Study Tasks ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents") has shown the distribution of the required execution steps (i.e., the
+    number of steps a human would typically need to perform) of the 50 tasks, along
+    with the number of tasks in different difficulty levels.'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在可行性研究中，我们随机从WikiHow页面《使用Microsoft Word》以及微软Word官方网站中抽取了50个任务。为了增加任务的难度，这50个任务中的部分任务由更小的子任务组成，从而增加了完成所需的步骤数量。与用户研究中的任务一样，这50个任务也被划分为两种难度级别：低难度（L1）和高难度（L2），根据所需的UI交互次数、UI功能的深度以及Ribbon切换的次数等因素。表[10](https://arxiv.org/html/2409.17140v1#A4.T10
+    "Table 10 ‣ Appendix D Feasibility Study Tasks ‣ Turn Every Application into an
+    Agent: Towards Efficient Human-Agent-Computer Interaction with API-First LLM-Based
+    Agents")展示了这50个任务所需执行步骤（即人类通常需要执行的步骤数）的分布，以及不同难度级别任务的数量。'
+- en: Table 10\. The distribution of the required execution steps and difficulty level
+    of the 50 tasks in feasibility study.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表10\. 可行性研究中50个任务所需执行步骤和难度级别的分布。
+- en: '| Steps | Tasks Number | Difficulty Level |'
+  id: totrans-298
+  prefs: []
+  type: TYPE_TB
+  zh: '| 步骤 | 任务数量 | 难度级别 |'
+- en: '| 1 | 3 | L1: 3 L2: 0 |'
+  id: totrans-299
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 3 | L1: 3 L2: 0 |'
+- en: '| 2 | 9 | L1: 9 L2: 0 |'
+  id: totrans-300
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 9 | L1: 9 L2: 0 |'
+- en: '| 3 | 23 | L1: 14 L2: 9 |'
+  id: totrans-301
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | 23 | L1: 14 L2: 9 |'
+- en: '| 4 | 12 | L1: 0 L2: 12 |'
+  id: totrans-302
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | 12 | L1: 0 L2: 12 |'
+- en: '| 5 | 1 | L1: 0 L2: 1 |'
+  id: totrans-303
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | 1 | L1: 0 L2: 1 |'
+- en: '| 8 | 1 | L1: 0 L2: 1 |'
+  id: totrans-304
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | 1 | L1: 0 L2: 1 |'
+- en: '| 10 | 1 | L1: 0 L2: 1 |'
+  id: totrans-305
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | 1 | L1: 0 L2: 1 |'

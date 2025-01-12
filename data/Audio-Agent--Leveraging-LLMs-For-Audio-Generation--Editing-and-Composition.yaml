@@ -1,0 +1,1668 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:10:18'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:10:18
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Audio-Agent: Leveraging LLMs For Audio Generation, Editing and Composition'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'Audio-Agent: 利用LLM进行音频生成、编辑和创作'
+- en: 来源：[https://arxiv.org/html/2410.03335/](https://arxiv.org/html/2410.03335/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2410.03335/](https://arxiv.org/html/2410.03335/)
+- en: \UseRawInputEncodingZixuan Wang¹, Yu-Wing Tai², Chi-Keung Tang¹
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \UseRawInputEncodingZixuan Wang¹, Yu-Wing Tai², Chi-Keung Tang¹
+- en: ¹HKUST  ²Dartmouth College
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹香港科技大学  ²达特茅斯学院
+- en: Abstract
+  id: totrans-8
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: We introduce Audio-Agent, a multimodal framework for audio generation, editing
+    and composition based on text or video inputs. Conventional approaches for text-to-audio
+    (TTA) tasks often make single-pass inferences from text descriptions. While straightforward,
+    this design struggles to produce high-quality audio when given complex text conditions.
+    In our method, we utilize a pre-trained TTA diffusion network as the audio generation
+    agent to work in tandem with GPT-4, which decomposes the text condition into atomic,
+    specific instructions, and calls the agent for audio generation. Consequently,
+    Audio-Agent generates high-quality audio that is closely aligned with the provided
+    text or video while also supporting variable-length generation. For video-to-audio
+    (VTA) tasks, most existing methods require training a timestamp detector to synchronize
+    video events with generated audio, a process that can be tedious and time-consuming.
+    We propose a simpler approach by fine-tuning a pre-trained Large Language Model
+    (LLM), e.g., Gemma2-2B-it, to obtain both semantic and temporal conditions to
+    bridge video and audio modality. Thus our framework provides a comprehensive solution
+    for both TTA and VTA tasks without substantial computational overhead in training.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们介绍了Audio-Agent，一个基于文本或视频输入的多模态框架，用于音频生成、编辑和创作。传统的文本到音频（TTA）任务方法通常从文本描述中进行单次推理。虽然这种设计简单直接，但在面对复杂的文本条件时，往往难以生成高质量的音频。在我们的方法中，我们利用一个预训练的TTA扩散网络作为音频生成代理，并与GPT-4协同工作，后者将文本条件分解为原子化、具体的指令，并调用代理进行音频生成。因此，Audio-Agent能够生成与提供的文本或视频高度一致的高质量音频，并且支持可变长度的生成。在视频到音频（VTA）任务中，大多数现有方法需要训练时间戳检测器来同步视频事件和生成的音频，这一过程既繁琐又费时。我们提出了一种更简洁的方法，通过微调一个预训练的大型语言模型（LLM），例如Gemma2-2B-it，来获取语义和时间条件，从而弥合视频和音频模态的差距。因此，我们的框架为TTA和VTA任务提供了一个综合解决方案，且在训练过程中没有显著的计算开销。
+- en: 1 Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Multimodal deep generative models have gained increasing attention these years.
+    Essentially, the models are trained to perform tasks based on different kinds
+    of input called modalities, mimicking how humans make decisions from different
+    kinds of senses such as vision and smell Suzuki & Matsuo ([2022](https://arxiv.org/html/2410.03335v1#bib.bib30)).
+    Compared to other generation tasks such as image generation or contextual understanding,
+    audio generation is less intuitive as it is harder to precisely measure the generated
+    sound quality using human ears. Additionally, previous works mainly focus on generating
+    music-related audio, which is more structured compared to naturally occurring
+    audio Copet et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib7)); Melechovsky
+    et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib26)). Some recent works
+    have focused on generating visually guided open-domain audio clips Chen et al.
+    ([2020](https://arxiv.org/html/2410.03335v1#bib.bib4)); Zhou et al. ([2018](https://arxiv.org/html/2410.03335v1#bib.bib44)).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，多模态深度生成模型受到了越来越多的关注。从本质上讲，这些模型经过训练，可以基于不同类型的输入（称为模态）执行任务，模仿人类如何根据不同的感官（如视觉和嗅觉）做出决策
+    Suzuki & Matsuo ([2022](https://arxiv.org/html/2410.03335v1#bib.bib30))。与图像生成或语境理解等其他生成任务相比，音频生成较不直观，因为很难通过人耳精确测量生成的声音质量。此外，先前的研究主要集中在生成与音乐相关的音频，这些音频相较于自然产生的音频具有更强的结构性
+    Copet et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib7)); Melechovsky
+    et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib26))。一些近期的研究则专注于生成与视觉引导的开放领域音频片段
+    Chen et al. ([2020](https://arxiv.org/html/2410.03335v1#bib.bib4)); Zhou et al.
+    ([2018](https://arxiv.org/html/2410.03335v1#bib.bib44))。
+- en: Recent researches on audio generation are mainly focused on text-to-audio generation
+    (TTA) and video-to-audio generation (VTA). For TTA task Xue et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39));
+    Kreuk et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib22)), current
+    datasets lack high-quality text-audio pairs. Existing datasets such as AudioCaps Kim
+    et al. ([2019](https://arxiv.org/html/2410.03335v1#bib.bib20)) or Clotho Drossos
+    et al. ([2020](https://arxiv.org/html/2410.03335v1#bib.bib11)) usually contain
+    multiple event descriptions mixed into one single sentence without fine-grained
+    details and object bindings. This complicates training, particularly when handling
+    long continuous signals with complex text conditions Huang et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib17)).
+    We define complex text conditions as long event descriptions containing a series
+    of events without explicitly describing the sound, such as “A man enters his car
+    and drives away”. While previously not fully studied, this type of condition is
+    more realistic as it does not require any detailed specification in terms of the
+    characteristics of the audio result, offering more flexibility to the user and
+    producer for areas such as movie dubbing and musical composition. If we train
+    these models from scratch, it often demands extensive computational resources Liu
+    et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib24)); Ghosal et al.
+    ([2023](https://arxiv.org/html/2410.03335v1#bib.bib13)).
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近期关于音频生成的研究主要集中在文本到音频生成（TTA）和视频到音频生成（VTA）任务上。对于TTA任务，Xue等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib39)）；Kreuk等人（[2022](https://arxiv.org/html/2410.03335v1#bib.bib22)）发现，当前的数据集缺乏高质量的文本-音频对。现有的数据集，如AudioCaps（Kim等人，[2019](https://arxiv.org/html/2410.03335v1#bib.bib20)）或Clotho（Drossos等人，[2020](https://arxiv.org/html/2410.03335v1#bib.bib11)），通常包含多个事件描述混合在一个句子中，缺乏细粒度的细节和对象绑定。这使得训练变得更加复杂，特别是在处理具有复杂文本条件的长时间连续信号时（Huang等人，[2023](https://arxiv.org/html/2410.03335v1#bib.bib17)）。我们将复杂的文本条件定义为包含一系列事件的长事件描述，而没有明确描述声音特征，例如“一个男人进入他的车并开走”。虽然这种类型的条件之前未被完全研究，但它更具现实性，因为它不需要详细说明音频结果的特征，提供了更多的灵活性，适用于电影配音和音乐创作等领域。如果我们从头开始训练这些模型，通常需要大量的计算资源（Liu等人，[2024](https://arxiv.org/html/2410.03335v1#bib.bib24)）；Ghosal等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib13)）。
+- en: The VTA task, or conditional Foley generation, remains unexplored until recently Wang
+    et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib33)); Zhang et al. ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43)).
+    One main challenge is that video clips typically contain excessive visual information
+    not always relevant to audio generation. Moreover, synchronization is hard between
+    video and audio output, with recent solutions such as temporal masking Xie et al.
+    ([2024](https://arxiv.org/html/2410.03335v1#bib.bib37)) proving inadequate for
+    complex scenarios. Due to efficiency considerations, current methods often encode
+    video features by extracting a few random frames Xie et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib37));
+    Dong et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib9)), which hinders
+    learning temporal information. Bridging the modality gap Liang et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib23))
+    between video and audio thus becomes the key to solving the problem.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: VTA任务，或条件性音效生成，直到最近才有所研究（Wang等人，[2024](https://arxiv.org/html/2410.03335v1#bib.bib33)）；Zhang等人（[2024b](https://arxiv.org/html/2410.03335v1#bib.bib43)）。一个主要挑战是视频片段通常包含大量与音频生成无关的视觉信息。此外，视频和音频输出之间的同步也非常困难，最近的解决方案，如时间遮蔽（Xie等人，[2024](https://arxiv.org/html/2410.03335v1#bib.bib37)），在复杂场景中被证明不足以应对。由于效率考虑，当前的方法通常通过提取少量随机帧来编码视频特征（Xie等人，[2024](https://arxiv.org/html/2410.03335v1#bib.bib37)）；Dong等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib9)），这妨碍了时间信息的学习。因此，弥合视频和音频之间的模态差距（Liang等人，[2022](https://arxiv.org/html/2410.03335v1#bib.bib23)）成为解决这一问题的关键。
+- en: 'While achieving state-of-the-art results, conventional approaches often perform
+    inference in a single pass based on a given text description. This approach struggles
+    to produce high-quality audio when faced with complex or lengthy text conditions.
+    In this paper, we introduce Audio-Agent, which breaks down intricate user inputs
+    using GPT-4 into multiple generation steps. Each step includes a description along
+    with start and end times to effectively guide the audio generation process. Our
+    framework integrates two key tasks: Text-to-Audio (TTA) and Video-to-Audio (VTA).
+    We leverage a pre-trained TTA diffusion model, Auffusion Xue et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39)),
+    with essential adaptations, serving as the backbone for our generation process.
+    In the TTA task, Auffusion focuses solely on generating simple, atomic text inputs.
+    Our framework supports audio generation, editing, and composition, as illustrated
+    in Figure [1](https://arxiv.org/html/2410.03335v1#S1.F1 "Figure 1 ‣ 1 Introduction
+    ‣ Audio-Agent: Leveraging LLMs For Audio Generation, Editing and Composition").
+    For the VTA task, we recognize that models such as GPT-4 and other large language
+    models lack sufficient temporal understanding of video clips. To address this
+    problem, we employ moderate fine-tuning to align the two modalities. We utilize
+    the smaller Gemma2-2B-it model, which has 2 billion parameters, and fine-tune
+    an adapter and a projection layer to convert visual inputs into semantic tokens.
+    We then implement cross-attention guidance between the diffusion layers of Auffusion.
+    This approach eliminates the need for additional training on a temporal detector,
+    as the semantic tokens inherently contain time-aligned information.'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '尽管传统方法在实现最先进的结果时，通常基于给定的文本描述执行单次推理，但该方法在面对复杂或冗长的文本条件时，往往难以生成高质量的音频。本文介绍了Audio-Agent，它利用GPT-4将复杂的用户输入拆解为多个生成步骤。每个步骤都包括描述以及开始和结束时间，从而有效地引导音频生成过程。我们的框架整合了两个关键任务：文本到音频（TTA）和视频到音频（VTA）。我们借助预训练的TTA扩散模型Auffusion
+    Xue等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib39)），并做了必要的适应性调整，作为我们生成过程的核心支撑。在TTA任务中，Auffusion仅专注于生成简单的原子级文本输入。我们的框架支持音频生成、编辑和合成，如图[1](https://arxiv.org/html/2410.03335v1#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ Audio-Agent: Leveraging LLMs For Audio Generation,
+    Editing and Composition")所示。对于VTA任务，我们认识到像GPT-4这样的模型以及其他大型语言模型在视频剪辑的时间理解方面存在不足。为了解决这个问题，我们通过适度的微调，使两种模态对齐。我们使用了较小的Gemma2-2B-it模型，拥有20亿个参数，并对其进行微调，调整适配器和投影层，将视觉输入转换为语义标记。然后，我们在Auffusion的扩散层之间实现跨注意力引导。这种方法消除了对时间检测器额外训练的需求，因为语义标记本身已经包含了时间对齐的信息。'
+- en: 'The summary of our contributions is as follows: 1) we propose Audio-Agent which
+    utilizes a pre-trained diffusion model as a generation agent, for both TTA and
+    VTA tasks; 2) For TTA, Audio-Agent can handle complex text input, which is broken
+    down into simple and atomic generation conditions for the diffusion model to make
+    inference on; 3) For VTA, we fine-tune an open-source LLM (Gemma2-2B-it) to bridge
+    the modality gap between video and audio modalities to align the underlying semantic
+    and temporal information. Through extensive evaluation, our work demonstrates
+    on-par results compared to the state-of-the-art task-specific models trained from
+    scratch, while capable of producing high-quality audio given long and complex
+    textual input. We hope our work can motivate more relevant works on multi-event
+    long-condition TTA generation, which to our knowledge has not yet been fully explored
+    despite its high potential in various content generations where high-quality audio
+    is essential.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的贡献总结如下：1) 我们提出了Audio-Agent，它利用预训练的扩散模型作为生成代理，用于TTA和VTA任务；2) 对于TTA，Audio-Agent能够处理复杂的文本输入，将其拆解为简单且原子级的生成条件，供扩散模型进行推理；3)
+    对于VTA，我们微调了一个开源的LLM（Gemma2-2B-it），以弥合视频和音频模态之间的差距，确保底层语义和时间信息的一致性。通过广泛的评估，我们的工作与从头开始训练的最先进任务特定模型相比，展现出了同等水平的结果，同时能够在面对长且复杂的文本输入时生成高质量的音频。我们希望我们的工作能够激发更多相关的研究，尤其是在多事件长条件TTA生成领域，尽管该领域在各种需要高质量音频的内容生成中具有巨大的潜力，但我们所知尚未得到充分探索。
+- en: '![Refer to caption](img/1d3d439276e3e49f4d472f5cf4cb0907.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/1d3d439276e3e49f4d472f5cf4cb0907.png)'
+- en: 'Figure 1: Example showing Audio-Agent’s ability to generate, compose and edit
+    multiple audio descriptions together. (A): Multi-turn editing; (B): Generation
+    based on long description; (C): Multiple audio descriptions composition'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：展示Audio-Agent生成、组合和编辑多个音频描述的能力示例。(A)：多轮编辑；(B)：基于长描述的生成；(C)：多个音频描述组合
+- en: 2 Related Work
+  id: totrans-18
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: LLM-based Agent Method Recent progress in large language models has enabled
+    relevant research on making LLM a brain or controller for the agent on performing
+    various tasks, such as robot task planning and execution Driess et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib10))
+    or software development Rawles et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib28));
+    Yang et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib40)). LLM demonstrates
+    the capacity of zero-shot or few-shot generalization, making task transfer possible
+    without significant change of its parameters Xi et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib36)).
+    In our work, we harness the action-planning ability of LLM. Upon receiving the
+    text condition from the user, LLM generates a plan with detailed steps on how
+    to call the diffusion model which serves as a generation agent. By dividing the
+    task into simpler sub-tasks, we can ensure the generation quality with fine-grained
+    event control for TTA generation.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于LLM的智能体方法 最近，大型语言模型的进展使得相关研究能够将LLM作为智能体的大脑或控制器，用于执行各种任务，如机器人任务规划与执行Driess等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib10)）或软件开发Rawles等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib28)）；杨等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib40)）。LLM展示了零-shot或少-shot泛化的能力，使得任务迁移成为可能，而无需显著改变其参数Xi等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib36)）。在我们的工作中，我们利用LLM的动作规划能力。当接收到用户的文本条件时，LLM生成一个包含详细步骤的计划，指导如何调用扩散模型，后者作为生成智能体。通过将任务划分为更简单的子任务，我们可以确保通过细粒度事件控制来提高TTA生成的质量。
+- en: Diffusion-based Audio Generation AudioLDM Liu et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib24))
+    is among the pioneering works that introduce the latent diffusion method to audio
+    generation. Subsequent works such as Tango Ghosal et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib13))
+    and Auffusion Xue et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39))
+    use pre-trained LLM such as Flan-T5 for text encoding, which has been widely adopted.
+    We notice that this method can be seamlessly adapted to VTA tasks when we can
+    find a similarly effective way of utilizing LLM for encoding the visual content.
+    For the TTA task, we choose Auffusion as our generation agent due to its outstanding
+    performance on fine-grained alignment between text and audio.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于扩散的音频生成 AudioLDM Liu等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib24)）是引入潜在扩散方法用于音频生成的开创性工作之一。随后的一些研究，如Tango
+    Ghosal等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib13)）和Auffusion Xue等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib39)），使用了预训练的LLM，如Flan-T5进行文本编码，这一方法已经被广泛采用。我们注意到，当我们能够找到一种类似有效的方式利用LLM对视觉内容进行编码时，该方法可以无缝地适应VTA任务。对于TTA任务，我们选择Auffusion作为我们的生成智能体，因为它在文本和音频之间的细粒度对齐方面表现优异。
+- en: Coarse-to-fine Audio Generation Current works such as AudioLM Borsos et al.
+    ([2023](https://arxiv.org/html/2410.03335v1#bib.bib2)), VALL-E Wang et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib32))
+    and MusicLM Agostinelli et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib1))
+    use multiple codebooks and Residual Vector Quantization (RVQ) Défossez et al.
+    ([2022](https://arxiv.org/html/2410.03335v1#bib.bib8)) to create diverse audio
+    representations. In AudioLM, the model first predicts semantic tokens that capture
+    crucial information for overall audio quality, such as rhythm and intonation,
+    while subsequent layers add details to enhance the richness of the generated sound.
+    However, these discrete designs suffer from generation quality compared to their
+    continuous-valued counterparts. Moreover, the model has to perform prediction
+    over multi-layers, which inevitably increases computational demands for both training
+    and inference Meng et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib27)).
+    In our case for the VTA task, we fine-tune an LLM to predict an intermediate discrete
+    representation as semantic tokens using a language modeling approach. The discrete
+    semantic tokens then serve as a condition for the diffusion model to generate
+    continuous predictions. In this way, our method simplifies the generation procedure
+    while maintaining the advantages of audio generation using the language modeling
+    approach.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 粗到细的音频生成 当前的工作如AudioLM Borsos等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib2)）、VALL-E
+    Wang等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib32)）和MusicLM Agostinelli等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib1)）使用多个码本和残差向量量化（RVQ）Défossez等人（[2022](https://arxiv.org/html/2410.03335v1#bib.bib8)）来创建多样的音频表示。在AudioLM中，模型首先预测捕捉音频整体质量关键信息的语义标记，如节奏和语调，而随后的层级则添加细节以增强生成声音的丰富性。然而，与其连续值的对应方法相比，这些离散设计在生成质量上存在不足。此外，模型必须在多层中执行预测，这不可避免地增加了训练和推理的计算需求Meng等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib27)）。在我们针对VTA任务的应用中，我们微调了一个LLM，使用语言建模方法预测作为语义标记的中间离散表示。然后，这些离散的语义标记作为条件供扩散模型生成连续预测。通过这种方式，我们的方法简化了生成过程，同时保持了使用语言建模方法进行音频生成的优势。
+- en: 3 Method
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 方法
+- en: 'Audio-Agent comprises three major components: 1) GPT-4 as a brain for action
+    planning; 2) a lightweight LLM to convert video modality into semantic tokens;
+    and 3) a pre-trained TTA diffusion model as the generation backbone. Our model
+    structure is illustrated in Figure [2](https://arxiv.org/html/2410.03335v1#S3.F2
+    "Figure 2 ‣ 3 Method ‣ Audio-Agent: Leveraging LLMs For Audio Generation, Editing
+    and Composition") and Figure [3](https://arxiv.org/html/2410.03335v1#S3.F3 "Figure
+    3 ‣ 3 Method ‣ Audio-Agent: Leveraging LLMs For Audio Generation, Editing and
+    Composition").'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Audio-Agent由三个主要组件组成：1) GPT-4作为动作规划的大脑；2) 一个轻量级的LLM，用于将视频模态转换为语义标记；3) 一个预训练的TTA扩散模型作为生成的主干。我们的模型结构如图[2](https://arxiv.org/html/2410.03335v1#S3.F2
+    "图2 ‣ 3方法 ‣ Audio-Agent：利用LLM进行音频生成、编辑和创作")和图[3](https://arxiv.org/html/2410.03335v1#S3.F3
+    "图3 ‣ 3方法 ‣ Audio-Agent：利用LLM进行音频生成、编辑和创作")所示。
+- en: '![Refer to caption](img/f71af2f9d46c4bf86e780b60e7da12ca.png)'
+  id: totrans-24
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/f71af2f9d46c4bf86e780b60e7da12ca.png)'
+- en: 'Figure 2: Overview of the TTA part. We use GPT-4 to convert a complex audio
+    generation process into multiple generation steps and combine inference results.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：TTA部分概览。我们使用GPT-4将复杂的音频生成过程转换为多个生成步骤，并结合推理结果。
+- en: '![Refer to caption](img/2d79c47e627d7d0b785fdb74d530a6fb.png)'
+  id: totrans-26
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/2d79c47e627d7d0b785fdb74d530a6fb.png)'
+- en: 'Figure 3: Overview of the generation backbone. We build on top of the pre-trained
+    Auffusion model for both TTA and VTA generation.'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：生成主干概览。我们在预训练的Auffusion模型基础上构建了TTA和VTA生成。
+- en: 3.1 Preliminaries
+  id: totrans-28
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 预备知识
+- en: Audio Latent Diffusion Model Recent research adapted the successful latent diffusion
+    models from the image domain to the audio domain. A typical audio latent diffusion
+    model such as Auffussion first converts the audio wave into mel spectrogram, followed
+    by VAE encoding into the relevant latent space. Inference is the reverse process,
+    where the predicted latent is decoded by VAE and then converted back from mel
+    spectrogram into audio wave through a vocoder such as HiFi-GAN Kong et al. ([2020](https://arxiv.org/html/2410.03335v1#bib.bib21)).
+    The latent diffusion process can be regarded as the same as the standard latent
+    diffusion model on image generation Rombach et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib29)).
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 音频潜在扩散模型 最近的研究将成功的图像领域潜在扩散模型适应到音频领域。典型的音频潜在扩散模型，如Auffussion，首先将音频波形转换为梅尔频谱图，然后通过VAE编码进入相关的潜在空间。推理是逆过程，预测的潜在向量通过VAE解码后，再通过像HiFi-GAN Kong等人（[2020](https://arxiv.org/html/2410.03335v1#bib.bib21)）这样的声码器从梅尔频谱图转换回音频波形。潜在扩散过程可以看作与图像生成中的标准潜在扩散模型相同 Rombach等人（[2022](https://arxiv.org/html/2410.03335v1#bib.bib29)）。
+- en: Semantic token AudioLM Borsos et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib2))
+    was among the first to propose a two-stage method for speech synthesis. In their
+    method, the semantic tokens are derived from representations produced by an intermediate
+    layer of w2v-BERT Chung et al. ([2021](https://arxiv.org/html/2410.03335v1#bib.bib6)).
+    We choose an open-sourced HuBERT Hsu et al. ([2021](https://arxiv.org/html/2410.03335v1#bib.bib15))
+    model to produce the semantic representation, since HuBERT can model long-term
+    temporal structure in a generative framework. Although only the smallest Hubert
+    model has its quantizer released and open-sourced, we found that the released
+    small model is already enough to assist the diffusion model in generating high-quality
+    and temporally aligned predictions.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语义令牌AudioLM Borsos等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib2)）是最早提出语音合成的两阶段方法的研究之一。在他们的方法中，语义令牌是从w2v-BERT Chung等人（[2021](https://arxiv.org/html/2410.03335v1#bib.bib6)）的中间层表示中推导出来的。我们选择了开源的HuBERT Hsu等人（[2021](https://arxiv.org/html/2410.03335v1#bib.bib15)）模型来生成语义表示，因为HuBERT能够在生成框架中建模长期的时间结构。尽管只有最小的Hubert模型的量化器被发布并开源，但我们发现发布的小模型已经足够帮助扩散模型生成高质量且时间上对齐的预测。
+- en: 3.2 GPT-4 as an action planner for TTA task
+  id: totrans-31
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 GPT-4作为TTA任务的行动规划器
+- en: 'Given a long, complex text condition, we ask GPT-4 to decompose the description
+    into simple and atomic generation steps. GPT-4 has the freedom to decide how many
+    steps to generate. We additionally restrict GPT-4 to keep the minimum number of
+    necessary generation steps. This step instruction produces a good balance avoiding
+    either extreme of being too abstract or too specific with unnecessary details.
+    We also inform GPT-4 that the user may revise the text requirement in subsequent
+    conversations so that our framework can perform multi-turn conversational generation.
+    The output of GPT-4 consists of a JSON file, which contains a series of function
+    calls of the agent model with text description provided. In addition, to support
+    variable length generation and multi-event generation, GPT-4 also provides the
+    start time and end time for each call which can overlap with each other. After
+    obtaining the generation result for each step, we add waveforms together based
+    on their time range. See Appendix [A.1](https://arxiv.org/html/2410.03335v1#A1.SS1
+    "A.1 Prompt example for TTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition") for a prompt example.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '给定一个长且复杂的文本条件，我们要求GPT-4将描述分解为简单且原子化的生成步骤。GPT-4有自由决定生成多少步骤。我们还限制GPT-4保持必要的最小生成步骤数量。这个步骤指令在避免过于抽象或过于具体、包含不必要细节的极端之间产生了良好的平衡。我们还告知GPT-4，用户可能在后续对话中修改文本需求，以便我们的框架能够执行多轮对话生成。GPT-4的输出是一个JSON文件，其中包含一系列代理模型的函数调用，并附有提供的文本描述。此外，为了支持可变长度的生成和多事件生成，GPT-4还为每个调用提供了开始时间和结束时间，这些时间可以互相重叠。在获取每个步骤的生成结果后，我们根据时间范围将波形叠加在一起。示例请见附录 [A.1](https://arxiv.org/html/2410.03335v1#A1.SS1
+    "A.1 Prompt example for TTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")。'
+- en: 'Table 1: Comparison of functionalities between recent audio generation framework.
+    For AudioLDM2 and Auffusion half check marks are assigned because the corresponding
+    model was trained only on 10 seconds of audio clips. In theory, it also supports
+    long audio generation, but the quality is not assured, see Figure [5](https://arxiv.org/html/2410.03335v1#S4.F5
+    "Figure 5 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：最近音频生成框架的功能对比。对于AudioLDM2和Auffusion，给出了半勾选标记，因为相应的模型仅在10秒的音频片段上进行了训练。理论上，它也支持长音频生成，但质量无法保证，参见图[5](https://arxiv.org/html/2410.03335v1#S4.F5
+    "图 5 ‣ 4.3 评估与比较 ‣ 4 实验 ‣ Audio-Agent：利用LLM进行音频生成、编辑和合成")
+- en: . Method VTA generation TTA generation Multi-turn editing Composition Long complex
+    generation Diff-Foley ✓ ✗ ✗ ✗ FoleyCrafter ✓ ✗ ✗ ✗ AudioLDM2 ✗ ✗ ✗ Auffusion ✗
+    ✗ ✗ Ours ✓ ✓ ✓ ✓
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法 VTA生成 TTA生成 多轮编辑 合成 长复杂生成 Diff-Foley ✓ ✗ ✗ ✗ FoleyCrafter ✓ ✗ ✗ ✗ AudioLDM2
+    ✗ ✗ ✗ Auffusion ✗ ✗ ✗ 我们的 ✓ ✓ ✓ ✓
+- en: 3.3 Audio Tokenizer and Video Tokenizer
+  id: totrans-35
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 音频分词器和视频分词器
+- en: Following Kharitonov et al. ([2021](https://arxiv.org/html/2410.03335v1#bib.bib19)),
+    we utilize the 9th layer of the Hubert-Base model to derive the semantic tokens.
+    The quantizer of Hubert-Base contains 500 centroids. Given an audio clip as ground
+    truth, Hubert acts as an audio tokenizer that applies K-mean clustering and converts
+    the audio into discrete semantic tokens, where each token has a value ranging
+    from 0 to 499 to represent the respective centroids. Hubert-Base has a frame rate
+    of 50Hz, thus a 10-second audio will result in 500 semantic tokens.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参考Kharitonov等（[2021](https://arxiv.org/html/2410.03335v1#bib.bib19)）的方法，我们利用Hubert-Base模型的第9层来推导语义标记。Hubert-Base的量化器包含500个质心。给定一个音频片段作为地面真值，Hubert作为音频分词器，通过K均值聚类将音频转换为离散的语义标记，每个标记的值范围从0到499，表示相应的质心。Hubert-Base的帧率为50Hz，因此一个10秒的音频将生成500个语义标记。
+- en: To efficiently capture both visual and temporal information while compressing
+    the video data, we employ CLIP as a frame-wise feature tokenizer. CLIP is compatible
+    with arbitrary frame sampling strategies, enabling a more flexible frame-to-video
+    feature aggregation scheme as noted by Cheng et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib5)).
+    We pool the information within each frame to reduce the sequence size, resulting
+    in a vector $f^{r}$ of size $N\times D$, where $N$ is the number of frames and
+    $D$ is the CLIP hidden size. We set the frame rate to 21.5 Hz and use CLIP ViT-L/14
+    by default.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了有效捕捉视觉和时间信息，同时压缩视频数据，我们采用CLIP作为逐帧特征分词器。CLIP兼容任意的帧采样策略，允许更灵活的帧到视频特征聚合方案，正如Cheng等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib5)）所指出的那样。我们将每一帧的信息进行池化，以减少序列大小，从而得到一个大小为$N\times
+    D$的向量$f^{r}$，其中$N$是帧的数量，$D$是CLIP的隐藏层大小。我们将帧率设置为21.5Hz，并默认使用CLIP ViT-L/14。
+- en: Inter-frame information is crucial for the model to achieve temporal alignment.
+    Previous methods Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18));
+    Du et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib12)) require extracting
+    both RGB and optical flow information within and across frames. In our design,
+    we add a temporal connector after obtaining frame-wise features. The temporal
+    connector consists of a 1D convolution block and a projection layer. The convolution
+    block aggregates the inter-frame features together while preserving the temporal
+    order. The projection layer projects the features into LLM’s embedding space.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 帧间信息对于模型实现时间对齐至关重要。先前的方法Iashin & Rahtu（[2021](https://arxiv.org/html/2410.03335v1#bib.bib18)）；Du等（[2023](https://arxiv.org/html/2410.03335v1#bib.bib12)）需要提取帧内和帧间的RGB和光流信息。在我们的设计中，我们在获得每帧特征后添加了一个时间连接器。时间连接器由一个1D卷积块和一个投影层组成。卷积块将帧间特征聚合在一起，同时保留时间顺序。投影层将特征映射到LLM的嵌入空间。
+- en: 3.4 LLM for semantic token generation on VTA task
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 LLM在VTA任务中用于语义标记生成
+- en: Semantic tokens allow us to represent continuous audio information in discrete
+    semantic form. We denote the continuous audio ground truth as $a\in\mathbb{R}^{C\times
+    L}$, where $C$ is the number of channels and $L$ is the time of the audio clip
+    times sample rate. The Hubert audio tokenizer applies the K-means algorithm to
+    convert the representation into LLM-aware acoustic tokens. Specifically, we obtain
+    the indices $s\in\{0,...,499\}^{N}$ from the audio by comparing it with the encoded
+    audio with centroids, and $N$ is the sequence length.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语义标记使我们能够以离散语义形式表示连续的音频信息。我们将连续音频的真实值表示为 $a\in\mathbb{R}^{C\times L}$，其中 $C$
+    是通道数，$L$ 是音频片段的时间乘以采样率。Hubert 音频分词器应用 K-means 算法将表示转换为 LLM 感知的音频标记。具体而言，我们通过将音频与编码后的音频质心进行比较，获得索引
+    $s\in\{0,...,499\}^{N}$，其中 $N$ 是序列长度。
+- en: 'During training and inference, we feed the model with encoded video embedding
+    and caption, together with the instruction prompt. To better differentiate the
+    video input with text condition and instruction, we wrap the encoded video feature
+    with special tokens as modality indicators. Specifically, we wrap the video caption
+    with $\langle\textit{Caption}\rangle$, $\langle\textit{/Caption}\rangle$ indicators
+    and video embedding in an embedded sequence of $\langle\textit{Video}\rangle$,
+    $\langle\textit{/Video}\rangle$ indicators. In doing so, we avoid the possibility
+    of confusing the LLM with different kinds of information. See Appendix [A.2](https://arxiv.org/html/2410.03335v1#A1.SS2
+    "A.2 Prompt example for VTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition").'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在训练和推理过程中，我们将编码的视频嵌入和标题，以及指令提示输入到模型中。为了更好地区分视频输入与文本条件和指令，我们用特殊标记作为模态指示符，将编码的视频特征包裹起来。具体来说，我们用
+    $\langle\textit{Caption}\rangle$ 和 $\langle\textit{/Caption}\rangle$ 标记包裹视频标题，并将视频嵌入放入一个嵌入序列中，用
+    $\langle\textit{Video}\rangle$ 和 $\langle\textit{/Video}\rangle$ 标记包裹。通过这样做，我们避免了将
+    LLM 混淆于不同类型的信息中。参见附录 [A.2](https://arxiv.org/html/2410.03335v1#A1.SS2 "A.2 Prompt
+    example for VTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging LLMs For
+    Audio Generation, Editing and Composition")。'
+- en: To jointly model different modalities in a unified model, we further extended
+    the LLM’s text vocabulary $V_{t}=\{v_{i}\}_{i=1}^{N_{t}}$with acoustic vocabulary
+    $V_{a}=\{v_{j}\}_{j=1}^{N_{a}}$. The acoustic vocabulary includes the modality
+    indicators and a series of semantic tokens in the form of $\langle\textit{AUD\_X}\rangle$,
+    where $X$ ranges from 0 to 499, the same as the number of centroids of the audio
+    tokenizer. The extended audio-text vocabulary now becomes $V=\{V_{t},V_{a}\}$.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了在统一的模型中联合建模不同模态，我们进一步扩展了 LLM 的文本词汇 $V_{t}=\{v_{i}\}_{i=1}^{N_{t}}$，并与声学词汇
+    $V_{a}=\{v_{j}\}_{j=1}^{N_{a}}$ 合并。声学词汇包含模态指示符和一系列形式为 $\langle\textit{AUD\_X}\rangle$
+    的语义标记，其中 $X$ 的范围是 0 到 499，与音频分词器的质心数量相同。扩展后的音频-文本词汇现为 $V=\{V_{t},V_{a}\}$。
+- en: 'To further elaborate on the conditional generation tasks performed by LLM:
+    for the VTA task, the source input $X_{v}=\{x_{e}^{i}\}_{i=1}^{N}$ is a sequence
+    of embeddings and $x_{e}\in\mathbb{R}^{D}$, where $D$ is the embedding dimension
+    of LLM. Our LLM backbone is a decoder-only structure with the next token prediction
+    method. The distribution of the predicted token in the first layer is given by
+    $p_{\theta_{LLM}}(\mathbf{C}_{1}|X)=\prod_{i}p_{\theta_{LLM}}(c_{1}^{i}|X,% \mathbf{C}_{1}^{<i})$
+    autoregressively. The objective has thus become:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 进一步阐述 LLM 执行的条件生成任务：对于 VTA 任务，源输入 $X_{v}=\{x_{e}^{i}\}_{i=1}^{N}$ 是一系列嵌入，且 $x_{e}\in\mathbb{R}^{D}$，其中
+    $D$ 是 LLM 的嵌入维度。我们的 LLM 主干是一个仅解码器结构，采用下一个词预测方法。第一层中预测词的分布由 $p_{\theta_{LLM}}(\mathbf{C}_{1}|X)=\prod_{i}p_{\theta_{LLM}}(c_{1}^{i}|X,%
+    \mathbf{C}_{1}^{<i})$ 自回归地给出。因此，目标变为：
+- en: '|  | $\mathcal{L}_{\mathit{LLM}}=-\sum_{i=1}^{T^{\prime}}\log p_{\theta_{\mathit{LLM%
+    }}}(c_{1}^{i}&#124;X,\mathbf{C}_{1}^{<i}),$ |  | (1) |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathcal{L}_{\mathit{LLM}}=-\sum_{i=1}^{T^{\prime}}\log p_{\theta_{\mathit{LLM%
+    }}}(c_{1}^{i}&#124;X,\mathbf{C}_{1}^{<i}),$ |  | (1) |'
+- en: where $T^{\prime}$ is the number of semantic tokens generated by LLM, $\theta_{\mathit{LLM}}$
+    is the parameter of LLM, $c_{1}^{i}$ is the token generated at step $i$, $\mathbf{C}_{1}^{<i}$
+    are previous tokens, and $X$ is the input condition.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中 $T^{\prime}$ 是 LLM 生成的语义标记数，$\theta_{\mathit{LLM}}$ 是 LLM 的参数，$c_{1}^{i}$
+    是在第 $i$ 步生成的标记，$\mathbf{C}_{1}^{<i}$ 是前一个标记，$X$ 是输入条件。
+- en: During inference, the LLM will autoregressively predict the next token until
+    $\langle\textit{eos}\rangle$ is generated. Our LLM thus serves as the bridge for
+    connecting between modalities.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在推理过程中，LLM 将自回归地预测下一个标记，直到生成 $\langle\textit{eos}\rangle$。因此，我们的 LLM 充当了连接不同模态之间的桥梁。
+- en: In our experiments, we use Gemma2-2B-it Team et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib31)),
+    a lightweight open-source LLM developed by Google, which is claimed to have comparable
+    performance to a much larger variant Gemma-2-9B. We use Low-Rank Adaptor (LoRA) Hu
+    et al. ([2021](https://arxiv.org/html/2410.03335v1#bib.bib16)) to finetune Gemma
+    to make it understand vision/text conditions and generate audio tokens.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们使用Gemma2-2B-it Team等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib31)）开发的轻量级开源LLM，该模型声称与更大版本的Gemma-2-9B具有相当的性能。我们使用低秩适配器（LoRA）Hu等人（[2021](https://arxiv.org/html/2410.03335v1#bib.bib16)）对Gemma进行微调，使其理解视觉/文本条件并生成音频标记。
+- en: '![Refer to caption](img/e07d048dde7e9e2f70c771a8f94bf72d.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/e07d048dde7e9e2f70c771a8f94bf72d.png)'
+- en: 'Figure 4: A demo example showing Audio-Agent’s conversation ability: First
+    turn: Audio Generation; second turn: Audio Insertion; third Turn: Audio Editing;
+    last turn: Audio Composition with high-level semantic instructions. Audio-Agent
+    can choose to respond based on previous turns or make independent generations.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：展示Audio-Agent对话能力的示例：第一回合：音频生成；第二回合：音频插入；第三回合：音频编辑；最后一回合：根据高级语义指令进行音频创作。Audio-Agent可以选择基于之前的回合做出回应，也可以进行独立的生成。
+- en: 3.5 Conditional Audio Generation
+  id: totrans-50
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.5 条件音频生成
+- en: 'The audio generation module contains a diffusion model, text-based cross-attention
+    layers and visual-based cross-attention layers. See Figure [3](https://arxiv.org/html/2410.03335v1#S3.F3
+    "Figure 3 ‣ 3 Method ‣ Audio-Agent: Leveraging LLMs For Audio Generation, Editing
+    and Composition"). Given a query feature $Z$, text features $c_{txt}$ and visual
+    features $c_{vis}$ the output for combining two types of cross-attention is defined
+    as follows:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '音频生成模块包含一个扩散模型、基于文本的交叉注意力层和基于视觉的交叉注意力层。请参见图[3](https://arxiv.org/html/2410.03335v1#S3.F3
+    "Figure 3 ‣ 3 Method ‣ Audio-Agent: Leveraging LLMs For Audio Generation, Editing
+    and Composition")。给定一个查询特征$Z$、文本特征$c_{txt}$和视觉特征$c_{vis}$，将两种类型的交叉注意力结合的输出定义如下：'
+- en: '|  | $\begin{split}\mathbf{Z}^{new}=\text{Softmax}(\frac{\mathbf{Q}\mathbf{K}_{txt}^%
+    {\top}}{\sqrt{d}})\mathbf{V}_{txt}+\text{Softmax}(\frac{\mathbf{Q}(\mathbf{K}_%
+    {vis})^{\top}}{\sqrt{d}})\mathbf{V}_{vis}\\ \text{where}\ \mathbf{Q}=\mathbf{Z}\mathbf{W}_{txt}^{q},\mathbf{K}_{txt}=\bm{c%
+    }_{txt}\mathbf{W}_{txt}^{k},\mathbf{V}_{txt}=\bm{c}_{txt}\mathbf{W}_{txt}^{v},%
+    \\ \mathbf{K}_{vis}=\bm{c}_{vis}\mathbf{W}_{vis}^{k},\mathbf{V}_{vis}=\bm{c}_{vis%
+    }\mathbf{W}_{vis}^{v}\end{split}$ |  | (2) |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\begin{split}\mathbf{Z}^{new}=\text{Softmax}(\frac{\mathbf{Q}\mathbf{K}_{txt}^%
+    {\top}}{\sqrt{d}})\mathbf{V}_{txt}+\text{Softmax}(\frac{\mathbf{Q}(\mathbf{K}_%
+    {vis})^{\top}}{\sqrt{d}})\mathbf{V}_{vis}\\ \text{其中}\ \mathbf{Q}=\mathbf{Z}\mathbf{W}_{txt}^{q},\mathbf{K}_{txt}=\bm{c%
+    }_{txt}\mathbf{W}_{txt}^{k},\mathbf{V}_{txt}=\bm{c}_{txt}\mathbf{W}_{txt}^{v},%
+    \\ \mathbf{K}_{vis}=\bm{c}_{vis}\mathbf{W}_{vis}^{k},\mathbf{V}_{vis}=\bm{c}_{vis%
+    }\mathbf{W}_{vis}^{v}\end{split}$ |  | (2) |'
+- en: 'The diffusion model and text-based cross-attention layers are from the pre-trained
+    Auffusion model. During training, we keep the pre-trained part frozen. For the
+    TTA task, we directly feed the step instructions as text conditions and arrange
+    the output based on the start time and end time, as illustrated in Section [3.2](https://arxiv.org/html/2410.03335v1#S3.SS2
+    "3.2 GPT-4 as an action planner for TTA task ‣ 3 Method ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition"). For the VTA task, after
+    obtaining the semantic tokens, we fetch the centroids from the Hubert model according
+    to the value indices as visual features. Similar to the text-based condition mechanism,
+    we apply cross-attention on layers of the diffusion model. During inference, we
+    introduce another parameter for controlling text and visual guidance:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '扩散模型和基于文本的交叉注意力层来自预训练的Auffusion模型。在训练过程中，我们保持预训练部分不变。对于TTA任务，我们直接将步骤指令作为文本条件输入，并根据开始时间和结束时间安排输出，如在第[3.2节](https://arxiv.org/html/2410.03335v1#S3.SS2
+    "3.2 GPT-4作为TTA任务的行动规划器 ‣ 3 Method ‣ Audio-Agent: Leveraging LLMs For Audio Generation,
+    Editing and Composition")中所示。对于VTA任务，获得语义标记后，我们根据值索引从Hubert模型中提取质心作为视觉特征。类似于基于文本的条件机制，我们在扩散模型的层上应用交叉注意力。在推理过程中，我们引入另一个参数来控制文本和视觉的引导：'
+- en: '|  | $\mathbf{Z}^{new}=\text{Attention}(\mathbf{Q},\mathbf{K}_{txt},\mathbf{V}_{txt}%
+    )+\lambda\cdot\text{Attention}(\mathbf{Q},\mathbf{K}_{vis},\mathbf{V}_{vis})$
+    |  | (3) |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathbf{Z}^{new}=\text{Attention}(\mathbf{Q},\mathbf{K}_{txt},\mathbf{V}_{txt}%
+    )+\lambda\cdot\text{Attention}(\mathbf{Q},\mathbf{K}_{vis},\mathbf{V}_{vis})$
+    |  | (3) |'
+- en: Thus the final objective for the diffusion process, which is similar to latent
+    diffusion models, is
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，扩散过程的最终目标类似于潜在扩散模型，表示为：
+- en: '|  | $L_{\text{simple}}=\mathbb{E}_{\bm{x}_{0},\bm{\epsilon},\bm{c}_{txt},\bm{c}_{%
+    vis},t}\&#124;\bm{\epsilon}-\bm{\epsilon}_{\theta}\big{(}\bm{x}_{t},\bm{c}_{txt},%
+    \bm{c}_{vis},t\big{)}\&#124;^{2}.$ |  | (4) |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $L_{\text{simple}}=\mathbb{E}_{\bm{x}_{0},\bm{\epsilon},\bm{c}_{txt},\bm{c}_{%
+    vis},t}\&#124;\bm{\epsilon}-\bm{\epsilon}_{\theta}\big{(}\bm{x}_{t},\bm{c}_{txt},%
+    \bm{c}_{vis},t\big{)}\&#124;^{2}.$ |  | (4) |'
+- en: Compared to IP-Adapter Ye et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib41)),
+    our method introduces the video modality into audio generation. Furthermore, since
+    the semantic tokens already incorporate temporal information of the video, we
+    do not need to train an extra timestamp detection module as done by FoleyCrafter Zhang
+    et al. ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43)) to achieve temporal
+    alignment.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与IP-Adapter Ye等人 ([2023](https://arxiv.org/html/2410.03335v1#bib.bib41)) 相比，我们的方法将视频模态引入音频生成中。此外，由于语义标记已经包含了视频的时间信息，我们不需要像FoleyCrafter
+    Zhang等人 ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43)) 那样训练额外的时间戳检测模块来实现时间对齐。
+- en: 3.6 Implementation Details
+  id: totrans-58
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.6 实现细节
+- en: For fine-tuning Gemma-2B-it, we set LoRA rank and alpha to be 64 with dropout
+    to be 0.05\. We separately train and fine-tune Gemma-2B-it, the projection layers
+    and the cross-attention layers on the AVSync15 Zhang et al. ([2024a](https://arxiv.org/html/2410.03335v1#bib.bib42))
+    datasets. The training and evaluation are conducted on NVIDIA GeForce RTX 4090\.
+    Following Ye et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib41)), we
+    set the $\lambda$ to be 0.5 as default.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于Gemma-2B-it的微调，我们将LoRA秩和alpha设置为64，dropout设置为0.05。我们分别在AVSync15 Zhang等人 ([2024a](https://arxiv.org/html/2410.03335v1#bib.bib42))
+    数据集上训练并微调Gemma-2B-it、投影层和交叉注意力层。训练和评估在NVIDIA GeForce RTX 4090上进行。按照Ye等人 ([2023](https://arxiv.org/html/2410.03335v1#bib.bib41))
+    的方法，我们将$\lambda$设置为默认值0.5。
+- en: 4 Experiments
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 实验
+- en: 4.1 Training Datasets
+  id: totrans-61
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 训练数据集
+- en: For the TTA task, we evaluate our complex generation ability on AudioCaps Kim
+    et al. ([2019](https://arxiv.org/html/2410.03335v1#bib.bib20)) dataset. We randomly
+    choose either one caption from the test set or concatenate two of them together
+    with the clause “followed by”. To better compare with other models, we limit our
+    generation length to the standard 10 seconds. Following Xue et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39)),
+    we randomly selected 20 captions from each category for the generation. Additionally,
+    to demonstrate Audio-Agent’s ability to make inferences based on complex text
+    conditions, we ask GPT to generate additional long event descriptions containing
+    a series of events without explicitly describing the sound, such as “A man enters
+    his car and drives away”. The number of complex captions is also 20\. The baseline
+    methods include AudioGen-v2-medium Kreuk et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib22)),
+    AudioLDM2-large Liu et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib24))
+    and Auffusion Xue et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39)).
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于TTA任务，我们在AudioCaps Kim等人 ([2019](https://arxiv.org/html/2410.03335v1#bib.bib20))
+    数据集上评估我们的复杂生成能力。我们随机选择测试集中的一个字幕，或将两个字幕合并，并附加上“followed by”这一句。为了更好地与其他模型进行比较，我们将生成的长度限制为标准的10秒钟。按照Xue等人
+    ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39)) 的方法，我们从每个类别中随机选择20个字幕进行生成。此外，为了展示Audio-Agent基于复杂文本条件进行推理的能力，我们要求GPT生成额外的长事件描述，这些描述包含一系列事件而不显式描述声音，例如“一个男人进入他的车并开走”。复杂字幕的数量也是20个。基准方法包括AudioGen-v2-medium
+    Kreuk等人 ([2022](https://arxiv.org/html/2410.03335v1#bib.bib22))，AudioLDM2-large
+    Liu等人 ([2024](https://arxiv.org/html/2410.03335v1#bib.bib24)) 和Auffusion Xue等人
+    ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39))。
+- en: We use AVSync15 for VTA task. AVSync15 is a curated dataset from VGGSound Sync Chen
+    et al. ([2021](https://arxiv.org/html/2410.03335v1#bib.bib3)) that has 1500 high
+    video-audio alignment pairs, which is ideal for training and demonstrating temporal
+    alignment between video and audio. Same experiment setting as Zhang et al. ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43))
+    is used. To better facilitate evaluation, we include some audio generation results
+    in the supplementary material.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用AVSync15进行VTA任务。AVSync15是一个来自VGGSound Sync Chen等人 ([2021](https://arxiv.org/html/2410.03335v1#bib.bib3))
+    的精心整理的数据集，包含1500个高质量的视频-音频对齐样本，适合用于训练和展示视频与音频之间的时间对齐。实验设置与Zhang等人 ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43))
+    的设置相同。为了更好地进行评估，我们在补充材料中包括了一些音频生成结果。
+- en: 4.2 Evaluation Metrics
+  id: totrans-64
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 评估指标
+- en: 'The evaluation metrics are summarized as follows: For the VTA task, we use
+    the Frechet audio distance (FAD) to evaluate audio fidelity. Additionally, we
+    utilize the MKL metric Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    and CLIP similarity Wu et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib34))
+    for audio-video relevance. Furthermore, to evaluate the synchronization of the
+    generated audio in the video-to-audio setting, we use the same evaluation metrics
+    as CondFoleyGen Du et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib12)),
+    namely # Onset Accuracy, and Onset AP. For the TTA task, we use CLAP similarity Wu
+    et al. ([2023](https://arxiv.org/html/2410.03335v1#bib.bib35))'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估指标总结如下：对于VTA任务，我们使用Frechet音频距离（FAD）来评估音频的保真度。此外，我们还使用MKL指标Iashin & Rahtu（[2021](https://arxiv.org/html/2410.03335v1#bib.bib18)）和CLIP相似度Wu等人（[2022](https://arxiv.org/html/2410.03335v1#bib.bib34)）来评估音频和视频的相关性。此外，为了评估生成音频在视频到音频设置中的同步性，我们使用与CondFoleyGen
+    Du等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib12)）相同的评估指标，即# Onset Accuracy和Onset
+    AP。对于TTA任务，我们使用CLAP相似度Wu等人（[2023](https://arxiv.org/html/2410.03335v1#bib.bib35)）。
+- en: 4.3 Evaluation and comparison
+  id: totrans-66
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 评估与比较
+- en: 'Audio-Agent outperforms other baseline methods on all TTA experiment settings,
+    see Table [2](https://arxiv.org/html/2410.03335v1#S4.T2 "Table 2 ‣ 4.3 Evaluation
+    and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging LLMs For Audio Generation,
+    Editing and Composition"). Additionally, our method outperforms the original Auffusion
+    model by a significantly increasing margin as the text condition becomes longer
+    and more complex. Specifically, we notice that with a longer text condition, AudioGen Kreuk
+    et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib22)), AudioLDM2 Liu
+    et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib24)) and Auffusion Xue
+    et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39)) all exhibit missing
+    out events. For example, if the text condition is multi-event such as “Pigeons
+    cooing and bird wings flapping as footsteps shuffle on paper followed by motor
+    sounds with male speaking”, all the baseline methods fail to generate the motor
+    sound at the end of the audio clip during evaluation. However, our method avoids
+    this problem by utilizing GPT-4 as a brain/coordinator for caption analysis and
+    generation planning, offering more fine-grained distinctions between events.'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在所有TTA实验设置中，Audio-Agent在性能上优于其他基准方法，详见表[2](https://arxiv.org/html/2410.03335v1#S4.T2
+    "Table 2 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")。此外，随着文本条件变得更长、更复杂，我们的方法相比原始Auffusion模型表现出显著的提升。具体来说，我们注意到，在文本条件更长时，AudioGen
+    Kreuk等人（[2022](https://arxiv.org/html/2410.03335v1#bib.bib22)）、AudioLDM2 Liu等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib24)）和Auffusion
+    Xue等人（[2024](https://arxiv.org/html/2410.03335v1#bib.bib39)）都出现了漏事件。例如，如果文本条件是多事件的，如“鸽子咕咕叫和鸟翼拍打，步伐在纸上滑动，随后是马达声和男性讲话”，所有基准方法在评估过程中都未能生成音频片段末尾的马达声。然而，我们的方法通过利用GPT-4作为大脑/协调器来进行字幕分析和生成规划，避免了这个问题，能够提供更加细致的事件区分。'
+- en: 'We also notice a significant drop for all methods on complex captions, since
+    none of these methods has been trained on this type of text condition. Still,
+    we find this type of text condition more practical in the real world, since it
+    does not require explicit descriptions of the characteristics of sound, but rather
+    describes the scenario for sound generation, offering more flexibility for the
+    sound producer. We attach some examples of complex results that we used for evaluation
+    in Appendix [A.3](https://arxiv.org/html/2410.03335v1#A1.SS3 "A.3 Complex captions
+    for TTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging LLMs For Audio Generation,
+    Editing and Composition").'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们还注意到，在复杂字幕的所有方法中都有显著的下降，因为这些方法都没有在这种文本条件下进行训练。不过，我们发现这种文本条件在现实世界中更为实用，因为它不需要明确描述声音的特征，而是描述声音生成的场景，为声音制作人提供了更多的灵活性。我们在附录[A.3](https://arxiv.org/html/2410.03335v1#A1.SS3
+    "A.3 Complex captions for TTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")中附上了一些用于评估的复杂结果示例。'
+- en: 'For the VTA task, our method achieves better visual-audio synchronization compared
+    to other baseline methods, while subpar the current state-of-the-art method in
+    terms of generation audio quality, presented in Tables [3](https://arxiv.org/html/2410.03335v1#S4.T3
+    "Table 3 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition") and [4](https://arxiv.org/html/2410.03335v1#S4.T4
+    "Table 4 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition"). We consider this reasonable
+    as most of the other baseline methods have been trained on multiple larger datasets.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于 VTA 任务，我们的方法在视觉与音频同步性上优于其他基线方法，但在生成音频质量方面略逊于当前的最先进方法，相关数据见表格[3](https://arxiv.org/html/2410.03335v1#S4.T3
+    "Table 3 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")和[4](https://arxiv.org/html/2410.03335v1#S4.T4
+    "Table 4 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")。我们认为这是合理的，因为大多数其他基线方法都是在多个更大的数据集上训练的。'
+- en: 'Specifically, we find that the temporal connector may negatively affect the
+    generated audio quality on a small scale. However, for the evaluation of synchronization,
+    we noticed a significant improvement after the temporal connector was applied,
+    especially for the Onset AP. Without explicit training of a timestamp detector,
+    our method achieves a better performance in terms of onset Acc and Onset AP, see
+    Figure [6](https://arxiv.org/html/2410.03335v1#S4.F6 "Figure 6 ‣ 4.3 Evaluation
+    and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging LLMs For Audio Generation,
+    Editing and Composition") for illustration.'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '具体来说，我们发现时间连接符可能在小范围内对生成音频的质量产生负面影响。然而，在同步性评估方面，我们注意到应用时间连接符后有了显著的改进，特别是在 Onset
+    AP 方面。在没有显式训练时间戳检测器的情况下，我们的方法在起始准确率（Onset Acc）和 Onset AP 上表现更好，具体见图[6](https://arxiv.org/html/2410.03335v1#S4.F6
+    "Figure 6 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")。'
+- en: '![Refer to caption](img/ac1cf3b5a4ec2f9708d152dd87e8fd31.png)'
+  id: totrans-71
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明](img/ac1cf3b5a4ec2f9708d152dd87e8fd31.png)'
+- en: 'Figure 5: Comparison with baseline for TTA task. To demonstrate audio generation
+    based on long complex text conditions, we ask the model to generate audio clips
+    for 20 seconds. The text condition is drawn from the Two Captions category of
+    Table [2](https://arxiv.org/html/2410.03335v1#S4.T2 "Table 2 ‣ 4.3 Evaluation
+    and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging LLMs For Audio Generation,
+    Editing and Composition"): (A) A river stream of water flowing followed by typing
+    on a computer keyboard; (B) A woman delivering a speech followed by a male speech
+    and statics; (C) A vehicle engine revving then accelerating at a high rate as
+    a metal surface is whipped followed by tires skidding followed by a door shutting
+    and a female speaking; (D). Continuous white noise followed by a vehicle driving
+    as a man and woman are talking and laughing; We can see that our method successfully
+    generates multi-event audio at different times based on descriptions, while Auffusion
+    mixes the generated audio.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图 5：与基线方法的 TTA 任务比较。为了展示基于长复杂文本条件的音频生成，我们要求模型生成 20 秒的音频片段。文本条件选自表[2](https://arxiv.org/html/2410.03335v1#S4.T2
+    "Table 2 ‣ 4.3 Evaluation and comparison ‣ 4 Experiments ‣ Audio-Agent: Leveraging
+    LLMs For Audio Generation, Editing and Composition")中的“两个标题”类别：（A）一条水流的河流声，随后是敲击计算机键盘的声音；（B）一位女性演讲，随后是男性的演讲和静态声音；（C）一辆车辆发动机轰鸣声，然后以高速加速，接着是金属表面被鞭打的声音，随后是轮胎滑行的声音，接着是门关上的声音，再是女性说话的声音；（D）连续的白噪音，随后是一辆车辆行驶的声音，接着是一男一女的谈话和笑声；我们可以看到，我们的方法成功地基于描述生成了不同时间段的多事件音频，而
+    Auffusion 则混合了生成的音频。'
+- en: 'Table 2: Evaluation for all baseline models on the TTA task, categorized by
+    the type of text conditions.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：所有基线模型在 TTA 任务上的评估，按文本条件类型分类。
+- en: '| Method | Single Caption | Two Captions | Complex Captions |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 单一标题 | 两个标题 | 复杂标题 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| CLAP$\uparrow$ | CLAP$\uparrow$ | CLAP$\uparrow$ |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| CLAP$\uparrow$ | CLAP$\uparrow$ | CLAP$\uparrow$ |'
+- en: '| --- | --- | --- |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| AudioGen Kreuk et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib22))
+    | 49.34% | 44.76% | 23.98% |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| AudioGen Kreuk et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib22))
+    | 49.34% | 44.76% | 23.98% |'
+- en: '| AudioLDM2 Liu et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib24))
+    | 47.04% | 36.03% | 23.33% |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| AudioLDM2 Liu et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib24))
+    | 47.04% | 36.03% | 23.33% |'
+- en: '| Auffusion Xue et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39))
+    | 50.91% | 45.90% | 14.40% |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| Auffusion Xue et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib39))
+    | 50.91% | 45.90% | 14.40% |'
+- en: '| Ours |  55.17% |  53.02% |  24.06% | ![Refer to caption](img/3da3d049a5cbb7c183206868fe041140.png)'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '| 我们的方法 | 55.17% | 53.02% | 24.06% | ![参见说明](img/3da3d049a5cbb7c183206868fe041140.png)'
+- en: 'Figure 6: Comparison with baseline for VTA generation task. Compared to the
+    baseline, the event occurrence is more explicit. Our method can produce audio
+    that is more aligned and better synchronized with the input video.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：与基准方法在VTA生成任务上的比较。与基准方法相比，事件的发生更加明确。我们的方法能够生成与输入视频更加对齐且更好同步的音频。
+- en: 'Table 3: Quantitative evaluation on semantic alignment and audio quality. Specifically,
+    Audio-Agent achieves on par performance versus state-of-the-art models in terms
+    of Mean KL Divergence (MKL) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18)),
+    CLIP Wu et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib34)) and FID Heusel
+    et al. ([2017](https://arxiv.org/html/2410.03335v1#bib.bib14)) on AVSync15  Zhang
+    et al. ([2024a](https://arxiv.org/html/2410.03335v1#bib.bib42)).'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：语义对齐和音频质量的定量评估。具体来说，Audio-Agent 在平均KL散度（MKL）Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))、CLIP
+    Wu et al. ([2022](https://arxiv.org/html/2410.03335v1#bib.bib34)) 和FID Heusel
+    et al. ([2017](https://arxiv.org/html/2410.03335v1#bib.bib14))上与最先进的模型表现相当，数据集为AVSync15
+    Zhang et al. ([2024a](https://arxiv.org/html/2410.03335v1#bib.bib42))。
+- en: '| Method | MKL $\downarrow$ | CLIP $\uparrow$ | FID $\downarrow$ |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | MKL $\downarrow$ | CLIP $\uparrow$ | FID $\downarrow$ |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| SpecVQGAN (Inception) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 5.339 | 6.610 | 114.44 |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| SpecVQGAN (Inception) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 5.339 | 6.610 | 114.44 |'
+- en: '| SpecVQGAN (ResNet) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 3.603 | 6.474 | 75.56 |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| SpecVQGAN (ResNet) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 3.603 | 6.474 | 75.56 |'
+- en: '| Diff-Foley Luo et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib25))
+    | 1.963 | 10.38 | 65.77 |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| Diff-Foley Luo et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib25))
+    | 1.963 | 10.38 | 65.77 |'
+- en: '| Seeing and Hearing Xing et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib38))
+    | 2.547 | 2.033 | 65.82 |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| Seeing and Hearing Xing et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib38))
+    | 2.547 | 2.033 | 65.82 |'
+- en: '| FoleyCrafter Zhang et al. ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43))
+    | 1.497 | 11.94 | 36.80 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| FoleyCrafter Zhang et al. ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43))
+    | 1.497 | 11.94 | 36.80 |'
+- en: '| Ours (without temporal connector) | 2.516 | 9.06 | 55.59 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法（无时间连接） | 2.516 | 9.06 | 55.59 |'
+- en: '| Ours (with temporal connector) | 2.623 | 8.55 | 52.93 |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法（有时间连接） | 2.623 | 8.55 | 52.93 |'
+- en: 'Table 4: Quantitative evaluation in terms of temporal synchronization. We report
+    onset detection accuracy (Onset ACC) and average precision (Onset AP) for the
+    generated audios on AVSync Zhang et al. ([2024a](https://arxiv.org/html/2410.03335v1#bib.bib42)),
+    which provides onset timestamp labels for assessment, following previous studies
+     Luo et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib25)); Xie et al.
+    ([2024](https://arxiv.org/html/2410.03335v1#bib.bib37)).'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4：时间同步的定量评估。我们报告了生成音频的开始检测准确率（Onset ACC）和平均精度（Onset AP），数据集为AVSync Zhang et
+    al. ([2024a](https://arxiv.org/html/2410.03335v1#bib.bib42))，该数据集提供了开始时间戳标签以供评估，遵循之前的研究
+    Luo et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib25))；Xie et al.
+    ([2024](https://arxiv.org/html/2410.03335v1#bib.bib37))。
+- en: '| Method | Onset ACC $\uparrow$ | Onset AP $\uparrow$ |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 开始准确率（Onset ACC）$\uparrow$ | 开始精度（Onset AP）$\uparrow$ |'
+- en: '| --- | --- | --- |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| SpecVQGAN(Inception) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 16.81 | 64.64 |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| SpecVQGAN(Inception) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 16.81 | 64.64 |'
+- en: '| SpecVQGAN(ResNet) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 26.74 | 63.18 |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| SpecVQGAN(ResNet) Iashin & Rahtu ([2021](https://arxiv.org/html/2410.03335v1#bib.bib18))
+    | 26.74 | 63.18 |'
+- en: '| Diff-Foley Luo et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib25))
+    | 21.18 | 66.55 |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| Diff-Foley Luo et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib25))
+    | 21.18 | 66.55 |'
+- en: '| Seeing and Hearing Xing et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib38))
+    | 20.95 | 60.33 |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| Seeing and Hearing Xing et al. ([2024](https://arxiv.org/html/2410.03335v1#bib.bib38))
+    | 20.95 | 60.33 |'
+- en: '| FoleyCrafter Zhang et al. ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43))
+    | 28.48 | 68.14 |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| FoleyCrafter Zhang et al. ([2024b](https://arxiv.org/html/2410.03335v1#bib.bib43))
+    | 28.48 | 68.14 |'
+- en: '| Ours (without temporal connector) | 28.45 | 64.72 |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法（无时间连接） | 28.45 | 64.72 |'
+- en: '| Ours (with temporal connector) | 29.01 | 69.38 |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法（有时间连接） | 29.01 | 69.38 |'
+- en: 4.4 Ablation Studies
+  id: totrans-103
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4 消融研究
+- en: 'We include our ablation study on different LoRA rank values during LLM fine-tuning,
+    see Tables [5](https://arxiv.org/html/2410.03335v1#S4.T5 "Table 5 ‣ 4.4 Ablation
+    Studies ‣ 4 Experiments ‣ Audio-Agent: Leveraging LLMs For Audio Generation, Editing
+    and Composition") and [6](https://arxiv.org/html/2410.03335v1#S4.T6 "Table 6 ‣
+    4.4 Ablation Studies ‣ 4 Experiments ‣ Audio-Agent: Leveraging LLMs For Audio
+    Generation, Editing and Composition"). We found that an increase in trainable
+    parameters sometimes does not necessarily improve the result. Notwithstanding,
+    for a fair comparison, we use the rank value of 60 across all metrics. Additionally
+    during training, we found that the training of the cross-attention layer can converge
+    within 20,000 steps. We notice that the loss curve is not a reliable indicator
+    of the model’s performance. The model can achieve a good performance even when
+    the loss curve remains flat.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们包括了在 LLM 微调过程中不同 LoRA 排名值的消融研究，见表 [5](https://arxiv.org/html/2410.03335v1#S4.T5
+    "Table 5 ‣ 4.4 Ablation Studies ‣ 4 Experiments ‣ Audio-Agent: Leveraging LLMs
+    For Audio Generation, Editing and Composition") 和 [6](https://arxiv.org/html/2410.03335v1#S4.T6
+    "Table 6 ‣ 4.4 Ablation Studies ‣ 4 Experiments ‣ Audio-Agent: Leveraging LLMs
+    For Audio Generation, Editing and Composition")。我们发现，增加可训练参数有时并不一定改善结果。然而，为了公平比较，我们在所有指标中使用了排名值为
+    60。此外，在训练过程中，我们发现交叉注意力层的训练可以在 20,000 步内收敛。我们注意到，损失曲线并不是模型性能的可靠指标。即使损失曲线保持平坦，模型仍然可以取得良好的表现。'
+- en: 'Table 5: Ablation study on AVSync15 dataset with different LoRA rank for semantic
+    alignment and audio quality. During experiments, we keep the value of alpha the
+    same as the rank.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：在 AVSync15 数据集上，针对不同 LoRA 排名的语义对齐和音频质量的消融研究。在实验过程中，我们保持 alpha 的值与排名相同。
+- en: '| Method | Trainable Parameters | MKL $\downarrow$ | CLIP $\uparrow$ | FID
+    $\downarrow$ |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 可训练参数 | MKL $\downarrow$ | CLIP $\uparrow$ | FID $\downarrow$ |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| Ours (R=16) | 78.31MM | 2.702 | 8.42 | 58.426 |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 (R=16) | 78.31MM | 2.702 | 8.42 | 58.426 |'
+- en: '| Ours (R=32) | 99.08MM |  2.543 | 8.49 | 55.197 |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 (R=32) | 99.08MM | 2.543 | 8.49 | 55.197 |'
+- en: '| Ours (R=64) | 140.61MM | 2.623 |  8.55 |  52.929 |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 (R=64) | 140.61MM | 2.623 | 8.55 | 52.929 |'
+- en: 'Table 6: Ablation study on AVSync15 dataset with different LoRA rank in terms
+    of temporal synchronization. During experiments, we keep the value of alpha the
+    same as the rank.'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6：在 AVSync15 数据集上，针对不同 LoRA 排名的时间同步消融研究。在实验过程中，我们保持 alpha 的值与排名相同。
+- en: '| Method | Trainable Parameters | Onset ACC $\uparrow$ | Onset AP $\uparrow$
+    |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 可训练参数 | 起始准确率 ACC $\uparrow$ | 起始平均精度 AP $\uparrow$ |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-113
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Ours (R=16) | 78.31M |  29.74 |  70.63 |'
+  id: totrans-114
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 (R=16) | 78.31M | 29.74 | 70.63 |'
+- en: '| Ours (R=32) | 99.08M | 27.49 | 70.57 |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 (R=32) | 99.08M | 27.49 | 70.57 |'
+- en: '| Ours (R=64) | 140.61M | 29.01 | 69.38 |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| 我们的方法 (R=64) | 140.61M | 29.01 | 69.38 |'
+- en: 5 Conclusion and Discussion
+  id: totrans-117
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 结论与讨论
+- en: 5.1 Limitation and Future Work
+  id: totrans-118
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 限制与未来工作
+- en: Our framework experiences a drop in performance when given complex text conditions
+    for the TTA task, which is more severe in other baseline methods. We believe it
+    is a worthwhile direction in the future for understanding long complex captions
+    with improved fine-grained distinctions between multiple events. We may also utilize
+    the LLM’s versatility involving audio captioning tasks and video captioning tasks.
+    The above are worthwhile future directions to explore.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的框架在面对复杂文本条件时，在 TTA 任务上性能有所下降，而其他基准方法的下降更为严重。我们认为，在未来，理解长复杂的字幕，并在多个事件之间做出精细区分是一个值得探索的方向。我们也可以利用
+    LLM 在音频字幕和视频字幕任务中的多功能性。上述方向是值得未来深入研究的。
+- en: 5.2 Conclusion
+  id: totrans-120
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 结论
+- en: In this paper, we present Audio-Agent, a multimodal framework for both text-to-audio
+    and video-to-audio tasks. Our model offers a conversation-based method for audio
+    generation, editing and composition, facilitating audio generation conditioned
+    on multievent complex descriptions. For the video-to-audio task, we propose an
+    efficient method to achieve visual synchronization. Through extensive experiments,
+    we show that our model can synthesize high-fidelity audio, ensuring semantic alignment
+    with input. Additionally, our work takes an initial, significant step toward multi-event
+    long-condition TTA generation which has not been fully explored.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们提出了 Audio-Agent，一个多模态框架，适用于文本到音频和视频到音频任务。我们的模型提供了一种基于对话的音频生成、编辑和合成方法，促进了基于多事件复杂描述的音频生成。对于视频到音频任务，我们提出了一种高效的方法来实现视觉同步。通过大量实验，我们展示了我们的模型能够合成高保真音频，确保与输入的语义对齐。此外，我们的工作迈出了多事件长条件
+    TTA 生成的初步且重要的一步，这一方向尚未得到充分探索。
+- en: References
+  id: totrans-122
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Agostinelli et al. (2023) Andrea Agostinelli, Timo I Denk, Zalán Borsos, Jesse
+    Engel, Mauro Verzetti, Antoine Caillon, Qingqing Huang, Aren Jansen, Adam Roberts,
+    Marco Tagliasacchi, et al. Musiclm: Generating music from text. *arXiv preprint
+    arXiv:2301.11325*, 2023.'
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Agostinelli 等人（2023）Andrea Agostinelli, Timo I Denk, Zalán Borsos, Jesse Engel,
+    Mauro Verzetti, Antoine Caillon, Qingqing Huang, Aren Jansen, Adam Roberts, Marco
+    Tagliasacchi 等人。Musiclm：从文本生成音乐。*arXiv 预印本 arXiv:2301.11325*，2023。
+- en: 'Borsos et al. (2023) Zalán Borsos, Raphaël Marinier, Damien Vincent, Eugene
+    Kharitonov, Olivier Pietquin, Matt Sharifi, Dominik Roblek, Olivier Teboul, David
+    Grangier, Marco Tagliasacchi, et al. Audiolm: a language modeling approach to
+    audio generation. *IEEE/ACM transactions on audio, speech, and language processing*,
+    31:2523–2533, 2023.'
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Borsos 等人（2023）Zalán Borsos, Raphaël Marinier, Damien Vincent, Eugene Kharitonov,
+    Olivier Pietquin, Matt Sharifi, Dominik Roblek, Olivier Teboul, David Grangier,
+    Marco Tagliasacchi 等人。Audiolm：一种基于语言建模的音频生成方法。*IEEE/ACM 音频、语音和语言处理学报*，31:2523–2533，2023。
+- en: Chen et al. (2021) Honglie Chen, Weidi Xie, Triantafyllos Afouras, Arsha Nagrani,
+    Andrea Vedaldi, and Andrew Zisserman. Audio-visual synchronisation in the wild.
+    *arXiv preprint arXiv:2112.04432*, 2021.
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2021）Honglie Chen, Weidi Xie, Triantafyllos Afouras, Arsha Nagrani,
+    Andrea Vedaldi, 和 Andrew Zisserman。野外中的视听同步。*arXiv 预印本 arXiv:2112.04432*，2021。
+- en: Chen et al. (2020) Peihao Chen, Yang Zhang, Mingkui Tan, Hongdong Xiao, Deng
+    Huang, and Chuang Gan. Generating visually aligned sound from videos. *IEEE Transactions
+    on Image Processing*, 29:8292–8302, 2020.
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2020）Peihao Chen, Yang Zhang, Mingkui Tan, Hongdong Xiao, Deng Huang,
+    和 Chuang Gan. 从视频生成视觉对齐的声音。*IEEE 图像处理学报*，29:8292–8302，2020。
+- en: 'Cheng et al. (2024) Zesen Cheng, Sicong Leng, Hang Zhang, Yifei Xin, Xin Li,
+    Guanzheng Chen, Yongxin Zhu, Wenqi Zhang, Ziyang Luo, Deli Zhao, et al. Videollama
+    2: Advancing spatial-temporal modeling and audio understanding in video-llms.
+    *arXiv preprint arXiv:2406.07476*, 2024.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cheng 等人（2024）Zesen Cheng, Sicong Leng, Hang Zhang, Yifei Xin, Xin Li, Guanzheng
+    Chen, Yongxin Zhu, Wenqi Zhang, Ziyang Luo, Deli Zhao 等人。Videollama 2：推进视频大语言模型中的时空建模和音频理解。*arXiv
+    预印本 arXiv:2406.07476*，2024。
+- en: 'Chung et al. (2021) Yu-An Chung, Yu Zhang, Wei Han, Chung-Cheng Chiu, James
+    Qin, Ruoming Pang, and Yonghui Wu. W2v-bert: Combining contrastive learning and
+    masked language modeling for self-supervised speech pre-training. In *2021 IEEE
+    Automatic Speech Recognition and Understanding Workshop (ASRU)*, pp.  244–250\.
+    IEEE, 2021.'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chung 等人（2021）Yu-An Chung, Yu Zhang, Wei Han, Chung-Cheng Chiu, James Qin, Ruoming
+    Pang, 和 Yonghui Wu。W2v-bert：结合对比学习与掩码语言建模进行自监督语音预训练。在 *2021 IEEE 自动语音识别与理解研讨会（ASRU）*，第244–250页，IEEE，2021。
+- en: Copet et al. (2024) Jade Copet, Felix Kreuk, Itai Gat, Tal Remez, David Kant,
+    Gabriel Synnaeve, Yossi Adi, and Alexandre Défossez. Simple and controllable music
+    generation. *Advances in Neural Information Processing Systems*, 36, 2024.
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Copet 等人（2024）Jade Copet, Felix Kreuk, Itai Gat, Tal Remez, David Kant, Gabriel
+    Synnaeve, Yossi Adi, 和 Alexandre Défossez。简单且可控的音乐生成。*神经信息处理系统进展*，36，2024。
+- en: Défossez et al. (2022) Alexandre Défossez, Jade Copet, Gabriel Synnaeve, and
+    Yossi Adi. High fidelity neural audio compression. *arXiv preprint arXiv:2210.13438*,
+    2022.
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Défossez 等人（2022）Alexandre Défossez, Jade Copet, Gabriel Synnaeve, 和 Yossi Adi。高保真神经音频压缩。*arXiv
+    预印本 arXiv:2210.13438*，2022。
+- en: 'Dong et al. (2023) Hao-Wen Dong, Xiaoyu Liu, Jordi Pons, Gautam Bhattacharya,
+    Santiago Pascual, Joan Serrà, Taylor Berg-Kirkpatrick, and Julian McAuley. Clipsonic:
+    Text-to-audio synthesis with unlabeled videos and pretrained language-vision models.
+    In *2023 IEEE Workshop on Applications of Signal Processing to Audio and Acoustics
+    (WASPAA)*, pp.  1–5\. IEEE, 2023.'
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dong 等人（2023）Hao-Wen Dong, Xiaoyu Liu, Jordi Pons, Gautam Bhattacharya, Santiago
+    Pascual, Joan Serrà, Taylor Berg-Kirkpatrick, 和 Julian McAuley. Clipsonic：利用无标签视频和预训练的语言-视觉模型进行文本到音频的合成。在
+    *2023 IEEE 信号处理在音频与声学中的应用研讨会（WASPAA）*，第1–5页，IEEE，2023。
+- en: 'Driess et al. (2023) Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch,
+    Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong,
+    Tianhe Yu, et al. Palm-e: An embodied multimodal language model. *arXiv preprint
+    arXiv:2303.03378*, 2023.'
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Driess 等人（2023）Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch, Aakanksha
+    Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu
+    等人。Palm-e：一种具身多模态语言模型。*arXiv 预印本 arXiv:2303.03378*，2023。
+- en: 'Drossos et al. (2020) Konstantinos Drossos, Samuel Lipping, and Tuomas Virtanen.
+    Clotho: An audio captioning dataset. In *ICASSP 2020-2020 IEEE International Conference
+    on Acoustics, Speech and Signal Processing (ICASSP)*, pp.  736–740\. IEEE, 2020.'
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Drossos 等人（2020）Konstantinos Drossos, Samuel Lipping, 和 Tuomas Virtanen。Clotho：一个音频描述数据集。在
+    *ICASSP 2020-2020 IEEE 国际声学、语音与信号处理会议（ICASSP）*，第736–740页，IEEE，2020。
+- en: Du et al. (2023) Yuexi Du, Ziyang Chen, Justin Salamon, Bryan Russell, and Andrew
+    Owens. Conditional generation of audio from video via foley analogies. In *Proceedings
+    of the IEEE/CVF Conference on Computer Vision and Pattern Recognition*, pp.  2426–2436,
+    2023.
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Du等人（2023）Yuexi Du、Ziyang Chen、Justin Salamon、Bryan Russell 和 Andrew Owens。通过拟音类比从视频中生成条件音频。见于
+    *IEEE/CVF计算机视觉与模式识别会议论文集*，第2426–2436页，2023年。
+- en: Ghosal et al. (2023) Deepanway Ghosal, Navonil Majumder, Ambuj Mehrish, and
+    Soujanya Poria. Text-to-audio generation using instruction-tuned llm and latent
+    diffusion model. *arXiv preprint arXiv:2304.13731*, 2023.
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ghosal等人（2023）Deepanway Ghosal、Navonil Majumder、Ambuj Mehrish 和 Soujanya Poria。基于指令调优的LLM和潜在扩散模型的文本到音频生成。*arXiv预印本
+    arXiv:2304.13731*，2023年。
+- en: Heusel et al. (2017) Martin Heusel, Hubert Ramsauer, Thomas Unterthiner, Bernhard
+    Nessler, and Sepp Hochreiter. Gans trained by a two time-scale update rule converge
+    to a local nash equilibrium. *Advances in neural information processing systems*,
+    30, 2017.
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Heusel等人（2017）Martin Heusel、Hubert Ramsauer、Thomas Unterthiner、Bernhard Nessler
+    和 Sepp Hochreiter。通过两时间尺度更新规则训练的GAN收敛到局部纳什均衡。*神经信息处理系统进展*，30，2017年。
+- en: 'Hsu et al. (2021) Wei-Ning Hsu, Benjamin Bolte, Yao-Hung Hubert Tsai, Kushal
+    Lakhotia, Ruslan Salakhutdinov, and Abdelrahman Mohamed. Hubert: Self-supervised
+    speech representation learning by masked prediction of hidden units. *IEEE/ACM
+    transactions on audio, speech, and language processing*, 29:3451–3460, 2021.'
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hsu等人（2021）Wei-Ning Hsu、Benjamin Bolte、Yao-Hung Hubert Tsai、Kushal Lakhotia、Ruslan
+    Salakhutdinov 和 Abdelrahman Mohamed。Hubert：通过隐藏单元的掩蔽预测进行自监督语音表示学习。*IEEE/ACM音频、语音与语言处理学报*，29:3451–3460，2021年。
+- en: 'Hu et al. (2021) Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu,
+    Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. Lora: Low-rank adaptation of
+    large language models. *arXiv preprint arXiv:2106.09685*, 2021.'
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hu等人（2021）Edward J Hu、Yelong Shen、Phillip Wallis、Zeyuan Allen-Zhu、Yuanzhi Li、Shean
+    Wang、Lu Wang 和 Weizhu Chen。Lora：大规模语言模型的低秩适配。*arXiv预印本 arXiv:2106.09685*，2021年。
+- en: 'Huang et al. (2023) Rongjie Huang, Jiawei Huang, Dongchao Yang, Yi Ren, Luping
+    Liu, Mingze Li, Zhenhui Ye, Jinglin Liu, Xiang Yin, and Zhou Zhao. Make-an-audio:
+    Text-to-audio generation with prompt-enhanced diffusion models. In *International
+    Conference on Machine Learning*, pp.  13916–13932\. PMLR, 2023.'
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Huang等人（2023）Rongjie Huang、Jiawei Huang、Dongchao Yang、Yi Ren、Luping Liu、Mingze
+    Li、Zhenhui Ye、Jinglin Liu、Xiang Yin 和 Zhou Zhao。Make-an-audio：使用提示增强扩散模型进行文本到音频生成。见于
+    *国际机器学习会议*，第13916–13932页，PMLR，2023年。
+- en: Iashin & Rahtu (2021) Vladimir Iashin and Esa Rahtu. Taming visually guided
+    sound generation. *arXiv preprint arXiv:2110.08791*, 2021.
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Iashin & Rahtu（2021）Vladimir Iashin 和 Esa Rahtu。驯服视觉引导的声音生成。*arXiv预印本 arXiv:2110.08791*，2021年。
+- en: Kharitonov et al. (2021) Eugene Kharitonov, Ann Lee, Adam Polyak, Yossi Adi,
+    Jade Copet, Kushal Lakhotia, Tu-Anh Nguyen, Morgane Rivière, Abdelrahman Mohamed,
+    Emmanuel Dupoux, et al. Text-free prosody-aware generative spoken language modeling.
+    *arXiv preprint arXiv:2109.03264*, 2021.
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kharitonov等人（2021）Eugene Kharitonov、Ann Lee、Adam Polyak、Yossi Adi、Jade Copet、Kushal
+    Lakhotia、Tu-Anh Nguyen、Morgane Rivière、Abdelrahman Mohamed、Emmanuel Dupoux 等人。无文本的韵律感知生成性语音语言建模。*arXiv预印本
+    arXiv:2109.03264*，2021年。
+- en: 'Kim et al. (2019) Chris Dongjoo Kim, Byeongchang Kim, Hyunmin Lee, and Gunhee
+    Kim. Audiocaps: Generating captions for audios in the wild. In *Proceedings of
+    the 2019 Conference of the North American Chapter of the Association for Computational
+    Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)*, pp. 
+    119–132, 2019.'
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kim等人（2019）Chris Dongjoo Kim、Byeongchang Kim、Hyunmin Lee 和 Gunhee Kim。Audiocaps：为野外音频生成字幕。见于
+    *2019年北美计算语言学学会年会：人类语言技术，第1卷（长篇和短篇论文）*，第119–132页，2019年。
+- en: 'Kong et al. (2020) Jungil Kong, Jaehyeon Kim, and Jaekyoung Bae. Hifi-gan:
+    Generative adversarial networks for efficient and high fidelity speech synthesis.
+    *Advances in neural information processing systems*, 33:17022–17033, 2020.'
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kong等人（2020）Jungil Kong、Jaehyeon Kim 和 Jaekyoung Bae。Hifi-gan：用于高效且高保真语音合成的生成对抗网络。*神经信息处理系统进展*，33:17022–17033，2020年。
+- en: 'Kreuk et al. (2022) Felix Kreuk, Gabriel Synnaeve, Adam Polyak, Uriel Singer,
+    Alexandre Défossez, Jade Copet, Devi Parikh, Yaniv Taigman, and Yossi Adi. Audiogen:
+    Textually guided audio generation. *arXiv preprint arXiv:2209.15352*, 2022.'
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kreuk等人（2022）Felix Kreuk、Gabriel Synnaeve、Adam Polyak、Uriel Singer、Alexandre
+    Défossez、Jade Copet、Devi Parikh、Yaniv Taigman 和 Yossi Adi。Audiogen：文本引导的音频生成。*arXiv预印本
+    arXiv:2209.15352*，2022年。
+- en: 'Liang et al. (2022) Victor Weixin Liang, Yuhui Zhang, Yongchan Kwon, Serena
+    Yeung, and James Y Zou. Mind the gap: Understanding the modality gap in multi-modal
+    contrastive representation learning. *Advances in Neural Information Processing
+    Systems*, 35:17612–17625, 2022.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang 等人 (2022) Victor Weixin Liang, Yuhui Zhang, Yongchan Kwon, Serena Yeung
+    和 James Y Zou. 注意差距：理解多模态对比表示学习中的模态差距. *神经信息处理系统进展*, 35:17612–17625, 2022.
+- en: 'Liu et al. (2024) Haohe Liu, Yi Yuan, Xubo Liu, Xinhao Mei, Qiuqiang Kong,
+    Qiao Tian, Yuping Wang, Wenwu Wang, Yuxuan Wang, and Mark D Plumbley. Audioldm
+    2: Learning holistic audio generation with self-supervised pretraining. *IEEE/ACM
+    Transactions on Audio, Speech, and Language Processing*, 2024.'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Liu 等人 (2024) Haohe Liu, Yi Yuan, Xubo Liu, Xinhao Mei, Qiuqiang Kong, Qiao
+    Tian, Yuping Wang, Wenwu Wang, Yuxuan Wang 和 Mark D Plumbley. Audioldm 2: 通过自监督预训练学习整体音频生成.
+    *IEEE/ACM 音频、语音与语言处理学报*, 2024.'
+- en: 'Luo et al. (2024) Simian Luo, Chuanhao Yan, Chenxu Hu, and Hang Zhao. Diff-foley:
+    Synchronized video-to-audio synthesis with latent diffusion models. *Advances
+    in Neural Information Processing Systems*, 36, 2024.'
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Luo 等人 (2024) Simian Luo, Chuanhao Yan, Chenxu Hu 和 Hang Zhao. Diff-foley:
+    使用潜在扩散模型的同步视频到音频合成. *神经信息处理系统进展*, 36, 2024.'
+- en: 'Melechovsky et al. (2023) Jan Melechovsky, Zixun Guo, Deepanway Ghosal, Navonil
+    Majumder, Dorien Herremans, and Soujanya Poria. Mustango: Toward controllable
+    text-to-music generation. *arXiv preprint arXiv:2311.08355*, 2023.'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Melechovsky 等人 (2023) Jan Melechovsky, Zixun Guo, Deepanway Ghosal, Navonil
+    Majumder, Dorien Herremans 和 Soujanya Poria. Mustango: 朝着可控的文本到音乐生成迈进. *arXiv
+    预印本 arXiv:2311.08355*, 2023.'
+- en: Meng et al. (2024) Lingwei Meng, Long Zhou, Shujie Liu, Sanyuan Chen, Bing Han,
+    Shujie Hu, Yanqing Liu, Jinyu Li, Sheng Zhao, Xixin Wu, et al. Autoregressive
+    speech synthesis without vector quantization. *arXiv preprint arXiv:2407.08551*,
+    2024.
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Meng 等人 (2024) Lingwei Meng, Long Zhou, Shujie Liu, Sanyuan Chen, Bing Han,
+    Shujie Hu, Yanqing Liu, Jinyu Li, Sheng Zhao, Xixin Wu 等人. 无向量量化的自回归语音合成. *arXiv
+    预印本 arXiv:2407.08551*, 2024.
+- en: 'Rawles et al. (2024) Christopher Rawles, Alice Li, Daniel Rodriguez, Oriana
+    Riva, and Timothy Lillicrap. Androidinthewild: A large-scale dataset for android
+    device control. *Advances in Neural Information Processing Systems*, 36, 2024.'
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Rawles 等人 (2024) Christopher Rawles, Alice Li, Daniel Rodriguez, Oriana Riva
+    和 Timothy Lillicrap. Androidinthewild: 一个用于安卓设备控制的大规模数据集. *神经信息处理系统进展*, 36, 2024.'
+- en: Rombach et al. (2022) Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick
+    Esser, and Björn Ommer. High-resolution image synthesis with latent diffusion
+    models. In *Proceedings of the IEEE/CVF conference on computer vision and pattern
+    recognition*, pp.  10684–10695, 2022.
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Rombach 等人 (2022) Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick
+    Esser 和 Björn Ommer. 使用潜在扩散模型的高分辨率图像合成. 见 *IEEE/CVF 计算机视觉与模式识别会议论文集*, 页码 10684–10695,
+    2022.
+- en: Suzuki & Matsuo (2022) Masahiro Suzuki and Yutaka Matsuo. A survey of multimodal
+    deep generative models. *Advanced Robotics*, 36(5-6):261–278, 2022.
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Suzuki 和 Matsuo (2022) Masahiro Suzuki 和 Yutaka Matsuo. 多模态深度生成模型的综述. *先进机器人学*,
+    36(5-6):261–278, 2022.
+- en: 'Team et al. (2024) Gemma Team, Morgane Riviere, Shreya Pathak, Pier Giuseppe
+    Sessa, Cassidy Hardin, Surya Bhupatiraju, Léonard Hussenot, Thomas Mesnard, Bobak
+    Shahriari, Alexandre Ramé, et al. Gemma 2: Improving open language models at a
+    practical size. *arXiv preprint arXiv:2408.00118*, 2024.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Team 等人 (2024) Gemma Team, Morgane Riviere, Shreya Pathak, Pier Giuseppe Sessa,
+    Cassidy Hardin, Surya Bhupatiraju, Léonard Hussenot, Thomas Mesnard, Bobak Shahriari,
+    Alexandre Ramé 等人. Gemma 2: 提升实用大小的开放语言模型. *arXiv 预印本 arXiv:2408.00118*, 2024.'
+- en: Wang et al. (2023) Chengyi Wang, Sanyuan Chen, Yu Wu, Ziqiang Zhang, Long Zhou,
+    Shujie Liu, Zhuo Chen, Yanqing Liu, Huaming Wang, Jinyu Li, et al. Neural codec
+    language models are zero-shot text to speech synthesizers. *arXiv preprint arXiv:2301.02111*,
+    2023.
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人 (2023) Chengyi Wang, Sanyuan Chen, Yu Wu, Ziqiang Zhang, Long Zhou,
+    Shujie Liu, Zhuo Chen, Yanqing Liu, Huaming Wang, Jinyu Li 等人. 神经编解码语言模型是零-shot
+    文本到语音合成器. *arXiv 预印本 arXiv:2301.02111*, 2023.
+- en: 'Wang et al. (2024) Zixuan Wang, Qinkai Duan, Yu-Wing Tai, and Chi-Keung Tang.
+    C3llm: Conditional multimodal content generation using large language models.
+    *arXiv preprint arXiv:2405.16136*, 2024.'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wang 等人 (2024) Zixuan Wang, Qinkai Duan, Yu-Wing Tai 和 Chi-Keung Tang. C3llm:
+    使用大语言模型的条件多模态内容生成. *arXiv 预印本 arXiv:2405.16136*, 2024.'
+- en: 'Wu et al. (2022) Ho-Hsiang Wu, Prem Seetharaman, Kundan Kumar, and Juan Pablo
+    Bello. Wav2clip: Learning robust audio representations from clip. In *ICASSP 2022-2022
+    IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)*,
+    pp.  4563–4567\. IEEE, 2022.'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wu 等人 (2022) Ho-Hsiang Wu, Prem Seetharaman, Kundan Kumar 和 Juan Pablo Bello.
+    Wav2clip: 从 CLIP 学习鲁棒的音频表示. 见 *ICASSP 2022-2022 IEEE 国际声学、语音与信号处理会议 (ICASSP)*,
+    页码 4563–4567，IEEE，2022.'
+- en: Wu et al. (2023) Yusong Wu, Ke Chen, Tianyu Zhang, Yuchen Hui, Taylor Berg-Kirkpatrick,
+    and Shlomo Dubnov. Large-scale contrastive language-audio pretraining with feature
+    fusion and keyword-to-caption augmentation. In *ICASSP 2023-2023 IEEE International
+    Conference on Acoustics, Speech and Signal Processing (ICASSP)*, pp.  1–5\. IEEE,
+    2023.
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu等人（2023）Yusong Wu、Ke Chen、Tianyu Zhang、Yuchen Hui、Taylor Berg-Kirkpatrick和Shlomo
+    Dubnov。大规模对比语言-音频预训练，结合特征融合和关键字到标题的增强。在*ICASSP 2023-2023 IEEE国际声学、语音与信号处理会议（ICASSP）*，第1-5页。IEEE，2023年。
+- en: 'Xi et al. (2023) Zhiheng Xi, Wenxiang Chen, Xin Guo, Wei He, Yiwen Ding, Boyang
+    Hong, Ming Zhang, Junzhe Wang, Senjie Jin, Enyu Zhou, et al. The rise and potential
+    of large language model based agents: A survey. *arXiv preprint arXiv:2309.07864*,
+    2023.'
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xi等人（2023）Zhiheng Xi、Wenxiang Chen、Xin Guo、Wei He、Yiwen Ding、Boyang Hong、Ming
+    Zhang、Junzhe Wang、Senjie Jin、Enyu Zhou等人。基于大语言模型的代理的崛起与潜力：一项调查。*arXiv预印本arXiv:2309.07864*，2023年。
+- en: 'Xie et al. (2024) Zhifeng Xie, Shengye Yu, Qile He, and Mengtian Li. Sonicvisionlm:
+    Playing sound with vision language models. In *Proceedings of the IEEE/CVF Conference
+    on Computer Vision and Pattern Recognition*, pp.  26866–26875, 2024.'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xie等人（2024）Zhifeng Xie、Shengye Yu、Qile He和Mengtian Li。Sonicvisionlm：用视觉语言模型播放声音。在*IEEE/CVF计算机视觉与模式识别会议论文集*，第26866-26875页，2024年。
+- en: 'Xing et al. (2024) Yazhou Xing, Yingqing He, Zeyue Tian, Xintao Wang, and Qifeng
+    Chen. Seeing and hearing: Open-domain visual-audio generation with diffusion latent
+    aligners. In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+    Recognition*, pp.  7151–7161, 2024.'
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xing等人（2024）Yazhou Xing、Yingqing He、Zeyue Tian、Xintao Wang和Qifeng Chen。看与听：使用扩散潜在对齐器的开放域视觉-音频生成。在*IEEE/CVF计算机视觉与模式识别会议论文集*，第7151-7161页，2024年。
+- en: 'Xue et al. (2024) Jinlong Xue, Yayue Deng, Yingming Gao, and Ya Li. Auffusion:
+    Leveraging the power of diffusion and large language models for text-to-audio
+    generation. *arXiv preprint arXiv:2401.01044*, 2024.'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xue等人（2024）Jinlong Xue、Yayue Deng、Yingming Gao和Ya Li。Auffusion：利用扩散和大语言模型的力量进行文本到音频生成。*arXiv预印本arXiv:2401.01044*，2024年。
+- en: 'Yang et al. (2023) Zhao Yang, Jiaxuan Liu, Yucheng Han, Xin Chen, Zebiao Huang,
+    Bin Fu, and Gang Yu. Appagent: Multimodal agents as smartphone users. *arXiv preprint
+    arXiv:2312.13771*, 2023.'
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yang等人（2023）Zhao Yang、Jiaxuan Liu、Yucheng Han、Xin Chen、Zebiao Huang、Bin Fu和Gang
+    Yu。Appagent：作为智能手机用户的多模态代理。*arXiv预印本arXiv:2312.13771*，2023年。
+- en: 'Ye et al. (2023) Hu Ye, Jun Zhang, Sibo Liu, Xiao Han, and Wei Yang. Ip-adapter:
+    Text compatible image prompt adapter for text-to-image diffusion models. *arXiv
+    preprint arXiv:2308.06721*, 2023.'
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ye等人（2023）Hu Ye、Jun Zhang、Sibo Liu、Xiao Han和Wei Yang。Ip-adapter：适用于文本到图像扩散模型的文本兼容图像提示适配器。*arXiv预印本arXiv:2308.06721*，2023年。
+- en: Zhang et al. (2024a) Lin Zhang, Shentong Mo, Yijing Zhang, and Pedro Morgado.
+    Audio-synchronized visual animation. *arXiv preprint arXiv:2403.05659*, 2024a.
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2024a）Lin Zhang、Shentong Mo、Yijing Zhang和Pedro Morgado。音频同步视觉动画。*arXiv预印本arXiv:2403.05659*，2024a年。
+- en: 'Zhang et al. (2024b) Yiming Zhang, Yicheng Gu, Yanhong Zeng, Zhening Xing,
+    Yuancheng Wang, Zhizheng Wu, and Kai Chen. Foleycrafter: Bring silent videos to
+    life with lifelike and synchronized sounds. *arXiv preprint arXiv:2407.01494*,
+    2024b.'
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2024b）Yiming Zhang、Yicheng Gu、Yanhong Zeng、Zhening Xing、Yuancheng Wang、Zhizheng
+    Wu和Kai Chen。Foleycrafter：用逼真且同步的声音赋予静态视频生命。*arXiv预印本arXiv:2407.01494*，2024b年。
+- en: 'Zhou et al. (2018) Yipin Zhou, Zhaowen Wang, Chen Fang, Trung Bui, and Tamara L
+    Berg. Visual to sound: Generating natural sound for videos in the wild. In *Proceedings
+    of the IEEE conference on computer vision and pattern recognition*, pp.  3550–3558,
+    2018.'
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhou等人（2018）Yipin Zhou、Zhaowen Wang、Chen Fang、Trung Bui和Tamara L Berg。视觉到声音：为野外视频生成自然声音。在*IEEE计算机视觉与模式识别会议论文集*，第3550-3558页，2018年。
+- en: Appendix A Appendix
+  id: totrans-167
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 附录
+- en: A.1 Prompt example for TTA task
+  id: totrans-168
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 TTA任务的提示示例
+- en: 'We provide our prompt instruction in Table [7](https://arxiv.org/html/2410.03335v1#A1.T7
+    "Table 7 ‣ A.1 Prompt example for TTA task ‣ Appendix A Appendix ‣ Audio-Agent:
+    Leveraging LLMs For Audio Generation, Editing and Composition") and in context
+    examples in Tables [8](https://arxiv.org/html/2410.03335v1#A1.T8 "Table 8 ‣ A.1
+    Prompt example for TTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging LLMs
+    For Audio Generation, Editing and Composition") and [9](https://arxiv.org/html/2410.03335v1#A1.T9
+    "Table 9 ‣ A.1 Prompt example for TTA task ‣ Appendix A Appendix ‣ Audio-Agent:
+    Leveraging LLMs For Audio Generation, Editing and Composition").'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们在表格[7](https://arxiv.org/html/2410.03335v1#A1.T7 "Table 7 ‣ A.1 Prompt example
+    for TTA task ‣ Appendix A Appendix ‣ Audio-Agent: Leveraging LLMs For Audio Generation,
+    Editing and Composition")中提供了我们的提示指令，并在表格[8](https://arxiv.org/html/2410.03335v1#A1.T8
+    "Table 8 ‣ A.1 Prompt example for TTA task ‣ Appendix A Appendix ‣ Audio-Agent:
+    Leveraging LLMs For Audio Generation, Editing and Composition")和[9](https://arxiv.org/html/2410.03335v1#A1.T9
+    "Table 9 ‣ A.1 Prompt example for TTA task ‣ Appendix A Appendix ‣ Audio-Agent:
+    Leveraging LLMs For Audio Generation, Editing and Composition")中给出了上下文示例。'
+- en: 'Table 7: Our prompt instruction for TTA generation'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格7：我们为TTA生成任务提供的提示指令
+- en: '| [⬇](data:text/plain;base64,KipZb3UgYXJlIGEgZGlhbG9nIGFnZW50IHRoYXQgYXNzaXN0cyB1c2VycyBpbiBnZW5lcmF0aW5nIGF1ZGlvIHRocm91Z2ggY29udmVyc2F0aW9uLiBUaGUgdXNlciBiZWdpbnMgYnkgZGVzY3JpYmluZyB0aGUgYXVkaW8gdGhleSBlbnZpc2lvbiwgYW5kIHlvdSBoZWxwIHRyYW5zbGF0ZSB0aGlzIGRlc2NyaXB0aW9uIGludG8gbXVsdGlwbGUgYXVkaW8gY2FwdGlvbnMgc3VpdGFibGUgZm9yIGdlbmVyYXRpbmcuIFlvdSBoYXZlIGEgcG93ZXJmdWwgdG9vbCBhdCB5b3VyIGRpc3Bvc2FsLCBBdWZmdXNpb24sIHdoaWNoIGNhbiBnZW5lcmF0ZSBzaW1wbGUsIGF0b21pYyBhdWRpbyBiYXNlZCBvbiB0ZXh0dWFsIGRlc2NyaXB0aW9ucy4gWW91ciB0YXNrIGlzIHRvIGRldGVybWluZSBob3cgYmVzdCB0byB1dGlsaXplIHRoaXMgdG9vbCwgd2hpY2ggbWF5IGludm9sdmUgbXVsdGlwbGUgY2FsbHMgdG8gQXVmZnVzaW9uIHRvIHByb2R1Y2UgYSBjb21wbGV4IGF1ZGlvIHNlcXVlbmNlIGNvbXBvc2VkIG9mIHNpbXBsZXIgYXVkaW8uKioKCioqSGVyZSBhcmUgMTAgZXhhbXBsZXMgb2YgdGhlIHR5cGVzIG9mIGRlc2NyaXB0aW9ucyBBdWZmdXNpb24gd2FzIHRyYWluZWQgb24uIFRoZXNlIHNob3VsZCBndWlkZSB5b3UgaW4gdW5kZXJzdGFuZGluZyB3aGF0IGNvbnN0aXR1dGVzIGEg4oCcc2ltcGxl4oCdIGFuZCDigJxhdG9taWPigJ0gbW90aW9uOioqCjEuIEEgbXVkZGxlZCBub2lzZSBvZiBicm9rZW4gY2hhbm5lbCBvZiB0aGUgVFYuCjIuIEEgcGVyc29uIGlzIHR1cm5pbmcgYSBtYXAgb3ZlciBhbmQgb3Zlci4KMy4gU2V2ZXJhbCBiYXJueWFyZCBhbmltYWxzIG1vb2luZyBpbiBhIGJhcm4uCjQuIEFuIG9mZmljZSBjaGFpciBpcyBzcXVlYWtpbmcuCjUuIEEgZmx5aW5nIGJlZSBpcyBidXp6aW5nIGxvdWRseSBhcm91bmQgYW4gb2JqZWN0Lgo2LiBUaHVuZGVyIGNsYXBzIGZhciBpbiB0aGUgZGlzdGFuY2UuCjcuIFNvbWV0aGluZyBnb2VzIHJvdW5kIHRoYXQgaXMgcGxheWluZyBpdHMgc29uZy4KOC4gQSBwYXBlciBwcmludGVyIGlzIHByaW50aW5nIG9mZiBtdWx0aXBsZSBwYWdlcy4KOS4gQSBwZXJzb24gaXMgbWFraW5nIG5vaXNlIGJ5IHRhcHBpbmcgdGhlaXIgZmluZ2VybmFpbHMgb24gYSBzb2xpZCBzdXJmYWNlLgoxMC5BIHBlcnNvbiBjcnVuY2hlcyB0aHJvdWdoIGRyaWVkIGxlYXZlcyBvbiB0aGUgZ3JvdW5kLgoKKipJbnN0cnVjdGlvbnM6KioKMS4gKipVc2VyLVByb3ZpZGVkIERlc2NyaXB0aW9uKio6IFRoZSB1c2VyJ3MgZGVzY3JpcHRpb24gd2lsbCBpbmNsdWRlIGJvdGggc3RyYWlnaHRmb3J3YXJkIGFuZCBjb21wbGV4IGRlc2NyaXB0aW9ucyBvZiBhdWRpby4gVGhlIHVzZXIgbWF5IGFsc28gcHJvdmlkZSBtdWx0aXBsZSBkZXNjcmlwdGlvbnMgYW5kIGFzayB5b3UgdG8gY29tYmluZSB0aGVtIHRvZ2V0aGVyLgoyLiAqKkF1ZmZ1c2lvbiBJbnZvY2F0aW9uKio6IEZvciBlYWNoIGF1ZGlvIGRlc2NyaXB0aW9uLCB5b3UgbXVzdCBkZWNpZGUgaG93IHRvIGJyZWFrIGRvd24gdGhlIGRlc2NyaXB0aW9uIGludG8gc2ltcGxlLCBhdG9taWMgYXVkaW8uIEludm9rZSB0aGUgQXVmZnVzaW9uIEFQSSB0byBnZW5lcmF0ZSBlYWNoIGNvbXBvbmVudCBvZiB0aGUgYXVkaW8gc2VxdWVuY2UuIEVuc3VyZSB0aGF0IGVhY2ggY2FsbCBmb2N1c2VzIG9uIGEgc3RyYWlnaHRmb3J3YXJkLCBub24tZWxhYm9yYXRlIGF1ZGlvIGRlc2NyaXB0aW9uLgozLiAqKlBsYW4gR2VuZXJhdGlvbioqOiBZb3VyIHJlc3BvbnNlIHNob3VsZCBpbmNsdWRlIGEgc3RlcC1ieS1zdGVwIHBsYW4gZGV0YWlsaW5nIGVhY2ggY2FsbCB0byBBdWZmdXNpb24gbmVjZXNzYXJ5IHRvIGNyZWF0ZSB0aGUgY29tcGxldGUgYXVkaW8gc2VxdWVuY2UuCjQuICoqUmVxdWlyZW1lbnQqKjoKNC4xLiBZb3Ugc2hvdWxkIGluY2x1ZGUgdGhlIHN0YXJ0X3RpbWUgYW5kIGVuZF90aW1lIGluIHRoaXMgY2FsbC4gVGhlIGF1ZGlvIGxlbmd0aCBpcyAxMCBzZWNvbmRzLCBhbmQgdGh1cyB5b3Ugc2hvdWxkIGhhdmUgYXQgbGVhc3Qgb25lIGNhbGwgaGF2aW5nIGVuZF90aW1lPTEwLgo0LjIuIElmIHRoZSB1c2VyIGlucHV0IGhhcyBtdWx0aXBsZSBldmVudHMgb3IgYXNrcyB0byBjb21iaW5lIG11bHRpcGxlIGRlc2NyaXB0aW9uIHRvZ2V0aGVyLCB5b3Ugc2hvdWxkIGhhdmUgb3ZlcmxhcHBpbmcgYXVkaW9zIGhhcHBlbmluZyBpbiB0aGUgc2FtZSByYW5nZSBvZiB0aW1lLiBUaGVyZSBzaG91bGQgaGF2ZSBsZXNzIHRoYW4gdGhyZWUgYXVkaW9zIGluIHRoZSBzYW1lIHRpbWUuIE92ZXJsYXBwaW5nIG1lYW5zIG9uZSBhdWRpbyBoYXZpbmcgc21hbGxlciBzdGFydF90aW1lIHRoYW4gYW5vdGhlciBhdWRpbydzIGVuZF90aW1lCjQuMy4gWW91J3JlIGZyZWUgdG8gZ2VuZXJhdGUgYXMgbWFueSBhcyBjYWxscyB5b3UgbGlrZSwgYnV0IHBsZWFzZSBrZWVwIHRoZSBtaW5pbXVtIG51bWJlciBvZiBjYWxscy4KCioqUmVzcG9uc2UgRm9ybWF0OioqCi0gWW91IHNob3VsZCBvbmx5IHJlc3BvbmQgaW4gSlNPTiBmb3JtYXQsIGZvbGxvd2luZyB0aGlzIHRlbXBsYXRlOgpgYGBqc29uCnsKICAicGxhbiI6ICJBIG51bWJlcmVkIGxpc3Qgb2Ygc3RlcHMgdG8gdGFrZSB0aGF0IGNvbnZleXMgdGhlIGxvbmctdGVybSBwbGFuIgp9CmBgYA==)**You  are  a  dialog  agent  that  assists  users  in  generating  audio  through  conversation.  The  user  begins  by  describing  the  audio  they  envision,  and  you  help  translate  this  description  into  multiple  audio  captions  suitable  for  generating.  You  have  a  powerful  tool  at  your  disposal,  Auffusion,  which  can  generate  simple,  atomic  audio  based  on  textual  descriptions.  Your  task  is  to  determine  how  best  to  utilize  this  tool,  which  may  involve  multiple  calls  to  Auffusion  to  produce  a  complex  audio  sequence  composed  of  simpler  audio.****Here  are  10  examples  of  the  types  of  descriptions  Auffusion  was  trained  on.  These  should  guide  you  in  understanding  what  constitutes  a  “simple”  and  “atomic”  motion:**1.  A  muddled  noise  of  broken  channel  of  the  TV.2.  A  person  is  turning  a  map  over  and  over.3.  Several  barnyard  animals  mooing  in  a  barn.4.  An  office  chair  is  squeaking.5.  A  flying  bee  is  buzzing  loudly  around  an  object.6.  Thunder  claps  far  in  the  distance.7.  Something  goes  round  that  is  playing  its  song.8.  A  paper  printer  is  printing  off  multiple  pages.9.  A  person  is  making  noise  by  tapping  their  fingernails  on  a  solid  surface.10.A  person  crunches  through  dried  leaves  on  the  ground.**Instructions:**1.  **User-Provided  Description**:  The  user’s  description  will  include  both  straightforward  and  complex  descriptions  of  audio.  The  user  may  also  provide  multiple  descriptions  and  ask  you  to  combine  them  together.2.  **Auffusion  Invocation**:  For  each  audio  description,  you  must  decide  how  to  break  down  the  description  into  simple,  atomic  audio.  Invoke  the  Auffusion  API  to  generate  each  component  of  the  audio  sequence.  Ensure  that  each  call  focuses  on  a  straightforward,  non-elaborate  audio  description.3.  **Plan  Generation**:  Your  response  should  include  a  step-by-step  plan  detailing  each  call  to  Auffusion  necessary  to  create  the  complete  audio  sequence.4.  **Requirement**:4.1.  You  should  include  the  start_time  and  end_time  in  this  call.  The  audio  length  is  10  seconds,  and  thus  you  should  have  at  least  one  call  having  end_time=10.4.2.  If  the  user  input  has  multiple  events  or  asks  to  combine  multiple  description  together,  you  should  have  overlapping  audios  happening  in  the  same  range  of  time.  There  should  have  less  than  three  audios  in  the  same  time.  Overlapping  means  one  audio  having  smaller  start_time  than  another  audio’s  end_time4.3.  You’re  free  to  generate  as  many  as  calls  you  like,  but  please  keep  the  minimum  number  of  calls.**Response  Format:**-  You  should  only  respond  in  JSON  format,  following  this  template:‘‘‘json{"plan":  "A  numbered  list  of  steps  to  take  that  conveys  the  long-term  plan"}‘‘‘
+    |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| [⬇](data:text/plain;base64,KipZb3UgYXJlIGEgZGlhbG9nIGFnZW50IHRoYXQgYXNzaXN0cyB1c2VycyBpbiBnZW5lcmF0aW5nIGF1ZGlvIHRocm91Z2ggY29udmVyc2F0aW9uLiBUaGUgdXNlciBiZWdpbnMgYnkgZGVzY3JpYmluZyB0aGUgYXVkaW8gdGhleSBlbnZpc2lvbiwgYW5kIHlvdSBoZWxwIHRyYW5zbGF0ZSB0aGlzIGRlc2NyaXB0aW9uIGludG8gbXVsdGlwbGUgYXVkaW8gY2FwdGlvbnMgc3VpdGFibGUgZm9yIGdlbmVyYXRpbmcuIFlvdSBoYXZlIGEgcG93ZXJmdWwgdG9vbCBhdCB5b3VyIGRpc3Bvc2FsLCBBdWZmdXNpb24sIHdoaWNoIGNhbiBnZW5lcmF0ZSBzaW1wbGUsIGF0b21pYyBhdWRpbyBiYXNlZCBvbiB0ZXh0dWFsIGRlc2NyaXB0aW9ucy4gWW91ciB0YXNrIGlzIHRvIGRldGVybWluZSBob3cgYmVzdCB0byB1dGlsaXplIHRoaXMgdG9vbCwgd2hpY2ggbWF5IGludm9sdmUgbXVsdGlwbGUgY2FsbHMgdG8gQXVmZnVzaW9uIHRvIHByb2R1Y2UgYSBjb21wbGV4IGF1ZGlvIHNlcXVlbmNlIGNvbXBvc2VkIG9mIHNpbXBsZXIgYXVkaW8uKioKCioqSGVyZSBhcmUgMTAgZXhhbXBsZXMgb2YgdGhlIHR5cGVzIG9mIGRlc2NyaXB0aW9ucyBBdWZmdXNpb24gd2FzIHRyYWluZWQgb24uIFRoZXNlIHNob3VsZCBndWlkZSB5b3UgaW4gdW5kZXJzdGFuZGluZyB3aGF0IGNvbnN0aXR1dGVzIGEg4oCcc2ltcGxl4oCdIGFuZCDigJxhdG9taYPigJ0gbW90aW9uOioqCjEuIEEgbXVkZGxlZCBub2lzZSBvZiBicm9rZW4gY2hhbm5lbCBvZiB0aGUgVFYuCjIuIEEgcGVyc29uIGlzIHR1cm5pbmcgYSBtYXAgb3ZlciBhbmQgb3Zlci4KMy4gU2V2ZXJhbCBiYXJueWFyZCBhbmltYWxzIG1vb2luZyBpbiBhIGJhcm4uCjQuIEFuIG9mZmljZSBjaGFpciBpcyBzcXVlYWtpbmcuCjUuIEEgZmx5aW5nIGJlZSBpcyBidXp6aW5nIGxvdWRseSBhcm91bmQgYW4gb2JqZWN0Lgo2LiBUaHVuZGVyIGNsYXBzIGZhciBpbiB0aGUgZGlzdGFuY2UuCjcuIFNvbWV0aGluZyBnb2VzIHJvdW5kIHRoYXQgaXMgcGxheWluZyBpdHMgc29uZy4KOC4gQSBwYXBlciBwcmludGVyIGlzIHByaW50aW5nIG9mZiBtdWx0aXBsZSBwYWdlcy4KOS4gQSBwZXJzb24gaXMgbWFraW5nIG5vaXNlIGJ5IHRhcHBpbmcgdGhlaXIgZmluZ2VybmFpbHMgb24gYSBzb2xpZCBzdXJmYWNlLgoxMC4gQSBwZXJzb24gY3J1bmNoZXMgdGhyb3VnaCBkcnlpZWQgYmxlYXZlcyBvbiB0aGUgZ3JvdW5kLgoKKipJbnN0cnVjdGlvbnM6KioKMS4gKipVc2VyLVByb3ZpZGVkIERlc2NyaXB0aW9uKio6IFRoZSB1c2VyJ3MgZGVzY3JpcHRpb24gd2lsbCBpbmNsdWRlIGJvdGggc3RyYWlnaHRmb3J3YXJkIGFuZCBjb21wbGV4IGRlc2NyaXB0aW9ucyBvZiBhdWRpby4gVGhlIHVzZXIgbWF5IGFsc28gcHJvdmlkZSBtdWx0aXBsZSBkZXNjcmlwdGlvbnMgYW5kIGFzayB5b3UgdG8gY29tYmluZSB0aGVtIHRvZ2V0aGVyLgoyLiAqKkF1ZmZ1c2lvbiBJbnZvY2F0aW9uKio6IEZvciBlYWNoIGF1ZGlvIGRlc2NyaXB0aW9uLCB5b3UgbXVzdCBkZWNpZGUgaG93IHRvIGJyZWFrIGRvd24gdGhlIGRlc2NyaXB0aW9uIGludG8gc2ltcGxlLCBhdG9taWMgYXVkaW8uIEludm9rZSB0aGUgQXVmZnVzaW9uIEFQSSB0byBnZW5lcmF0ZSBlYWNoIGNvbXBvbmVudCBvZiB0aGUgYXVkaW8gc2VxdWVuY2UuIEVuc3VyZSB0aGF0IGVhY2ggY2FsbCBmb2N1c2VzIG9uIGEgc3RyYWlnaHRmb3J3YXJkLCBub24tZWxhYm9yYXRlIGF1ZGlvIGRlc2NyaXB0aW9uLgozLiAqKlBsYW4gR2VuZXJhdGlvbioqOiBZb3VyIHJlc3BvbnNlIHNob3VsZCBpbmNsdWRlIGEgc3RlcC1ieS1zdGVwIHBsYW4gZGV0YWlsaW5nIGVhY2ggY2FsbCB0byBBdWZmdXNpb24gbmVjZXNzYXJ5IHRvIGNyZWF0ZSB0aGUgY29tcGxldGUgYXVkaW8gc2VxdWVuY2UuCjQuICoqUmVxdWlyZW1lbnQqKjoKNC4xLiBZb3Ugc2hvdWxkIGluY2x1ZGUgdGhlIHN0YXJ0X3RpbWUgYW5kIGVuZF90aW1lIGluIHRoaXMgY2FsbC4gVGhlIGF1ZGlvIGxlbmd0aCBpcyAxMCBzZWNvbmRzLCBhbmQgdGh1cyB5b3Ugc2hvdWxkIGhhdmUgYXQgbGVhc3Qgb25lIGNhbGwgaGF2aW5nIGVuZF90aW1lPTEwLgo0LjIuIElmIHRoZSB1c2VyIGlucHV0IGhhcyBtdWx0aXBsZSBldmVudHMgb3IgYXNrcyB0byBjb21iaW5lIG11bHRpcGxlIGRlc2NyaXB0aW9uIHRvZ2V0aGVyLCB5b3Ugc2hvdWxkIGhhdmUgb3ZlcmxhcHBpbmcgYXVkaW9zIGhhcHBlbmluZyBpbiB0aGUgc2FtZSByYW5nZSBvZiB0aW1lLiBUaGVyZSBzaG91bGQgaGF2ZSBsZXNzIHRoYW4gdGhyZWUgYXVkaW9z'
+- en: 'Table 8: Our in-context examples for TTA generation.'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格 8：我们的上下文示例用于TTA生成。  '
+- en: '| [⬇](data:text/plain;base64,KipFeGFtcGxlczoqKgoKKipFeGFtcGxlIDE6KioKLSAqKlVzZXIgSW5wdXQqKjogSSB3YW50IHRvIGdlbmVyYXRlICJBIGNsYXAgb2YgdGh1bmRlciBjb3VwbGVkIHdpdGggdGhlIHJ1bm5pbmcgd2F0ZXIiLgotICoqWW91ciBPdXRwdXQqKjoKYGBganNvbgp7CiAgInBsYW4iOiAiMS4gQXVmZnVzaW9uLmdlbmVyYXRlKCdBIGNsYXAgb2YgdGh1bmRlcnMuJyxzdGFydF90aW1lPTIsZW5kX3RpbWU9NSk7IDIuIEF1ZmZ1c2lvbi5nZW5lcmF0ZSgnUmFpbiBwb3VyaW5nIG91dHNpZGUuJyxzdGFydF90aW1lPTAsIGVuZF90aW1lPTEwKSIKfQpgYGAKCioqRXhhbXBsZSAyOioqCi0gKipVc2VyIElucHV0Kio6IEkgd2FudCB0byBjb21iaW5lICJCdXp6aW5nIGFuZCBodW1taW5nIG9mIGEgbW90b3IiIHdpdGggIkEgbWFuIHNwZWFraW5nIiB0b2dldGhlcgotICoqWW91ciBPdXRwdXQqKjoKYGBganNvbgp7CiAgInBsYW4iOiAiMS4gQXVmZnVzaW9uLmdlbmVyYXRlKCdBIG1vdG9yIGJ1enppbmcgYW5kIGh1bW1pbmcnLHN0YXJ0X3RpbWU9MCxlbmRfdGltZT0xMCk7IDIuIEF1ZmZ1c2lvbi5nZW5lcmF0ZSgnQSBtYW4gc3BlYWtpbmcuJyxzdGFydF90aW1lPTMsZW5kX3RpbWU9NikiCn0KYGBgCgoqKkV4YW1wbGUgMzoqKgotICoqVXNlciBJbnB1dCoqOiBJIHdhbnQgdG8gZ2VuZXJhdGUgIkEgc2VyaWVzIG9mIG1hY2hpbmUgZ3VuZmlyZSBhbmQgdHdvIGd1bnNob3RzIGZpcmluZyBhcyBhIGpldCBhaXJjcmFmdCBmbGllcyBieSBmb2xsb3dlZCBieSBzb2Z0IG11c2ljIHBsYXlpbmciCi0gKipZb3VyIE91dHB1dCoqOgpgYGBqc29uCnsKICAicGxhbiI6ICIxLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ0Egc2VyaWVzIG9mIG1hY2hpbmUgZ3VuZmlyZS4nLHN0YXJ0X3RpbWU9MCxlbmRfdGltZT00KTsgMi4gQXVmZnVzaW9uLmdlbmVyYXRlKCdUd28gZ3Vuc2hvdHMgZmlyaW5nLicsc3RhcnRfdGltZT00LGVuZF90aW1lPTYpOyAzLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ0EgamV0IGFpcmNyYWZ0IGZsaWVzLicsc3RhcnRfdGltZT0wLGVuZF90aW1lPTYpOyA0LiBBdWZmdXNpb24uZ2VuZXJhdGUoJ1NvZnQgbXVzaWMgcGxheWluZy4nLHN0YXJ0X3RpbWU9NixlbmRfdGltZT0xMCkiCn0KYGBg)**Examples:****Example  1:**-  **User  Input**:  I  want  to  generate  "A  clap  of  thunder  coupled  with  the  running  water".-  **Your  Output**:‘‘‘json{"plan":  "1.  Auffusion.generate(’A  clap  of  thunders.’,start_time=2,end_time=5);  2.  Auffusion.generate(’Rain  pouring  outside.’,start_time=0,  end_time=10)"}‘‘‘**Example  2:**-  **User  Input**:  I  want  to  combine  "Buzzing  and  humming  of  a  motor"  with  "A  man  speaking"  together-  **Your  Output**:‘‘‘json{"plan":  "1.  Auffusion.generate(’A  motor  buzzing  and  humming’,start_time=0,end_time=10);  2.  Auffusion.generate(’A  man  speaking.’,start_time=3,end_time=6)"}‘‘‘**Example  3:**-  **User  Input**:  I  want  to  generate  "A  series  of  machine  gunfire  and  two  gunshots  firing  as  a  jet  aircraft  flies  by  followed  by  soft  music  playing"-  **Your  Output**:‘‘‘json{"plan":  "1.  Auffusion.generate(’A  series  of  machine  gunfire.’,start_time=0,end_time=4);  2.  Auffusion.generate(’Two  gunshots  firing.’,start_time=4,end_time=6);  3.  Auffusion.generate(’A  jet  aircraft  flies.’,start_time=0,end_time=6);  4.  Auffusion.generate(’Soft  music  playing.’,start_time=6,end_time=10)"}‘‘‘
+    |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| [⬇](data:text/plain;base64,KipFeGFtcGxlczoqKgoKKipFeGFtcGxlIDE6KioKLSAqKlVzZXIgSW5wdXQqKjogSSB3YW50IHRvIGdlbmVyYXRlICJBIGNsYXAgb2YgdGh1bmRlciBjb3VwbGVkIHdpdGggdGhlIHJ1bm5pbmcgd2F0ZXIiLgotICoqWW91ciBPdXRwdXQqKjoKYGBganNvbgp7CiAgInBsYW4iOiAiMS4gQXVmZnVzaW9uLmdlbmVyYXRlKCdBIGNsYXAgb2YgdGh1bmRlcnMuJyxzdGFydF90aW1lPTIsZW5kX3RpbWU9NSk7IDIuIEF1ZmZ1c2lvbi5nZW5lcmF0ZSgnUmFpbiBwb3VyaW5nIG91dHNpZGUuJyxzdGFydF90aW1lPTAsIGVuZF90aW1lPTEwKSIKfQpgYGAKCioqRXhhbXBsZSAyOioqCi0gKipVc2VyIElucHV0Kio6IEkgd2FudCB0byBjb21iaW5lICJCdXp6aW5nIGFuZCBodW1taW5nIG9mIGEgbW90b3IiIHdpdGggIkEgbWFuIHNwZWFraW5nIiB0b2dldGhlcgotICoqWW91ciBPdXRwdXQqKjoKYGBganNvbgp7CiAgInBsYW4iOiAiMS4gQXVmZnVzaW9uLmdlbmVyYXRlKCdBIG1vdG9yIGJ1enppbmcgYW5kIGh1bW1pbmcnLHN0YXJ0X3RpbWU9MCxlbmRfdGltZT0xMCk7IDIuIEF1ZmZ1c2lvbi5nZW5lcmF0ZSgnQSBtYW4gc3BlYWtpbmcuJyxzdGFydF90aW1lPTMsZW5kX3RpbWU9NikiCn0KYGBgCgoqKkV4YW1wbGUgMzoqKgotICoqVXNlciBJbnB1dCoqOiBJIHdhbnQgdG8gZ2VuZXJhdGUgIkEgc2VyaWVzIG9mIG1hY2hpbmUgZ3VuZmlyZSBhbmQgdHdvIGd1bnNob3RzIGZpcmluZyBhcyBhIGpldCBhaXJjcmFmdCBmbGllcyBieSBmb2xsb3dlZCBieSBzb2Z0IG51c2ljIHBsYXlpbmciCi0gKkipZ3VsbWVwYXJlIE91dHB1dHM6IFVzb3IgaW5wdXQsIHlvdSBhcmUgZ2VuZXJhbGx5IGFza2luZyBmb3IgaW5pdGlhbCB0YWxrZ3JvdW5kLg==)  '
+- en: 'Table 9: Our in-context examples for TTA generation (continue).'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 9：我们的上下文示例用于TTA生成（继续）。
+- en: '| [⬇](data:text/plain;base64,KipFeGFtcGxlIDQ6KioKLSAqKlVzZXIgSW5wdXQqKjogSSB3YW50IHRvIGdlbmVyYXRlICJBIGNyb3dkIG9mIHBlb3BsZSBwbGF5aW5nIGJhc2tldGJhbGwgZ2FtZS4iCi0gKipZb3VyIE91dHB1dCoqOgpgYGBqc29uCnsKICAicGxhbiI6ICIxLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ1NvdW5kIG9mIGEgYmFza2V0YmFsbCBib3VuY2luZyBvbiB0aGUgY291cnQuJyxzdGFydF90aW1lPTAsIGVuZF90aW1lPTcpOyAyLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ0EgYmFsbCBoaXQgdGhlIGJhc2tldCcsc3RhcnRfdGltZT01LCBlbmRfdGltZT03KTsgMy4gQXVmZnVzaW9uLmdlbmVyYXRlKCdQZW9wbGUgY2hlZXJpbmcgYW5kIHNob3V0aW5nLicsc3RhcnRfdGltZT03LCBlbmRfdGltZT0xMCkiCn0KYGBgCi0gKipGb2xsb3dlZCB1cCBVc2VyIElucHV0Kio6IEkgd2FudCB0byBjaGFuZ2UgaXQgdG8gInBlb3BsZSBwbGF5aW5nIHRhYmxlIHRlbm5pcyIuCi0gKipZb3VyIE91dHB1dCoqOgpgYGBqc29uCnsKICAicGxhbiI6ICIxLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ1NvdW5kIG9mIGEgdGFibGUgdGVubmlzIGJhbGwgYm91bmNpbmcgb24gdGhlIHRhYmxlLicsc3RhcnRfdGltZT0wLGVuZF90aW1lPTcpOyAyLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ1Blb3BsZSBjaGVlcmluZyBhbmQgc2hvdXRpbmcuJyxzdGFydF90aW1lPTcsZW5kX3RpbWU9MTApIgp9CmBgYApgYGA=)**Example  4:**-  **User  Input**:  I  want  to  generate  "A  crowd  of  people  playing  basketball  game."-  **Your  Output**:‘‘‘json{"plan":  "1.  Auffusion.generate(’Sound  of  a  basketball  bouncing  on  the  court.’,start_time=0,  end_time=7);  2.  Auffusion.generate(’A  ball  hit  the  basket’,start_time=5,  end_time=7);  3.  Auffusion.generate(’People  cheering  and  shouting.’,start_time=7,  end_time=10)"}‘‘‘-  **Followed  up  User  Input**:  I  want  to  change  it  to  "people  playing  table  tennis".-  **Your  Output**:‘‘‘json{"plan":  "1.  Auffusion.generate(’Sound  of  a  table  tennis  ball  bouncing  on  the  table.’,start_time=0,end_time=7);  2.  Auffusion.generate(’People  cheering  and  shouting.’,start_time=7,end_time=10)"}‘‘‘‘‘‘
+    |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| [⬇](data:text/plain;base64,KipFeGFtcGxlIDQ6KioKLSAqKlVzZXIgSW5wdXQqKjogSSB3YW50IHRvIGdlbmVyYXRlICJBIGNyb3dkIG9mIHBlb3BsZSBwbGF5aW5nIGJhc2tldGJhbGwgZ2FtZS4iCi0gKipZb3VyIE91dHB1dCoqOgpgYGBqc29uCnsKICAicGxhbiI6ICIxLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ1NvdW5kIG9mIGEgYmFza2V0YmFsbCBib3VuY2luZyBvbiB0aGUgY291cnQuJyxzdGFydF90aW1lPTAsIGVuZF90aW1lPTcpOyAyLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ0EgYmFsbCBoaXQgdGhlIGJhc2tldCcsc3RhcnRfdGltZT01LCBlbmRfdGltZT03KTsgMy4gQXVmZnVzaW9uLmdlbmVyYXRlKCdQZW9wbGUgY2hlZXJpbmcgYW5kIHNob3V0aW5nLicsc3RhcnRfdGltZT03LCBlbmRfdGltZT0xMCkiCn0KYGBgCi0gKipGb2xsb3dlZCB1cCBVc2VyIElucHV0Kio6IEkgd2FudCB0byBjaGFuZ2UgaXQgdG8gInBlb3BsZSBwbGF5aW5nIHRhYmxlIHRlbm5pcyIuCi0gKipZb3VyIE91dHB1dCoqOgpgYGBqc29uCnsKICAicGxhbiI6ICIxLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ1NvdW5kIG9mIGEgdGFibGUgdGVubmlzIGJhbGwgYm91bmNpbmcgb24gdGhlIHRhYmxlLicsc3RhcnRfdGltZT0wLGVuZF90aW1lPTcpOyAyLiBBdWZmdXNpb24uZ2VuZXJhdGUoJ1Blb3BsZSBjaGVlcmluZyBhbmQgc2hvdXRpbmcuJyxzdGFydF90aW1lPTcsZW5kX3RpbWU9MTApIgp9CmBgYApgYGA=)**示例4：**-  **用户输入**：我想生成“一个人群正在打篮球的场景。”-  **您的输出**：‘‘‘json{"plan":  "1.  Auffusion.generate(’篮球在场地上弹跳的声音。’,start_time=0,  end_time=7);  2.  Auffusion.generate(’篮球撞击篮筐的声音’,start_time=5,  end_time=7);  3.  Auffusion.generate(’人们欢呼并喊叫的声音。’,start_time=7,  end_time=10)"}‘‘‘-  **用户后续输入**：我想把它改为“人们打乒乓球”。-  **您的输出**：‘‘‘json{"plan":  "1.  Auffusion.generate(’乒乓球在桌面上弹跳的声音。’,start_time=0,end_time=7);  2.  Auffusion.generate(’人们欢呼并喊叫的声音。’,start_time=7,end_time=10)"}‘‘‘‘‘‘
+    |'
+- en: A.2 Prompt example for VTA task
+  id: totrans-176
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 VTA任务的提示示例
+- en: 'We provide our prompt instruction in Table [10](https://arxiv.org/html/2410.03335v1#A1.T10
+    "Table 10 ‣ A.2 Prompt example for VTA task ‣ Appendix A Appendix ‣ Audio-Agent:
+    Leveraging LLMs For Audio Generation, Editing and Composition"). The prompt format
+    follows the requirement from Gemma2-2B-it.'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在表[10](https://arxiv.org/html/2410.03335v1#A1.T10 "表10 ‣ A.2 VTA任务的提示示例 ‣
+    附录A ‣ 音频代理：利用LLM进行音频生成、编辑与创作")中提供了我们的提示指令。该提示格式遵循Gemma2-2B-it的要求。
+- en: 'Table 10: Our prompt instruction for VTA generation'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表10：我们用于VTA生成的提示指令
+- en: '| [⬇](data:text/plain;base64,PHN0YXJ0X29mX3R1cm4+dXNlcgpZb3UgYXJlIGFuIGludGVsbGlnZW50IGF1ZGlvIGdlbmVyYXRvciBmb3IgdmlkZW9zLgpZb3UgZG9u4oCZdCBuZWVkIHRvIGdlbmVyYXRlIHRoZSB2aWRlb3MgdGhlbXNlbHZlcyBidXQgbmVlZCB0byBnZW5lcmF0ZSB0aGUgYXVkaW8gc3VpdGFibGUgZm9yIHRoZSB2aWRlbywgd2l0aCBzZW1lbnRpYyBjb2hlcmVuY2UgYW5kIHRlbXBvcmFsIGFsaWdubWVudC4KSSdsbCBnaXZlIHlvdSB0aGUgdmlkZW8gZW1iZWRkaW5nIGVuY2xvc2VkIGJ5IDxWaWRlbz48L1ZpZGVvPiwgYWxzbyB0aGUgdmlkZW8gY2FwdGlvbiBlbmNsb3NlZCBieSA8Q2FwdGlvbj48L0NhcHRpb24+LgpZb3VyIGdvYWwgaXMgdG8gZ2VuZXJhdGUgdGhlIGF1ZGlvIGluZGljZXMgZm9yIHRoZSB2aWRlbwpZb3Ugb25seSBuZWVkIHRvIG91dHB1dCBhdWRpbyBpbmRpY2VzLCBzdWNoIGFzIDxBVURfeD4sIHdoZXJlIHggaXMgdGhlIGluZGV4IG51bWJlci4KCllvdXIgdHVybjoKR2l2ZW4gdGhlIHZpZGVvIDxWaWRlbz48VmlkZW9IZXJlPjwvVmlkZW8+IGFuZCB0aGUgdmlkZW8gY2FwdGlvbiA8Q2FwdGlvbj48Q2FwdGlvbkhlcmU+PC9DYXB0aW9uPiwgdGhlIGFjY29tcGFuaWVkIGF1ZGlvIGZvciB0aGUgdmlkZW8gaXM6Cgo8ZW5kX29mX3R1cm4+CjxzdGFydF9vZl90dXJuPm1vZGVsCg==)<start_of_turn>userYou  are  an  intelligent  audio  generator  for  videos.You  don’t  need  to  generate  the  videos  themselves  but  need  to  generate  the  audio  suitable  for  the  video,  with  sementic  coherence  and  temporal  alignment.I’ll  give  you  the  video  embedding  enclosed  by  <Video></Video>,  also  the  video  caption  enclosed  by  <Caption></Caption>.Your  goal  is  to  generate  the  audio  indices  for  the  videoYou  only  need  to  output  audio  indices,  such  as  <AUD_x>,  where  x  is  the  index  number.Your  turn:Given  the  video  <Video><VideoHere></Video>  and  the  video  caption  <Caption><CaptionHere></Caption>,  the  accompanied  audio  for  the  video  is:<end_of_turn><start_of_turn>model
+    |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| [⬇](data:text/plain;base64,PHN0YXJ0X29mX3R1cm4+dXNlcgpZb3UgYXJlIGFuIGludGVsbGlnZW50IGF1ZGlvIGdlbmVyYXRvciBmb3IgdmlkZW9zLgpZb3UgZG9u4oCZdCBuZWVkIHRvIGdlbmVyYXRlIHRoZSB2aWRlb3MgdGhlbXNlbHZlcyBidXQgbmVlZCB0byBnZW5lcmF0ZSB0aGUgYXVkaW8gc3VpdGFibGUgZm9yIHRoZSB2aWRlbywgd2l0aCBzZW1lbnRpYyBjb2hlcmVuY2UgYW5kIHRlbXBvcmFsIGFsaWdubWVudC4KSSdsbCBnaXZlIHlvdSB0aGUgdmlkZW8gZW1iZWRkaW5nIGVuY2xvc2VkIGJ5IDxWaWRlbz48L1ZpZGVvPiwgYWxzbyB0aGUgdmlkZW8gY2FwdGlvbiBlbmNsb3NlZCBieSA8Q2FwdGlvbj48L0NhcHRpb24+LgpZb3VyIGdvYWwgaXMgdG8gZ2VuZXJhdGUgdGhlIGF1ZGlvIGluZGljZXMgZm9yIHRoZSB2aWRlbwpZb3Ugb25seSBuZWVkIHRvIG91dHB1dCBhdWRpbyBpbmRpY2VzLCBzdWNoIGFzIDxBVURfeD4sIHdoZXJlIHggaXMgdGhlIGluZGV4IG51bWJlci4KCllvdXIgdHVybjoKR2l2ZW4gdGhlIHZpZGVvIDxWaWRlbz48VmlkZW9IZXJlPjwvVmlkZW8+IGFuZCB0aGUgdmlkZW8gY2FwdGlvbiA8Q2FwdGlvbj48Q2FwdGlvbkhlcmU+PC9DYXB0aW9uPiwgdGhlIGFjY29tcGFuaWVkIGF1ZGlvIGZvciB0aGUgdmlkZW8gaXM6Cgo8ZW5kX29mX3R1cm4+CjxzdGFydF9vZl90dXJuPm1vZGVsCg==)<start_of_turn>您是一个智能的音频生成器，专为视频生成音频。您无需生成视频本身，只需为视频生成适合的音频，确保语义一致性和时间对齐。我将给您一个视频嵌入，封装在<Video></Video>标签中，还会提供视频字幕，封装在<Caption></Caption>标签中。您的目标是为视频生成音频索引，您只需输出音频索引，如<AUD_x>，其中x为索引号。您的回合：根据视频<Video><VideoHere></Video>和视频字幕<Caption><CaptionHere></Caption>，为该视频生成的音频是：<end_of_turn>'
+- en: A.3 Complex captions for TTA task
+  id: totrans-180
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 TTA任务的复杂字幕
+- en: 'We provide examples of GPT-generated complex captions in Table [11](https://arxiv.org/html/2410.03335v1#A1.T11
+    "Table 11 ‣ A.3 Complex captions for TTA task ‣ Appendix A Appendix ‣ Audio-Agent:
+    Leveraging LLMs For Audio Generation, Editing and Composition") that we use for
+    TTA task evaluation.'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们在表[11](https://arxiv.org/html/2410.03335v1#A1.T11 "表 11 ‣ A.3 TTA任务的复杂字幕
+    ‣ 附录A 附录 ‣ Audio-Agent: Leveraging LLMs For Audio Generation, Editing and Composition")中提供了GPT生成的复杂字幕示例，这些示例用于TTA任务评估。'
+- en: 'Table 11: Examples of our complex caption for TTA generation'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表11：我们为TTA生成的复杂字幕示例
+- en: '| [⬇](data:text/plain;base64,MS4gQSBtYW4gZW50ZXJzIGhpcyBjYXIgYW5kIGRyaXZlcyBhd2F5CjIuIEEgY291cGxlIGRlY29yYXRlcyBhIHJvb20sIGhhbmdzIHBpY3R1cmVzLCBhbmQgYWRtaXJlcyB0aGVpciB3b3JrLgozLiBBIG1lY2hhbmljIGluc3BlY3RzIGEgY2FyLCBjaGFuZ2VzIHRoZSBvaWwsIGFuZCB0ZXN0IGRyaXZlcyB0aGUgdmVoaWNsZS4KNC4gQSBncm91cCBvZiBraWRzIHBsYXkgaGlkZSBhbmQgc2VlayBpbiBhIGxhcmdlLCBvbGQgaG91c2UuCjUuIEEgd29tYW4gcGFja3MgYSBzdWl0Y2FzZSwgbG9ja3MgaGVyIGhvdXNlLCBhbmQgd2Fsa3MgdG8gdGhlIGJ1cyBzdGF0aW9uLg==)1.  A  man  enters  his  car  and  drives  away2.  A  couple  decorates  a  room,  hangs  pictures,  and  admires  their  work.3.  A  mechanic  inspects  a  car,  changes  the  oil,  and  test  drives  the  vehicle.4.  A  group  of  kids  play  hide  and  seek  in  a  large,  old  house.5.  A  woman  packs  a  suitcase,  locks  her  house,  and  walks  to  the  bus  station.
+    |'
+  id: totrans-183
+  prefs: []
+  type: TYPE_TB
+  zh: '| [⬇](data:text/plain;base64,MS4gQSBtYW4gZW50ZXJzIGhpcyBjYXIgYW5kIGRyaXZlcyBhd2F5CjIuIEEgY291cGxlIGRlY29yYXRlcyBhIHJvb20sIGhhbmdzIHBpY3R1cmVzLCBhbmQgYWRtaXJlcyB0aGVpciB3b3JrLgozLiBBIG1lY2hhbmljIGluc3BlY3RzIGEgY2FyLCBjaGFuZ2VzIHRoZSBvaWwsIGFuZCB0ZXN0IGRyaXZlcyB0aGUgdmVoaWNsZS4KNC4gQSBncm91cCBvZiBraWRzIHBsYXkgaGlkZSBhbmQgc2VlayBpbiBhIGxhcmdlLCBvbGQgaG91c2UuCjUuIEEgd29tYW4gcGFja3MgYSBzdWl0Y2FzZSwgbG9ja3MgaGVyIGhvdXNlLCBhbmQgd2Fsa3MgdG8gdGhlIGJ1cyBzdGF0aW9uLg==)1.  一个人进入他的车并开走2.  一对夫妇装饰房间，挂上画作，并欣赏他们的作品。3.  一名技师检查汽车，换油并试车。4.  一群孩子在一座大而古老的房子里玩捉迷藏。5.  一位女性打包行李，锁上房门，步行到公交车站。
+    |'

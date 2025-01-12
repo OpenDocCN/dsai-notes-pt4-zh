@@ -1,0 +1,2374 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分类：未分类
+- en: 'date: 2025-01-11 12:59:23'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:59:23
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting Using
+    Multi-agent LLM'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'Agent4Ranking: 通过个性化查询重写和多代理LLM实现语义鲁棒排名'
+- en: 来源：[https://arxiv.org/html/2312.15450/](https://arxiv.org/html/2312.15450/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2312.15450/](https://arxiv.org/html/2312.15450/)
+- en: Xiaopeng Li${}^{\dagger}$, Lixin Su${}^{\ddagger}$, Pengyue Jia${}^{\dagger}$,
+    Xiangyu Zhao${}^{\dagger}$, Suqi Cheng${}^{\ddagger}$, Junfeng Wang${}^{\ddagger}$,
+    Dawei Yin${}^{\ddagger}$ ${}^{\dagger}$ City Univerisity of HongKong ${}^{\ddagger}$
+    Baidu Inc. {xiaopli2-c, jia.pengyue}@my.cityu.edu.hk, xianzhao@cityu.edu.hk,
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Xiaopeng Li${}^{\dagger}$, Lixin Su${}^{\ddagger}$, Pengyue Jia${}^{\dagger}$,
+    Xiangyu Zhao${}^{\dagger}$, Suqi Cheng${}^{\ddagger}$, Junfeng Wang${}^{\ddagger}$,
+    Dawei Yin${}^{\ddagger}$ ${}^{\dagger}$ 香港城市大学 ${}^{\ddagger}$ 百度公司 {xiaopli2-c,
+    jia.pengyue}@my.cityu.edu.hk, xianzhao@cityu.edu.hk,
+- en: '{sulixin, chengsuqi, wangjunfeng}@baidu.com, yindawei@acm.org'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{sulixin, chengsuqi, wangjunfeng}@baidu.com, yindawei@acm.org'
+- en: Abstract
+  id: totrans-8
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Search engines are crucial as they provide an efficient and easy way to access
+    vast amounts of information on the internet for diverse information needs. User
+    queries, even with a specific need, can differ significantly. Prior research has
+    explored the resilience of ranking models against typical query variations like
+    paraphrasing, misspellings, and order changes. Yet, these works overlook how diverse
+    demographics uniquely formulate identical queries. For instance, older individuals
+    tend to construct queries more naturally and in varied order compared to other
+    groups. This demographic diversity necessitates enhancing the adaptability of
+    ranking models to diverse query formulations. To this end, in this paper, we propose
+    a framework that integrates a novel rewriting pipeline that rewrites queries from
+    various demographic perspectives and a novel framework to enhance ranking robustness.
+    To be specific, we use Chain of Thought (CoT) technology to utilize Large Language
+    Models (LLMs) as agents to emulate various demographic profiles, then use them
+    for efficient query rewriting, and we innovate a robust Multi-gate Mixture of
+    Experts (MMoE) architecture coupled with a hybrid loss function, collectively
+    strengthening the ranking models’ robustness. Our extensive experimentation on
+    both public and industrial datasets assesses the efficacy of our query rewriting
+    approach and the enhanced accuracy and robustness of the ranking model. The findings
+    highlight the sophistication and effectiveness of our proposed model.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 搜索引擎至关重要，因为它们为用户提供了一种高效且便捷的方式，可以访问互联网中大量的信息，满足各种信息需求。用户的查询即使在特定需求下，也可能存在显著的差异。已有研究探讨了排名模型对常见查询变异（如同义改写、拼写错误和顺序变化）的鲁棒性。然而，这些研究忽略了不同人群如何独特地构造相同的查询。例如，老年人倾向于以更加自然的方式构建查询，并且顺序更加多样化。人口统计学的多样性要求提高排名模型对各种查询构造的适应性。因此，本文提出了一个框架，整合了一个创新的重写管道，该管道从不同的人群视角重写查询，并且提出了一个新的框架以增强排名的鲁棒性。具体而言，我们使用思维链（CoT）技术，利用大型语言模型（LLM）作为代理，模拟不同的人群特征，进而实现高效的查询重写。我们还创新了一种鲁棒的多门混合专家（MMoE）架构，并结合了混合损失函数，从而集体增强了排名模型的鲁棒性。通过在公共和工业数据集上的广泛实验，我们评估了查询重写方法的有效性以及排名模型的准确性和鲁棒性提升。实验结果突出显示了我们提出的模型的复杂性和有效性。
+- en: 'Index Terms:'
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 关键词：
+- en: Data mining, Information retrieval, Query processing, Robust ranking
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据挖掘，信息检索，查询处理，鲁棒排名
+- en: I Introduction
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: I 引言
+- en: 'Search engines, pivotal in Computer Science and Data Management, focus on efficiently
+    searching and retrieving relevant information from extensive data repositories [[1](#bib.bib1)].
+    A central challenge in search engine technology is addressing the ranking problem,
+    which involves prioritizing search results according to their relevance to user
+    queries. Ranking models have evolved significantly, encompassing three main types:
+    traditional probabilistic models [[2](#bib.bib2), [3](#bib.bib3)], which falter
+    in large-scale applications due to their keyword-centric design; neural rankers [[4](#bib.bib4),
+    [5](#bib.bib5), [6](#bib.bib6)] that leverage deep learning for enhanced performance;
+    and recent pre-trained models [[7](#bib.bib7), [8](#bib.bib8)] capable of understanding
+    complex queries with limited data. Most of this research has principally focused
+    on evaluating and enhancing the effectiveness of ranking models. However, the
+    robustness of these ranking models, which refers to the stability of document
+    rankings under the influence of perturbed queries, has received relatively less
+    attention.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 搜索引擎在计算机科学和数据管理中发挥着重要作用，专注于高效地从庞大的数据存储库中搜索和检索相关信息[[1](#bib.bib1)]。搜索引擎技术中的一个核心挑战是解决排名问题，涉及根据搜索结果与用户查询的相关性来优先排序。排名模型已经经历了显著的发展，主要包括三种类型：传统的概率模型[[2](#bib.bib2),
+    [3](#bib.bib3)]，由于其以关键词为中心的设计，在大规模应用中存在不足；利用深度学习提升性能的神经排名模型[[4](#bib.bib4), [5](#bib.bib5),
+    [6](#bib.bib6)]；以及近年来的预训练模型[[7](#bib.bib7), [8](#bib.bib8)]，能够在数据有限的情况下理解复杂的查询。大多数研究主要集中在评估和增强排名模型的效果。然而，排名模型的鲁棒性，即在查询扰动的影响下，文档排名的稳定性，较少受到关注。
+- en: In practical search scenarios, the robustness of search systems in ranking is
+    of paramount importance. Ideally, a robust search engine should return consistent
+    results for semantically consistent queries [[9](#bib.bib9)]. However, a lack
+    of robustness can lead to significant variability in results, adversely affecting
+    the user experience. Existing studies have explored the impact of query variations
+    on robustness of the search engine pipeline. For example, Penha et al.[[10](#bib.bib10)]
+    examine the effects of variations like misspellings and paraphrasing, identifying
+    a notable 20% decline in retrieval effectiveness, indicating current systems’
+    robustness deficiencies. CAPOT [[11](#bib.bib11)] employs contrastive learning
+    to address noisy query impacts including typos and misspellings. Zhuang et al.
+    investigate the use of Character-Bert and self-teaching techniques [[12](#bib.bib12)]
+    for effectively handling typo-laden queries. Nevertheless, the majority of these
+    studies predominantly concentrate on the retrieval process lacking exploration
+    of the ranking procedure, more importantly, these studies heuristically define
+    types of query variations and tackle insufficient robustness. Practically, the
+    search engine often confronts mixed query variations composed of multiple types
+    of query alterations. Intuitively, different demographic groups have the same
+    information requirement. But limited by their different personal knowledge background,
+    they express different queries. Therefore, a more direct way is to simulate different
+    demographic groups of people to rewrite queries based on the information needs.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实际的搜索场景中，搜索系统在排名中的鲁棒性至关重要。理想情况下，一个鲁棒的搜索引擎应该为语义一致的查询返回一致的结果[[9](#bib.bib9)]。然而，缺乏鲁棒性可能导致结果的显著变化，从而对用户体验产生不利影响。现有的研究探讨了查询变体对搜索引擎管道鲁棒性的影响。例如，Penha等人[[10](#bib.bib10)]研究了拼写错误和同义替换等变化的影响，发现检索效果明显下降了20%，表明当前系统在鲁棒性方面存在缺陷。CAPOT[[11](#bib.bib11)]通过对比学习解决了包括拼写错误和错别字在内的噪声查询影响。Zhuang等人研究了使用Character-Bert和自我教学技术[[12](#bib.bib12)]来有效处理充满拼写错误的查询。然而，这些研究大多集中在检索过程，缺乏对排名过程的探索，更重要的是，这些研究通过启发式方法定义了查询变体的类型并解决了鲁棒性不足的问题。实际上，搜索引擎常常面临由多种类型的查询变体组成的混合查询。直观地说，不同的人群可能有相同的信息需求，但由于他们不同的个人知识背景，他们会表达出不同的查询。因此，一种更直接的方法是模拟不同人群根据信息需求重写查询。
+- en: '![Refer to caption](img/ad478157779ef0b702b98734f4ca0a10.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/ad478157779ef0b702b98734f4ca0a10.png)'
+- en: 'Figure 1: Up: Four demographic group statistics by CNNIC [[13](#bib.bib13)].
+    Down: Taxonomy of query variations statistics for four groups. All the queries
+    are from the industrial dataset in Baidu. The Red Bar indicates the most significant
+    feature of this group.'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：上图：CNNIC提供的四个群体的统计数据[[13](#bib.bib13)]。下图：四个群体的查询变体统计分类。所有查询均来自百度的工业数据集。红色条形表示该群体的最显著特征。
+- en: To tackle the aforementioned issues, this paper proposes to investigate the
+    application of Large Language Models (LLMs) in query rewriting from demographic
+    perspectives, aiming to fortify the robustness of ranking models for different
+    groups of users. LLMs have emerged as formidable tools, noted for their exceptional
+    contextual awareness and generative abilities, are particularly effective in query
+    rewriting, ensuring semantic integrity and simultaneously boosting model robustness [[14](#bib.bib14)].
+    However, it is not easy to apply LLMs into query rewriting in demographic perspectives.
+    Firstly, how to accurately rewrite queries from various perspectives using LLMs
+    such as ChatGPT. These models are notable for their contextual understanding and
+    semantic comprehension. Nevertheless, the unpredictability in their outputs often
+    leads to generation inaccuracies or ”hallucinations” [[15](#bib.bib15)]. The complexity
+    of crafting prompts that guide LLMs to produce contextually relevant and diverse
+    query rewrites exacerbates this issue. Secondly, how to enhance the robustness
+    of ranking models via multiple query variants. Current literature primarily addresses
+    single perspective variants, such as misspellings or ordering, and often neglects
+    the complexity of mixed query rewrites in practical scenarios [[10](#bib.bib10)].
+    Consequently, the development of a robust model capable of handling a variety
+    of semantically similar queries, and consistently producing similar ranking outcomes
+    without sacrificing accuracy is of paramount importance.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决上述问题，本文提出从人口统计学角度研究大语言模型（LLMs）在查询重写中的应用，旨在增强针对不同用户群体的排名模型的鲁棒性。LLMs作为强大的工具，因其卓越的上下文感知和生成能力而广受关注，在查询重写中尤为有效，既能确保语义完整性，又能同时提升模型的鲁棒性[[14](#bib.bib14)]。然而，将LLMs应用于从人口统计学角度进行查询重写并非易事。首先，如何使用LLMs（如ChatGPT）从不同角度准确地重写查询。尽管这些模型因其上下文理解和语义理解而广受关注，但它们的输出不可预测，常导致生成的不准确或“幻觉”[[15](#bib.bib15)]。指导LLMs生成上下文相关且多样化的查询重写的提示设计复杂性加剧了这一问题。其次，如何通过多种查询变体增强排名模型的鲁棒性。现有文献主要关注单一角度的变体，如拼写错误或排序问题，往往忽略了实际场景中混合查询重写的复杂性[[10](#bib.bib10)]。因此，开发一个能够处理多种语义相似查询并始终产生相似排名结果而不牺牲准确性的鲁棒模型至关重要。
+- en: Recent advancements in query rewriting using LLMs predominantly fall into two
+    categories. The first is the corpora-incorporated approach, exemplified by HyDE [[16](#bib.bib16)],
+    which generates hypothetical documents from original queries for enhanced retrieval,
+    and Query2doc [[17](#bib.bib17)], which employs few-shot learning in LLMs to create
+    pseudo documents for query rewriting. Shen et al. proposed a method [[18](#bib.bib18)]
+    that integrates potential relevant documents into LLM prompts to modify queries.
+    The second category, generative rewriting, leverages LLMs’ language understanding
+    and pre-existing knowledge for query regeneration, such as using prompting [[14](#bib.bib14),
+    [19](#bib.bib19), [20](#bib.bib20)] and domain-specific fine-tuning methods [[21](#bib.bib21),
+    [22](#bib.bib22)] for the rewriting task. Nevertheless, these approaches generally
+    focus on single-perspective rewriting and lack an extensive exploration of multi-perspective
+    rewriting. They also fall short in addressing the quality of rewritten queries,
+    particularly in terms of hallucination effects and the strategies for their mitigation.
+    Moreover, there’s a gap in exploring how to systematically utilize these rewritten
+    queries to jointly enhance the robustness of ranking models.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，使用LLM进行查询重写的研究主要分为两类。第一类是结合语料库的方法，例如HyDE[[16](#bib.bib16)]，它通过从原始查询生成假设文档来增强检索，和Query2doc[[17](#bib.bib17)]，它利用LLM中的少样本学习创建伪文档进行查询重写。沈等人提出了一种方法[[18](#bib.bib18)]，通过将潜在相关文档融入LLM提示中来修改查询。第二类是生成式重写方法，它利用LLM的语言理解和预先存在的知识进行查询再生，例如使用提示[[14](#bib.bib14),
+    [19](#bib.bib19), [20](#bib.bib20)]和领域特定的微调方法[[21](#bib.bib21), [22](#bib.bib22)]来执行重写任务。然而，这些方法通常专注于单一视角的重写，且未广泛探讨多视角重写问题。同时，它们在处理重写查询的质量方面也存在不足，尤其是在幻觉效应及其缓解策略方面。此外，现有研究尚未系统性地探讨如何利用这些重写查询共同增强排名模型的鲁棒性。
+- en: 'Addressing the aforementioned challenges, in this paper, we introduce an innovative
+    pipeline for query rewriting and a framework for enhancing robustness for ranking
+    within search engines. To improve the effectiveness of query rewriting from varied
+    semantic perspectives, we harness the potential of LLMs to simulate four distinct
+    agent roles—woman, man, student, and elder—and rephrase queries accordingly. We
+    carefully chose these four roles according to the statistics from the government [[13](#bib.bib13)],
+    which cover the majority of Chinese Internet users, shown in Figure [1](#S1.F1
+    "Figure 1 ‣ I Introduction ‣ Agent4Ranking: Semantic Robust Ranking via Personalized
+    Query Rewriting Using Multi-agent LLM"). We integrate Chain of Thought (CoT) technology
+    and implement rigorous query verification procedures to counteract hallucination
+    effects and enhance the precision of query generation. This approach is encapsulated
+    within a cyclic generation framework that evaluates and iteratively refines the
+    query until it meets predefined quality standards. According to our results analysis,
+    our methodology demonstrates exceptional performance and closely aligns with the
+    character’s personality. Moreover, to reinforce the robustness of the ranking
+    model, we introduce a Robust MMoE structure. This structure dynamically identifies
+    semantic commonalities across various rewritten queries, facilitating a more stable
+    ranking process. Additionally, we develop a novel loss function that promotes
+    robustness by leveraging Jensen-Shannon divergence to measure distribution variations
+    across different agent perspectives, thus enhancing the robustness of the result.
+    The paper’s primary contributions are as follows:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 针对上述挑战，本文介绍了一种创新的查询重写流程和一个增强搜索引擎排名鲁棒性的框架。为了从多种语义角度提升查询重写的效果，我们利用大语言模型（LLMs）的潜力，模拟四种不同的角色——女性、男性、学生和老人，并根据这些角色对查询进行重写。我们根据政府的统计数据[[13](#bib.bib13)]仔细选择了这四个角色，这些统计数据涵盖了大多数中国互联网用户，如图[1](#S1.F1
+    "图1 ‣ I 引言 ‣ Agent4Ranking：通过多智能体LLM个性化查询重写实现语义鲁棒排名")所示。我们将思维链（Chain of Thought,
+    CoT）技术与严格的查询验证程序相结合，以对抗幻觉效应，并提升查询生成的精确度。该方法封装在一个循环生成框架中，通过评估和迭代优化查询，直到其满足预定义的质量标准。根据我们的结果分析，该方法展示了卓越的性能，并与角色的个性高度契合。此外，为了强化排名模型的鲁棒性，我们引入了一种鲁棒MMoE结构。该结构动态识别各种重写查询之间的语义共性，从而促进了更加稳定的排名过程。此外，我们开发了一种新颖的损失函数，利用Jensen-Shannon散度来衡量不同智能体视角之间的分布差异，从而增强了结果的鲁棒性。本文的主要贡献如下：
+- en: '[leftmargin=*]'
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[leftmargin=*]'
+- en: •
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: We introduce a novel query rewriting approach utilizing Large Language Models
+    (LLMs) in various agent roles. This method is supplemented by a query validation
+    procedure that rigorously assesses and iteratively refines the queries, enhancing
+    precision until they conform to our high standards;
+  id: totrans-22
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们提出了一种新颖的查询重写方法，利用大语言模型（LLMs）在各种代理角色中进行重写。该方法通过一个查询验证过程进行补充，严格评估并迭代改进查询，提高精度，直到它们符合我们的高标准；
+- en: •
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: In order to enhance the robustness of the ranking model, we design a robust
+    ranking model that incorporates a Mixture-of-Experts (MoE) structure with multiple
+    adapters. This architecture is adept at capturing semantic similarities, thereby
+    fortifying the model’s robustness. Concurrently, we also develop a novel loss
+    function that strategically enhances model robustness by constraining output distributions.
+  id: totrans-24
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 为了增强排名模型的鲁棒性，我们设计了一种鲁棒排名模型，该模型结合了具有多个适配器的专家混合（MoE）结构。该架构擅长捕捉语义相似性，从而增强了模型的鲁棒性。同时，我们还开发了一种新颖的损失函数，通过约束输出分布战略性地增强模型的鲁棒性。
+- en: •
+  id: totrans-25
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'We execute our experiments on two distinct datasets: a publicly available dataset
+    and an industrial dataset from Baidu. Our extensive experimental setup encompasses
+    query evaluation, effectiveness assessments, and robustness performance tests,
+    which collectively affirm the strengths of our proposed framework.'
+  id: totrans-26
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们在两个不同的数据集上执行实验：一个是公开数据集，另一个是来自百度的工业数据集。我们广泛的实验设置包括查询评估、效果评估和鲁棒性性能测试，这些测试共同验证了我们提出的框架的优势。
+- en: '![Refer to caption](img/4a603a7be5080f3068caef9887379b60.png)'
+  id: totrans-27
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/4a603a7be5080f3068caef9887379b60.png)'
+- en: 'Figure 2: An illustration of the overall architecture of our proposed model.'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：我们提出的模型整体架构的示意图。
+- en: II Preliminary
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: II 初步工作
+- en: In this section, we delineate the principal notations and the mathematical formulation
+    of our research problem, which encompasses query rewriting and ranking tasks.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们阐明了研究问题的主要符号和数学公式，该问题涵盖了查询重写和排名任务。
+- en: Consider a set of original user queries, $\mathcal{Q}={q_{0},...,q_{i},...,q_{n}}$,
+    with $n$ representing the total number of queries. Our objective is to rewrite
+    these queries from $K$ distinct perspectives. We define the $k$-th rewriting function
+    as $\mathcal{F}{\theta{k}}$, where $\theta_{k}$ parameterizes the rewriting process.
+    The set of rewritten queries corresponding to the $k$-th perspective is represented
+    as $\widetilde{\mathcal{Q}}^{k}={\widetilde{q}^{k}_{0},...,\widetilde{q}^{k}_{i},.%
+    ..,\widetilde{q}^{k}n}$. This process can be formalized as
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一组原始用户查询$\mathcal{Q}={q_{0},...,q_{i},...,q_{n}}$，其中$n$表示查询的总数。我们的目标是从$K$个不同的角度重写这些查询。我们定义第$k$个重写函数为$\mathcal{F}_{\theta_{k}}$，其中$\theta_{k}$对重写过程进行参数化。与第$k$个角度对应的重写查询集表示为$\widetilde{\mathcal{Q}}^{k}={\widetilde{q}^{k}_{0},...,\widetilde{q}^{k}_{i},...,\widetilde{q}^{k}_{n}}$。这个过程可以形式化为：
+- en: '|  | $\mathcal{F}{\theta_{k}}:\mathcal{Q}\rightarrow\widetilde{\mathcal{Q}}^{k},~{}k%
+    \in[1,...,K]$ |  |'
+  id: totrans-32
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathcal{F}_{\theta_{k}}:\mathcal{Q}\rightarrow\widetilde{\mathcal{Q}}^{k},~{}k\in[1,...,K]$
+    |  |'
+- en: Suppose each query $q_{i}$ in $\mathcal{Q}$ is associated with a document list
+    $\mathcal{D}_{i}=\{d_{i,1},d_{i,2},...,d_{i,n_{q_{i}}}\}$, and for the corresponding
+    list of labels is $\boldsymbol{Y}_{i}=\{\boldsymbol{y}_{i,1},\boldsymbol{y}_{i,2},...,\boldsymbol%
+    {y}_{i,n_{q_{i}}}\}$, where $n_{q_{i}}$ represents the length of list $\mathcal{D}_{i}$
+    and $d_{i,j}$ denotes the $j$-th document in document list $\mathcal{D}_{i}$ for
+    query $q_{i}$. We consider a ranking model as $\mathcal{R}$, which is trained
+    on the samples $\{q_{i},\mathcal{D}_{i},\boldsymbol{Y}_{i}\}_{i=1}^{t}$ drawn
+    from the training dataset distribution $\mathcal{G}$. The ranking process is defined
+    as producing a permutation $\pi(q_{i},\mathcal{D}_{i},\mathcal{R})$ for the given
+    query $q_{i}$ and the corresponding document list $\mathcal{D}_{i}$ using ranking
+    model $\mathcal{R}$.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设每个查询$q_{i}$在$\mathcal{Q}$中与文档列表$\mathcal{D}_{i}=\{d_{i,1},d_{i,2},...,d_{i,n_{q_{i}}}\}$相关联，且对应的标签列表为$\boldsymbol{Y}_{i}=\{\boldsymbol{y}_{i,1},\boldsymbol{y}_{i,2},...,\boldsymbol{y}_{i,n_{q_{i}}}\}$，其中$n_{q_{i}}$表示文档列表$\mathcal{D}_{i}$的长度，$d_{i,j}$表示查询$q_{i}$对应文档列表$\mathcal{D}_{i}$中的第$j$个文档。我们考虑一个排名模型$\mathcal{R}$，它在从训练数据集分布$\mathcal{G}$中抽取的样本$\{q_{i},\mathcal{D}_{i},\boldsymbol{Y}_{i}\}_{i=1}^{t}$上进行训练。排名过程定义为，给定查询$q_{i}$和相应的文档列表$\mathcal{D}_{i}$，利用排名模型$\mathcal{R}$产生一个排列$\pi(q_{i},\mathcal{D}_{i},\mathcal{R})$。
+- en: The evaluation of the ranking model’s effectiveness can be expressed as follows
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 排名模型效果的评估可以表示为：
+- en: '|  | $\mathbb{E}_{(q_{c},\mathcal{D}_{c},\boldsymbol{Y}_{c})}\sim\mathcal{M}\left(%
+    \pi\left(q_{c},\mathcal{D}_{c},\mathcal{R}\right),\boldsymbol{Y}_{c}\right)$ |  |
+    (1) |'
+  id: totrans-35
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathbb{E}_{(q_{c},\mathcal{D}_{c},\boldsymbol{Y}_{c})}\sim\mathcal{M}\left(%
+    \pi\left(q_{c},\mathcal{D}_{c},\mathcal{R}\right),\boldsymbol{Y}_{c}\right)$ |  |
+    (1) |'
+- en: Here, $\mathcal{M}$ represents the metric for evaluating effectiveness, and
+    the tuple $(q_{c},\mathcal{D}_{c},\boldsymbol{Y}_{c})$ signifies the test queries,
+    their associated document lists, and ranking labels. Notably, the test dataset
+    is derived from the same distribution $\mathcal{G}$ as the training set. The ranking
+    model’s performance is quantified by the mean effectiveness across test datasets.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里，$\mathcal{M}$表示评估有效性的度量，元组$(q_{c},\mathcal{D}_{c},\boldsymbol{Y}_{c})$表示测试查询、它们相关的文档列表和排名标签。值得注意的是，测试数据集来源于与训练集相同分布$\mathcal{G}$。排名模型的性能通过测试数据集的平均有效性来量化。
+- en: The robustness of the ranking model is quantified as
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 排名模型的鲁棒性量化为
+- en: '|  | $\begin{split}\mathbb{V}_{(q_{c},\mathcal{D}_{c})}\sim\mathcal{M}([\pi^{k}(q^{k%
+    }_{c},\mathcal{D}_{c},\mathcal{R})]),k\in[1,..,K]\end{split}$ |  | (2) |'
+  id: totrans-38
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\begin{split}\mathbb{V}_{(q_{c},\mathcal{D}_{c})}\sim\mathcal{M}([\pi^{k}(q^{k%
+    }_{c},\mathcal{D}_{c},\mathcal{R})]),k\in[1,..,K]\end{split}$ |  | (2) |'
+- en: In this case, $\pi^{k}(q^{k}_{c},\mathcal{D}_{c},\mathcal{R})$ indicates the
+    ranking label list for the $k$-th rewritten query and its corresponding documents
+    using the ranking model. The robustness is assessed by the variance in ranking
+    permutations for different rewritten queries.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，$\pi^{k}(q^{k}_{c},\mathcal{D}_{c},\mathcal{R})$表示使用排名模型对第$k$个重写查询及其对应文档的排名标签列表。鲁棒性通过不同重写查询的排名排列方差来评估。
+- en: III Methodology
+  id: totrans-40
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: III 方法论
+- en: In this section, we will offer a comprehensive exposition of the methodology
+    employed in our study. At first, we will present a conceptual overview of the
+    proposed architectural framework. This is followed by an in-depth examination
+    of two constituent subtasks, query rewriting and robust ranking, which are explicated
+    sequentially.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节将全面阐述我们研究中采用的方法论。首先，我们将展示所提出的架构框架的概念性概述。随后，我们将深入探讨两个组成子任务：查询重写和鲁棒排名，并依次进行详细解释。
+- en: '![Refer to caption](img/8694c34d8f3864da70dc2a2f635d778b.png)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/8694c34d8f3864da70dc2a2f635d778b.png)'
+- en: 'Figure 3: An illustration of the rewriting pipeline of our proposed model.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：我们提出的模型的重写流程图。
+- en: III-A Framework Overview
+  id: totrans-44
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-A 框架概述
+- en: 'The framework of our study is shown in Figure [2](#S1.F2 "Figure 2 ‣ I Introduction
+    ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting Using
+    Multi-agent LLM"). Our study encompasses two distinct yet interconnected subtasks.
+    The first task is query rewriting. Unlike traditional methods that solely emphasize
+    the quality of rewritten queries, we extend our consideration to rewriting from
+    various semantic viewpoints. The recent developments in the field of LLM agents
+    have provided an opportunity that allows different agents acting in diverse roles
+    to do different tasks. Our research explores how these different roles agents
+    can rewrite queries in a manner that aligns with corresponding demographic group
+    characteristics. The second subtask is robust ranking. The current ranking model
+    does not return consistent results when faced with queries with the same semantics,
+    which proves the non-robustness of the existing ranking model. This is primarily
+    due to the ranking module’s weak semantic comprehension between queries and documents.
+    To enhance robustness, we raise a robust MMoE ranking model to effectively capture
+    shared semantic information across different queries. Additionally, we devise
+    a loss function, imposing constraints on accuracy and robustness at the same time,
+    increasing robustness while ensuring ranking accuracy.'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们研究的框架如图[2](#S1.F2 "图 2 ‣ I 引言 ‣ Agent4Ranking: 通过个性化查询重写使用多智能体LLM实现语义鲁棒排名")所示。我们的研究包含了两个不同但相互关联的子任务。第一个任务是查询重写。与传统方法仅强调重写查询的质量不同，我们将重写从多种语义视角进行扩展。最近在LLM智能体领域的发展提供了一个机会，使得不同角色的智能体可以执行不同的任务。我们的研究探讨了这些不同角色的智能体如何以符合相应人口群体特征的方式重写查询。第二个子任务是鲁棒排名。当前的排名模型在面对语义相同的查询时不能返回一致的结果，这证明了现有排名模型的非鲁棒性。这主要是由于排名模块在查询和文档之间的语义理解较弱。为了增强鲁棒性，我们提出了一种鲁棒的MMoE排名模型，能够有效地捕捉不同查询之间共享的语义信息。此外，我们设计了一个损失函数，在提高鲁棒性的同时，施加对准确性和鲁棒性的约束，从而确保排名的准确性并提升鲁棒性。'
+- en: •
+  id: totrans-46
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Query Rewriting: The optimization of query rewriting commences with the application
+    of ChatGPT-3.5, where prompts are carefully structured to distill the core intent
+    of user queries, thereby revealing their underlying information needs. Subsequently,
+    distinct personas representing four demographic groups — the elderly, middle-aged
+    women, middle-aged men, and students — are assigned to the LLM. We carefully choose
+    these four roles to pretend to be real users on the Internet. The LLM is then
+    tasked with performing the query rewriting under these specified roles. Nonetheless,
+    due to the hallucination limitations inherent in LLMs, the resultant queries may
+    substantially diverge from the original semantics. To counteract this issue, we
+    implement a critical evaluation of the rewrites, including two aspects: Semantic
+    fidelity to the original query and consistency of the rewritten tone with the
+    designated persona. Queries not meeting our standards are subjected to additional
+    refinement, employing an iterative approach until the desired quality threshold
+    is attained. This cycle of evaluation and refinement is sustained until the rephrased
+    queries align semantically with the original intent and correspond with the assigned
+    persona’s tone, thereby ensuring the final output’s utmost quality and appropriateness.'
+  id: totrans-47
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 查询重写：查询重写的优化始于应用ChatGPT-3.5，其中提示被精心设计以提炼用户查询的核心意图，从而揭示其潜在的信息需求。随后，四个代表不同人群的个性化角色——老年人、中年女性、中年男性和学生——被分配给大型语言模型（LLM）。我们精心选择这四个角色，模拟真实用户在互联网上的行为。接着，LLM在这些指定角色下进行查询重写。然而，由于LLM固有的幻觉限制，生成的查询可能会显著偏离原始语义。为了应对这一问题，我们实施了对重写内容的严格评估，包括两个方面：语义忠实度和重写语气与指定角色的一致性。不符合我们标准的查询将进行额外的优化，采用迭代方式，直到达到期望的质量标准。评估和优化的循环持续进行，直到重写后的查询在语义上与原始意图一致，并且与分配的角色语气相符，从而确保最终输出的最高质量和适当性。
+- en: •
+  id: totrans-48
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Robust Ranking: To augment the robustness of document ranking amidst semantically
+    similar queries, our approach encompasses two primary dimensions. First, we aim
+    to bolster robustness structurally. The prevalent issue in existing cross-encoders
+    is their limited capacity to discern similar semantic content across varied queries.
+    To overcome this, we introduce the Robust MMoE, an innovative structure integrated
+    atop the transformer model. This model consists of two main components: a query-specific
+    expert and a query-shared expert, designed to capture both query-independent and
+    shared semantic representations, respectively. Second, concerning the loss function,
+    we advocate a loss function designed to optimize both accuracy and robustness.
+    The robust loss segment computes the Jensen–Shannon divergence between the document
+    ranking scores of different queries, thereby enhancing robustness. Simultaneously,
+    the accuracy loss segment focuses on maintaining the precision of the ranking,
+    thus ensuring accuracy.'
+  id: totrans-49
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 强健排序：为了增强在语义相似查询中文档排序的强健性，我们的方法包含两个主要方面。首先，我们旨在从结构上增强强健性。现有的跨编码器普遍存在的一个问题是，它们在不同查询之间辨识相似语义内容的能力有限。为了解决这个问题，我们提出了强健MMoE，这是一种创新结构，集成在变换器模型之上。该模型由两个主要组件组成：一个查询特定的专家和一个查询共享的专家，分别设计用于捕捉查询独立的语义表示和共享的语义表示。其次，关于损失函数，我们主张采用一种旨在优化准确性和强健性的损失函数。强健损失部分计算不同查询的文档排序分数之间的詹森–香农散度，从而增强强健性。同时，准确性损失部分侧重于保持排序的精确度，从而确保准确性。
+- en: III-B Query Rewriting
+  id: totrans-50
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-B 查询重写
+- en: 'This subsection delves into the detailed methodology of our rewriting pipeline.
+    Large Language Models (LLMs) have recently become prominent as effective query
+    rewriters in search engines[[23](#bib.bib23), [24](#bib.bib24)]. While most existing
+    research concentrates on single perspective variants, such as misspellings or
+    typos [[12](#bib.bib12)], the complexity of multi-semantic query rewrites in real-world
+    scenarios is often overlooked [[10](#bib.bib10)]. In our study, we utilize LLMs
+    as agents adopting diverse roles to skillfully rewrite queries from multiple semantic
+    perspectives, and we enhance the quality of these rewrites through an iterative
+    process. The workflow of this process is illustrated in Figure [3](#S3.F3 "Figure
+    3 ‣ III Methodology ‣ Agent4Ranking: Semantic Robust Ranking via Personalized
+    Query Rewriting Using Multi-agent LLM") for a comprehensive understanding.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本小节深入探讨了我们重写流程的详细方法论。大语言模型（LLMs）最近在搜索引擎中作为有效的查询重写工具变得越来越突出[[23](#bib.bib23),
+    [24](#bib.bib24)]。虽然现有的大多数研究集中于单一视角的变体，例如拼写错误或打字错误[[12](#bib.bib12)]，但在现实场景中多语义查询重写的复杂性往往被忽视[[10](#bib.bib10)]。在我们的研究中，我们利用LLMs作为代理，采用多种角色，从多个语义角度巧妙地重写查询，并通过迭代过程提高这些重写的质量。该过程的工作流如图[3](#S3.F3
+    "Figure 3 ‣ III Methodology ‣ Agent4Ranking: Semantic Robust Ranking via Personalized
+    Query Rewriting Using Multi-agent LLM")所示，便于全面理解。'
+- en: 'The essence of the query rewriting task lies in comprehending the user’s intent
+    and discerning the actual information they seek, which is crucial for effective
+    query rewriting. To achieve this, we leverage the advanced semantic understanding
+    capabilities of LLMs to accurately ascertain the underlying information needs
+    within the queries. In practical terms, given an initial set of raw queries denoted
+    as $\mathcal{Q}^{r}$, we utilize prompt engineering techniques to craft prompt (a),
+    as detailed in Table [I](#S3.T1 "TABLE I ‣ III-B Query Rewriting ‣ III Methodology
+    ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting Using
+    Multi-agent LLM"). This approach is instrumental in extracting pertinent details
+    from the queries and precisely capturing the user’s authentic intent.'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '查询重写任务的本质在于理解用户的意图并辨别他们真正寻求的信息，这对于有效的查询重写至关重要。为实现这一目标，我们利用LLMs的高级语义理解能力，准确识别查询中的潜在信息需求。在实际操作中，给定一组初始的原始查询，记作$\mathcal{Q}^{r}$，我们采用提示工程技术来设计提示(a)，具体细节见表格[I](#S3.T1
+    "TABLE I ‣ III-B Query Rewriting ‣ III Methodology ‣ Agent4Ranking: Semantic Robust
+    Ranking via Personalized Query Rewriting Using Multi-agent LLM")。该方法对于从查询中提取相关信息并精确捕捉用户真实意图至关重要。'
+- en: 'Following the initial extraction of information, we assign the LLM to diverse
+    agent roles for query rewriting. To facilitate this, prompt (b) is provided to
+    guide the LLMs. These agent roles are meticulously crafted to mirror four distinct
+    demographic groups: middle-aged men, middle-aged women, the elderly, and students,
+    with the resultant queries represented as $\mathcal{Q}^{\prime}_{k},k\in[1,2,3,4]$.
+    According to the demographic investigation on the Internet [[13](#bib.bib13)],
+    these four groups were selected to offer a balanced representation across age
+    spectrums, categorizing users over 50 years as old and those under 25 as student,
+    with the remaining demographics segmented by gender, results are shown in Figure [1](#S1.F1
+    "Figure 1 ‣ I Introduction ‣ Agent4Ranking: Semantic Robust Ranking via Personalized
+    Query Rewriting Using Multi-agent LLM"). Additionally, these groups showcase unique
+    semantic expressions in their queries, encompassing aspects of naturality, ordering,
+    and paraphrasing [[19](#bib.bib19)]. For example, the old prefer colloquial language,
+    whereas students, more adept with search tools, tend to use keyword-driven queries.
+    Thus, each demographic group exhibits distinctive query expression patterns influenced
+    by their age and gender characteristics.'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在初步信息提取之后，我们将LLM分配到不同的代理角色中进行查询重写。为此，我们提供了提示(b)来指导LLMs。这些代理角色经过精心设计，反映了四个不同的人群组：中年男性、中年女性、老年人和学生，重写后的查询表示为$\mathcal{Q}^{\prime}_{k},k\in[1,2,3,4]$。根据互联网上的人群调查[[13](#bib.bib13)]，这四个群体的选择旨在提供跨年龄段的平衡代表，其中50岁以上的群体被归类为老年人，25岁以下的群体为学生，其他群体按性别进行划分，具体结果如图[1](#S1.F1
+    "Figure 1 ‣ I Introduction ‣ Agent4Ranking: Semantic Robust Ranking via Personalized
+    Query Rewriting Using Multi-agent LLM")所示。此外，这些群体在查询中展示了独特的语义表达方式，涵盖了自然性、排序和释义等方面[[19](#bib.bib19)]。例如，老年人偏好口语化的语言，而学生则更擅长使用搜索工具，倾向于使用关键词驱动的查询。因此，每个人群组的查询表达模式展示了受年龄和性别特征影响的独特性。'
+- en: Upon obtaining the queries reformulated by four distinct agent roles, conducting
+    a rigorous quality assessment is imperative. This evaluation step is crucial to
+    ascertain the fidelity of the regenerated queries. Given that the issue of hallucinations
+    in LLMs is not entirely resolved, there remains a possibility of some queries
+    failing to align with the set standards. For example, some queries might undergo
+    substantial semantic alteration, deviating from their original intent, or may
+    not be appropriately rephrased in accordance with the assigned agent role.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在获得四个不同代理角色重写的查询后，进行严格的质量评估是至关重要的。这一步骤对于确认重新生成的查询的忠实度至关重要。鉴于大型语言模型中的幻觉问题尚未完全解决，仍然存在一些查询未能达到设定标准的可能性。例如，一些查询可能会经历较大的语义变化，偏离其原始意图，或者可能未能根据分配的代理角色适当重述。
+- en: 'To mitigate these concerns, we evaluate the rewritten queries from two different
+    perspectives. Firstly, it assesses the semantic similarity between the original
+    and rewritten queries. Secondly, it evaluates the adherence of the rewritten queries
+    to their designated agent roles. For both evaluations, a three-tiered scoring
+    mechanism is implemented: fully meeting the requirements, partially meeting the
+    requirements, and not meeting the requirements. Details of the corresponding prompts
+    are presented as prompt (c) in Table [I](#S3.T1 "TABLE I ‣ III-B Query Rewriting
+    ‣ III Methodology ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query
+    Rewriting Using Multi-agent LLM").'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了缓解这些问题，我们从两个不同的角度评估重写后的查询。首先，评估原始查询与重写查询之间的语义相似度。其次，评估重写查询与其指定代理角色的符合度。对于这两项评估，我们实施了一个三级评分机制：完全符合要求、部分符合要求和不符合要求。相关提示的详细信息如表
+    [I](#S3.T1 "TABLE I ‣ III-B Query Rewriting ‣ III Methodology ‣ Agent4Ranking:
+    Semantic Robust Ranking via Personalized Query Rewriting Using Multi-agent LLM")
+    中的提示 (c) 所示。'
+- en: When queries fall short of the set criteria, we will redirect them to the query
+    rewriting phase with modified instructions for the LLMs. In cases where the queries
+    are of substandard quality, particularly regarding semantic fidelity, we mandate
+    a closer alignment of the regenerated queries with the original semantics, as
+    elaborated in prompt (d). In instances where the query inadequately conforms to
+    the designated agent role, we craft the prompt to underscore the need for enhanced
+    adherence to the agent role, as delineated in prompt (e). To effectively tackle
+    both quality and role conformity challenges simultaneously, a tailored prompt (f)
+    is formulated for comprehensive mitigation.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当查询未达到设定标准时，我们将引导其进入查询重写阶段，并为大型语言模型（LLMs）提供修改后的指令。在查询质量不达标的情况下，特别是在语义忠实度方面，我们要求重新生成的查询更紧密地与原始语义对齐，如提示 (d)
+    中所述。在查询未能充分符合指定代理角色的情况下，我们会设计提示，强调需要更好地遵守代理角色，如提示 (e) 中所述。为有效同时解决质量和角色符合度问题，我们制定了一个量身定制的提示 (f)，以全面缓解这些问题。
+- en: 'TABLE I: Prompts of query rewriting for public dataset'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 I：公共数据集查询重写提示
+- en: '| Methods | Prompts |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 提示 |'
+- en: '| --- | --- |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Queries Generation | (a). The search query is {query}. Please analyze and
+    determine the actual intention or meaning that the person is trying to convey
+    through this search query. |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查询生成 | (a). 搜索查询是 {query}。请分析并确定这个搜索查询试图传达的实际意图或含义。 |'
+- en: '| (b). Assuming you are a woman, what changes might you make when rewriting
+    the query? Please rewrite the query to align it with your role. |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| (b). 假设你是女性，在重写查询时你会做哪些改变？请根据你的角色重写查询。 |'
+- en: '| Queries Check | (c). The original query is: {query}. The rephrased query
+    is: {rewriting query}. Evaluate the following:1\. Are these two queries describing
+    the same information? 2\. Does the modified query align with the query posed by
+    {agent}? Assign judgment scores of -1, 0, or 1\. A score of -1 implies no match,
+    0 suggests an approximate match, and 1 indicates an exact match. |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查询检查 | (c). 原始查询是：{query}。重写后的查询是：{rewriting query}。请评估以下内容：1\. 这两个查询是否描述了相同的信息？
+    2\. 修改后的查询是否与 {agent} 提出的查询一致？请赋予判断分数：-1、0 或 1。-1 表示完全不匹配，0 表示大致匹配，1 表示完全匹配。 |'
+- en: '| Queries Modification | (d). Assuming you are an {agent}, please rephrase
+    the query in accordance with your role while preserving the original meaning of
+    the question. |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查询修改 | (d). 假设你是一个 {agent}，请根据你的角色重述查询，同时保留问题的原始含义。 |'
+- en: '|  | (e). Assuming you are an {agent}, please rephrase the query according
+    to your role and rewrite it more in line with the character’s attributes. |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | (e). 假设你是一个{agent}，请根据你的角色重述查询，使其更符合角色的属性。 |'
+- en: '|  | (f). Assuming you are an {agent}, please rephrase the question consistent
+    with your role, maintaining the essence of the original query and aligning it
+    with the character’s attributes. |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | (f). 假设你是一个{agent}，请根据你的角色重述问题，保持原始查询的核心内容，并使其符合角色的属性。 |'
+- en: 'This iterative process continues until the generation of queries that satisfy
+    the established requirements, denoted as $\widetilde{\mathcal{Q}}^{k}$. The algorithm
+    for the entire rewriting process is depicted in Algorithm [1](#alg1 "1 ‣ III-B
+    Query Rewriting ‣ III Methodology ‣ Agent4Ranking: Semantic Robust Ranking via
+    Personalized Query Rewriting Using Multi-agent LLM").'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这个迭代过程会持续进行，直到生成满足既定要求的查询，记作 $\widetilde{\mathcal{Q}}^{k}$。整个重写过程的算法如算法 [1](#alg1
+    "1 ‣ III-B 查询重写 ‣ III 方法论 ‣ Agent4Ranking: 通过使用多代理LLM进行个性化查询重写的语义鲁棒排序") 中所示。'
+- en: 'This process is repeated until the queries that meet the requirements are generated,
+    denoted as $\widetilde{\mathcal{Q}}^{k}$ The algorithm for the entire rewriting
+    process is depicted in Algorithm [1](#alg1 "1 ‣ III-B Query Rewriting ‣ III Methodology
+    ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting Using
+    Multi-agent LLM").'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '该过程会重复进行，直到生成符合要求的查询，记作 $\widetilde{\mathcal{Q}}^{k}$。整个重写过程的算法如算法 [1](#alg1
+    "1 ‣ III-B 查询重写 ‣ III 方法论 ‣ Agent4Ranking: 通过使用多代理LLM进行个性化查询重写的语义鲁棒排序") 中所示。'
+- en: 'Input: Input queries $\mathcal{Q}^{r}$, prompts $\mathcal{P}_{a},\mathcal{P}_{b},\mathcal{P}_{c},\mathcal{P}_{d},\mathcal{P}_{e}$,
+    agent list $K$. Output: Rewritten queries $\widetilde{\mathcal{Q}}^{k},k\in K$1  foreach *$q_{i}\in\mathcal{Q}^{r}$* do2      
+    Information extraction $e_{i}=\mathcal{P}_{a}(q_{i})$;3        foreach  *agent
+    $k\in K$* do4             Persona rewriting $q^{\prime}_{i_{k}}=\mathcal{P}_{b}(e_{i},k)$;5            
+    Get quality and persona score $s_{0},s_{1}$ via query check $s_{0},s_{1}=\mathcal{P}_{c}(q^{\prime}_{i_{k}},q_{i},k)$;6              while *$s_{0}<0$
+    or $s_{1}<0$* do7                    if *$s_{0}<0$ and $s_{1}>=0$* then8                        
+    Query regeneration $q^{\prime}_{i_{k}}=\mathcal{P}_{d}(e_{i},q_{i},q^{\prime}_{i_{k}},k)$;9                        10                  
+    end if11                  if *$s_{1}<0$ and $s_{0}>=0$* then12                        
+    Query regeneration $q^{\prime}_{i_{k}}=\mathcal{P}_{e}(e_{i},q_{i},q^{\prime}_{i_{k}},k)$;13                        14                  else15                        
+    Query regeneration $q^{\prime}_{i_{k}}=\mathcal{P}_{f}(e_{i},q_{i},q^{\prime}_{i_{k}},k)$;16                        17                  
+    end if18                  Query Check $s_{0},s_{1}=\mathcal{P}_{c}(q^{\prime}_{i_{k}},q_{i},k)$;19                  20            
+    end while21            Add $q^{\prime}_{i_{k}}$ to list $\widetilde{q}^{k}$;22            23      
+    end foreach24      Add $q^{k}$ to $\widetilde{\mathcal{Q}}^{k}$;25      26 end
+    foreach'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '输入：输入查询 $\mathcal{Q}^{r}$，提示符 $\mathcal{P}_{a},\mathcal{P}_{b},\mathcal{P}_{c},\mathcal{P}_{d},\mathcal{P}_{e}$，代理列表
+    $K$。输出：重写查询 $\widetilde{\mathcal{Q}}^{k},k\in K$  '
+- en: Algorithm 1 The Algorithm for rewriting.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 查询重写的算法。
+- en: III-C Robust Ranking
+  id: totrans-70
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-C 鲁棒排序
+- en: In this subsection, we will introduce how to enhance the robustness of the existing
+    ranking model.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本小节中，我们将介绍如何增强现有排序模型的鲁棒性。
+- en: '![Refer to caption](img/a3eba89a7274d6b7293c6abe813df176.png)'
+  id: totrans-72
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/a3eba89a7274d6b7293c6abe813df176.png)'
+- en: 'Figure 4: An illustration of the robust ranking architecture of our proposed
+    model.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：我们提出的模型鲁棒排序架构的示意图。
+- en: The conventional cross-encoder [[25](#bib.bib25)] takes in a pair of texts,
+    typically a search query and a document, and encodes text into a single contextual
+    vector. This vector is then compressed into a singular value, serving as a metric
+    to assess the relationship or similarity between the query and the document. Despite
+    its widespread usage, we argue that the existing cross-encoder framework exhibits
+    insufficient robustness for two primary reasons. One major drawback lies in the
+    insufficient capacity to extract shared semantic information effectively. In instances
+    where inputs are semantically identical, the current cross-encoder architecture
+    fails to capture shared semantic nuances adequately, thus resulting in unrobust
+    ranking outcomes and hindering the model’s overall performance. Another critical
+    factor contributing to the inadequate robustness is the lack of stringent constraints
+    in the training process. As a consequence, the model fails to generalize effectively
+    across semantically similar instances, leading to a lack of robustness in real-world
+    ranking scenarios.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统的交叉编码器[[25](#bib.bib25)]接收一对文本，通常是搜索查询和文档，并将文本编码为一个单一的上下文向量。这个向量随后被压缩成一个单一的值，作为评估查询与文档之间关系或相似性的度量标准。尽管其被广泛使用，但我们认为现有的交叉编码器框架在鲁棒性上存在不足，主要有两个原因。一个主要的缺点在于其提取共享语义信息的能力不足。在输入语义上完全相同的情况下，现有的交叉编码器架构未能充分捕捉共享的语义细微差异，从而导致排序结果不鲁棒，影响模型的整体性能。另一个影响鲁棒性的关键因素是训练过程中缺乏严格的约束。因此，模型未能有效地在语义相似的实例之间进行泛化，导致在真实世界排序场景中的鲁棒性不足。
+- en: In response to the above two points, our approach begins with enhancements in
+    structure and loss function design to boost robustness. Specifically, we have
+    developed a robust Multi-gate Mixture of Experts (MMoE)-adapter structure coupled
+    with a robust loss function, collaboratively designed to augment the ranker’s
+    robustness.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 针对上述两点，我们的方法首先在结构和损失函数设计上进行增强，以提高鲁棒性。具体而言，我们开发了一个强大的多门专家混合（MMoE）适配器结构，并结合了一个强大的损失函数，协同设计以增强排序器的鲁棒性。
+- en: 'The specific structure is shown in the Figure [4](#S3.F4 "Figure 4 ‣ III-C
+    Robust Ranking ‣ III Methodology ‣ Agent4Ranking: Semantic Robust Ranking via
+    Personalized Query Rewriting Using Multi-agent LLM"). In the following content,
+    we will first introduce the input, followed by detailed discussions on the two
+    primary modules: the robust Mixed Model of Experts (MMoE)-adapter and the module’s
+    loss design.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '具体结构如图[4](#S3.F4 "图 4 ‣ III-C 鲁棒排序 ‣ III 方法论 ‣ Agent4Ranking: 通过多代理LLM个性化查询重写进行语义鲁棒排序")所示。在接下来的内容中，我们将首先介绍输入数据，然后详细讨论两个主要模块：鲁棒的混合专家模型（MMoE）适配器和该模块的损失设计。'
+- en: III-C1 Data Input
+  id: totrans-77
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C1 数据输入
+- en: For different agent queries $\widetilde{\mathcal{Q}}^{k},k\in[1,...,4]$, where
+    $k$ denotes $k$-th agent, and the raw query list $Q^{r}$. We have a document list
+    $\mathcal{D}_{i}$ for $i$-th query that needed to be ranked. We combine the above
+    data into candidate pairs and formulate the input pairs as follows
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于不同的代理查询$\widetilde{\mathcal{Q}}^{k},k\in[1,...,4]$，其中$k$表示第$k$个代理，以及原始查询列表$Q^{r}$。我们有一个$i$-th查询所需排序的文档列表$\mathcal{D}_{i}$。我们将上述数据组合成候选对，并将输入对表述如下：
+- en: '|  | $\text{Input}:~{}<q^{r}_{i},d_{i,j}>,<q^{1}_{i},d_{i,j}>,...,<q^{4}_{i},d_{i,j}>$
+    |  |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\text{Input}:~{}<q^{r}_{i},d_{i,j}>,<q^{1}_{i},d_{i,j}>,...,<q^{4}_{i},d_{i,j}>$
+    |  |'
+- en: where $q^{r}_{i}\in Q^{r}$, $q^{k}_{i}\in\widetilde{\mathcal{Q}}^{k}$ and $d_{i,j}$
+    represents $j$-th document in document list $\mathcal{D}_{i}$. For each pair,
+    we model them as the format $\boldsymbol{s}_{i,j}=<[\text{CLS}]~{}q_{i}~{}[\text{SEP}]~{}d_{i,j}~{}[\text{%
+    SEP}]>$ and feed them into the pre-trained transformer model to derive the intermediate
+    dense representation for each pair, formulate as follows
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$q^{r}_{i}\in Q^{r}$，$q^{k}_{i}\in\widetilde{\mathcal{Q}}^{k}$，$d_{i,j}$表示文档列表$\mathcal{D}_{i}$中的第$j$个文档。对于每一对，我们将其建模为格式$\boldsymbol{s}_{i,j}=<[\text{CLS}]~{}q_{i}~{}[\text{SEP}]~{}d_{i,j}~{}[\text{%
+    SEP}]>$，并将其输入预训练的变换器模型，以获得每对的中间密集表示，具体形式如下：
+- en: '|  | $\displaystyle\boldsymbol{e}^{r}_{i}$ | $\displaystyle=\text{PLM}(\boldsymbol{s}^{r}_{i,j})$
+    |  | (3) |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\boldsymbol{e}^{r}_{i}$ | $\displaystyle=\text{PLM}(\boldsymbol{s}^{r}_{i,j})$
+    |  | (3) |'
+- en: '|  | $\displaystyle\boldsymbol{e}^{k}_{i}=\text{PLM}$ | $\displaystyle(\boldsymbol{s}^{k}_{i,j}),k\in[1,2,3,4]$
+    |  |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\boldsymbol{e}^{k}_{i}=\text{PLM}$ | $\displaystyle(\boldsymbol{s}^{k}_{i,j}),k\in[1,2,3,4]$
+    |  |'
+- en: 'where $\boldsymbol{e}^{r}_{i}$ denotes the raw query-doc representation and
+    $\boldsymbol{e}^{k}_{i}$ denotes $k$-th agent rewritten query-doc representation.
+    We selected three different transformer models for the experiment: BERT [[26](#bib.bib26)],
+    RoBERTa [[27](#bib.bib27)], and ERNIE [[28](#bib.bib28)]. To achieve optimal performance,
+    preliminary training on the training dataset is conducted for these PLMs, followed
+    by fine-tuning for the whole model to enhance the robustness. Detailed descriptions
+    of the whole model design and experimental procedures will be presented in the
+    subsequent section.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$\boldsymbol{e}^{r}_{i}$表示原始的查询-文档表示，$\boldsymbol{e}^{k}_{i}$表示第$k$个代理重写后的查询-文档表示。我们选择了三种不同的transformer模型进行实验：BERT[[26](#bib.bib26)]、RoBERTa[[27](#bib.bib27)]和ERNIE[[28](#bib.bib28)]。为了实现最佳性能，首先对这些预训练语言模型（PLMs）进行初步训练，然后对整个模型进行微调，以增强其鲁棒性。整个模型设计和实验流程的详细描述将在后续章节中呈现。
+- en: III-C2 Robust MMoE Module
+  id: totrans-84
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C2 鲁棒MMoE模块
+- en: In this part, we present the methodology for designing an MMoE-adapter structure
+    as an extension of an existing model to enhance robustness under multiple consistent
+    semantic query inputs.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本部分，我们介绍了设计MMoE适配器结构的方法，将其作为现有模型的扩展，以增强在多种一致语义查询输入下的鲁棒性。
+- en: The Multi-gate Mixture-of-Experts (MMoE) model, originally introduced by Ma
+    et al. [[29](#bib.bib29)], tackles the challenges of multi-task learning by incorporating
+    a Mixture-of-Experts (MoE) architecture. This innovative approach explicitly models
+    the relationship between individual tasks and employs a gating network to optimize
+    the outcomes. In the context of our task, we aim to use the MoE module to simultaneously
+    capture both query-independent semantic information and query-shared information.
+    These captured representations are subsequently fused together to enhance the
+    overall robustness.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多门混合专家（MMoE）模型最初由Ma等人[[29](#bib.bib29)]提出，旨在通过引入混合专家（MoE）架构来解决多任务学习中的挑战。这一创新方法显式建模了各个任务之间的关系，并采用门控网络来优化结果。在我们的任务背景下，我们旨在使用MoE模块同时捕获查询无关的语义信息和查询共享的信息。这些捕获的表示随后将融合在一起，以增强整体鲁棒性。
+- en: For each agent role, we construct an independent “expert” network to capture
+    agent-specific representations, along with an agent-shared ”expert” network that
+    captures representations shared across different agents. To achieve this, we employ
+    an adapter structure for each expert in our approach, drawing inspiration from
+    the work [[30](#bib.bib30)]. Adapter tuning, a widely adopted strategy in natural
+    language processing, involves updating only a minimal number of parameters while
+    achieving substantial improvements in generalization across various downstream
+    tasks [[31](#bib.bib31), [32](#bib.bib32)]. The adapter modules adhere to a bottleneck
+    design, encompassing a down-projection layer, a non-linear layer, an up-projection
+    layer, and a skip connection. This module seamlessly integrates as a plug-in directly
+    within the transformer architecture.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个代理角色，我们构建一个独立的“专家”网络，用于捕获特定于代理的表示，同时构建一个代理共享的“专家”网络，用于捕获不同代理之间共享的表示。为了实现这一点，我们为每个专家使用适配器结构，这一灵感来源于[[30](#bib.bib30)]的工作。适配器调优是自然语言处理领域广泛采用的策略，它通过仅更新少量参数，同时在各种下游任务中显著提高泛化能力[[31](#bib.bib31),
+    [32](#bib.bib32)]。适配器模块遵循瓶颈设计，包括一个下投影层、一个非线性层、一个上投影层以及一个跳跃连接。该模块作为插件直接集成到transformer架构中。
+- en: In our model, for each agent, we construct an agent-independent adapter $\mathcal{A}^{d}_{k}$
+    cell, where $k\in[0,...,4]$. Additionally, an agent-shared adapter cell is formulated
+    as $\mathcal{A}^{s}$ to capture shared information across distinct queries. Mathematically,
+    we can express this as follows
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的模型中，对于每个代理，我们构建一个与代理无关的适配器$\mathcal{A}^{d}_{k}$单元，其中$k\in[0,...,4]$。此外，还构建了一个代理共享的适配器单元$\mathcal{A}^{s}$，用于捕获不同查询之间共享的信息。从数学上讲，我们可以将其表示如下：
+- en: '|  | $\displaystyle\boldsymbol{v}^{k}_{i}$ | $\displaystyle=\mathcal{A}^{d}_{k}(\boldsymbol{e}^{k}_{i})$
+    |  | (4) |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\boldsymbol{v}^{k}_{i}$ | $\displaystyle=\mathcal{A}^{d}_{k}(\boldsymbol{e}^{k}_{i})$
+    |  | (4) |'
+- en: '|  | $\displaystyle\boldsymbol{w}^{k}_{i}$ | $\displaystyle=\mathcal{A}^{s}(\boldsymbol{e}^{k}_{i})$
+    |  |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\displaystyle\boldsymbol{w}^{k}_{i}$ | $\displaystyle=\mathcal{A}^{s}(\boldsymbol{e}^{k}_{i})$
+    |  |'
+- en: where $\boldsymbol{v}^{k}_{i}$ represents the agent-independent representation
+    for the $k$-th adapter and $i$-th query, and $\boldsymbol{w}^{k}_{i}$ represents
+    the agent-shared representation, with all different agents share the same adapter
+    cell $\mathcal{A}^{s}$. When $k$ is set 0, t specifically refers to the processing
+    of the original query. The integration of these representations is efficiently
+    executed through a gate network.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$\boldsymbol{v}^{k}_{i}$表示第$k$个适配器和第$i$个查询的代理无关表示，$\boldsymbol{w}^{k}_{i}$表示代理共享表示，所有不同的代理共享相同的适配器单元$\mathcal{A}^{s}$。当$k$设置为0时，特别指代原始查询的处理。这些表示的集成通过门控网络高效执行。
+- en: The gate network is designed to balance the proportion of individual and shared
+    components in the model. The aforementioned operations decompose the representation
+    $\boldsymbol{e}_{i}$ into independent embeddings $\boldsymbol{v}_{i}$ and shared
+    embeddings $\boldsymbol{w}_{i}$, with the shared embedding capturing common semantic
+    information. Reintegrating these components via the gating network effectively
+    enhances the model’s overall robustness. The gating network is designed as an
+    MLP module. The fusion process is specified as follows
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 门控网络的设计目的是平衡模型中个体组件和共享组件的比例。上述操作将表示$\boldsymbol{e}_{i}$分解为独立的嵌入$\boldsymbol{v}_{i}$和共享嵌入$\boldsymbol{w}_{i}$，其中共享嵌入捕获了共同的语义信息。通过门控网络重新整合这些组件，从而有效增强模型的整体鲁棒性。门控网络被设计为一个多层感知器（MLP）模块。融合过程的具体步骤如下所示：
+- en: '|  | $\boldsymbol{g}^{k}_{i}=\text{softmax}(W^{k}\boldsymbol{e}^{k}_{i})$ |  |
+    (5) |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\boldsymbol{g}^{k}_{i}=\text{softmax}(W^{k}\boldsymbol{e}^{k}_{i})$ |  |
+    (5) |'
+- en: where $\boldsymbol{W}^{k}\in\mathbb{R}^{2\times d}$ is a trainable matrix of
+    gating network, $d$ denotes the feature dimension, then we fuse the $v^{k}_{i}$
+    and $w^{k}_{i}$ through gate net, expressed as
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$\boldsymbol{W}^{k}\in\mathbb{R}^{2\times d}$是门控网络的可训练矩阵，$d$表示特征维度，接着我们通过门控网络将$v^{k}_{i}$和$w^{k}_{i}$进行融合，表示为
+- en: '|  | $\boldsymbol{h}^{k}_{i}=\boldsymbol{g}^{k}_{i}[\boldsymbol{v}^{k}_{i},%
+    \boldsymbol{w}^{k}_{i}]$ |  | (6) |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\boldsymbol{h}^{k}_{i}=\boldsymbol{g}^{k}_{i}[\boldsymbol{v}^{k}_{i},%
+    \boldsymbol{w}^{k}_{i}]$ |  | (6) |'
+- en: where $[\cdot]$ denotes the concat operation, $h^{k}_{i}$ is the aggregation
+    result. Then, we will map the fusing results $h^{k}_{i}$ through a classier, denoted
+    as
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$[\cdot]$表示连接操作，$h^{k}_{i}$是聚合结果。然后，我们将融合结果$h^{k}_{i}$通过分类器映射，表示为
+- en: '|  | $\boldsymbol{\hat{y}}^{k}_{i}=\mathcal{C}(\boldsymbol{h}^{k}_{i})$ |  |
+    (7) |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\boldsymbol{\hat{y}}^{k}_{i}=\mathcal{C}(\boldsymbol{h}^{k}_{i})$ |  |
+    (7) |'
+- en: where $\mathcal{C}$ is a classifier, as we will normalize and classify the result
+    into different classification levels。
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$\mathcal{C}$是一个分类器，我们将对结果进行归一化并分类到不同的分类等级中。
+- en: III-C3 Loss Design
+  id: totrans-99
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-C3 损失设计
+- en: 'In this part, we propose a novel loss function that concurrently optimizes
+    accuracy and enhances model robustness by incorporating specific constraints into
+    the loss function itself. Our design comprises two integral components: the accuracy
+    loss and the robustness loss.'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一部分，我们提出了一种新型的损失函数，通过在损失函数中加入特定的约束，既优化了准确性，又增强了模型的鲁棒性。我们的设计包括两个核心组成部分：准确性损失和鲁棒性损失。
+- en: To address the challenge of accuracy loss, we employ the pointwise cross-entropy
+    loss function, calculated on an individual query-document pair basis, with each
+    pair treated independently. Within our experimental setup, the industrial dataset
+    comprises labels classified into five relevance levels, contrasting with the three-level
+    relevance classification of the public dataset we utilize. To harmonize these
+    differing label structures, we initially transform the original value labels into
+    a format compatible with a one-hot encoding scheme, denoted as $\hat{y}$. This
+    step is followed by the application of cross-entropy calculations to juxtapose
+    the predicted labels against the ground truth labels. The detailed procedure for
+    this calculation is outlined below.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了应对准确性损失的问题，我们采用了逐点交叉熵损失函数，该函数是基于每对查询-文档对计算的，每一对都被独立处理。在我们的实验设置中，工业数据集包含五个相关性等级的标签，而我们使用的公共数据集则是三等级相关性分类。为了协调这两种不同的标签结构，我们首先将原始值标签转换为与独热编码方案兼容的格式，表示为$\hat{y}$。接下来，我们应用交叉熵计算，将预测标签与真实标签进行对比。该计算的详细步骤如下所示。
+- en: In addressing the issue of accuracy loss, we opt for the pointwise cross-entropy
+    loss. This particular loss function is computed on a query-document pair basis,
+    treating each pair independently. In our experimental framework, our industrial
+    dataset contains labels originally categorized into five levels of relevance,
+    whereas the public dataset we employ utilizes a three-level relevance classification.
+    Mathematically, the calculation process is depicted as follows
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在处理准确度损失时，我们选择了点对点交叉熵损失。这种损失函数是在查询-文档对的基础上计算的，每一对独立计算。在我们的实验框架中，工业数据集包含的标签最初分为五个相关性等级，而我们使用的公共数据集则采用三层相关性分类。从数学角度来看，计算过程如下所示：
+- en: Consequently, in the initial phase, we encode the original value labels to correspond
+    to a one-hot encoding scheme, denoted as $\boldsymbol{y}^{k}_{i}$. Subsequently,
+    we employ the cross-entropy calculation to compare the predicted labels with the
+    ground truth labels. The calculation process can be elaborated as follows
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，在初始阶段，我们将原始值标签编码为对应于独热编码方案的形式，记作$\boldsymbol{y}^{k}_{i}$。随后，我们使用交叉熵计算来比较预测标签与真实标签。计算过程可以详细描述如下：
+- en: '|  | $\mathcal{L}_{\text{acc}}=-\frac{1}{N}\frac{1}{K}\sum_{i}^{N}\sum_{k}^{K}(%
+    \boldsymbol{y}^{k}_{i}\cdot\log\boldsymbol{\hat{y}}^{k}_{i}+(1-\boldsymbol{y}^%
+    {k}_{i})\cdot\log(1-\boldsymbol{\hat{y}}^{k}_{i}))$ |  | (8) |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathcal{L}_{\text{acc}}=-\frac{1}{N}\frac{1}{K}\sum_{i}^{N}\sum_{k}^{K}(%
+    \boldsymbol{y}^{k}_{i}\cdot\log\boldsymbol{\hat{y}}^{k}_{i}+(1-\boldsymbol{y}^%
+    {k}_{i})\cdot\log(1-\boldsymbol{\hat{y}}^{k}_{i}))$ |  | (8) |'
+- en: here, $\boldsymbol{y}^{k}_{i}$ signifies the golden label of datasets, while
+    $\hat{y}^{k}_{i}$ denotes the predicted label for the $i$-th query and the $k$-th
+    agent. Here, $N$ and $K$ represent the total number of training samples and the
+    aggregate number of agents, respectively. The loss function is specifically designed
+    to calculate the logarithmic discrepancies between the predicted labels and actual
+    relevance labels. This metric acts as a gauge for the model’s accuracy within
+    the scope of point-wise ranking.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$\boldsymbol{y}^{k}_{i}$表示数据集的黄金标签，而$\hat{y}^{k}_{i}$表示第$i$个查询和第$k$个代理的预测标签。这里，$N$和$K$分别代表训练样本的总数和代理的总数。损失函数专门设计用来计算预测标签与实际相关性标签之间的对数差异。这个度量作为模型在点对点排名范围内准确度的衡量标准。
+- en: In addition to addressing accuracy loss, it is imperative to consider the robustness
+    of ranking performance, which constitutes a primary focus of this paper. To enhance
+    robustness, our design strategy involves minimizing the divergence among different
+    agents. While previous research like [[12](#bib.bib12), [33](#bib.bib33)] have
+    incorporated KL divergence in the loss function to reduce the distribution disparity
+    between two predictions, this approach is not without limitations. Specifically,
+    KL divergence is an asymmetric metric, potentially leading to an unbalanced problem.
+    Given that our scenario involves multiple agent groups, where each agent is expected
+    to maintain an equal status, we have selected the Jensen-Shannon (JS) divergence
+    as a more equitable metric, denoted as
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了处理准确度损失外，考虑排名性能的鲁棒性也是至关重要的，这是本文的主要关注点之一。为了增强鲁棒性，我们的设计策略涉及最小化不同代理之间的散度。尽管像[[12](#bib.bib12)，[33](#bib.bib33)]这样的先前研究已经将KL散度纳入损失函数中，以减少两者预测之间的分布差异，但这种方法并非没有局限性。具体来说，KL散度是一个不对称的度量，可能导致不平衡的问题。鉴于我们的场景涉及多个代理组，每个代理都应保持平等的地位，因此我们选择了Jensen-Shannon（JS）散度作为一种更为公平的度量，记作
+- en: '|  | $\mathcal{L}_{JS}(\boldsymbol{y}^{a},\boldsymbol{y}^{b})=\frac{1}{2}\mathcal{L}%
+    _{KL}(\boldsymbol{y}^{a},\boldsymbol{y}^{b})+\frac{1}{2}\mathcal{L}_{KL}(% \boldsymbol{y}^{b},\boldsymbol{y}^{a})$
+    |  | (9) |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathcal{L}_{JS}(\boldsymbol{y}^{a},\boldsymbol{y}^{b})=\frac{1}{2}\mathcal{L}%
+    _{KL}(\boldsymbol{y}^{a},\boldsymbol{y}^{b})+\frac{1}{2}\mathcal{L}_{KL}(% \boldsymbol{y}^{b},\boldsymbol{y}^{a})$
+    |  | (9) |'
+- en: then we use JS divergence to minimize the distribution gap among all the agent
+    pair distributions, formulated as follows
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们使用JS散度来最小化所有代理对分布之间的差距，公式如下：
+- en: '|  | $\mathcal{L}_{\text{rbt}}=-\frac{1}{N}\sum_{m}^{K}\sum_{n}^{K}\mathcal{L}_{JS}(%
+    \boldsymbol{\hat{y}}^{m}_{i},\boldsymbol{\hat{y}}^{n}_{i}),m<n$ |  | (10) |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathcal{L}_{\text{rbt}}=-\frac{1}{N}\sum_{m}^{K}\sum_{n}^{K}\mathcal{L}_{JS}(%
+    \boldsymbol{\hat{y}}^{m}_{i},\boldsymbol{\hat{y}}^{n}_{i}),m<n$ |  | (10) |'
+- en: minimizing $\mathcal{L}_{\text{rbt}}$ will reduce the discrepancy between each
+    agent pair distribution. This way, we implicitly align representations of each
+    agent and satisfy the robustness property.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最小化 $\mathcal{L}_{\text{rbt}}$ 将减少每对代理分布之间的差异。通过这种方式，我们隐式地对齐了每个代理的表示，并满足了鲁棒性属性。
+- en: Then we combine $\mathcal{L}_{\text{rbt}}$ and $\mathcal{L}_{\text{acc}}$ to
+    get the total loss
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将 $\mathcal{L}_{\text{rbt}}$ 和 $\mathcal{L}_{\text{acc}}$ 结合，得到总损失
+- en: '|  | $\mathcal{L}_{\text{total}}=\mathcal{L}_{\text{acc}}+\alpha\mathcal{L}_{\text{%
+    rbt}}$ |  | (11) |'
+  id: totrans-112
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathcal{L}_{\text{total}}=\mathcal{L}_{\text{acc}}+\alpha\mathcal{L}_{\text{%
+    rbt}}$ |  | (11) |'
+- en: The parameter $\alpha$ represents a tunable hyperparameter, instrumental in
+    balancing between accuracy and robustness loss. Through this synergistic combination
+    of losses, we successfully attain all the targeted properties of our model.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参数 $\alpha$ 代表一个可调的超参数，用于平衡准确性和鲁棒性损失。通过这种损失的协同组合，我们成功实现了模型的所有目标属性。
+- en: IV Experiment
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: IV 实验
+- en: We conduct thorough experiments to assess our proposed framework. The section
+    will begin by describing the dataset, outlining the baseline models, and specifying
+    the metrics employed for evaluation. Following this, we will delve into the evaluation
+    of queries and the examination of model performance. Additionally, we will present
+    results for ablation experiments and the impact of hyperparameters.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们进行了详细的实验来评估我们提出的框架。本节将首先描述数据集，概述基准模型，并明确用于评估的指标。接下来，我们将深入评估查询和检查模型性能。此外，我们还将呈现消融实验的结果及超参数的影响。
+- en: IV-A Datasets Description
+  id: totrans-116
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-A 数据集描述
+- en: 'We conduct experiments on two datasets: one public dataset Robust04 and one
+    industrial dataset from Baidu.'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在两个数据集上进行了实验：一个是公开数据集 Robust04，另一个是来自百度的工业数据集。
+- en: •
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Robust04¹¹1https://trec.nist.gov/data/robust/04.guidelines.html: The Robust04
+    dataset was specifically developed for the TREC 2004 Robust Track, a component
+    of the Text Retrieval Conference (TREC) series. This dataset comprises 249 queries,
+    each associated with relevance judgments on a collection of 528K documents.'
+  id: totrans-119
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Robust04¹¹1https://trec.nist.gov/data/robust/04.guidelines.html：Robust04 数据集是专为
+    TREC 2004 Robust Track 开发的，这是文本检索会议（TREC）系列中的一个组成部分。该数据集包含 249 个查询，每个查询与 528K
+    文档集合上的相关性判断相关联。
+- en: •
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Industrial Dataset: The industrial dataset we employed is a Chinese language
+    dataset, which was sourced from user video search data collected from Baidu, the
+    largest search engine platform in China. In this dataset, the queries and documents
+    were extracted from real-world search logs, and the corpus corresponds to the
+    documents generated through OCR recognition of the associated video URLs. The
+    dataset comprises 16K queries and 430K documents.'
+  id: totrans-121
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 工业数据集：我们使用的工业数据集是中文数据集，来源于百度收集的用户视频搜索数据，百度是中国最大的搜索引擎平台。在该数据集中，查询和文档是从真实的搜索日志中提取的，语料库对应于通过
+    OCR 识别相关视频 URL 生成的文档。该数据集包含 16K 查询和 430K 文档。
+- en: IV-B Baseline
+  id: totrans-122
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-B 基准
+- en: 'During our experiment, we use the following baselines:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们使用以下基准：
+- en: •
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'BM25 [[34](#bib.bib34)]: BM25 is a straightforward yet powerful bag-of-words
+    retrieval model that calculates relevance scores based on query term frequency,
+    inverse document frequency, and document length.'
+  id: totrans-125
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: BM25 [[34](#bib.bib34)]：BM25 是一个简单而强大的词袋检索模型，通过查询词频、逆文档频率和文档长度来计算相关性得分。
+- en: •
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'ANCE [[35](#bib.bib35)]: ANCE uses an approximate nearest neighbor index for
+    hard negative sample selection, integrated with model fine-tuning for dynamic
+    training updates, leading to faster convergence, improved retrieval performance,
+    and efficient utilization of computational resources.'
+  id: totrans-127
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: ANCE [[35](#bib.bib35)]：ANCE 使用近似最近邻索引进行困难负样本选择，并结合模型微调进行动态训练更新，从而加速收敛、提高检索性能并有效利用计算资源。
+- en: IV-C Evaluation Metric
+  id: totrans-128
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-C 评估指标
+- en: To comprehensively assess our results, we employed both effectiveness and robustness
+    evaluation metrics.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了全面评估我们的结果，我们使用了有效性和鲁棒性评估指标。
+- en: IV-C1 Effectiveness Metric
+  id: totrans-130
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-C1 有效性指标
+- en: For effectiveness, we select the NDCG@N and MAP to evaluate effectiveness.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估有效性，我们选择了 NDCG@N 和 MAP 来进行评估。
+- en: IV-C2 Robustness Metric
+  id: totrans-132
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-C2 鲁棒性指标
+- en: Following the previous work [[36](#bib.bib36)], we select the Variance of Normalized
+    Average Precision (VNAP) as a robustness evaluation metric. Furthermore, we introduce
+    the Variance of Normalized Discounted Cumulative Gain (VNDCG) for a comprehensive
+    joint assessment. We use these two metrics to evaluate robustness performance
+    across different agents. Mathematically, these metrics can be elaborated as follows
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 继承先前的工作[[36](#bib.bib36)]，我们选择归一化平均精度方差（VNAP）作为稳健性评估指标。此外，我们引入了归一化折扣累计增益方差（VNDCG）进行综合联合评估。我们使用这两个指标来评估不同代理之间的稳健性表现。从数学角度来看，这些指标可以阐明如下：
+- en: '|  | $NAP(q)=\frac{AP(q)}{E(AP(q))}$ |  |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $NAP(q)=\frac{AP(q)}{E(AP(q))}$ |  |'
+- en: '|  | $VNAP=\mathbb{V}(NAP_{1}(q),...,NAP_{K}(q))$ |  | (12) |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $VNAP=\mathbb{V}(NAP_{1}(q),...,NAP_{K}(q))$ |  | (12) |'
+- en: where AP denotes the average precision with respect to the query $q$, NAP denotes
+    the normalized average precision, and VNAP denotes the variance of a list NAP
+    across different $K$ agents, and for VNDCG, it is defined as follows
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，AP表示与查询$q$相关的平均精度，NAP表示归一化平均精度，VNAP表示不同$K$代理之间的NAP列表的方差，而对于VNDCG，它的定义如下：
+- en: '|  | $VNDCG@N=\mathbb{V}(NDCG_{1}@N,...,NDCG_{K}@N)$ |  | (13) |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $VNDCG@N=\mathbb{V}(NDCG_{1}@N,...,NDCG_{K}@N)$ |  | (13) |'
+- en: where NDCG@N represents the normalized discounted cumulative gain at $N$, while
+    VNDCG@N denotes the variance observed across a series of NDCG@N values from different
+    $K$ agents.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，NDCG@N表示在$N$处的归一化折扣累计增益，而VNDCG@N表示从不同$K$代理获得的NDCG@N值序列的方差。
+- en: IV-D Implementation Details
+  id: totrans-139
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-D 实现细节
+- en: 'In our experiment, we utilized various pre-trained models to executive ([3](#S3.E3
+    "3 ‣ III-C1 Data Input ‣ III-C Robust Ranking ‣ III Methodology ‣ Agent4Ranking:
+    Semantic Robust Ranking via Personalized Query Rewriting Using Multi-agent LLM")),
+    including BERT, ERNIE, and RoBERTa, which serve as our base models. Specifically,
+    for BERT-CE²²2https://huggingface.co/bert-base-chinese³³3https://huggingface.co/bert-base-uncased,
+    ERNIE-CE⁴⁴4https://huggingface.co/nghuyong/ernie-3.0-base-zh⁵⁵5https://huggingface.co/nghuyong/ernie-2.0-base-en,
+    and RoBERTa-CE⁶⁶6https://huggingface.co/hfl/chinese-roberta-wwm-ext⁷⁷7https://huggingface.co/deepset/roberta-base-squad2,
+    we used different checkpoints from Hugging Face for the two datasets according
+    to their language types, then finetuned them as cross-encoders on training datasets.
+    Our experimental approach, such as in BERT+ours, adheres to a two-stage paradigm.
+    In the first stage, we load the BERT-CE PLM checkpoint, followed by freezing the
+    pre-trained model in the second stage. we integrate the insert PLM into the robust
+    ranking structure and execute fine-tuning tasks on the training dataset. All experiments
+    were conducted on a single Tesla V100 32G GPU using the AdamW optimizer. For baseline
+    comparisons, we employed the open-sourced BM25 implementation from BEIR [[37](#bib.bib37)].
+    Our implementation of ANCE utilizes RoBERTa as the base pre-trained language model.
+    Regarding CharacterBert, we follow the configuration in [[12](#bib.bib12)], with
+    a modification with a point-wise loss function with align to our setting for a
+    fair comparison.'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的实验中，我们利用了多种预训练模型进行实验执行（[3](#S3.E3 "3 ‣ III-C1 数据输入 ‣ III-C 稳健排名 ‣ III 方法论
+    ‣ Agent4Ranking：通过多代理LLM的个性化查询重写实现语义稳健排名")），包括BERT、ERNIE和RoBERTa，它们作为我们的基础模型。具体来说，对于BERT-CE²²2https://huggingface.co/bert-base-chinese³³3https://huggingface.co/bert-base-uncased，ERNIE-CE⁴⁴4https://huggingface.co/nghuyong/ernie-3.0-base-zh⁵⁵5https://huggingface.co/nghuyong/ernie-2.0-base-en，以及RoBERTa-CE⁶⁶6https://huggingface.co/hfl/chinese-roberta-wwm-ext⁷⁷7https://huggingface.co/deepset/roberta-base-squad2，我们根据语言类型使用了来自Hugging
+    Face的不同检查点，并在训练数据集上将它们微调为跨编码器。我们的实验方法，例如在BERT+ours中，遵循了两阶段范式。在第一阶段，我们加载BERT-CE
+    PLM检查点，然后在第二阶段冻结预训练模型。我们将插入的PLM集成到稳健排名结构中，并在训练数据集上执行微调任务。所有实验都在单个Tesla V100 32G
+    GPU上使用AdamW优化器进行。为了进行基准比较，我们采用了BEIR提供的开源BM25实现[[37](#bib.bib37)]。我们实现的ANCE利用RoBERTa作为基础预训练语言模型。关于CharacterBert，我们遵循了[[12](#bib.bib12)]中的配置，并针对公平比较对损失函数进行了点对点修改，以适应我们的设置。
+- en: IV-E Query Quality Experiment
+  id: totrans-141
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-E 查询质量实验
+- en: 'Evaluating rewritten query results is crucial, as they significantly impact
+    overall performance. Current assessment challenges arise from the alteration of
+    semantic information and the need to evaluate character traits, areas lacking
+    robust evaluation methods. To address this, we employ large language models to
+    assess the rewritten queries. Our evaluation focuses on two key metrics: the semantic
+    fidelity of the rewritten queries and their alignment with the defined agent’s
+    roles. We use diverse, publicly LLMS for both Chinese and English query assessments.
+    We design specific prompts for the evaluation, enabling them to rate each metric
+    on a 0 to 5 scale, with 0 being the poorest and 5 being the optimal performance.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重写查询结果的评估至关重要，因为它们对整体表现有显著影响。目前的评估挑战主要来自于语义信息的变化以及对性格特征的评估，这些领域缺乏可靠的评估方法。为了解决这一问题，我们采用大型语言模型来评估重写后的查询。我们的评估重点关注两个关键指标：重写查询的语义保真度和与定义角色的契合度。我们使用多种公开的中文和英文LLM进行查询评估。我们为评估设计了特定的提示，允许模型在0到5的范围内对每个指标进行评分，其中0表示最差，5表示最佳表现。
+- en: '![Refer to caption](img/adec40b154d82eaab23de7713712cee5.png)![Refer to caption](img/de87f69cd8196aa8d4164df51db77b92.png)![Refer
+    to caption](img/c277528cfdaf5ad68b423bc96e54593a.png)![Refer to caption](img/c3e0b9a2815a2162ba910b0184b54080.png)'
+  id: totrans-143
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/adec40b154d82eaab23de7713712cee5.png)![参考说明](img/de87f69cd8196aa8d4164df51db77b92.png)![参考说明](img/c277528cfdaf5ad68b423bc96e54593a.png)![参考说明](img/c3e0b9a2815a2162ba910b0184b54080.png)'
+- en: 'Figure 5: The Evaluation of Queries'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：查询评估
+- en: 'As LLMs for Chinese, we select:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为中文的LLM（大语言模型），我们选择：
+- en: •
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'ChatGLM2-6B⁸⁸8https://huggingface.co/THUDM/chatglm2-6b: Tsinghua University’s
+    second-generation bilingual chat model in the ChatGLM series.'
+  id: totrans-147
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: ChatGLM2-6B⁸⁸8https://huggingface.co/THUDM/chatglm2-6b：清华大学的第二代双语聊天模型，属于ChatGLM系列。
+- en: •
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Atom-7B⁹⁹9https://huggingface.co/FlagAlpha/Atom-7B: A joint development by
+    Llama Chinese community, Atom-7B is based on Llama2-7B and further pre-trained
+    with extensive Chinese data.'
+  id: totrans-149
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Atom-7B⁹⁹9https://huggingface.co/FlagAlpha/Atom-7B：由Llama中文社区共同开发，Atom-7B基于Llama2-7B，并且进一步使用大量中文数据进行预训练。
+- en: •
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'ERNIE-Bot^(10)^(10)10https://yiyan.baidu.com/: Baidu’s ERNIE Bot, a 2023 knowledge-enhanced
+    generative AI, aims for accurate and fluent human-like responses, understanding
+    human intentions effectively.'
+  id: totrans-151
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: ERNIE-Bot^(10)^(10)10https://yiyan.baidu.com/：百度的ERNIE Bot，2023年发布的知识增强生成式人工智能，旨在提供准确流畅的类人回应，能够有效理解人类意图。
+- en: 'As LLMs for English, we select:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为英文的LLM（大语言模型），我们选择：
+- en: •
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'vicuna-13B^(11)^(11)11https://https//huggingface.co/lmsys/vicuna-13b-v1.3:
+    An open-source conversational model built by fine-tuning the Llama 13B model with
+    user-shared conversations from ShareGPT.'
+  id: totrans-154
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: vicuna-13B^(11)^(11)11https://https//huggingface.co/lmsys/vicuna-13b-v1.3：一个开源对话模型，通过在ShareGPT平台上共享的用户对话数据微调Llama
+    13B模型而构建。
+- en: •
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Claude^(12)^(12)12www.anthropic.com: A large, conversationally-focused language
+    model developed by Anthropic.'
+  id: totrans-156
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Claude^(12)^(12)12www.anthropic.com：由Anthropic开发的大型对话型语言模型。
+- en: •
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Llama-2-13b^(13)^(13)13https://huggingface.co/meta-llama/Llama-2-13b-chat-hf:
+    Meta and Microsoft’s open-source Llama 2, for research and commercial use, features
+    an optimized transformer architecture.'
+  id: totrans-158
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Llama-2-13b^(13)^(13)13https://huggingface.co/meta-llama/Llama-2-13b-chat-hf：Meta和微软共同发布的开源Llama
+    2，适用于研究和商业用途，具有优化的变换器架构。
+- en: 'TABLE II: Performance Comparison Results.'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表II：性能对比结果。
+- en: '| Models / NDCG@10 | Robust04 | Industrial Dataset |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| Models / NDCG@10 | Robust04 | Industrial Dataset |'
+- en: '| original | woman | man | student | old | original | woman | man | student
+    | old |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| original | woman | man | student | old | original | woman | man | student
+    | old |'
+- en: '| BM25 | 0.4262 | 0.4062 | 0.3798 | 0.4259 | 0.3792 | 0.5380 | 0.5259 | 0.5264
+    | 0.5392 | 0.5183 |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| BM25 | 0.4262 | 0.4062 | 0.3798 | 0.4259 | 0.3792 | 0.5380 | 0.5259 | 0.5264
+    | 0.5392 | 0.5183 |'
+- en: '| ANCE | 0.4037 | 0.3905 | 0.3774 | 0.3802 | 0.3723 | 0.5640 | 0.5595 | 0.5588
+    | 0.5492 | 0.5587 |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| ANCE | 0.4037 | 0.3905 | 0.3774 | 0.3802 | 0.3723 | 0.5640 | 0.5595 | 0.5588
+    | 0.5492 | 0.5587 |'
+- en: '| CharacterBert | 0.4489 | 0.4192 | 0.4332 | 0.4274 | 0.4195 | 0.5860 | 0.5799
+    | 0.5859 | 0.5802 | 0.5733 |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| CharacterBert | 0.4489 | 0.4192 | 0.4332 | 0.4274 | 0.4195 | 0.5860 | 0.5799
+    | 0.5859 | 0.5802 | 0.5733 |'
+- en: '| BERT-CE | 0.4423 | 0.4129 | 0.4084 | 0.4082 | 0.4010 | 0.5821 | 0.5602 |
+    0.5637 | 0.5656 | 0.5679 |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| BERT-CE | 0.4423 | 0.4129 | 0.4084 | 0.4082 | 0.4010 | 0.5821 | 0.5602 |
+    0.5637 | 0.5656 | 0.5679 |'
+- en: '| ERNIE-CE | 0.4362 | 0.4021 | 0.3923 | 0.3993 | 0.4283 | 0.5888 | 0.5664 |
+    0.5687 | 0.5663 | 0.5699 |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| ERNIE-CE | 0.4362 | 0.4021 | 0.3923 | 0.3993 | 0.4283 | 0.5888 | 0.5664 |
+    0.5687 | 0.5663 | 0.5699 |'
+- en: '| RoBERTa-CE | 0.4562 | 0.4272 | 0.3997 | 0.4098 | 0.4194 | 0.5987 | 0.5740
+    | 0.5758 | 0.5809 | 0.5828 |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| RoBERTa-CE | 0.4562 | 0.4272 | 0.3997 | 0.4098 | 0.4194 | 0.5987 | 0.5740
+    | 0.5758 | 0.5809 | 0.5828 |'
+- en: '| BERT+ours | 0.4353 | 0.4102 | 0.4207 | 0.4178 | 0.4265 | 0.5924 | 0.5911*
+    | 0.5854 | 0.5821 | 0.5837 |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| BERT+ours | 0.4353 | 0.4102 | 0.4207 | 0.4178 | 0.4265 | 0.5924 | 0.5911*
+    | 0.5854 | 0.5821 | 0.5837 |'
+- en: '| ERNIE+ours | 0.4408 | 0.4305 | 0.4252 | 0.4365 | 0.4124 | 0.5896 | 0.5805
+    | 0.5829 | 0.5843 | 0.5870 |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| ERNIE+ours | 0.4408 | 0.4305 | 0.4252 | 0.4365 | 0.4124 | 0.5896 | 0.5805
+    | 0.5829 | 0.5843 | 0.5870 |'
+- en: '| RoBERTa+ours | 0.4598* | 0.4365* | 0.4423* | 0.4398* | 0.4292* | 0.5962*
+    | 0.5892 | 0.5879* | 0.5843* | 0.5877* |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| RoBERTa+ours | 0.4598* | 0.4365* | 0.4423* | 0.4398* | 0.4292* | 0.5962*
+    | 0.5892 | 0.5879* | 0.5843* | 0.5877* |'
+- en: '| Models / MAP | Robust04 | Industrial Dataset |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 / MAP | Robust04 | 工业数据集 |'
+- en: '| original | woman | man | student | old | original | woman | man | student
+    | old |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| 原始 | 女性 | 男性 | 学生 | 老年 | 原始 | 女性 | 男性 | 学生 | 老年 |'
+- en: '| BM25 | 0.2652 | 0.2528 | 0.2332 | 0.2643 | 0.2383 | 0.3584 | 0.3431 | 0.3571
+    | 0.3407 | 0.3391 |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| BM25 | 0.2652 | 0.2528 | 0.2332 | 0.2643 | 0.2383 | 0.3584 | 0.3431 | 0.3571
+    | 0.3407 | 0.3391 |'
+- en: '| ANCE | 0.2512 | 0.2453 | 0.2389 | 0.2592 | 0.2364 | 0.3753 | 0.3695 | 0.3698
+    | 0.3604 | 0.3674 |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| ANCE | 0.2512 | 0.2453 | 0.2389 | 0.2592 | 0.2364 | 0.3753 | 0.3695 | 0.3698
+    | 0.3604 | 0.3674 |'
+- en: '| CharacterBert | 0.2851 | 0.2623 | 0.2752 | 0.2589 | 0.2607 | 0.3950 | 0.3892
+    | 0.3932 | 0.3878 | 0.3821 |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| CharacterBert | 0.2851 | 0.2623 | 0.2752 | 0.2589 | 0.2607 | 0.3950 | 0.3892
+    | 0.3932 | 0.3878 | 0.3821 |'
+- en: '| BERT-CE | 0.2952 | 0.2694 | 0.2595 | 0.258 | 0.2572 | 0.3913 | 0.3797 | 0.3850
+    | 0.3874 | 0.3982 |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| BERT-CE | 0.2952 | 0.2694 | 0.2595 | 0.258 | 0.2572 | 0.3913 | 0.3797 | 0.3850
+    | 0.3874 | 0.3982 |'
+- en: '| ERNIE-CE | 0.2864 | 0.2664 | 0.2659 | 0.2495 | 0.2722 | 0.4009 | 0.3876 |
+    0.3920 | 0.3968 | 0.3995 |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| ERNIE-CE | 0.2864 | 0.2664 | 0.2659 | 0.2495 | 0.2722 | 0.4009 | 0.3876 |
+    0.3920 | 0.3968 | 0.3995 |'
+- en: '| RoBERTa-CE | 0.2892 | 0.2467 | 0.2574 | 0.2503 | 0.2490 | 0.4081 | 0.3840
+    | 0.3894 | 0.3836 | 0.3855 |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| RoBERTa-CE | 0.2892 | 0.2467 | 0.2574 | 0.2503 | 0.2490 | 0.4081 | 0.3840
+    | 0.3894 | 0.3836 | 0.3855 |'
+- en: '| BERT+ours | 0.2887 | 0.2668 | 0.2792 | 0.2684 | 0.2809* | 0.3947 | 0.3912
+    | 0.3896 | 0.3920 | 0.3974 |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| BERT+ours | 0.2887 | 0.2668 | 0.2792 | 0.2684 | 0.2809* | 0.3947 | 0.3912
+    | 0.3896 | 0.3920 | 0.3974 |'
+- en: '| ERNIE+ours | 0.2895 | 0.2858 | 0.2748 | 0.2793 | 0.2673 | 0.4072 | 0.4059*
+    | 0.4039* | 0.3952 | 0.4018 |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| ERNIE+ours | 0.2895 | 0.2858 | 0.2748 | 0.2793 | 0.2673 | 0.4072 | 0.4059*
+    | 0.4039* | 0.3952 | 0.4018 |'
+- en: '| RoBERTa+ours | 0.2961* | 0.2797 | 0.2849* | 0.2809* | 0.2704 | 0.4083* |
+    0.3921 | 0.3904 | 0.4021* | 0.4037* |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| RoBERTa+ours | 0.2961* | 0.2797 | 0.2849* | 0.2809* | 0.2704 | 0.4083* |
+    0.3921 | 0.3904 | 0.4021* | 0.4037* |'
+- en: “*” indicates significance level test $p<0.05$.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: “*”表示显著性水平测试$p<0.05$。
+- en: 'For a fair evaluation, we draw 100 queries for each role from each dataset,
+    and assessed them by using three LLMs as mentioned earlier. Figure [5](#S4.F5
+    "Figure 5 ‣ IV-E Query Quality Experiment ‣ IV Experiment ‣ Agent4Ranking: Semantic
+    Robust Ranking via Personalized Query Rewriting Using Multi-agent LLM") presents
+    the score distribution results. The results suggest high quality in both rewritten
+    and persona queries, as evidenced by scores predominantly exceeding 3 out of 5\.
+    Notably, the quality of rewritten queries in English surpassed that of Chinese.
+    We hypothesize this disparity stems from ChatGPT’s proficiency in English tasks,
+    paralleling our findings in role quality assessment. Additionally, the distribution
+    does not indicate any role preference in ChatGPT, given the relatively uniform
+    distribution across different roles. These outcomes robustly validate the effectiveness
+    of employing LLMs for query rewriting across varied roles.'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进行公平评估，我们从每个数据集中为每个角色抽取了100个查询，并通过之前提到的三种大型语言模型（LLM）对其进行评估。图[5](#S4.F5 "图
+    5 ‣ IV-E 查询质量实验 ‣ IV 实验 ‣ Agent4Ranking：通过个性化查询重写使用多智能体LLM实现语义稳健排名")展示了得分分布结果。结果表明，无论是重写查询还是个性化查询，其质量都很高，得分大部分超过了5分制的3分。特别地，英语重写查询的质量超过了中文查询。我们推测这种差异源于ChatGPT在英语任务上的较高能力，这与我们在角色质量评估中的发现一致。此外，分布没有表明ChatGPT在不同角色间有任何偏好，因为其分布在不同角色间相对均匀。这些结果强有力地验证了使用LLM进行查询重写在不同角色间的有效性。
+- en: 'TABLE III: Robustness Performance Comparison Results.'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 III: 稳健性性能对比结果。'
+- en: '| Metric | Robust04 | Industrial Dataset |'
+  id: totrans-185
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | Robust04 | 工业数据集 |'
+- en: '| VNDCG@10 (e-5)$\downarrow$ | VNAP $\downarrow$ | VNDCG@10 (e-5)$\downarrow$
+    | VNAP $\downarrow$ |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| VNDCG@10 (e-5)$\downarrow$ | VNAP $\downarrow$ | VNDCG@10 (e-5)$\downarrow$
+    | VNAP $\downarrow$ |'
+- en: '| BM25 | 43.53 | 1.1823 | 6.287 | 1.0372 |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| BM25 | 43.53 | 1.1823 | 6.287 | 1.0372 |'
+- en: '| ANCE | 12.43 | 0.9827 | 2.336 | 0.8764 |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| ANCE | 12.43 | 0.9827 | 2.336 | 0.8764 |'
+- en: '| CharacterBert | 12.01 | 0.9723 | 2.209 | 0.8394 |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| CharacterBert | 12.01 | 0.9723 | 2.209 | 0.8394 |'
+- en: '| BERT-CE | 20.69 | 1.0212 | 5.625 | 1.0360 |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| BERT-CE | 20.69 | 1.0212 | 5.625 | 1.0360 |'
+- en: '| ERNIE-CE | 29.96 | 1.0519 | 7.210 | 1.0142 |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| ERNIE-CE | 29.96 | 1.0519 | 7.210 | 1.0142 |'
+- en: '| RoBERTa-CE | 36.97 | 1.0745 | 7.635 | 1.0284 |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| RoBERTa-CE | 36.97 | 1.0745 | 7.635 | 1.0284 |'
+- en: '| BERT+ours | 8.841*(-26.3%) | 0.9082*(-6.6%) | 1.650(-25.3%) | 0.7176(-14.4%)
+    |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| BERT+ours | 8.841*(-26.3%) | 0.9082*(-6.6%) | 1.650(-25.3%) | 0.7176(-14.4%)
+    |'
+- en: '| ERNIE+ours | 9.754(-16.9%) | 0.9242(4.9%) | 1.518(-31.2%) | 0.6350(-11.5%)
+    |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| ERNIE+ours | 9.754(-16.9%) | 0.9242(4.9%) | 1.518(-31.2%) | 0.6350(-11.5%)
+    |'
+- en: '| RoBERTa+ours | 10.29(-14.3%) | 0.9473(2.6%) | 1.427*(-35.4%) | 0.6165*(-26.5%)
+    |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| RoBERTa+ours | 10.29(-14.3%) | 0.9473(2.6%) | 1.427*(-35.4%) | 0.6165*(-26.5%)
+    |'
+- en: 'The optimal results are highlighted in bold, the suboptimal results are underlined.
+    $\downarrow$: the lower the better.'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '最优结果以粗体显示，次优结果以下划线标注。$\downarrow$: 数值越低越好。'
+- en: “*” indicates significance level test $p<0.05$.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: “*”表示显著性水平测试 $p<0.05$。
+- en: IV-F Performance Experiment
+  id: totrans-198
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-F 性能实验
+- en: 'In this section, we will display the result performance, including effectiveness
+    and robustness, on two datasets. We compared our results against various baseline
+    models, and we incorporated three transformer-based cross-encoders for aomparasion:
+    BERT-CE, ERNIE-CE, and RoBERTa-CE. In our model, we adopted the same three transformer
+    backbones, integrating our robust enhancing module atop them. We documented the
+    results for all roles across both public and industrial datasets. Tables [II](#S4.T2
+    "TABLE II ‣ IV-E Query Quality Experiment ‣ IV Experiment ‣ Agent4Ranking: Semantic
+    Robust Ranking via Personalized Query Rewriting Using Multi-agent LLM") and  [III](#S4.T3
+    "TABLE III ‣ IV-E Query Quality Experiment ‣ IV Experiment ‣ Agent4Ranking: Semantic
+    Robust Ranking via Personalized Query Rewriting Using Multi-agent LLM") display
+    the effectiveness and robustness findings respectively.'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在这一部分，我们将展示在两个数据集上结果的表现，包括效能和鲁棒性。我们将我们的结果与各种基准模型进行了比较，并引入了三种基于变换器的交叉编码器进行对比：BERT-CE、ERNIE-CE
+    和 RoBERTa-CE。在我们的模型中，我们采用了相同的三种变换器骨干网，并在其上集成了我们增强鲁棒性的模块。我们记录了在公共数据集和工业数据集上所有角色的结果。表格
+    [II](#S4.T2 "TABLE II ‣ IV-E Query Quality Experiment ‣ IV Experiment ‣ Agent4Ranking:
+    Semantic Robust Ranking via Personalized Query Rewriting Using Multi-agent LLM")
+    和 [III](#S4.T3 "TABLE III ‣ IV-E Query Quality Experiment ‣ IV Experiment ‣ Agent4Ranking:
+    Semantic Robust Ranking via Personalized Query Rewriting Using Multi-agent LLM")
+    分别展示了效能和鲁棒性的结果。'
+- en: IV-F1 Effevtivess Analysis
+  id: totrans-200
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-F1 效能分析
+- en: In this part, we will first discuss the performance impact of our model for
+    the final result.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一部分，我们将首先讨论我们模型对最终结果的性能影响。
+- en: •
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: When comparing our model with BM25 and ANCE, it is evident that transformer-based
+    models, like ours, yield superior results due to their enhanced capability in
+    capturing sentence relationships. Further comparison with CharacterBert, which
+    is grounded in a self-teaching paradigm, reveals its proficient ranking ability.
+    Our model excels in performance, particularly due to the systematic effect of
+    our loss design and the MMoE-adapter network.
+  id: totrans-203
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 在将我们的模型与BM25和ANCE进行比较时，显而易见，基于变换器的模型，如我们模型，因其在捕捉句子关系上的增强能力而表现优越。与基于自我学习范式的CharacterBert进行进一步比较时，显示其优秀的排序能力。我们的模型在性能上表现出色，特别是得益于我们损失设计的系统性效果和MMoE适配网络。
+- en: •
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Comparing rewritten queries with original query results, it is observed that
+    all models, except CharacterBert, show inferior performance. This inferiority
+    stems from their lack of robustness in handling out-of-distribution datasets.
+    However, both CharacterBert and our model, designed with a robust loss function,
+    successfully impose constraints across varied agent roles, ensuring consistent
+    performance across different rewritten queries.
+  id: totrans-205
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 将重写查询与原始查询结果进行比较时，可以观察到，除了CharacterBert外，所有模型的表现都较差。这种劣势源于它们在处理分布外数据集时缺乏鲁棒性。然而，CharacterBert和我们的模型，凭借其鲁棒的损失函数设计，成功地在不同的代理角色之间施加约束，确保在不同重写查询中的一致性表现。
+- en: •
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: When comparing our model with cross-encoders using the original datasets, we
+    occasionally observe a slight decline in performance for our model. This can be
+    reasonably attributed to potential semantic differences between queries. Consequently,
+    our approach maintains a careful equilibrium between accuracy and robustness.
+    To enhance robustness, a minor compromise in efficiency is sometimes necessary.
+    However, in most cases, our model demonstrates improved accuracy. This improvement
+    is facilitated by an additional stage of fine-tuning aimed at boosting model effectiveness.
+    Furthermore, our uniquely designed loss function incorporates an accuracy component,
+    ensuring continual improvement in accuracy.
+  id: totrans-207
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 在将我们的模型与使用原始数据集的交叉编码器进行比较时，我们偶尔会观察到我们的模型性能略有下降。这可以合理归因于查询之间潜在的语义差异。因此，我们的方法在准确性和鲁棒性之间保持了小心的平衡。为了增强鲁棒性，有时在效率上做出一些小的妥协是必要的。然而，在大多数情况下，我们的模型表现出更好的准确性。这一改进得益于通过增加一个额外的微调阶段来提升模型的效果。此外，我们独特设计的损失函数包括了一个准确性组件，确保了准确性的持续改进。
+- en: IV-F2 Robustness Analysis
+  id: totrans-208
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: IV-F2 鲁棒性分析
+- en: 'Robustness is our main concern in this paper, and the results are shown in
+    Table [III](#S4.T3 "TABLE III ‣ IV-E Query Quality Experiment ‣ IV Experiment
+    ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting Using
+    Multi-agent LLM"). The analysis is listed as follows'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '鲁棒性是本文的主要关注点，结果如表[III](#S4.T3 "TABLE III ‣ IV-E Query Quality Experiment ‣
+    IV Experiment ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query
+    Rewriting Using Multi-agent LLM")所示。分析如下：'
+- en: •
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Our model achieves the highest performance, owing to its framework design that
+    effectively captures semantic similarities across different groups and employs
+    a loss function to unify these groups. BM25 exhibits lower robustness due to its
+    nature of fragile attributes for statistical models, vulnerable to varied queries.
+    BERT-CE, ERNIE-CE, and RoBERTa-CE also show poor robustness, lacking generalization
+    capabilities across various queries. In contrast, ANCE models fare better, attributed
+    to their neighborhood search process that inherently adds robustness. CharacterBert
+    models, implementing a self-teaching process and leveraging KL-divergence, significantly
+    narrow performance gaps. Our models utilize JS-divergence in loss design and employ
+    a multi-expert adapter network, dynamically addressing commonalities in agent
+    queries, thereby outperforming all other models.
+  id: totrans-211
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们的模型实现了最高的性能，这归功于其框架设计，能够有效捕捉不同组之间的语义相似性，并采用损失函数将这些组统一起来。由于统计模型属性脆弱，BM25在鲁棒性上表现较差，容易受到不同查询的影响。BERT-CE、ERNIE-CE和RoBERTa-CE的鲁棒性也较差，缺乏对不同查询的泛化能力。相比之下，ANCE模型表现更好，这归因于其邻域搜索过程，这一过程本质上增强了鲁棒性。CharacterBert模型通过实现自我教学过程并利用KL散度，显著缩小了性能差距。我们的模型在损失设计中使用了JS散度，并采用了多专家适配器网络，动态处理代理查询中的共性，从而超越了所有其他模型。
+- en: •
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: In comparisons with various cross-encoders on both datasets, our models consistently
+    indicate an enhancement in overall robustness performance. This improvement can
+    be attributed to our innovative plug-in module design, during which we employ
+    two stages of fine-tuning to more effectively improve the robustness of existing
+    models. However, due to the differing parameter scales and capabilities of various
+    backbone models, performance variations are observed. Notably, BERT-based backbone
+    models demonstrate the most substantial performance improvements in Robust04,
+    while RoBERTa-based models excel in industrial datasets. This difference could
+    be attributed to different data distribution.
+  id: totrans-213
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 在与各种跨编码器的比较中，我们的模型在两个数据集上始终表现出整体鲁棒性性能的提升。这一改善可归因于我们创新的插件模块设计，在该设计过程中，我们通过两阶段的微调，更有效地提升现有模型的鲁棒性。然而，由于不同骨干模型的参数规模和能力不同，性能上存在差异。特别地，基于BERT的骨干模型在Robust04中表现出最大的性能提升，而基于RoBERTa的模型在工业数据集上表现更佳。这一差异可能归因于数据分布的不同。
+- en: IV-G Ablation Experiment
+  id: totrans-214
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-G 消融实验
+- en: 'The ablation study results are detailed in Table [IV](#S4.T4 "TABLE IV ‣ IV-G
+    Ablation Experiment ‣ IV Experiment ‣ Agent4Ranking: Semantic Robust Ranking via
+    Personalized Query Rewriting Using Multi-agent LLM"). In this study, we evaluate
+    five metrics on the industrial dataset: two effectiveness metrics (NDCG@10 and
+    NDCG@20) and three robustness metrics (VNDCG@10, VNDCG@20, and VNAP). Our evaluation
+    considers three distinct settings: first, the removal of the robust loss component,
+    retaining only the accuracy loss (denoted as w/o-L); second, the exclusion of
+    the robust MMoE module (denoted as w/o-N); and third, the elimination of both
+    two components (denoted as w/o-N+L). Additionally, BERT is employed as the backbone
+    model for this experiment.'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '消融实验的结果详见表[IV](#S4.T4 "TABLE IV ‣ IV-G Ablation Experiment ‣ IV Experiment
+    ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting Using
+    Multi-agent LLM")。在本实验中，我们在工业数据集上评估了五个指标：两个有效性指标（NDCG@10和NDCG@20）和三个鲁棒性指标（VNDCG@10、VNDCG@20和VNAP）。我们的评估考虑了三种不同的设置：首先，去除鲁棒性损失组件，仅保留准确性损失（记作w/o-L）；其次，排除鲁棒MMoE模块（记作w/o-N）；第三，去除上述两个组件（记作w/o-N+L）。此外，BERT被用作本次实验的骨干模型。'
+- en: Our findings indicate that our model consistently outperforms across all experiments.
+    However, there are additional observations that warrant discussion. Firstly, an
+    analysis of the results reveals that the use of MMoE introduces certain interferences
+    in effectiveness, particularly when compared with the results from w/o-N+L and
+    w/o-N configurations. This suggests that relying solely on MMoE modules may be
+    counterproductive due to potential negative impacts on the final outcomes. Moreover,
+    when examining robustness metrics, both the robust loss and MMoE modules appear
+    to play a crucial role in enhancing robustness. However, the robust loss seems
+    to have a more significant impact on robustness. We hypothesize that this is due
+    to its direct influence on the model’s performance, making it a pivotal factor
+    in achieving superior results.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的研究结果表明，模型在所有实验中始终表现优于其他方法。然而，仍有一些额外的观察结果值得讨论。首先，结果分析显示，使用MMoE引入了某些有效性干扰，特别是与w/o-N+L和w/o-N配置的结果进行对比时。这表明，仅依赖MMoE模块可能会适得其反，导致最终结果的负面影响。此外，在考察鲁棒性指标时，鲁棒损失和MMoE模块似乎在提升鲁棒性方面发挥了至关重要的作用。然而，鲁棒损失对鲁棒性的影响似乎更为显著。我们推测，这与鲁棒损失对模型性能的直接影响有关，使其成为获得优异结果的关键因素。
+- en: 'TABLE IV: Ablation Experiment Results On Industrial Dataset.'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 IV：工业数据集上的消融实验结果。
+- en: '|  | Ours | w/o-L | w/o-N | w/o-N+L |'
+  id: totrans-218
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 我们的方法 | w/o-L | w/o-N | w/o-N+L |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-219
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| NDCG@10 | 0.5881* | 0.5725 | 0.5847 | 0.5739 |'
+  id: totrans-220
+  prefs: []
+  type: TYPE_TB
+  zh: '| NDCG@10 | 0.5881* | 0.5725 | 0.5847 | 0.5739 |'
+- en: '| NDCG@20 | 0.6239* | 0.6102 | 0.6130 | 0.6109 |'
+  id: totrans-221
+  prefs: []
+  type: TYPE_TB
+  zh: '| NDCG@20 | 0.6239* | 0.6102 | 0.6130 | 0.6109 |'
+- en: '| VNDCG@10(e-5) | 1.650* | 4.795 | 2.206 | 5.625 |'
+  id: totrans-222
+  prefs: []
+  type: TYPE_TB
+  zh: '| VNDCG@10(e-5) | 1.650* | 4.795 | 2.206 | 5.625 |'
+- en: '| VNDCG@20(e-5) | 1.903* | 5.143 | 2.594 | 7.372 |'
+  id: totrans-223
+  prefs: []
+  type: TYPE_TB
+  zh: '| VNDCG@20(e-5) | 1.903* | 5.143 | 2.594 | 7.372 |'
+- en: '| VNAP | 0.7176* | 0.9068 | 0.8346 | 1.0360 |'
+  id: totrans-224
+  prefs: []
+  type: TYPE_TB
+  zh: '| VNAP | 0.7176* | 0.9068 | 0.8346 | 1.0360 |'
+- en: “*” indicates significance level test $p<0.05$.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: “*” 表示显著性水平检验 $p<0.05$。
+- en: IV-H Hyper Parameter Experiment
+  id: totrans-226
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-H 超参数实验
+- en: 'In this part, we explore the impact of the hyper-parameter $\alpha$ as defined
+    in Equation ([11](#S3.E11 "11 ‣ III-C3 Loss Design ‣ III-C Robust Ranking ‣ III
+    Methodology ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting
+    Using Multi-agent LLM")). The parameter $\alpha$ is pivotal, determining the balance
+    between accuracy and robust loss within the overall loss, and consequently, it
+    has a direct influence on the model’s final performance. Extending our previous
+    discussion, we examine how changes in $\alpha$ impact the model’s accuracy and
+    robustness. An $\alpha$ range from 5 to 30 was methodically chosen to study the
+    resulting variations in accuracy and robustness metrics. These outcomes are depicted
+    in Figure [6](#S4.F6 "Figure 6 ‣ IV-H Hyper Parameter Experiment ‣ IV Experiment
+    ‣ Agent4Ranking: Semantic Robust Ranking via Personalized Query Rewriting Using
+    Multi-agent LLM"). As $\alpha$ is scaled up, the proportion of robust loss increases,
+    leading to a decrease in the proportion of accuracy loss. Consequently, we observe
+    a general uptrend in robustness while accuracy exhibits a downtrend. However,
+    as $\alpha$ becomes larger, we notice a downtrend in both accuracy and robustness.
+    Thus, the reasonable selection of $\alpha$ is crucial for the model’s optimal
+    performance, which should consider both robustness and accuracy.'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一部分，我们探讨了方程 ([11](#S3.E11 "11 ‣ III-C3 损失设计 ‣ III-C 鲁棒排名 ‣ III 方法论 ‣ Agent4Ranking：通过个性化查询重写和多代理LLM的语义鲁棒排名"))
+    中定义的超参数 $\alpha$ 的影响。参数 $\alpha$ 起着关键作用，决定了在整体损失中准确性和鲁棒损失的平衡，因此直接影响模型的最终表现。延续我们之前的讨论，我们检查了$\alpha$变化如何影响模型的准确性和鲁棒性。我们有意识地选择了$\alpha$从5到30的范围，以研究准确性和鲁棒性指标随之变化的结果。这些结果在图 [6](#S4.F6
+    "图 6 ‣ IV-H 超参数实验 ‣ IV 实验 ‣ Agent4Ranking：通过个性化查询重写和多代理LLM的语义鲁棒排名") 中进行了展示。随着$\alpha$的增大，鲁棒损失的比例增加，导致准确性损失的比例减少。因此，我们观察到鲁棒性整体上呈上升趋势，而准确性呈下降趋势。然而，当$\alpha$值变得更大时，我们发现准确性和鲁棒性都出现了下降趋势。因此，合理选择$\alpha$对于模型的最佳表现至关重要，必须同时考虑鲁棒性和准确性。
+- en: '![Refer to caption](img/ede5372ab5c30a6757b9e39455ee063b.png)![Refer to caption](img/aa6e668ee4ae549362fffbaadd7a3e77.png)'
+  id: totrans-228
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/ede5372ab5c30a6757b9e39455ee063b.png)![参见标题](img/aa6e668ee4ae549362fffbaadd7a3e77.png)'
+- en: 'Figure 6: Hyper-parameters experiment'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：超参数实验
+- en: V Related Work
+  id: totrans-230
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: V 相关工作
+- en: During this section, an introduction related to our topic will be elaborated.
+    We will first introduce the recent research on query rewriting for large language
+    models. Then, we will present recent studies on robust ranking.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们将详细介绍与我们主题相关的内容。我们将首先介绍有关大型语言模型（LLMs）查询重写的最新研究。然后，我们将呈现有关稳健排序的最新研究。
+- en: V-A LLMs for Query Rewriting
+  id: totrans-232
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: V-A LLMs 在查询重写中的应用
+- en: 'Traditional search engine systems encounter difficulties with ambiguous user
+    queries, resulting in a vocabulary mismatch. The emergence of Large Language Models
+    (LLMs) offers a substantial opportunity to revolutionize query rewriting capabilities.
+    We categorized current LLMs-based query rewriting methods into four types: The
+    first type is the prompting strategy, which deging prompt to instruct LLMs to
+    rewrite queries. The approach like zero-shot prompting [[38](#bib.bib38), [39](#bib.bib39),
+    [18](#bib.bib18), [19](#bib.bib19)], few-shot learning [[20](#bib.bib20), [17](#bib.bib17)],
+    and CoT prompting, like [[20](#bib.bib20)]. The second type is the fine-tuning
+    strategy, which fine-tune LLMs on on specific datasets. in the paper [[23](#bib.bib23)],
+    fine-tuned LLMs are employed to modify queries, and then read the associated documents,
+    contributing to the refinement of query quality. The third category is retrieval-augmented
+    methods, involving rewriting queries using retrieval strategies. In [[23](#bib.bib23)],
+    an external search engine supplements query information. Similarly, [[17](#bib.bib17)]
+    describes creating fake documents and employing a web search engine to obtain
+    external documents as ground-truth data for query rewriting. Another type is the
+    knowledge distillation method, addressing the deployment limitations of LLMs due
+    to reference speed constraints. In [[40](#bib.bib40)], the author first fine-tuned
+    an LLM on the query-rewriting dataset, followed by two steps of distillation.
+    Firstly, a professor model is distilled into a teacher model, and then, the teacher
+    model is distilled into a lightweight BERT student model for query rewriting.
+    Our method falls into prompting strategies. However, it distinctively utilizes
+    LLMs as varied role agents, diverging from traditional prompting approaches.'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统搜索引擎系统在处理模糊的用户查询时遇到困难，导致词汇不匹配。大型语言模型（LLMs）的出现为革命性地改善查询重写能力提供了巨大机遇。我们将当前基于LLMs的查询重写方法分为四种类型：第一种类型是提示策略，通过设计提示来指导LLMs重写查询。像零-shot
+    提示 [[38](#bib.bib38)，[39](#bib.bib39)，[18](#bib.bib18)，[19](#bib.bib19)]、少-shot
+    学习 [[20](#bib.bib20)，[17](#bib.bib17)] 和 CoT 提示，如 [[20](#bib.bib20)]。第二种类型是微调策略，即在特定数据集上微调LLMs。在文献
+    [[23](#bib.bib23)] 中，微调后的LLMs用于修改查询，然后读取相关文档，帮助提升查询质量。第三类是增强检索方法，涉及使用检索策略重写查询。在
+    [[23](#bib.bib23)] 中，外部搜索引擎补充查询信息。同样，[[17](#bib.bib17)] 描述了创建虚假文档并使用网页搜索引擎获取外部文档作为查询重写的真实数据。另一种方法是知识蒸馏方法，旨在解决由于参考速度限制而导致LLMs部署上的局限性。在
+    [[40](#bib.bib40)] 中，作者首先在查询重写数据集上微调了LLM，然后进行了两步蒸馏。首先，将教授模型蒸馏成教师模型，然后将教师模型蒸馏成轻量级的BERT学生模型用于查询重写。我们的方法属于提示策略。然而，它独特地利用LLMs作为不同的角色代理，区别于传统的提示方法。
+- en: V-B Robust Ranking
+  id: totrans-234
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: V-B 稳健排序
+- en: Pre-trained language models have demonstrated exceptional performance in retrieval
+    and ranking tasks. However, while traditional research has predominantly focused
+    on effectiveness, neural models are often susceptible to errors when confronted
+    with altered input, prompting recent studies to prioritize robustness. In [[10](#bib.bib10)],
+    the author assesses the robustness of current retrieval pipelines by introducing
+    various query variants, including specialization, misspelling, naturality, ordering,
+    and paraphrasing. The findings reveal a significant decrease in effectiveness
+    when queries undergo disturbances. In [[11](#bib.bib11)], a contrastive aligning
+    method is proposed to enhance robustness. This method clusters positive samples,
+    distinguishing them from negative samples to improve overall system robustness.
+    Another approach, CharacterBert [[12](#bib.bib12)], is introduced to bolster robustness
+    in the face of query typos. CharacterBert is used to encode both the original
+    document and queries, employing a self-teaching paradigm with KL-divergence to
+    enforce an identical distribution across queries and queries with typos. In [[41](#bib.bib41)],
+    adversarial training is proposed as a method to increase robustness. The authors
+    explore FGSM techniques to make the model more robust to variations in input.
+    Addressing misspelling queries, work [[33](#bib.bib33)] focuses on query augmentation
+    models to generate misspelling queries. It calculates the similarity score distribution
+    between each query and a passage list, then introduces a dual self-teaching loss
+    for alignment. These studies collectively contribute to the ongoing efforts to
+    enhance the robustness of pre-trained language models in retrieval tasks.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 预训练语言模型在检索和排序任务中表现出色。然而，传统的研究主要集中在效果上，而神经网络模型在面对变化的输入时往往容易出错，这促使近期的研究开始优先考虑鲁棒性。在[[10](#bib.bib10)]中，作者通过引入各种查询变体（包括专业化、拼写错误、自然性、顺序和释义）评估了当前检索管道的鲁棒性。研究结果表明，当查询受到干扰时，效果显著下降。在[[11](#bib.bib11)]中，提出了一种对比对齐方法以增强鲁棒性。该方法通过聚类正样本并与负样本区分开来，从而提高了整体系统的鲁棒性。另一个方法，CharacterBert[[12](#bib.bib12)]，被提出用来增强面对查询拼写错误时的鲁棒性。CharacterBert用于对原始文档和查询进行编码，采用自我教学范式与KL散度强制使查询和带有拼写错误的查询之间分布一致。在[[41](#bib.bib41)]中，提出了对抗训练作为增强鲁棒性的一种方法。作者探索了FGSM技术，以提高模型对输入变化的鲁棒性。在处理拼写错误查询时，工作[[33](#bib.bib33)]专注于查询增强模型来生成拼写错误查询。该方法计算每个查询与一组段落的相似度分布，然后引入双重自我教学损失以进行对齐。这些研究共同推动了提升预训练语言模型在检索任务中鲁棒性的持续努力。
+- en: 'Our architecture for enhancing robustness incorporates two distinct tasks:
+    the MMoE module and the loss design module. In contrast to self-teaching methods,
+    our approach leverages JS divergence to narrow the gap between different distributions.'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们增强鲁棒性的架构包括两个不同的任务：MMoE模块和损失设计模块。与自我教学方法不同，我们的方法利用JS散度缩小不同分布之间的差距。
+- en: VI Conclusion
+  id: totrans-237
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VI 结论
+- en: 'In this paper, we introduce an innovative pipeline designed to enhance the
+    robustness of existing ranking models in search engines from demographic perspectives.
+    Our pipeline comprises two main components: query rewriting leveraging multi-role
+    LLM agents and a novel framework including a MMoE robustness model and a robust
+    loss function. During the initial phase, we employ LLMs in various roles as agents
+    to effectively rewrite queries. Subsequently, we introduce a framework with an
+    MMoE robust model and a robust loss function. These two elements jointly improve
+    the robustness of the ranking results, particularly when dealing with queries
+    that have different semantic inputs. Extensive experimentations are conducted
+    to validate the effectiveness of our proposed framework. Future research will
+    explore the possibility of directly involving LLMs in the ranking process and
+    enhancing interpretability to further improve robustness.'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了一种创新的管道，旨在从人口统计学的角度增强现有排序模型在搜索引擎中的鲁棒性。我们的管道包含两个主要组件：利用多角色LLM代理进行查询重写和一个新颖的框架，包括MMoE鲁棒性模型和鲁棒损失函数。在初始阶段，我们利用LLM在不同角色中作为代理，进行有效的查询重写。随后，我们引入一个包含MMoE鲁棒性模型和鲁棒损失函数的框架。这两个元素共同提高了排序结果的鲁棒性，尤其是在处理具有不同语义输入的查询时。我们进行了大量实验以验证所提框架的有效性。未来的研究将探索直接将LLM纳入排序过程的可能性，并通过增强可解释性进一步提高鲁棒性。
+- en: References
+  id: totrans-239
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] A. Ntoulas, J. Cho, and C. Olston, “What’s new on the web? the evolution
+    of the web from a search engine perspective,” in *Proceedings of the 13th international
+    conference on World Wide Web*, 2004, pp. 1–12.'
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] A. Ntoulas, J. Cho, 和 C. Olston, “Web上的新动态？从搜索引擎的角度看Web的演变，” 载于 *第13届国际万维网会议论文集*，2004年，页1–12。'
+- en: '[2] G. Salton, A. Wong, and C.-S. Yang, “A vector space model for automatic
+    indexing,” *Communications of the ACM*, vol. 18, no. 11, pp. 613–620, 1975.'
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] G. Salton, A. Wong, 和 C.-S. Yang, “一种用于自动索引的向量空间模型，” *ACM通讯*，第18卷，第11期，页613–620，1975年。'
+- en: '[3] S. E. Robertson and K. S. Jones, “Relevance weighting of search terms,”
+    *Journal of the American Society for Information science*, vol. 27, no. 3, pp.
+    129–146, 1976.'
+  id: totrans-242
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] S. E. Robertson 和 K. S. Jones, “搜索词的相关性加权，” *美国信息科学学会期刊*，第27卷，第3期，页129–146，1976年。'
+- en: '[4] Z. Dai and J. Callan, “Deeper text understanding for ir with contextual
+    neural language modeling,” in *Proceedings of the 42nd international ACM SIGIR
+    conference on research and development in information retrieval*, 2019, pp. 985–988.'
+  id: totrans-243
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] Z. Dai 和 J. Callan, “基于上下文神经语言建模的更深层文本理解用于信息检索，” 载于 *第42届国际ACM SIGIR信息检索研究与发展会议论文集*，2019年，页985–988。'
+- en: '[5] Z. Dai, C. Xiong, J. Callan, and Z. Liu, “Convolutional neural networks
+    for soft-matching n-grams in ad-hoc search,” in *Proceedings of the eleventh ACM
+    international conference on web search and data mining*, 2018, pp. 126–134.'
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Z. Dai, C. Xiong, J. Callan, 和 Z. Liu, “卷积神经网络用于临时搜索中的软匹配n-gram，” 载于 *第十一届ACM国际Web搜索与数据挖掘会议论文集*，2018年，页126–134。'
+- en: '[6] J. Guo, Y. Fan, Q. Ai, and W. B. Croft, “A deep relevance matching model
+    for ad-hoc retrieval,” in *Proceedings of the 25th ACM international on conference
+    on information and knowledge management*, 2016, pp. 55–64.'
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] J. Guo, Y. Fan, Q. Ai, 和 W. B. Croft, “一种深度相关匹配模型用于临时检索，” 载于 *第25届ACM国际信息与知识管理会议论文集*，2016年，页55–64。'
+- en: '[7] J.-C. Gu, T. Li, Q. Liu, Z.-H. Ling, Z. Su, S. Wei, and X. Zhu, “Speaker-aware
+    bert for multi-turn response selection in retrieval-based chatbots,” in *Proceedings
+    of the 29th ACM International Conference on Information & Knowledge Management*,
+    2020, pp. 2041–2044.'
+  id: totrans-246
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] J.-C. Gu, T. Li, Q. Liu, Z.-H. Ling, Z. Su, S. Wei, 和 X. Zhu, “针对基于检索的聊天机器人中的多轮响应选择的说话人感知BERT，”
+    载于 *第29届ACM国际信息与知识管理会议论文集*，2020年，页2041–2044。'
+- en: '[8] X. Ma, J. Guo, R. Zhang, Y. Fan, Y. Li, and X. Cheng, “B-prop: bootstrapped
+    pre-training with representative words prediction for ad-hoc retrieval,” in *Proceedings
+    of the 44th International ACM SIGIR Conference on Research and Development in
+    Information Retrieval*, 2021, pp. 1513–1522.'
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] X. Ma, J. Guo, R. Zhang, Y. Fan, Y. Li, 和 X. Cheng, “B-prop: 通过代表性单词预测进行引导预训练的临时检索方法，”
+    载于 *第44届国际ACM SIGIR信息检索研究与发展会议论文集*，2021年，页1513–1522。'
+- en: '[9] M. Dash and H. Liu, “Consistency-based search in feature selection,” *Artificial
+    intelligence*, vol. 151, no. 1-2, pp. 155–176, 2003.'
+  id: totrans-248
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] M. Dash 和 H. Liu, “基于一致性的特征选择搜索，” *人工智能*，第151卷，第1-2期，页155–176，2003年。'
+- en: '[10] G. Penha, A. Câmara, and C. Hauff, “Evaluating the robustness of retrieval
+    pipelines with query variation generators,” in *European conference on information
+    retrieval*.   Springer, 2022, pp. 397–412.'
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] G. Penha, A. Câmara, 和 C. Hauff, “通过查询变异生成器评估检索管道的鲁棒性，” 载于 *欧洲信息检索会议*，Springer，2022年，页397–412。'
+- en: '[11] D. Campos, C. Zhai, and A. Magnani, “Noise-robust dense retrieval via
+    contrastive alignment post training,” *arXiv e-prints*, pp. arXiv–2304, 2023.'
+  id: totrans-250
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] D. Campos, C. Zhai, 和 A. Magnani, “通过对比对齐后训练实现抗噪声的稠密检索，” *arXiv电子预印本*，页arXiv–2304，2023年。'
+- en: '[12] S. Zhuang and G. Zuccon, “Characterbert and self-teaching for improving
+    the robustness of dense retrievers on queries with typos,” in *Proceedings of
+    the 45th International ACM SIGIR Conference on Research and Development in Information
+    Retrieval*, 2022, pp. 1444–1454.'
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] S. Zhuang 和 G. Zuccon, “CharacterBERT和自我教学方法用于提高稠密检索器在包含拼写错误查询上的鲁棒性，”
+    载于 *第45届国际ACM SIGIR信息检索研究与发展会议论文集*，2022年，页1444–1454。'
+- en: '[13] CNNIC, “Statistical report on internet development in china,” [https://www.cnnic.net.cn/n4/2022/0401/c88-1125.html](https://www.cnnic.net.cn/n4/2022/0401/c88-1125.html).'
+  id: totrans-252
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] CNNIC, “中国互联网发展统计报告，” [https://www.cnnic.net.cn/n4/2022/0401/c88-1125.html](https://www.cnnic.net.cn/n4/2022/0401/c88-1125.html)。'
+- en: '[14] P. Jia, Y. Liu, X. Zhao, X. Li, C. Hao, S. Wang, and D. Yin, “Mill: Mutual
+    verification with large language models for zero-shot query expansion,” *arXiv
+    preprint arXiv:2310.19056*, 2023.'
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] P. Jia, Y. Liu, X. Zhao, X. Li, C. Hao, S. Wang, 和 D. Yin, “Mill: 基于大语言模型的零-shot查询扩展的相互验证，”
+    *arXiv预印本 arXiv:2310.19056*，2023年。'
+- en: '[15] J. Hao, Y. Liu, X. Fan, S. Gupta, S. Soltan, R. Chada, P. Natarajan, C. Guo,
+    and G. Tür, “Cgf: Constrained generation framework for query rewriting in conversational
+    ai,” in *Proceedings of the 2022 Conference on Empirical Methods in Natural Language
+    Processing: Industry Track*, 2022, pp. 475–483.'
+  id: totrans-254
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] J. Hao, Y. Liu, X. Fan, S. Gupta, S. Soltan, R. Chada, P. Natarajan, C.
+    Guo, 和 G. Tür, “CGF：用于会话AI中的查询重写的约束生成框架，” 见 *2022年自然语言处理经验方法大会论文集：工业专场*，2022年，第475–483页。'
+- en: '[16] L. Gao, X. Ma, J. Lin, and J. Callan, “Precise zero-shot dense retrieval
+    without relevance labels,” *arXiv preprint arXiv:2212.10496*, 2022.'
+  id: totrans-255
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] L. Gao, X. Ma, J. Lin, 和 J. Callan, “精确的零-shot密集检索，无需相关性标签，” *arXiv 预印本
+    arXiv:2212.10496*，2022年。'
+- en: '[17] L. Wang, N. Yang, and F. Wei, “Query2doc: Query expansion with large language
+    models,” *arXiv preprint arXiv:2303.07678*, 2023.'
+  id: totrans-256
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] L. Wang, N. Yang, 和 F. Wei, “Query2doc: 使用大型语言模型进行查询扩展，” *arXiv 预印本 arXiv:2303.07678*，2023年。'
+- en: '[18] T. Shen, G. Long, X. Geng, C. Tao, T. Zhou, and D. Jiang, “Large language
+    models are strong zero-shot retriever,” *arXiv preprint arXiv:2304.14233*, 2023.'
+  id: totrans-257
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] T. Shen, G. Long, X. Geng, C. Tao, T. Zhou, 和 D. Jiang, “大型语言模型是强大的零-shot检索器，”
+    *arXiv 预印本 arXiv:2304.14233*，2023年。'
+- en: '[19] M. Alaofi, L. Gallagher, M. Sanderson, F. Scholer, and P. Thomas, “Can
+    generative llms create query variants for test collections? an exploratory study,”
+    in *Proceedings of the 46th International ACM SIGIR Conference on Research and
+    Development in Information Retrieval*, 2023, pp. 1869–1873.'
+  id: totrans-258
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[19] M. Alaofi, L. Gallagher, M. Sanderson, F. Scholer, 和 P. Thomas, “生成性LLM能为测试集创建查询变体吗？一项探索性研究，”
+    见 *第46届国际ACM SIGIR信息检索研究与开发会议论文集*，2023年，第1869–1873页。'
+- en: '[20] R. Jagerman, H. Zhuang, Z. Qin, X. Wang, and M. Bendersky, “Query expansion
+    by prompting large language models,” *arXiv preprint arXiv:2305.03653*, 2023.'
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[20] R. Jagerman, H. Zhuang, Z. Qin, X. Wang, 和 M. Bendersky, “通过提示大型语言模型进行查询扩展，”
+    *arXiv 预印本 arXiv:2305.03653*，2023年。'
+- en: '[21] W. Yu, D. Iter, S. Wang, Y. Xu, M. Ju, S. Sanyal, C. Zhu, M. Zeng, and
+    M. Jiang, “Generate rather than retrieve: Large language models are strong context
+    generators,” *arXiv preprint arXiv:2209.10063*, 2022.'
+  id: totrans-260
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[21] W. Yu, D. Iter, S. Wang, Y. Xu, M. Ju, S. Sanyal, C. Zhu, M. Zeng, 和 M.
+    Jiang, “生成而非检索：大型语言模型是强大的上下文生成器，” *arXiv 预印本 arXiv:2209.10063*，2022年。'
+- en: '[22] G. Izacard and E. Grave, “Leveraging passage retrieval with generative
+    models for open domain question answering,” *arXiv preprint arXiv:2007.01282*,
+    2020.'
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[22] G. Izacard 和 E. Grave, “利用生成模型与段落检索结合进行开放域问答，” *arXiv 预印本 arXiv:2007.01282*，2020年。'
+- en: '[23] X. Ma, Y. Gong, P. He, H. Zhao, and N. Duan, “Query rewriting for retrieval-augmented
+    large language models,” *arXiv preprint arXiv:2305.14283*, 2023.'
+  id: totrans-262
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[23] X. Ma, Y. Gong, P. He, H. Zhao, 和 N. Duan, “为检索增强型大型语言模型进行查询重写，” *arXiv
+    预印本 arXiv:2305.14283*，2023年。'
+- en: '[24] A. Anand, A. Anand, V. Setty *et al.*, “Query understanding in the age
+    of large language models,” *arXiv preprint arXiv:2306.16004*, 2023.'
+  id: totrans-263
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[24] A. Anand, A. Anand, V. Setty *等*，“在大型语言模型时代的查询理解，” *arXiv 预印本 arXiv:2306.16004*，2023年。'
+- en: '[25] N. Reimers and I. Gurevych, “Sentence-bert: Sentence embeddings using
+    siamese bert-networks,” *arXiv preprint arXiv:1908.10084*, 2019.'
+  id: totrans-264
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[25] N. Reimers 和 I. Gurevych, “Sentence-BERT：使用Siamese BERT网络进行句子嵌入，” *arXiv
+    预印本 arXiv:1908.10084*，2019年。'
+- en: '[26] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, “Bert: Pre-training
+    of deep bidirectional transformers for language understanding,” *arXiv preprint
+    arXiv:1810.04805*, 2018.'
+  id: totrans-265
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[26] J. Devlin, M.-W. Chang, K. Lee, 和 K. Toutanova, “BERT：用于语言理解的深度双向Transformer预训练，”
+    *arXiv 预印本 arXiv:1810.04805*，2018年。'
+- en: '[27] Y. Liu, M. Ott, N. Goyal, J. Du, M. Joshi, D. Chen, O. Levy, M. Lewis,
+    L. Zettlemoyer, and V. Stoyanov, “Roberta: A robustly optimized bert pretraining
+    approach,” *arXiv preprint arXiv:1907.11692*, 2019.'
+  id: totrans-266
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[27] Y. Liu, M. Ott, N. Goyal, J. Du, M. Joshi, D. Chen, O. Levy, M. Lewis,
+    L. Zettlemoyer, 和 V. Stoyanov, “RoBERTa：一种强健优化的BERT预训练方法，” *arXiv 预印本 arXiv:1907.11692*，2019年。'
+- en: '[28] Y. Sun, S. Wang, Y. Li, S. Feng, H. Tian, H. Wu, and H. Wang, “Ernie 2.0:
+    A continual pre-training framework for language understanding,” in *Proceedings
+    of the AAAI conference on artificial intelligence*, vol. 34, no. 05, 2020, pp.
+    8968–8975.'
+  id: totrans-267
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[28] Y. Sun, S. Wang, Y. Li, S. Feng, H. Tian, H. Wu, 和 H. Wang, “ERNIE 2.0：一种用于语言理解的持续预训练框架，”
+    见 *2020年AAAI人工智能会议论文集*，第34卷，第05期，2020年，第8968–8975页。'
+- en: '[29] J. Ma, Z. Zhao, X. Yi, J. Chen, L. Hong, and E. H. Chi, “Modeling task
+    relationships in multi-task learning with multi-gate mixture-of-experts,” in *Proceedings
+    of the 24th ACM SIGKDD international conference on knowledge discovery & data
+    mining*, 2018, pp. 1930–1939.'
+  id: totrans-268
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[29] J. Ma, Z. Zhao, X. Yi, J. Chen, L. Hong, 和 E. H. Chi, “使用多门混合专家建模多任务学习中的任务关系，”
+    见 *第24届ACM SIGKDD国际知识发现与数据挖掘会议论文集*，2018年，第1930–1939页。'
+- en: '[30] N. Houlsby, A. Giurgiu, S. Jastrzebski, B. Morrone, Q. De Laroussilhe,
+    A. Gesmundo, M. Attariyan, and S. Gelly, “Parameter-efficient transfer learning
+    for nlp,” in *International Conference on Machine Learning*.   PMLR, 2019, pp.
+    2790–2799.'
+  id: totrans-269
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[30] N. Houlsby, A. Giurgiu, S. Jastrzebski, B. Morrone, Q. De Laroussilhe,
+    A. Gesmundo, M. Attariyan, 和 S. Gelly, “NLP领域的参数高效迁移学习”，发表于*国际机器学习会议*，PMLR, 2019，pp.
+    2790–2799。'
+- en: '[31] R. Wang, D. Tang, N. Duan, Z. Wei, X. Huang, G. Cao, D. Jiang, M. Zhou
+    *et al.*, “K-adapter: Infusing knowledge into pre-trained models with adapters,”
+    *arXiv preprint arXiv:2002.01808*, 2020.'
+  id: totrans-270
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[31] R. Wang, D. Tang, N. Duan, Z. Wei, X. Huang, G. Cao, D. Jiang, M. Zhou
+    *等人*, “K-adapter：通过适配器将知识注入预训练模型”，*arXiv预印本 arXiv:2002.01808*, 2020。'
+- en: '[32] X. Li, F. Yan, X. Zhao, Y. Wang, B. Chen, H. Guo, and R. Tang, “Hamur:
+    Hyper adapter for multi-domain recommendation,” in *Proceedings of the 32nd ACM
+    International Conference on Information and Knowledge Management*, 2023, pp. 1268–1277.'
+  id: totrans-271
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[32] X. Li, F. Yan, X. Zhao, Y. Wang, B. Chen, H. Guo, 和 R. Tang, “Hamur：多领域推荐的超适配器”，发表于*第32届ACM国际信息与知识管理会议论文集*，2023，pp.
+    1268–1277。'
+- en: '[33] P. Tasawong, W. Ponwitayarat, P. Limkonchotiwat, C. Udomcharoenchaikit,
+    E. Chuangsuwanich, and S. Nutanong, “Typo-robust representation learning for dense
+    retrieval,” *arXiv preprint arXiv:2306.10348*, 2023.'
+  id: totrans-272
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[33] P. Tasawong, W. Ponwitayarat, P. Limkonchotiwat, C. Udomcharoenchaikit,
+    E. Chuangsuwanich, 和 S. Nutanong, “面向稠密检索的抗错表示学习”，*arXiv预印本 arXiv:2306.10348*,
+    2023。'
+- en: '[34] S. Robertson, H. Zaragoza *et al.*, “The probabilistic relevance framework:
+    Bm25 and beyond,” *Foundations and Trends® in Information Retrieval*, vol. 3,
+    no. 4, pp. 333–389, 2009.'
+  id: totrans-273
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[34] S. Robertson, H. Zaragoza *等人*, “概率相关性框架：BM25及其扩展”，*信息检索的基础与趋势®*, vol.
+    3, no. 4, pp. 333–389, 2009。'
+- en: '[35] L. Xiong, C. Xiong, Y. Li, K.-F. Tang, J. Liu, P. Bennett, J. Ahmed, and
+    A. Overwijk, “Approximate nearest neighbor negative contrastive learning for dense
+    text retrieval,” *arXiv preprint arXiv:2007.00808*, 2020.'
+  id: totrans-274
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[35] L. Xiong, C. Xiong, Y. Li, K.-F. Tang, J. Liu, P. Bennett, J. Ahmed, 和
+    A. Overwijk, “用于稠密文本检索的近似最近邻负对比学习”，*arXiv预印本 arXiv:2007.00808*, 2020。'
+- en: '[36] C. Wu, R. Zhang, J. Guo, Y. Fan, and X. Cheng, “Are neural ranking models
+    robust?” *ACM Transactions on Information Systems*, vol. 41, no. 2, pp. 1–36,
+    2022.'
+  id: totrans-275
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[36] C. Wu, R. Zhang, J. Guo, Y. Fan, 和 X. Cheng, “神经排名模型是否具有鲁棒性？”，*ACM信息系统交易*,
+    vol. 41, no. 2, pp. 1–36, 2022。'
+- en: '[37] N. Thakur, N. Reimers, A. Rücklé, A. Srivastava, and I. Gurevych, “Beir:
+    A heterogenous benchmark for zero-shot evaluation of information retrieval models,”
+    *arXiv preprint arXiv:2104.08663*, 2021.'
+  id: totrans-276
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[37] N. Thakur, N. Reimers, A. Rücklé, A. Srivastava, 和 I. Gurevych, “Beir：一种用于零-shot评估信息检索模型的异构基准”，*arXiv预印本
+    arXiv:2104.08663*, 2021。'
+- en: '[38] J. Feng, C. Tao, X. Geng, T. Shen, C. Xu, G. Long, D. Zhao, and D. Jiang,
+    “Knowledge refinement via interaction between search engines and large language
+    models,” *arXiv preprint arXiv:2305.07402*, 2023.'
+  id: totrans-277
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[38] J. Feng, C. Tao, X. Geng, T. Shen, C. Xu, G. Long, D. Zhao, 和 D. Jiang,
+    “通过搜索引擎和大型语言模型之间的互动进行知识精炼”，*arXiv预印本 arXiv:2305.07402*, 2023。'
+- en: '[39] I. Mackie, S. Chatterjee, and J. Dalton, “Generative and pseudo-relevant
+    feedback for sparse, dense and learned sparse retrieval,” *arXiv preprint arXiv:2305.07477*,
+    2023.'
+  id: totrans-278
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[39] I. Mackie, S. Chatterjee, 和 J. Dalton, “稀疏、稠密及学习型稀疏检索的生成式和伪相关反馈”，*arXiv预印本
+    arXiv:2305.07477*, 2023。'
+- en: '[40] K. Srinivasan, K. Raman, A. Samanta, L. Liao, L. Bertelli, and M. Bendersky,
+    “Quill: Query intent with large language models using retrieval augmentation and
+    multi-stage distillation,” *arXiv preprint arXiv:2210.15718*, 2022.'
+  id: totrans-279
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[40] K. Srinivasan, K. Raman, A. Samanta, L. Liao, L. Bertelli, 和 M. Bendersky,
+    “Quill：使用检索增强和多阶段蒸馏的大型语言模型查询意图”，*arXiv预印本 arXiv:2210.15718*, 2022。'
+- en: '[41] S. Lupart and S. Clinchant, “A study on fgsm adversarial training for
+    neural retrieval,” in *European Conference on Information Retrieval*.   Springer,
+    2023, pp. 484–492.'
+  id: totrans-280
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[41] S. Lupart 和 S. Clinchant, “FGSM对抗训练在神经检索中的应用研究”，发表于*欧洲信息检索会议*，Springer,
+    2023，pp. 484–492。'

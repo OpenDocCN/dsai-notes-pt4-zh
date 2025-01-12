@@ -1,0 +1,2968 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 12:49:58'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:49:58
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: Evaluating Very Long-Term Conversational Memory of LLM Agents
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 评估LLM代理的非常长期对话记忆
+- en: 来源：[https://arxiv.org/html/2402.17753/](https://arxiv.org/html/2402.17753/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2402.17753/](https://arxiv.org/html/2402.17753/)
+- en: Adyasha Maharana¹        Dong-Ho Lee²      Sergey Tulyakov³
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Adyasha Maharana¹        Dong-Ho Lee²      Sergey Tulyakov³
+- en: Mohit Bansal^(1$\dagger$)        Francesco Barbieri^($\dagger$)      Yuwei Fang^(3$\dagger$)
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Mohit Bansal^(1$\dagger$)        Francesco Barbieri^($\dagger$)      Yuwei Fang^(3$\dagger$)
+- en: University of North Carolina, Chapel Hill¹ University of Southern California² Snap
+    Inc.³
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 北卡罗来纳大学教堂山分校¹ 南加州大学² Snap公司³
+- en: Abstract
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Existing works on long-term open-domain dialogues focus on evaluating model
+    responses within contexts spanning no more than five chat sessions. Despite advancements
+    in long-context large language models (LLMs) and retrieval augmented generation
+    (RAG) techniques, their efficacy in very long-term dialogues remains unexplored.
+    To address this research gap, we introduce a machine-human pipeline to generate
+    high-quality, very long-term dialogues by leveraging LLM-based agent architectures
+    and grounding their dialogues on personas and temporal event graphs. Moreover,
+    we equip each agent with the capability of sharing and reacting to images. The
+    generated conversations are verified and edited by human annotators for long-range
+    consistency and grounding to the event graphs. Using this pipeline, we collect
+    LoCoMo, a dataset of very long-term conversations, each encompassing 300 turns
+    and 9K tokens on avg., over up to 35 sessions. Based on LoCoMo, we present a comprehensive
+    evaluation benchmark to measure long-term memory in models, encompassing question
+    answering, event summarization, and multi-modal dialogue generation tasks. Our
+    experimental results indicate that LLMs exhibit challenges in understanding lengthy
+    conversations and comprehending long-range temporal and causal dynamics within
+    dialogues. Employing strategies like long-context LLMs or RAG can offer improvements
+    but these models still substantially lag behind human performance.¹¹1Code and
+    data to be available at
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现有的长期开放域对话研究主要集中在评估模型在五次聊天会话内的回应。尽管在长上下文大语言模型（LLMs）和增强检索生成（RAG）技术上取得了进展，但它们在非常长期对话中的效果仍未被探索。为填补这一研究空白，我们提出了一种机器-人类管道，通过利用基于LLM的代理架构，并将对话基于人物角色和时间事件图进行
+    grounding，生成高质量的非常长期对话。此外，我们为每个代理提供了共享和响应图像的能力。生成的对话由人工标注员验证并编辑，以确保长期一致性和与事件图的契合。通过这一管道，我们收集了LoCoMo数据集，这是一组非常长期的对话数据，每个对话平均包含300轮对话和9K个标记，最长可达35个会话。基于LoCoMo数据集，我们提出了一个全面的评估基准，来衡量模型的长期记忆能力，涵盖了问答、事件总结和多模态对话生成任务。我们的实验结果表明，LLMs在理解长时间的对话和理解对话中的长时间跨度的时间和因果关系动态方面存在挑战。采用长上下文LLMs或RAG等策略可以有所改善，但这些模型仍然显著落后于人类表现。¹¹代码和数据将提供于
+- en: '[https://snap-research.github.io/locomo](https://snap-research.github.io/locomo)'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[https://snap-research.github.io/locomo](https://snap-research.github.io/locomo)'
+- en: Evaluating Very Long-Term Conversational Memory of LLM Agents
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估LLM代理的非常长期对话记忆
+- en: Adyasha Maharana¹        Dong-Ho Lee²      Sergey Tulyakov³ Mohit Bansal^(1$\dagger$)
+           Francesco Barbieri^($\dagger$)      Yuwei Fang^(3$\dagger$) University
+    of North Carolina, Chapel Hill¹ University of Southern California² Snap Inc.³
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Adyasha Maharana¹        Dong-Ho Lee²      Sergey Tulyakov³ Mohit Bansal^(1$\dagger$)
+           Francesco Barbieri^($\dagger$)      Yuwei Fang^(3$\dagger$) 北卡罗来纳大学教堂山分校¹ 南加州大学² Snap公司³
+- en: '¹¹footnotetext: ${}^{\dagger}$Equal advising.'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ¹¹脚注：${}^{\dagger}$平等指导。
+- en: 1 Introduction
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: '![Refer to caption](img/6d455887396e93cbcf8a8ab1bb8520d8.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/6d455887396e93cbcf8a8ab1bb8520d8.png)'
+- en: 'Figure 1: An example in LoCoMo. Dialogs are steered by the speakers’ personas
+    and corresponding events e.g., Joanna’s responses are consistent with her pet
+    allergies. For Nate, the event got a new dog is followed by a playdate with neighbor’s
+    dog, showcasing long-term memory. Multimodal dialog is enabled with image-sharing
+    and image-response behaviors.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：LoCoMo中的一个例子。对话由说话者的人物角色和相应的事件引导，例如，Joanna的回答与她的宠物过敏一致。对于Nate，事件“得到了新狗”后跟随的是与邻居狗的玩耍，展示了长期记忆。多模态对话通过图像共享和图像回应行为得以启用。
+- en: '| Dataset | Avg. turns per conv. | Avg. sessions per conv. | Avg. tokens per
+    conv. | Time Interval | Multimodal | Collection |'
+  id: totrans-18
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据集 | 平均对话轮数 | 平均会话数 | 平均标记数 | 时间间隔 | 多模态 | 收集 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-19
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '| MPChat Ahn et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib1))
+    | 2.8 | 1 | 53.3 | - | ✓ | Reddit |'
+  id: totrans-20
+  prefs: []
+  type: TYPE_TB
+  zh: '| MPChat Ahn等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib1)） | 2.8
+    | 1 | 53.3 | - | ✓ | Reddit |'
+- en: '| MMDialog Feng et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib12))
+    | 4.6 | 1 | 72.5 | - | ✓ | Social media |'
+  id: totrans-21
+  prefs: []
+  type: TYPE_TB
+  zh: '| MMDialog Feng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib12)） |
+    4.6 | 1 | 72.5 | - | ✓ | 社交媒体 |'
+- en: '| Daily Dialog Li et al. ([2017](https://arxiv.org/html/2402.17753v1#bib.bib32))
+    | 7.9 | 1 | 114.7 | - | ✗ | Crowdsourcing |'
+  id: totrans-22
+  prefs: []
+  type: TYPE_TB
+  zh: '| Daily Dialog Li等人（[2017](https://arxiv.org/html/2402.17753v1#bib.bib32)）
+    | 7.9 | 1 | 114.7 | - | ✗ | 众包 |'
+- en: '| SODA Kim et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib23)) |
+    7.6 | 1 | 122.4 | - | ✗ | LLM-generated |'
+  id: totrans-23
+  prefs: []
+  type: TYPE_TB
+  zh: '| SODA Kim等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib23)） | 7.6 |
+    1 | 122.4 | - | ✗ | LLM生成 |'
+- en: '| MSC Xu et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib58)) (train;
+    1-4 sessions) | 53.3 | 4 | 1,225.9 | few days | ✗ | Crowdsourcing |'
+  id: totrans-24
+  prefs: []
+  type: TYPE_TB
+  zh: '| MSC Xu等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib58)）(训练；1-4轮对话)
+    | 53.3 | 4 | 1,225.9 | 几天 | ✗ | 众包 |'
+- en: '| Conversation Chronicles Jang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib21))
+    | 58.5 | 5 | 1,054.7 | few hours - years | ✗ | LLM-generated |'
+  id: totrans-25
+  prefs: []
+  type: TYPE_TB
+  zh: '| Conversation Chronicles Jang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib21)）
+    | 58.5 | 5 | 1,054.7 | 几小时-几年 | ✗ | LLM生成 |'
+- en: '| LoCoMo (ours) | 304.9 | 19.3 | 9,209.2 | few months | ✓ | LLM-gen. + crowdsourc.
+    |'
+  id: totrans-26
+  prefs: []
+  type: TYPE_TB
+  zh: '| LoCoMo（我们的研究） | 304.9 | 19.3 | 9,209.2 | 几个月 | ✓ | LLM生成 + 众包 |'
+- en: 'Table 1: Statistics of LoCoMo compared to existing dialog datasets. The average
+    length of a conversation in LoCoMo is 9x that of MSC Xu et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib58)),
+    distributed over 6x more turns and 4x more sessions (on average).'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：LoCoMo与现有对话数据集的统计数据对比。LoCoMo中每个对话的平均长度是MSC Xu等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib58)）的9倍，分布在6倍更多的回合和4倍更多的会话中（平均值）。
+- en: '![Refer to caption](img/ed7b07d49cdd121a410c6d107f2ab4ee.png)'
+  id: totrans-28
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/ed7b07d49cdd121a410c6d107f2ab4ee.png)'
+- en: 'Figure 2: Overview of our evaluation framework. We propose three tasks: question
+    answering, event summarization and multimodal dialog generation to evaluate models’
+    comprehension in very long-term dialogues.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：我们评估框架的概述。我们提出了三个任务：问答、事件总结和多模态对话生成，以评估模型在长期对话中的理解能力。
+- en: Despite recent advancements in dialogue models based on LLMs for extended contexts Bertsch
+    et al. ([2024](https://arxiv.org/html/2402.17753v1#bib.bib5)); Xiao et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib56)),
+    as well as the integration of retrieval augmented generation (RAG) techniques Shuster
+    et al. ([2021](https://arxiv.org/html/2402.17753v1#bib.bib51)); Ram et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib47));
+    Shi et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib48)), there is still
+    a need for thorough evaluation of their efficacy in handling very long conversations.
+    Indeed, studies in long-term open-domain dialogues have concentrated on assessing
+    model responses within limited contexts e.g., $\sim$1K tokens over five chat sessions Xu
+    et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib58)); Jang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib21));
+    Zhang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib62)). This long
+    term evaluation is crucial for refining engaging chatbots capable of remembering
+    key information from past interactions, to generate empathetic, consistent, and
+    useful responses.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管基于大语言模型（LLMs）进行对话模型的最新进展已经取得了一些成效，例如Bertsch等人（[2024](https://arxiv.org/html/2402.17753v1#bib.bib5)）；Xiao等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib56)），以及检索增强生成（RAG）技术的集成，例如Shuster等人（[2021](https://arxiv.org/html/2402.17753v1#bib.bib51)）；Ram等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib47)）；Shi等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib48)），但仍然需要对其在处理非常长对话中的有效性进行深入评估。事实上，长期开放领域对话的研究集中于在有限上下文中评估模型响应，例如大约1K个标记在五轮对话中（Xu等人，[2022](https://arxiv.org/html/2402.17753v1#bib.bib58)）；Jang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib21)）；Zhang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib62)）。这种长期评估对于完善能够记住过去互动关键信息的聊天机器人至关重要，从而生成富有同理心、一致且有用的回应。
+- en: 'To this end, we present the first study of very long-term open-domain multi-modal
+    dialogues, closely mirroring real-world online interactions, collected via a human-machine
+    pipeline where we first use LLM-based generative agents to generate conversations
+    and then ask human annotators to fix any long-term inconsistencies in the conversations.
+    Specifically, drawing on the understanding that real-world conversations are a
+    complex blend of collective memories Assmann and Czaplicka ([1995](https://arxiv.org/html/2402.17753v1#bib.bib4));
+    Hirst and Manier ([2008](https://arxiv.org/html/2402.17753v1#bib.bib18)), individual
+    viewpoints Hirst et al. ([2018](https://arxiv.org/html/2402.17753v1#bib.bib19)),
+    external influences Hirst and Echterhoff ([2012](https://arxiv.org/html/2402.17753v1#bib.bib17)),
+    and the unique persona of the speakers Pruitt and Grudin ([2003](https://arxiv.org/html/2402.17753v1#bib.bib46));
+    Cooper ([1999](https://arxiv.org/html/2402.17753v1#bib.bib9)); Zhou et al. ([2020](https://arxiv.org/html/2402.17753v1#bib.bib68));
+    Shum et al. ([2020](https://arxiv.org/html/2402.17753v1#bib.bib49)), we create
+    very long-term dialogues based on LLM agent with the following features: (1) a
+    unique persona (§[3.1](https://arxiv.org/html/2402.17753v1#S3.SS1 "3.1 Persona
+    ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")); (2) a timeline of causally interlinked events in their
+    lives (§[3.2](https://arxiv.org/html/2402.17753v1#S3.SS2 "3.2 Temporal Event Graph
+    ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")); and (3) reflect & response mechanism to respond based
+    on dialogue history (like in  Park et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib45)))
+    and image sharing & image reaction behavior which sends or reacts to images (§[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 Virtual Agent Architecture ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")). Finally, human annotators
+    fix long-range inconsistencies in dialogues, remove irrelevant images, and verify
+    the grounding of dialogs to events (§[3.4](https://arxiv.org/html/2402.17753v1#S3.SS4
+    "3.4 Human Verification & Editing ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")). With this pipeline, we
+    create LoCoMo, a dataset of 50 very long-term dialogues, each consisting of 300
+    turns and 9K tokens on avg., over up to 35 sessions (see Figure [1](https://arxiv.org/html/2402.17753v1#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ Evaluating Very Long-Term Conversational Memory of
+    LLM Agents") and Table [1](https://arxiv.org/html/2402.17753v1#S1.T1 "Table 1
+    ‣ 1 Introduction ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")).'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们提出了首个关于超长期开放域多模态对话的研究，紧密模拟了现实世界的在线互动，这些对话通过人机管道收集而来，其中我们首先使用基于LLM的生成代理生成对话，然后请人工标注员修正对话中的任何长期不一致性。具体来说，基于对现实世界对话是一种复杂的集体记忆混合体的理解——Assmann
+    和 Czaplicka（[1995](https://arxiv.org/html/2402.17753v1#bib.bib4)）；Hirst 和 Manier（[2008](https://arxiv.org/html/2402.17753v1#bib.bib18)），个体观点——Hirst
+    等人（[2018](https://arxiv.org/html/2402.17753v1#bib.bib19)），外部影响——Hirst 和 Echterhoff（[2012](https://arxiv.org/html/2402.17753v1#bib.bib17)），以及说话者独特的人格——Pruitt
+    和 Grudin（[2003](https://arxiv.org/html/2402.17753v1#bib.bib46)）；Cooper（[1999](https://arxiv.org/html/2402.17753v1#bib.bib9)）；Zhou
+    等人（[2020](https://arxiv.org/html/2402.17753v1#bib.bib68)）；Shum 等人（[2020](https://arxiv.org/html/2402.17753v1#bib.bib49)）的理解，我们基于LLM代理创建了具有以下特征的超长期对话：（1）独特的人格（§[3.1](https://arxiv.org/html/2402.17753v1#S3.SS1
+    "3.1 Persona ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")）；（2）他们生活中因果关联事件的时间线（§[3.2](https://arxiv.org/html/2402.17753v1#S3.SS2
+    "3.2 Temporal Event Graph ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents")）；（3）基于对话历史的反映与响应机制（如Park 等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib45)））以及图像分享与图像反应行为，即发送或对图像作出反应（§[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 Virtual Agent Architecture ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")）。最后，人工标注员修正对话中的长程不一致性，删除无关的图像，并验证对话与事件的基础（§[3.4](https://arxiv.org/html/2402.17753v1#S3.SS4
+    "3.4 Human Verification & Editing ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")）。通过这一管道，我们创建了LoCoMo，一个包含50个超长期对话的数据集，每个对话平均有300轮对话和9K个token，持续时间长达35个会话（见图[1](https://arxiv.org/html/2402.17753v1#S1.F1
+    "Figure 1 ‣ 1 Introduction ‣ Evaluating Very Long-Term Conversational Memory of
+    LLM Agents")和表[1](https://arxiv.org/html/2402.17753v1#S1.T1 "Table 1 ‣ 1 Introduction
+    ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")）。
+- en: Conventional approaches for evaluating conversational agents in open-domain
+    dialogues involves directly evaluating the agent response based on past dialogue
+    history. It often employs lexical overlap Papineni et al. ([2002](https://arxiv.org/html/2402.17753v1#bib.bib44))
+    and semantic overlap Zhang et al. ([2019](https://arxiv.org/html/2402.17753v1#bib.bib64))
+    between ground truth and the agent response, or consistency Ghazarian et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib15)),
+    contradiction Nie et al. ([2021](https://arxiv.org/html/2402.17753v1#bib.bib43));
+    Welleck et al. ([2019](https://arxiv.org/html/2402.17753v1#bib.bib54)), and empathy Zhang
+    et al. ([2021a](https://arxiv.org/html/2402.17753v1#bib.bib60), [2022](https://arxiv.org/html/2402.17753v1#bib.bib61))
+    of the agent response. However, these evaluation metrics are not well-suited for
+    directly assessing the agent’s comprehension of long-term contexts.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估开放领域对话中会话代理的传统方法通常是基于过去的对话历史直接评估代理的回应。它通常采用词汇重叠Papineni等人（[2002](https://arxiv.org/html/2402.17753v1#bib.bib44)）和语义重叠Zhang等人（[2019](https://arxiv.org/html/2402.17753v1#bib.bib64)）在真实答案与代理回应之间的重叠，或者一致性Ghazarian等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib15)）、矛盾Nie等人（[2021](https://arxiv.org/html/2402.17753v1#bib.bib43)）；Welleck等人（[2019](https://arxiv.org/html/2402.17753v1#bib.bib54)）和同理心Zhang等人（[2021a](https://arxiv.org/html/2402.17753v1#bib.bib60)，[2022](https://arxiv.org/html/2402.17753v1#bib.bib61)）等代理回应的评估方法。然而，这些评估指标并不适合直接评估代理在长期语境中的理解能力。
+- en: 'In this study, we present a holistic evaluation framework to assess an agent’s
+    proficiency in managing and responding within long-term contexts (see Figure [2](https://arxiv.org/html/2402.17753v1#S1.F2
+    "Figure 2 ‣ 1 Introduction ‣ Evaluating Very Long-Term Conversational Memory of
+    LLM Agents")). First, agents need to “recall” past context correctly to integrate
+    relevant information into future responses. We present a direct examination of
+    their memory via a question answering (QA) task (§[4.1](https://arxiv.org/html/2402.17753v1#S4.SS1
+    "4.1 Question Answering Task ‣ 4 LoCoMo Evaluation Benchmark ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents")). We classify questions into five
+    distinct reasoning types to evaluate memory from multiple perspectives: single-hop,
+    multi-hop, temporal, commonsense or world knowledge, and adversarial. Second,
+    agents also need to recognize long-range causal and temporal connections in the
+    dialogues to generate empathetic and relevant responses. We propose a measurement
+    of their causal and temporal understanding with an event graph summarization task
+    (§[4.2](https://arxiv.org/html/2402.17753v1#S4.SS2 "4.2 Event Summarization Task
+    ‣ 4 LoCoMo Evaluation Benchmark ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents")). In this task, the event graphs linked to each LLM speaker serve
+    as the correct answers, and models are tasked with extracting this information
+    from the conversation history. Third, conversational agents need to utilize relevant
+    context recalled from past conversations to generate responses that are consistent
+    with the ongoing narrative. We assess this ability via the multi-modal dialog
+    generation task (§[4.3](https://arxiv.org/html/2402.17753v1#S4.SS3 "4.3 Multi-Modal
+    Dialogue Generation Task ‣ 4 LoCoMo Evaluation Benchmark ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")).'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本研究中，我们提出了一个全面的评估框架，用于评估代理在长期语境中的管理和回应能力（参见图[2](https://arxiv.org/html/2402.17753v1#S1.F2
+    "Figure 2 ‣ 1 Introduction ‣ Evaluating Very Long-Term Conversational Memory of
+    LLM Agents")）。首先，代理需要正确“回忆”过去的语境，将相关信息整合到未来的回应中。我们通过问答（QA）任务直接检验他们的记忆（§[4.1](https://arxiv.org/html/2402.17753v1#S4.SS1
+    "4.1 Question Answering Task ‣ 4 LoCoMo Evaluation Benchmark ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents")）。我们将问题分为五种不同的推理类型，从多个角度评估记忆：单跳、多跳、时间性、常识或世界知识以及对抗性。其次，代理还需要识别对话中的长期因果关系和时间关系，以生成具有同理心且相关的回应。我们提出了一种通过事件图摘要任务来衡量他们的因果和时间理解能力（§[4.2](https://arxiv.org/html/2402.17753v1#S4.SS2
+    "4.2 Event Summarization Task ‣ 4 LoCoMo Evaluation Benchmark ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents")）。在该任务中，与每个LLM发言者相关的事件图作为正确答案，模型的任务是从对话历史中提取这些信息。第三，会话代理需要利用从过去对话中回忆起的相关语境，生成与正在进行的叙事一致的回应。我们通过多模态对话生成任务来评估这一能力（§[4.3](https://arxiv.org/html/2402.17753v1#S4.SS3
+    "4.3 Multi-Modal Dialogue Generation Task ‣ 4 LoCoMo Evaluation Benchmark ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")）。
+- en: 'We present extensive experimental results on the LoCoMo benchmark using instruction-based
+    LLMs, long-context LLMs, and RAG techniques (§[5](https://arxiv.org/html/2402.17753v1#S5
+    "5 Experimental Setup ‣ Evaluating Very Long-Term Conversational Memory of LLM
+    Agents")). Our findings include:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在LoCoMo基准上展示了使用基于指令的LLM、长期上下文LLM和RAG技术的广泛实验结果（§[5](https://arxiv.org/html/2402.17753v1#S5
+    "5 Experimental Setup ‣ Evaluating Very Long-Term Conversational Memory of LLM
+    Agents")）。我们的研究结果包括：
+- en: (1) Long-context LLMs and RAG demonstrate effectiveness in QA tasks, improving
+    ‘memory’ capabilities of LLMs (with improvements ranging from 22-66%), but still
+    significantly lag behind human levels (by 56%), especially in temporal reasoning,
+    (by 73%);
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (1) 长期上下文LLM和RAG在问答任务中表现出有效性，提高了LLM的“记忆”能力（提升幅度从22%到66%不等），但仍显著落后于人类水平（低56%），特别是在时间推理方面（低73%）；
+- en: (2) long-context LLMs demonstrate significant difficulty with adversarial questions
+    in the QA task, showing a performance that is 83% lower than the base model. They
+    are especially prone to misassigning dialogs or events to the wrong speaker. Moreover,
+    they show poor performance on event graph summarization, lagging behind the base
+    model by 14%, indicating that they may grasp the factual elements within the entire
+    conversation but do not accurately comprehend the context; and
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (2) 长期上下文LLM在问答任务中对抗性问题表现出显著困难，表现比基础模型低83%。它们尤其容易将对话或事件错误分配给错误的说话者。此外，它们在事件图总结上的表现较差，落后于基础模型14%，这表明它们可能掌握了整个对话中的事实元素，但没有准确理解上下文；
+- en: (3) RAG offers a balanced compromise, combining the accuracy of short-context
+    LLMs with the extensive comprehension of wide-context LLMs, and does particularly
+    well when dialogues are transformed into a database of assertions (observations)
+    about each speaker’s life and persona.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (3) RAG提供了一种平衡的折中方案，结合了短期上下文LLM的准确性和广泛上下文LLM的全面理解，当对话被转化为每个说话者的生活和个性断言（观察）数据库时，表现尤为出色。
+- en: 2 Related Work
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Long-term Dialogue.
+  id: totrans-39
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 长期对话。
+- en: 'Recent approaches involve retrieving historical context from a range of previous
+    dialogues and reasoning over retrieved segments in a temporal order Lee et al.
+    ([2023b](https://arxiv.org/html/2402.17753v1#bib.bib28)); Lu et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib38));
+    Zhong et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib67)); Liang et al.
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib33)) and/or using events to
+    scaffold the dialogues Jang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib21));
+    Zhang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib62)) to enable
+    consistency in long-term conversations. Some limitations of such frameworks are:
+    (1) The accuracy of retrieval can be compromised, as the retrieval model is generally
+    trained on tasks focusing on semantic similarity rather than specifically on such
+    dialogues. Additionally, real-world dialogues often feature co-references and
+    missing content (i.e., anaphora) Anantha et al. ([2021](https://arxiv.org/html/2402.17753v1#bib.bib2)),
+    which further complicate the retrieval process Mallen et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib39));
+    Gao et al. ([2023b](https://arxiv.org/html/2402.17753v1#bib.bib14)); Liu et al.
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib36)); (2) Challenges arise
+    in reasoning over retrieved documents, especially when the model struggles to
+    identify the correct context among the retrieved data Liu et al. ([2024](https://arxiv.org/html/2402.17753v1#bib.bib37));
+    (3) Reasoning over time intervals presents challenges. For example, the way a
+    system responds about past events can vary depending on the amount of time that
+    has passed since the last conversation Zhang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib62));
+    Jang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib21)). Therefore,
+    it is essential to have conversations of considerable length, as well as a systematic
+    evaluation framework, to accurately assess the effectiveness of approaches to
+    long-term dialogue generation. We design a long-term conversation generation pipeline
+    based on retrieval augmentation and events graphs and propose a framework for
+    evaluating long-term dialog agents.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近的方法涉及从一系列先前对话中检索历史上下文，并按时间顺序推理检索到的片段 Lee 等人（[2023b](https://arxiv.org/html/2402.17753v1#bib.bib28)）；Lu
+    等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib38)）；Zhong 等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib67)）；Liang
+    等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib33)）和/或使用事件来搭建对话 Jang 等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib21)）；Zhang
+    等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib62)）以实现长期对话的一致性。这些框架的一些局限性包括：（1）检索的准确性可能会受到影响，因为检索模型通常是在专注于语义相似性而非特别针对此类对话的任务上训练的。此外，现实中的对话通常包含共指和缺失内容（即指代）Anantha
+    等人（[2021](https://arxiv.org/html/2402.17753v1#bib.bib2)），这进一步复杂化了检索过程 Mallen 等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib39)）；Gao
+    等人（[2023b](https://arxiv.org/html/2402.17753v1#bib.bib14)）；Liu 等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib36)）；（2）在推理检索到的文档时会遇到挑战，尤其是在模型难以识别检索数据中的正确上下文时
+    Liu 等人（[2024](https://arxiv.org/html/2402.17753v1#bib.bib37)）；（3）推理时间间隔也带来了挑战。例如，系统如何回应过去的事件可能会因自上次对话以来的时间长短而有所不同
+    Zhang 等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib62)）；Jang 等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib21)）。因此，进行较长时间的对话并拥有一个系统化的评估框架至关重要，以准确评估长期对话生成方法的有效性。我们设计了基于检索增强和事件图的长期对话生成流程，并提出了一个评估长期对话代理的框架。
+- en: Multi-modal Dialogue.
+  id: totrans-41
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 多模态对话。
+- en: 'Multi-modal dialogue primarily consists of two types of tasks: image-grounded
+    dialogue and image-sharing dialogue. The image-grounded dialogue task is centered
+    around responding to questions Antol et al. ([2015](https://arxiv.org/html/2402.17753v1#bib.bib3));
+    Das et al. ([2017](https://arxiv.org/html/2402.17753v1#bib.bib11)); Kottur et al.
+    ([2019](https://arxiv.org/html/2402.17753v1#bib.bib24)) or creating natural conversations
+    related to specific images Mostafazadeh et al. ([2017](https://arxiv.org/html/2402.17753v1#bib.bib42));
+    Shuster et al. ([2020](https://arxiv.org/html/2402.17753v1#bib.bib50)); Meng et al.
+    ([2020](https://arxiv.org/html/2402.17753v1#bib.bib40)); Zheng et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib66)).
+    Conversely, the image-sharing dialogue task focuses on selecting images that semantically
+    align with the provided dialogue context Zang et al. ([2021](https://arxiv.org/html/2402.17753v1#bib.bib59));
+    Feng et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib12)); Lee et al.
+    ([2023c](https://arxiv.org/html/2402.17753v1#bib.bib29)). We use a method from
+    the image-sharing dialogue task to create multimodal dialogs which are then evaluated
+    as an image-grounded dialogue task.'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多模态对话主要包括两类任务：基于图像的对话和图像共享对话。基于图像的对话任务主要围绕回答问题展开 Antol等人（[2015](https://arxiv.org/html/2402.17753v1#bib.bib3)）；Das等人（[2017](https://arxiv.org/html/2402.17753v1#bib.bib11)）；Kottur等人（[2019](https://arxiv.org/html/2402.17753v1#bib.bib24)）；或围绕与特定图像相关的自然对话展开 Mostafazadeh等人（[2017](https://arxiv.org/html/2402.17753v1#bib.bib42)）；Shuster等人（[2020](https://arxiv.org/html/2402.17753v1#bib.bib50)）；Meng等人（[2020](https://arxiv.org/html/2402.17753v1#bib.bib40)）；Zheng等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib66)）。相反，图像共享对话任务则侧重于选择与提供的对话上下文在语义上对齐的图像 Zang等人（[2021](https://arxiv.org/html/2402.17753v1#bib.bib59)）；Feng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib12)）；Lee等人（[2023c](https://arxiv.org/html/2402.17753v1#bib.bib29)）。我们采用图像共享对话任务中的方法来创建多模态对话，随后将其作为基于图像的对话任务进行评估。
+- en: Synthetic Evaluation Benchmark.
+  id: totrans-43
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 合成评估基准。
+- en: Faced with a shortage of human-generated data and observing that LLMs are approaching
+    the quality of human-level annotations He et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib16));
+    Lee et al. ([2023a](https://arxiv.org/html/2402.17753v1#bib.bib27)), there has
+    been a surge in research drawing inspiration from this development. Consequently,
+    numerous studies have started utilizing LLMs to augment or synthesize large-scale
+    dialogue benchmarks for assessing responses in everyday social interactions Kim
+    et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib23)), examining responses
+    in multi-modal environment Feng et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib12)),
+    and evaluating responses that align with specific persona Jandaghi et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib20)).
+    We leverage LLMs to create data but ensure its high quality with human verification
+    and editing.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 面对人类生成数据的短缺，并观察到LLM正在接近人类级别的注释质量 He等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib16)）；Lee等人（[2023a](https://arxiv.org/html/2402.17753v1#bib.bib27)），基于这一发展，相关研究激增。因此，许多研究开始利用LLM来增强或合成大规模对话基准，用于评估日常社交互动中的响应 Kim等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib23)），检验多模态环境中的响应 Feng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib12)），并评估与特定人格对齐的响应 Jandaghi等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib20)）。我们利用LLM来创建数据，但通过人工验证和编辑确保其高质量。
+- en: 3 Generative Pipeline for LoCoMo
+  id: totrans-45
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 LoCoMo生成管道
+- en: '![Refer to caption](img/1cd7d4da1b9a104363686da5897e3039.png)'
+  id: totrans-46
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/1cd7d4da1b9a104363686da5897e3039.png)'
+- en: 'Figure 3: Overview of the generative pipeline for LoCoMo. Each LLM agent is
+    assigned a distinct persona and a timeline of causally connected events in their
+    file. The agent is equipped with a memory and reflection module to retrieve relevant
+    history for dialog generation and is also enabled for image-sharing and image-reaction
+    behaviors (left). The generated conversations are edited by human annotators to
+    maintain long-range consistency (right).'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：LoCoMo生成管道的概述。每个LLM代理被分配一个独特的人格和文件中因果关联事件的时间线。该代理配备了内存和反思模块，以检索与对话生成相关的历史记录，并且启用了图像共享和图像反应行为（左）。生成的对话由人工注释员编辑，以保持长期一致性（右）。
+- en: An overview of our generative pipeline for LoCoMo is shown in Figure [3](https://arxiv.org/html/2402.17753v1#S3.F3
+    "Figure 3 ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents"). We create two virtual agents, named $\mathcal{L}_{1}$
+    and $\mathcal{L}_{2}$, each initialized with a LLM $\mathcal{M}$ (i.e., gpt-3.5-turbo).
+    To start, unique persona statements $p$ are assigned to each agent $\mathcal{L}_{i}$,
+    ensuring the integration of distinct personalities into their dialogues (§[3.1](https://arxiv.org/html/2402.17753v1#S3.SS1
+    "3.1 Persona ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")). To mirror real-life experiences, we create a temporal
+    event graph $\mathcal{G}$ for each agent, which illustrates a realistic sequence
+    of life events (§[3.2](https://arxiv.org/html/2402.17753v1#S3.SS2 "3.2 Temporal
+    Event Graph ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")). The LLM agent architecture Park et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib45))
+    is utilized for each agent $\mathcal{L}_{i}$, enabling them to effectively memorize
+    and reflect conversation history into ongoing dialogues (§[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 Virtual Agent Architecture ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")). Further, each agent $\mathcal{L}_{i}$
+    can share coherent images, thereby enhancing the multi-modal dialogue aspect.
+    Finally, human annotators are tasked with manually filtering and refining the
+    generated data (§[3.4](https://arxiv.org/html/2402.17753v1#S3.SS4 "3.4 Human Verification
+    & Editing ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")).
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的LoCoMo生成流程概述如图[3](https://arxiv.org/html/2402.17753v1#S3.F3 "Figure 3 ‣ 3
+    Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents")所示。我们创建了两个虚拟代理，分别命名为$\mathcal{L}_{1}$和$\mathcal{L}_{2}$，每个代理都初始化为LLM
+    $\mathcal{M}$（即gpt-3.5-turbo）。首先，为每个代理$\mathcal{L}_{i}$分配独特的人物设定声明$p$，以确保不同个性融入其对话中（§[3.1](https://arxiv.org/html/2402.17753v1#S3.SS1
+    "3.1 Persona ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")）。为了模拟现实生活中的经验，我们为每个代理创建了一个时间事件图$\mathcal{G}$，它展示了一系列现实的生活事件（§[3.2](https://arxiv.org/html/2402.17753v1#S3.SS2
+    "3.2 Temporal Event Graph ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents")）。每个代理$\mathcal{L}_{i}$都使用了Park等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib45)）提出的LLM代理架构，使其能够有效地记忆和反映对话历史到持续的对话中（§[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 Virtual Agent Architecture ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")）。此外，每个代理$\mathcal{L}_{i}$还可以共享一致的图像，从而增强多模态对话的表现。最后，人工标注员负责手动筛选和精炼生成的数据（§[3.4](https://arxiv.org/html/2402.17753v1#S3.SS4
+    "3.4 Human Verification & Editing ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")）。
+- en: 3.1 Persona
+  id: totrans-49
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 人物设定
+- en: 'We select an initial persona statement $p_{c}$ from the MSC dataset Xu et al.
+    ([2022](https://arxiv.org/html/2402.17753v1#bib.bib58)), encompassing 4 to 5 sentences,
+    and employ gpt-3.5-turbo as $\mathcal{M}$ to expand these into full persona statement
+    $p$ (See examples and prompt details in Appendix [A.1](https://arxiv.org/html/2402.17753v1#A1.SS1
+    "A.1 Persona ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")). The generated statements typically include
+    details about one or more of the following elements Gao et al. ([2023a](https://arxiv.org/html/2402.17753v1#bib.bib13)):
+    objectives, past experiences, daily habits, and interpersonal relationships, as
+    well as name, age, and gender of the individual.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从MSC数据集Xu等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib58)）中选择了一个初始的人物设定声明$p_{c}$，包含4到5个句子，并使用gpt-3.5-turbo作为$\mathcal{M}$将其扩展为完整的人物设定声明$p$（见附录[A.1](https://arxiv.org/html/2402.17753v1#A1.SS1
+    "A.1 Persona ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")中的示例和提示细节）。生成的声明通常包括以下一项或多项元素的细节：目标、过去的经历、日常习惯和人际关系，以及个人的姓名、年龄和性别，参考Gao等人（[2023a](https://arxiv.org/html/2402.17753v1#bib.bib13)）。
+- en: 3.2 Temporal Event Graph
+  id: totrans-51
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 时间事件图
+- en: To utilize the real-life experiences of each agent in the conversation, we construct
+    a temporal event graph, labeled as $\mathcal{G}$, for each agent. This graph $\mathcal{G}$,
+    consisting of events $e_{i}$, is produced by applying the condition of $\mathcal{M}$
+    (i.e., text-davinci-003) on a designated persona $p$. Each event $e_{i}$ is associated
+    with a date of occurrence $t_{i}$. $\mathcal{G}$ includes causal connections $l=(e_{i},e_{j})$
+    that illustrate the causal relationships among events $e_{i}\in\mathcal{G}$ and
+    reflect a natural succession of events in an individual’s life. For each $\mathcal{G}$,
+    we create up to 25 events, spread across a time frame of 6 to 12 months, in an
+    iterative process that balances between inference time and the coherence of temporal
+    and causal connections in the timeline. Initially, a small batch of $k=3$ events
+    is generated, which is then used iteratively as input prompt to create the subsequent
+    batch of $k$ events. See details in Appendix [A.2](https://arxiv.org/html/2402.17753v1#A1.SS2
+    "A.2 Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents").
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了利用每个对话代理的现实生活经验，我们为每个代理构建一个时间事件图，记作$\mathcal{G}$。这个图$\mathcal{G}$由事件$e_{i}$组成，通过应用$\mathcal{M}$（即text-davinci-003）条件在指定的人物$p$上生成。每个事件$e_{i}$都与发生日期$t_{i}$相关联。$\mathcal{G}$包含因果连接$l=(e_{i},e_{j})$，用于说明事件$e_{i}\in\mathcal{G}$之间的因果关系，并反映个体生活中事件的自然顺序。对于每个$\mathcal{G}$，我们创建最多25个事件，这些事件分布在6到12个月的时间框架内，在推理时间和时间及因果连接的连贯性之间进行平衡的迭代过程中生成。最初，生成一小批$k=3$个事件，然后将其作为输入提示，迭代生成后续的$k$个事件。详情请见附录[A.2](https://arxiv.org/html/2402.17753v1#A1.SS2
+    "A.2 Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")。
+- en: 3.3 Virtual Agent Architecture
+  id: totrans-53
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.3 虚拟代理架构
+- en: 'Every agent $\mathcal{L}_{i}$ incorporates modules from generative agent architecture Park
+    et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib45)). The agent has
+    two functions: (1) reflect & respond; and (2) image sharing & image reaction.
+    The agent is asked to primarily use the reflect & respond function while employing
+    image sharing & image reaction function judiciously and appropriately within the
+    context of the conversation.'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个代理$\mathcal{L}_{i}$都包含来自生成式代理架构Park等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib45)）的模块。代理具有两个功能：（1）反思与回应；（2）图像共享与图像反应。代理主要使用反思与回应功能，同时在对话的上下文中谨慎且恰当地使用图像共享与图像反应功能。
+- en: Reflect & Respond.
+  id: totrans-55
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 反思与回应。
+- en: The fundamental process for each agent to reflect and respond involves the concept
+    of short-term and long-term memory. During inference, agent $\mathcal{L}_{i}$
+    conditions its responses on both short and long-term memories, paralleling how
+    humans remember recent conversations while also recalling distilled important
+    experiences from long-term memory. Following each session $k$, each agent is asked
+    to produce a summary $w_{k}$ that is then stored in the short-term $\mathcal{H}_{s}$.
+    This summary $w_{k}$ is generated by conditioning $\mathcal{M}$ on both the most
+    recent session conversation history $h_{k}$ and the preceding summary $w_{k-1}\in\mathcal{H}_{l}$.
+    For each turn $j$ within session $k$, a single turn of the conversation $h_{k_{j}}$
+    is transformed into an observation $o_{k_{j}}$ and then stored in the long-term
+    memory $\mathcal{H}_{l}$. Then, agent $\mathcal{L}_{i}$ generates a response in
+    session $k+1$ on the date $t_{k+1}^{s}$ by basing it on the latest summary $w_{k}$,
+    reflections based on the retrieved relevant observations $o\in\mathcal{H}_{s}$,
+    the ongoing conversation history in the current session $h_{k+1}$ and persona
+    statement $p$. Long-term temporal narratives are induced in the conversation by
+    additionally conditioning the agent’s response on the subset of events in $\mathcal{G}$
+    that occur between the last and current session i.e. $\{e\in\mathcal{G}\,|\,t_{k}^{s}\,<\,t_{i}^{e}\,<\,t_{k+1}^{s}\,\}$.
+    See details in Appendix [A.2.1](https://arxiv.org/html/2402.17753v1#A1.SS2.SSS1
+    "A.2.1 Virtual Agent Architecture ‣ A.2 Temporal Event Graph ‣ Appendix A Generative
+    Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents").
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个代理反思和回应的基本过程涉及短期记忆和长期记忆的概念。在推理过程中，代理$\mathcal{L}_{i}$会基于短期和长期记忆来调整其回应，类似于人类记住最近的对话，同时也会回忆起来自长期记忆中的重要经验。在每次会话$k$后，每个代理会生成一个总结$w_{k}$，然后将其存储在短期记忆$\mathcal{H}_{s}$中。这个总结$w_{k}$是通过将$\mathcal{M}$与最新的会话历史$h_{k}$和前一个总结$w_{k-1}\in\mathcal{H}_{l}$结合来生成的。在会话$k$中的每个轮次$j$，会话的一轮内容$h_{k_{j}}$会转化为一个观察结果$o_{k_{j}}$，然后存储在长期记忆$\mathcal{H}_{l}$中。然后，代理$\mathcal{L}_{i}$基于最新总结$w_{k}$、基于检索到的相关观察结果$o\in\mathcal{H}_{s}$的反思、当前会话中的对话历史$h_{k+1}$以及个性声明$p$，生成会话$k+1$中的回应，时间为$t_{k+1}^{s}$。长期的时间叙事通过额外将代理的回应条件化为$\mathcal{G}$中发生在上次会话和当前会话之间的事件子集来引导，即$\{e\in\mathcal{G}\,|\,t_{k}^{s}\,<\,t_{i}^{e}\,<\,t_{k+1}^{s}\,\}$。详细信息请见附录[A.2.1](https://arxiv.org/html/2402.17753v1#A1.SS2.SSS1
+    "A.2.1 Virtual Agent Architecture ‣ A.2 Temporal Event Graph ‣ Appendix A Generative
+    Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")。
+- en: Image Sharing & Image Reaction.
+  id: totrans-57
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 图像共享与图像反应
+- en: 'The image sharing & image reaction functions are integrated to add a multi-modal
+    dimension to the long-term dialogues.²²2Image captions are also saved to long-term
+    memory. The image sharing function is called when the agent decides to send an
+    image. This process includes: (1) Generate a caption $c$ for the intended image
+    using $\mathcal{M}$; (2) Convert the caption $c$ into relevant keywords $w$ using
+    $\mathcal{M}$; (3) Use the keywords $k$ to find an image through web search $WEB(k)$³³3[https://pypi.org/project/icrawler/](https://pypi.org/project/icrawler/);
+    (4) Share the chosen $image$. Conversely, the image reaction function is triggered
+    upon receiving an image from another agent and entails: (1) Generate caption $c$
+    for the received image⁴⁴4We use BLIP-2 Li et al. ([2023b](https://arxiv.org/html/2402.17753v1#bib.bib31))
+    as the captioning model.; (2) Generate a reaction for the received image in response
+    using $\mathcal{M}$ (See Appendix [A.2.1](https://arxiv.org/html/2402.17753v1#A1.SS2.SSS1
+    "A.2.1 Virtual Agent Architecture ‣ A.2 Temporal Event Graph ‣ Appendix A Generative
+    Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")).'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图像共享和图像反应功能被集成，以为长期对话增添多模态维度。²²2图像说明也被保存到长期记忆中。当代理决定发送图像时，会调用图像共享功能。此过程包括：（1）使用$\mathcal{M}$为目标图像生成说明$c$；（2）使用$\mathcal{M}$将说明$c$转换为相关关键词$w$；（3）通过网页搜索$WEB(k)$³³3[https://pypi.org/project/icrawler/](https://pypi.org/project/icrawler/)使用关键词$k$查找图像；（4）共享选定的$image$。相反，当从另一个代理接收到图像时，会触发图像反应功能，具体包括：（1）为接收到的图像生成说明$c$⁴⁴4我们使用BLIP-2
+    Li等（[2023b](https://arxiv.org/html/2402.17753v1#bib.bib31)）作为说明生成模型；（2）使用$\mathcal{M}$生成针对接收到的图像的反应（见附录[A.2.1](https://arxiv.org/html/2402.17753v1#A1.SS2.SSS1
+    "A.2.1 Virtual Agent Architecture ‣ A.2 Temporal Event Graph ‣ Appendix A Generative
+    Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")）。
+- en: 3.4 Human Verification & Editing
+  id: totrans-59
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.4 人类验证与编辑
+- en: In the concluding phase, human annotators are tasked with (1) editing the dialogue
+    to eliminate long-term inconsistencies, (2) removing or substituting irrelevant
+    images, and (3) verifying and editing for alignment between event graphs and the
+    content of the conversations. Overall, we observed that annotators edited nearly
+    15% of the dialog turns and removed or substituted approx. 19% images present
+    in the LLM-generated dataset. See examples of some edits in Appendix [A.3](https://arxiv.org/html/2402.17753v1#A1.SS3
+    "A.3 Human Filtering ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents").
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在最后阶段，人工标注员的任务是：（1）编辑对话以消除长期不一致性；（2）删除或替换不相关的图片；（3）验证并编辑事件图与对话内容的一致性。总体而言，我们观察到标注员编辑了近15%的对话回合，并删除或替换了大约19%的LLM生成数据集中的图片。有关一些编辑的示例，请参见附录[A.3](https://arxiv.org/html/2402.17753v1#A1.SS3
+    "A.3 Human Filtering ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")。
+- en: 4 LoCoMo Evaluation Benchmark
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 LoCoMo 评估基准
+- en: Based on the dialogues generated in section [3](https://arxiv.org/html/2402.17753v1#S3
+    "3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents"), we introduce an evaluation benchmark (see Figure [2](https://arxiv.org/html/2402.17753v1#S1.F2
+    "Figure 2 ‣ 1 Introduction ‣ Evaluating Very Long-Term Conversational Memory of
+    LLM Agents")) composed of three tasks to assess the accuracy of long-term memory.
+    See statistics of the dataset and evaluation benchmark in Table [5](https://arxiv.org/html/2402.17753v1#A2.T5
+    "Table 5 ‣ B.1 Dataset Statistics ‣ Appendix B Dataset ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents") in the Appendix.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于[3](https://arxiv.org/html/2402.17753v1#S3 "3 Generative Pipeline for LoCoMo
+    ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")节中生成的对话，我们引入了一个评估基准（见[2](https://arxiv.org/html/2402.17753v1#S1.F2
+    "Figure 2 ‣ 1 Introduction ‣ Evaluating Very Long-Term Conversational Memory of
+    LLM Agents")图），该基准由三个任务组成，用于评估长期记忆的准确性。有关数据集和评估基准的统计数据，请参见附录中的[5](https://arxiv.org/html/2402.17753v1#A2.T5
+    "Table 5 ‣ B.1 Dataset Statistics ‣ Appendix B Dataset ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")表。
+- en: 4.1 Question Answering Task
+  id: totrans-63
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 问答任务
+- en: 'A conversational agent is expected to possess a memory to remember previous
+    dialogues, reflecting it to create more engaging responses in future conversations.
+    For a comprehensive assessment of this memory, we introduce a question-answering
+    task divided into five distinct reasoning categories: (1) Single-hop questions
+    require answers based on a single session; (2) Multi-hop questions require synthesizing
+    information from multiple different sessions; (3) Temporal reasoning questions
+    can be answered through temporal reasoning and capturing time-related data cues
+    within the conversation; (4) Open-domain knowledge questions can be answered by
+    integrating a speaker’s provided information with external knowledge such as commonsense
+    or world facts; (5) Adversarial questions are designed to trick the agent into
+    providing wrong answers, with the expectation that the agent will correctly identify
+    them as unanswerable.'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个对话代理需要具备记忆功能，以便记住先前的对话内容，并能在未来的对话中反映这些记忆，从而产生更具吸引力的回应。为了全面评估这种记忆，我们引入了一个问答任务，分为五个不同的推理类别：（1）单跳问题要求根据单一会话来回答；（2）多跳问题需要综合来自多个不同会话的信息；（3）时间推理问题可以通过时间推理来回答，并在对话中捕捉与时间相关的数据线索；（4）开放领域知识问题可以通过整合说话者提供的信息与外部知识（如常识或世界事实）来回答；（5）对抗性问题旨在欺骗代理提供错误答案，期望代理能正确识别这些问题为无法回答。
+- en: For each category, we calculate the F1 score for exact matches, following the
+    normalization of both the predicted and the actual ground truth answers. However,
+    evaluating long-form answers with automated metrics often presents challenges Xu
+    et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib57)). LLMs tend to produce
+    paraphrased responses in varied formats, complicating exact match evaluation.
+    To simplify evaluation in our task, we ensure that answers in our QA annotations
+    are directly taken from the conversations as much as possible. We instruct the
+    LLMs to replicate the exact wording in the conversation when feasible and employ
+    the F1 partial match metric for evaluating the predictions. Each QA sample is
+    also annotated with the turn IDs in the conversation logs that contain the answer.
+    We report the accuracy of retrieving the correct context for RAG models.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个类别，我们计算精确匹配的 F1 分数，并对预测答案和实际的地面真实答案进行标准化。然而，使用自动化指标评估长篇回答常常带来挑战，正如 Xu 等人所述（[2023](https://arxiv.org/html/2402.17753v1#bib.bib57)）。大型语言模型（LLMs）倾向于生成各种格式的释义性回答，这使得精确匹配评估变得更加复杂。为了简化我们的任务评估，我们确保
+    QA 注释中的答案尽可能直接来自对话。我们指示 LLMs 在可能的情况下复制对话中的确切措辞，并使用 F1 部分匹配指标来评估预测结果。每个 QA 样本还会标注包含答案的对话日志中的轮次
+    ID。我们报告了 RAG 模型检索正确上下文的准确率。
+- en: 4.2 Event Summarization Task
+  id: totrans-66
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 事件摘要任务
+- en: The conversation is generated based on a temporal event graph $\mathcal{G}$
+    which is constructed by conditioning an LLM on a persona statement $p$, reflecting
+    the chronological sequence of events in an individual’s life. A conversational
+    agent is expected to not only comprehend the causal connections and the sequence
+    of events in $\mathcal{G}$ but also to recount these events as required. To evaluate
+    the agent’s grasp of event dynamics, we introduce the event summarization task
+    which challenges the agent to summarize the events within a designated timeframe
+    and compares the agent’s summary with events in $\mathcal{G}$. The events in LoCoMo
+    are densely annotated lists of life events that are hard to summarize due to temporal
+    and causal coreferences present in the dialogues, in contrast to existing summarization
+    benchmarks of research papers Li et al. ([2023a](https://arxiv.org/html/2402.17753v1#bib.bib30)),
+    movie scripts Chen et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib7)),
+    books Kryściński et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib26)),
+    emails Zhang et al. ([2021b](https://arxiv.org/html/2402.17753v1#bib.bib63)) etc.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对话是基于时间事件图 $\mathcal{G}$ 生成的，该图通过在 LLM 上条件化一个人格陈述 $p$ 来构建，反映个体生活中的事件时间顺序。对话代理不仅需要理解事件图
+    $\mathcal{G}$ 中的因果关系和事件顺序，还需要根据要求讲述这些事件。为了评估代理对事件动态的掌握，我们引入了事件摘要任务，该任务挑战代理在指定时间框架内总结事件，并将代理的摘要与事件图
+    $\mathcal{G}$ 中的事件进行比较。LoCoMo 中的事件是密集标注的生活事件列表，由于对话中存在的时间和因果共指，它们难以总结，这与现有的研究论文摘要基准（Li
+    等人，[2023a](https://arxiv.org/html/2402.17753v1#bib.bib30)）、电影剧本（Chen 等人，[2022](https://arxiv.org/html/2402.17753v1#bib.bib7)）、书籍（Kryściński
+    等人，[2022](https://arxiv.org/html/2402.17753v1#bib.bib26)）、电子邮件（Zhang 等人，[2021b](https://arxiv.org/html/2402.17753v1#bib.bib63)）等的摘要任务形成对比。
+- en: Traditional metrics like BLEU Papineni et al. ([2002](https://arxiv.org/html/2402.17753v1#bib.bib44))
+    and ROGUE Lin ([2004](https://arxiv.org/html/2402.17753v1#bib.bib34)) focus on
+    lexical similarity between the reference and generated summaries, not meeting
+    our needs as we emphasize factual accuracy in summarization. In this context,
+    we employ FactScore Min et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib41)),
+    a method that evaluates the factuality of generated text by decomposing both the
+    reference and hypothesis into atomic facts. We adapt the metric to measure (1)
+    precision of the summarized content by counting the number of atomic facts within
+    the content that correspond with those in $\mathcal{G}$; (2) recall of the summarized
+    content by determining how comprehensively the atomic facts of $\mathcal{G}$ are
+    represented within the content. We present the F1 score, derived from the calculated
+    precision and recall.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统指标如BLEU Papineni等人（[2002](https://arxiv.org/html/2402.17753v1#bib.bib44)）和ROGUE Lin（[2004](https://arxiv.org/html/2402.17753v1#bib.bib34)）关注参考和生成摘要之间的词汇相似度，但这并不符合我们的需求，因为我们强调摘要的事实准确性。在这种背景下，我们采用了FactScore Min等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib41)），这是一种通过将参考和假设都分解为原子事实来评估生成文本的真实性的方法。我们调整了该指标来测量（1）摘要内容的精确度，通过计算内容中与
+    $\mathcal{G}$ 中的原子事实对应的数量；（2）摘要内容的召回率，通过确定 $\mathcal{G}$ 中的原子事实在内容中的全面呈现程度。我们展示了基于计算出的精确度和召回率得出的F1得分。
+- en: 4.3 Multi-Modal Dialogue Generation Task
+  id: totrans-69
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 多模态对话生成任务
+- en: The conversations in our dataset are anchored to specific personas $p$ and corresponding
+    events $\mathcal{G}$ tailored to $p$. The topics in conversations evolve from
+    events that were introduced in earlier dialogues, spanning weeks or months. This
+    structure allows for an assessment of whether conversational agents can sustain
+    a coherent persona and a continuous narrative over time. For example, if a speaker
+    recently had an injury, the next conversations would likely focus on them recuperating,
+    rather than engaging in adventurous activities. We assess such consistency by
+    measuring how closely the predicted multi-modal dialogues align with the ground
+    truth multi-modal dialogues in our dataset, quantifying this alignment through
+    MMRelevance Feng et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib12)),
+    in addition to other NLG metrics.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们数据集中的对话是基于特定人物角色 $p$ 以及与 $p$ 相关的事件 $\mathcal{G}$ 定制的。对话中的话题从早期对话中引入的事件发展而来，时间跨度可能是几周或几个月。这种结构允许评估对话代理是否能够维持一个连贯的人物角色并持续讲述一个连贯的故事。例如，如果一个说话者最近受伤，接下来的对话可能会集中在他们的恢复上，而不是参与冒险活动。我们通过测量预测的多模态对话与数据集中的真实多模态对话的吻合度来评估这种一致性，通过MMRelevance Feng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib12)）以及其他自然语言生成（NLG）指标量化这种吻合度。
+- en: 5 Experimental Setup
+  id: totrans-71
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 实验设置
+- en: For the question-answering and event summarization tasks, we replace images
+    in LoCoMo with their captions Li et al. ([2023b](https://arxiv.org/html/2402.17753v1#bib.bib31)),
+    and use state-of-art LLMs to reason over text-only dialogues interleaved with
+    image captions. We use images directly for the multimodal dialog generation task
+    only. See additional details in Appendix [C](https://arxiv.org/html/2402.17753v1#A3
+    "Appendix C Experimental Setup ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents").
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于问答和事件摘要任务，我们将LoCoMo中的图像替换为其标题Li等人（[2023b](https://arxiv.org/html/2402.17753v1#bib.bib31)），并使用最先进的大型语言模型（LLMs）对仅包含文本的对话和图像标题进行推理。我们仅在多模态对话生成任务中直接使用图像。更多细节见附录[C](https://arxiv.org/html/2402.17753v1#A3
+    "附录 C 实验设置 ‣ 评估LLM代理的超长期对话记忆")。
+- en: Question Answering.
+  id: totrans-73
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 问答
+- en: 'We evaluate three types of models: (1) Base LLMs operating with constrained
+    context lengths where earlier dialogues are omitted i.e., Mistral-7B Jiang et al.
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib22)), LLama-70B-chat Touvron
+    et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib52)), gpt-3.5-turbo ⁵⁵5https://platform.openai.com/docs/models/gpt-3-5,
+    and gpt-4-turbo ⁶⁶6https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo;
+    (2) Long-context LLMs with an extended context window i.e., gpt-3.5-turbo-16k;
+    (3) Retrieval-augmented Generation (RAG) involves retrieving relevant context
+    from a database of dialog history, observations (assertions about speakers; see
+    §[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3 "3.3 Virtual Agent Architecture
+    ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents"), Figure [9](https://arxiv.org/html/2402.17753v1#A1.F9 "Figure
+    9 ‣ Image sharing & response. ‣ A.2.1 Virtual Agent Architecture ‣ A.2 Temporal
+    Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")), or session-level summaries (see §[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 Virtual Agent Architecture ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents"), Figure [8](https://arxiv.org/html/2402.17753v1#A1.F8
+    "Figure 8 ‣ Image sharing & response. ‣ A.2.1 Virtual Agent Architecture ‣ A.2
+    Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")). We employ DRAGON Lin et al.
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib35)) as retriever and gpt-3.5-turbo-16k
+    as reader.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们评估了三种类型的模型：（1）基于常规上下文长度的基础LLM模型，其中较早的对话被省略，即Mistral-7B Jiang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib22)），LLama-70B-chat Touvron等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib52)），gpt-3.5-turbo ⁵⁵5https://platform.openai.com/docs/models/gpt-3-5，以及gpt-4-turbo ⁶⁶6https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo；（2）具有扩展上下文窗口的长上下文LLM模型，即gpt-3.5-turbo-16k；（3）检索增强生成（RAG）涉及从对话历史、观察（关于发言人的陈述；见§[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 虚拟代理架构 ‣ LoCoMo生成管道 ‣ 评估LLM代理的长期对话记忆")，图[9](https://arxiv.org/html/2402.17753v1#A1.F9
+    "图9 ‣ 图像共享与响应 ‣ A.2.1 虚拟代理架构 ‣ A.2 时间事件图 ‣ 附录A LoCoMo生成管道 ‣ 评估LLM代理的长期对话记忆")），或会话级摘要（见§[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 虚拟代理架构 ‣ LoCoMo生成管道 ‣ 评估LLM代理的长期对话记忆")，图[8](https://arxiv.org/html/2402.17753v1#A1.F8
+    "图8 ‣ 图像共享与响应 ‣ A.2.1 虚拟代理架构 ‣ A.2 时间事件图 ‣ 附录A LoCoMo生成管道 ‣ 评估LLM代理的长期对话记忆")）中检索相关的上下文。我们使用DRAGON Lin等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib35)）作为检索器，gpt-3.5-turbo-16k作为阅读器。
+- en: Event Summarization.
+  id: totrans-75
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 事件总结。
+- en: We present experiments using Base and Long-context setups from the question-answering
+    task, but refrain from including RAG since summarization requires a comprehensive
+    understanding of the entire dialogue, rather than just retrieving a specific portion.
+    We implement incremental summarization i.e., iteratively create a summary of a
+    preceding sessions and then use that summary as a basis to summarize the subsequent
+    sessions Chang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib6)).
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们展示了使用基础和长上下文设置的问答任务实验，但没有包括RAG，因为总结需要对整个对话有全面的理解，而不仅仅是检索特定部分。我们实现了增量总结，即迭代地创建前一会话的摘要，然后使用该摘要作为基础来总结随后的会话Chang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib6)）。
+- en: Multi-modal Dialogue Generation.
+  id: totrans-77
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 多模态对话生成。
+- en: 'We generate 50 conversations using our automated pipeline (without human filtering;
+    §[3](https://arxiv.org/html/2402.17753v1#S3 "3 Generative Pipeline for LoCoMo
+    ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")) for training
+    data and train three versions of MiniGPT-5 Zheng et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib65)):
+    (1) Base trains on prior dialogue turns only; (2) + summary trains on prior dialogue
+    turns and a global summary of the ongoing conversation; (3) + observation trains
+    on prior dialogue turns and observations retrieved from conversation history.
+    Each run is initialized with a MiniGPT-5 checkpoint finetuned on MMDialog Feng
+    et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib12)).'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过自动化流水线（没有人工过滤；§[3](https://arxiv.org/html/2402.17753v1#S3 "3 Generative
+    Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")）生成了50个对话作为训练数据，并训练了三个版本的MiniGPT-5 Zheng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib65)）：(1)
+    基础版本仅基于先前的对话轮次进行训练；(2) +摘要版基于先前的对话轮次和正在进行的对话的全局摘要进行训练；(3) +观察版基于先前的对话轮次和从对话历史中检索到的观察进行训练。每次训练都从MiniGPT-5检查点开始，并在MMDialog
+    Feng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib12)）上进行了微调。
+- en: '| Category | Model | Context Length | Answer Prediction (F1) |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类别 | 模型 | 上下文长度 | 答案预测（F1） |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Single Hop | Multi Hop | Temporal | Open Domain | Adversarial | Overall |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单跳 | 多跳 | 时间性 | 开放域 | 对抗性 | 总体 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| Human | Human | - | 95.1 | 85.8 | 92.6 | 75.4 | 89.4 | 87.9 |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| 人类 | 人类 | - | 95.1 | 85.8 | 92.6 | 75.4 | 89.4 | 87.9 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Base | Mistral-Instruct-7B | 8K | 10.2 | 12.8 | 16.1 | 19.5 | 17.0 | 13.9
+    |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基础 | Mistral-Instruct-7B | 8K | 10.2 | 12.8 | 16.1 | 19.5 | 17.0 | 13.9 |'
+- en: '| Llama-2-Chat-70B | 4,096 | 19.7 | 14.4 | 13.3 | 15.9 | 22.1 | 17.9 |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| Llama-2-Chat-70B | 4,096 | 19.7 | 14.4 | 13.3 | 15.9 | 22.1 | 17.9 |'
+- en: '| GPT-3.5-turbo | 4,096 | 29.9 | 23.3 | 17.5 | 29.5 | 12.8 | 22.4 |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-turbo | 4,096 | 29.9 | 23.3 | 17.5 | 29.5 | 12.8 | 22.4 |'
+- en: '| GPT-4-turbo | 4,096 | 23.4 | 23.4 | 10.4 | 24.6 | 70.2 | 32.1 |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4-turbo | 4,096 | 23.4 | 23.4 | 10.4 | 24.6 | 70.2 | 32.1 |'
+- en: '| Long context | GPT-3.5-turbo-16K | 4K | 31.7 | 25.4 | 16.8 | 27.6 | 13.1
+    | 24.1 |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| 长上下文 | GPT-3.5-turbo-16K | 4K | 31.7 | 25.4 | 16.8 | 27.6 | 13.1 | 24.1 |'
+- en: '| 8K | 38.8 | 31.2 | 21.0 | 35.0 | 8.4 | 25.2 |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8K | 38.8 | 31.2 | 21.0 | 35.0 | 8.4 | 25.2 |'
+- en: '| 12K | 51.1 | 40.4 | 25.0 | 36.5 | 6.4 | 33.5 |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12K | 51.1 | 40.4 | 25.0 | 36.5 | 6.4 | 33.5 |'
+- en: '| 16K | 56.4 | 42.0 | 20.3 | 37.2 | 2.1 | 37.8 |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| 16K | 56.4 | 42.0 | 20.3 | 37.2 | 2.1 | 37.8 |'
+- en: 'Table 2: Question answering performance of Base and Long-context models. Optimal
+    performance is in bold. Results are based on F1-score for answer prediction; higher
+    is better.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：基础模型与长上下文模型的问答性能。最佳性能为**粗体**。结果基于答案预测的F1分数；分数越高越好。
+- en: '|  |  | Answer Prediction (F1 score) |  | Recall Accuracy (R@$k$) |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '|  |  | 答案预测（F1分数） |  | 召回准确率（R@$k$） |'
+- en: '| Retrieval Unit | top-$k$ | Single Hop | Multi Hop | Temporal | Open Domain
+    | Adver- -sarial | Overall | Single Hop | Multi Hop | Temporal | Open Domain |
+    Adver- -sarial | Overall |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| 检索单元 | top-$k$ | 单跳 | 多跳 | 时间性 | 开放域 | 对抗性 | 总体 | 单跳 | 多跳 | 时间性 | 开放域 | 对抗性
+    | 总体 |'
+- en: '| None | - | 29.9 | 23.3 | 17.5 | 29.5 | 12.8 | 22.4 | - | - | - | - | - |
+    - |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无 | - | 29.9 | 23.3 | 17.5 | 29.5 | 12.8 | 22.4 | - | - | - | - | - | - |'
+- en: '| Dialog | 5 | 42.9 | 19.4 | 21.3 | 35.8 | 31.9 | 31.7 | 66.2 | 34.4 | 89.2
+    | 38.5 | 45.7 | 58.8 |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对话 | 5 | 42.9 | 19.4 | 21.3 | 35.8 | 31.9 | 31.7 | 66.2 | 34.4 | 89.2 | 38.5
+    | 45.7 | 58.8 |'
+- en: '| 10 | 46.3 | 26.8 | 24.8 | 37.5 | 29.8 | 34.6 | 72.8 | 247.4 | 97.3 | 53.8
+    | 54.3 | 67.5 |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | 46.3 | 26.8 | 24.8 | 37.5 | 29.8 | 34.6 | 72.8 | 247.4 | 97.3 | 53.8
+    | 54.3 | 67.5 |'
+- en: '| 25 | 48.1 | 36.1 | 26.2 | 43.4 | 23.4 | 35.8 | 87.5 | 64.1 | 97.3 | 67.9
+    | 69.1 | 79.9 |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| 25 | 48.1 | 36.1 | 26.2 | 43.4 | 23.4 | 35.8 | 87.5 | 64.1 | 97.3 | 67.9
+    | 69.1 | 79.9 |'
+- en: '| 50 | 50.9 | 37.2 | 24.6 | 38.3 | 17.0 | 34.8 | 90.4 | 75.5 | 97.3 | 67.9
+    | 77.7 | 84.8 |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| 50 | 50.9 | 37.2 | 24.6 | 38.3 | 17.0 | 34.8 | 90.4 | 75.5 | 97.3 | 67.9
+    | 77.7 | 84.8 |'
+- en: '| Observation | 5 | 44.3 | 30.6 | 41.9 | 40.2 | 44.7 | 41.4 | 52.9 | 40.1 |
+    81.1 | 38.5 | 29.8 | 49.6 |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| 观察 | 5 | 44.3 | 30.6 | 41.9 | 40.2 | 44.7 | 41.4 | 52.9 | 40.1 | 81.1 | 38.5
+    | 29.8 | 49.6 |'
+- en: '| 10 | 42.2 | 30.5 | 42.1 | 41.9 | 36.2 | 38.8 | 57.4 | 53.1 | 83.8 | 46.2
+    | 41.5 | 57.1 |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | 42.2 | 30.5 | 42.1 | 41.9 | 36.2 | 38.8 | 57.4 | 53.1 | 83.8 | 46.2
+    | 41.5 | 57.1 |'
+- en: '| 25 | 44.6 | 33.2 | 41.8 | 41.9 | 27.7 | 38.0 | 71.3 | 63.8 | 83.8 | 66.7
+    | 45.7 | 66.0 |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| 25 | 44.6 | 33.2 | 41.8 | 41.9 | 27.7 | 38.0 | 71.3 | 63.8 | 83.8 | 66.7
+    | 45.7 | 66.0 |'
+- en: '| 50 | 44.0 | 34.5 | 41.1 | 41.9 | 27.7 | 37.8 | 72.8 | 73.2 | 83.8 | 74.4
+    | 56.4 | 71.1 |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| 50 | 44.0 | 34.5 | 41.1 | 41.9 | 27.7 | 37.8 | 72.8 | 73.2 | 83.8 | 74.4
+    | 56.4 | 71.1 |'
+- en: '| Summary | 2 | 34.6 | 15.7 | 26.9 | 26.5 | 36.2 | 29.9 | 68.4 | 39.6 | 56.8
+    | 50.0 | 73.4 | 61.5 |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 摘要 | 2 | 34.6 | 15.7 | 26.9 | 26.5 | 36.2 | 29.9 | 68.4 | 39.6 | 56.8 | 50.0
+    | 73.4 | 61.5 |'
+- en: '| 5 | 36.6 | 16.6 | 31.0 | 34.7 | 38.3 | 32.5 | 81.6 | 57.0 | 70.3 | 60.3 |
+    86.2 | 75.1 |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | 36.6 | 16.6 | 31.0 | 34.7 | 38.3 | 32.5 | 81.6 | 57.0 | 70.3 | 60.3 |
+    86.2 | 75.1 |'
+- en: '| 10 | 34.5 | 14.7 | 29.3 | 31.6 | 40.4 | 31.5 | 93.4 | 82.3 | 91.9 | 80.8
+    | 94.7 | 90.7 |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10 | 34.5 | 14.7 | 29.3 | 31.6 | 40.4 | 31.5 | 93.4 | 82.3 | 91.9 | 80.8
+    | 94.7 | 90.7 |'
+- en: 'Table 3: Question answering performance of RAG-based GPT-3.5-turbo-16k. Optimal
+    performance is in bold. Results are based on F1-score metric for answer prediction
+    and recall@$k$ for recall accuracy; higher is better.'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：基于RAG的GPT-3.5-turbo-16k在问题回答任务中的表现。最佳表现用**粗体**表示。结果基于F1分数度量来评估答案预测，以及基于召回准确率的召回@$k$；数值越高越好。
+- en: 6 Experimental Results
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 实验结果
+- en: We evaluate and analyze the comprehensive performance of all baseline methods
+    for question answering (§[6.1](https://arxiv.org/html/2402.17753v1#S6.SS1 "6.1
+    Question Answering Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")), event graph summarization (§[6.2](https://arxiv.org/html/2402.17753v1#S6.SS2
+    "6.2 Event Summarization Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")), and multi-modal dialogue generation (§[6.3](https://arxiv.org/html/2402.17753v1#S6.SS3
+    "6.3 Multi-Modal Dialog Generation Task ‣ 6 Experimental Results ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")).
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们评估并分析了所有基线方法在问题回答（§[6.1](https://arxiv.org/html/2402.17753v1#S6.SS1 "6.1 Question
+    Answering Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")）、事件图总结（§[6.2](https://arxiv.org/html/2402.17753v1#S6.SS2
+    "6.2 Event Summarization Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")）和多模态对话生成（§[6.3](https://arxiv.org/html/2402.17753v1#S6.SS3
+    "6.3 Multi-Modal Dialog Generation Task ‣ 6 Experimental Results ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")）中的综合性能。
+- en: 6.1 Question Answering Task
+  id: totrans-111
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1 问题回答任务
+- en: 'Tables [2](https://arxiv.org/html/2402.17753v1#S5.T2 "Table 2 ‣ Multi-modal
+    Dialogue Generation. ‣ 5 Experimental Setup ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents") and [3](https://arxiv.org/html/2402.17753v1#S5.T3 "Table
+    3 ‣ Multi-modal Dialogue Generation. ‣ 5 Experimental Setup ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents") present the performance results
+    for the question answering task. We find that: (1) LLMs with limited context length
+    face challenges in understanding extremely long conversations due to truncated
+    context windows. Despite gpt-4-turbo emerging as the top-performing model with
+    an overall score of 32.4, it notably lags behind the human benchmark of 87.9;
+    (2) long-context LLMs can comprehend longer narratives, yet they are prone to
+    generating hallucinations. gpt-3.5-turbo-16k outperforms other approaches, but
+    its performance on adversarial questions drops to a mere 2.1%, as compared to
+    22.1% using Llama-2-Chat and 70.2% using GPT-4-turbo with 4K context windows.
+    This indicates that LLMs can be easily misled into generating hallucinations when
+    they are subjected to long contexts; (3) RAG is effective when conversations are
+    stored as observations. There is a noticeable 5% improvement with gpt-3.5-turbo
+    when the input is top 5 relevant observations instead of pure conversation logs.
+    This improvement falters with an increase in the number of retrieved observations,
+    suggesting that it is important to reduce the signal-to-noise (SNR) ratio in retrieved
+    contexts for models to utilize the context accurately. Conversely, using session
+    summaries as context does not significantly improve the performance despite high
+    recall accuracies⁷⁷7For summary-based RAG models, the recall accuracy is based
+    on retrieving the summary of the relevant session(s)., likely due to loss of information
+    during the conversion of dialogs to summaries.'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[2](https://arxiv.org/html/2402.17753v1#S5.T2 "Table 2 ‣ Multi-modal Dialogue
+    Generation. ‣ 5 Experimental Setup ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")和[3](https://arxiv.org/html/2402.17753v1#S5.T3 "Table 3
+    ‣ Multi-modal Dialogue Generation. ‣ 5 Experimental Setup ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")展示了问答任务的性能结果。我们发现：（1）具有有限上下文长度的LLM在理解极长对话时面临挑战，因为上下文窗口被截断。尽管gpt-4-turbo以32.4的总得分成为表现最好的模型，但它明显落后于人类基准87.9；（2）长上下文LLM能够理解更长的叙述，但它们容易生成幻觉。gpt-3.5-turbo-16k优于其他方法，但在对抗性问题上的表现降至仅为2.1%，而Llama-2-Chat为22.1%，GPT-4-turbo在4K上下文窗口下为70.2%。这表明，当LLM面临长上下文时，很容易被误导生成幻觉；（3）当对话被存储为观察结果时，RAG是有效的。当输入为前五个相关观察结果而不是纯对话日志时，gpt-3.5-turbo的性能有明显提高，改善了约5%。随着检索观察结果数量的增加，这种改进变得不明显，表明为了使模型准确利用上下文，减少检索上下文中的信噪比（SNR）是重要的。相反，使用会话总结作为上下文并未显著提高性能，尽管回忆准确率很高⁷⁷7对于基于总结的RAG模型，回忆准确率是基于检索相关会话的总结来衡量的，可能是由于将对话转化为总结过程中信息的丢失。
+- en: The interesting finding is that time reasoning and open-domain knowledge questions
+    are the most challenging scenarios.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个有趣的发现是，时间推理和开放领域知识问题是最具挑战性的场景。
+- en: (1) LLMs face challenges in understanding time concepts within dialogues, which
+    is consistent with findings from other single-turn-based benchmarks focused on
+    temporal reasoning capabilities for LLMs Wang and Zhao ([2023](https://arxiv.org/html/2402.17753v1#bib.bib53)).
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (1) LLM在理解对话中的时间概念方面面临挑战，这与其他专注于LLM时间推理能力的单轮基准测试的发现一致 Wang和Zhao ([2023](https://arxiv.org/html/2402.17753v1#bib.bib53))。
+- en: (2) LLMs struggle with open-domain knowledge and degrade in the RAG setting.
+    This suggests that while certain open-domain knowledge may be embedded within
+    the model’s parameters, introducing improper context from inaccurate retrieval
+    can lead to a decline in performance Mallen et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib39)).
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (2) LLM在开放领域知识方面存在困难，并在RAG设置下性能下降。这表明，虽然某些开放领域知识可能已经嵌入在模型的参数中，但引入不准确的检索上下文会导致性能下降 Mallen等人
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib39))。
+- en: '| Category | Model | Context Length | ROGUE | FactScore |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类别 | 模型 | 上下文长度 | ROGUE | FactScore |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| ROGUE-1 | ROGUE-2 | ROGUE-L | Precision | Recall | F1 |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| ROGUE-1 | ROGUE-2 | ROGUE-L | 精度 | 召回率 | F1 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-119
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| Base | Mistral-Instruct-7B | 8K | 29.4 | 7.2 | 14.1 | 27.1 | 19.8 | 23.0
+    |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基础 | Mistral-Instruct-7B | 8K | 29.4 | 7.2 | 14.1 | 27.1 | 19.8 | 23.0 |'
+- en: '| Llama-2-Chat-70B | 4,096 | 28.1 | 9.3 | 14.8 | 36.3 | 22.7 | 28.3 |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| Llama-2-Chat-70B | 4,096 | 28.1 | 9.3 | 14.8 | 36.3 | 22.7 | 28.3 |'
+- en: '| GPT-4-turbo | 4,096 | 38.8 | 11.4 | 20.6 | 51.6 | 41.8 | 45.1 |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4-turbo | 4,096 | 38.8 | 11.4 | 20.6 | 51.6 | 41.8 | 45.1 |'
+- en: '| GPT-3.5-turbo | 4,096 | 41.1 | 13.5 | 20.9 | 45.3 | 46.5 | 45.9 |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-turbo | 4,096 | 41.1 | 13.5 | 20.9 | 45.3 | 46.5 | 45.9 |'
+- en: '| Long context | GPT-3.5-turbo-16K | 16K | 36.2 | 8.5 | 16.4 | 42.3 | 37.8
+    | 39.9 |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| 长上下文 | GPT-3.5-turbo-16K | 16K | 36.2 | 8.5 | 16.4 | 42.3 | 37.8 | 39.9 |'
+- en: 'Table 4: Event summarization performance of Base and Long-context models. The
+    optimal performance is shown in bold. Results are based on ROUGE and FactScore
+    Min et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib41)) metrics; higher
+    is better.'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表4：Base模型和长上下文模型的事件摘要性能。最佳性能以粗体显示。结果基于ROUGE和FactScore Min等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib41)）的度量标准；分数越高越好。
+- en: '![Refer to caption](img/c2887d56eb8916c40458debafe649dcc.png)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/c2887d56eb8916c40458debafe649dcc.png)'
+- en: 'Figure 4: Multimodal dialog generation performance of MiniGPT-5. (A) an example
+    of multimodal dialog predicted using MiniGPT5 with and without observation as
+    retrieved context, (B) Variation of MM-Relevance score with length of dialog history,
+    and (C) comparison of RAG-based MiniGPT-5 methods.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：MiniGPT-5的多模态对话生成性能。（A）使用MiniGPT-5在有无观察上下文的情况下预测的多模态对话示例，（B）MM-相关性得分随对话历史长度的变化，和（C）基于RAG的MiniGPT-5方法比较。
+- en: 6.2 Event Summarization Task
+  id: totrans-128
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2 事件摘要任务
+- en: Table [4](https://arxiv.org/html/2402.17753v1#S6.T4 "Table 4 ‣ 6.1 Question
+    Answering Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents") presents results for the event summarization task. The
+    use of incremental summarization with gpt-3.5-turbo leads to the highest performance
+    in both recall and F1 score. While gpt-4-turbo records a 5.3% improvement in precision
+    over with gpt-3.5-turbo, it does not fare as well in terms of recall. The event
+    summarization task requires long-range dependency to understand the temporal and
+    causal connections between the events discussed by the speaker in multiple sessions
+    (see Figure [7](https://arxiv.org/html/2402.17753v1#A1.F7 "Figure 7 ‣ A.2 Temporal
+    Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")). Contrary to expectations, the long-context
+    model does not surpass the base model, despite its capability for extended-range
+    reasoning facilitated by a larger context window. gpt-3.5-turbo-16k exhibits a
+    decline in both precision (by 3.0%) and recall (by 8.7%) compared to gpt-3.5-turbo
+    which has a 4K context window. This suggests that long-context models may not
+    be proficient at utilizing their context appropriately, which also aligns with
+    similar findings in Li et al. ([2023a](https://arxiv.org/html/2402.17753v1#bib.bib30))
+    as well as the QA task in LoCoMo. In terms of both the ROUGE and FactScore metrics,
+    commercial models (gpt-4-turbo, gpt-3.5-turbo) significantly outshine their open-source
+    counterparts. Nonetheless, there remains considerable scope for improving performance
+    on this task.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表[4](https://arxiv.org/html/2402.17753v1#S6.T4 "表4 ‣ 6.1 问答任务 ‣ 6 实验结果 ‣ 评估LLM代理的长期对话记忆")展示了事件摘要任务的结果。使用增量摘要的gpt-3.5-turbo在召回率和F1分数上均取得了最佳表现。尽管gpt-4-turbo在精度上比gpt-3.5-turbo提高了5.3%，但在召回率上表现不如预期。事件摘要任务需要长程依赖性来理解说话者在多次会话中讨论的事件之间的时间和因果关系（见图[7](https://arxiv.org/html/2402.17753v1#A1.F7
+    "图7 ‣ A.2 时间事件图 ‣ 附录A LoCoMo生成流水线 ‣ 评估LLM代理的长期对话记忆")）。与预期相反，尽管长上下文模型具备更大的上下文窗口来支持扩展范围的推理，但并未超过基础模型。与具有4K上下文窗口的gpt-3.5-turbo相比，gpt-3.5-turbo-16k的精度下降了3.0%，召回率下降了8.7%。这表明长上下文模型可能不善于恰当地利用其上下文，这与Li等人（[2023a](https://arxiv.org/html/2402.17753v1#bib.bib30)）以及LoCoMo中的问答任务的类似发现一致。在ROUGE和FactScore两个度量标准中，商业模型（gpt-4-turbo，gpt-3.5-turbo）明显优于开源模型。然而，在此任务上仍有相当大的改进空间。
+- en: 'From a manual analysis of predicted summaries, we identify five broad categories
+    of event summarization errors made by LLMs: (1) missing information in events
+    because the model fails to make temporal and/or causal connections over a lengthy
+    conversation; (2) hallucinations i.e., models pad extra details that are either
+    not present in the conversation or are part of a different event in the same session;
+    (3) errors from misunderstanding of dialog cues such as humor or sarcasm is a
+    distinctive issue with comprehension of dialogs; (4) inaccurate speaker attributions;
+    and (5) insignificant dialogs that are wrongly considered as salient events. See
+    examples in Table [7](https://arxiv.org/html/2402.17753v1#A4.T7 "Table 7 ‣ D.1
+    Event Summarization Task ‣ Appendix D Results ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents") in the Appendix.'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过对预测总结的人工分析，我们确定了LLMs在事件总结中常见的五类错误：（1）事件信息缺失，因为模型未能在长时间对话中建立时间性和/或因果关系；（2）幻觉，即模型加入了对话中不存在的额外细节，或者是同一会话中属于不同事件的内容；（3）误解对话线索导致的错误，如幽默或讽刺，这是理解对话时的一个独特问题；（4）讲者归属不准确；以及（5）不重要的对话被错误地认为是重要事件。相关示例请参见附录中的表[7](https://arxiv.org/html/2402.17753v1#A4.T7
+    "Table 7 ‣ D.1 Event Summarization Task ‣ Appendix D Results ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents")。
+- en: 6.3 Multi-Modal Dialog Generation Task
+  id: totrans-131
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.3 多模态对话生成任务
+- en: Figure [4](https://arxiv.org/html/2402.17753v1#S6.F4 "Figure 4 ‣ 6.1 Question
+    Answering Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents") illustrates the effectiveness of various MiniGPT-5 training
+    variants in multi-modal dialogue generation. Incorporating context into training
+    enhances performance, with the inclusion of observation as context yielding significantly
+    improved results. For instance, in Figure [4](https://arxiv.org/html/2402.17753v1#S6.F4
+    "Figure 4 ‣ 6.1 Question Answering Task ‣ 6 Experimental Results ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")A, the retrieved observations
+    contain information about the speaker’s experience in video game tournaments,
+    which leads to the prediction of dialog and images that are more faithful to the
+    speaker’s persona. This observation is consistent with earlier findings from the
+    QA task as well (see Table [3](https://arxiv.org/html/2402.17753v1#S5.T3 "Table
+    3 ‣ Multi-modal Dialogue Generation. ‣ 5 Experimental Setup ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents")). Also, we observe that the MM-Relevance
+    score drops with an increase in the length of dialog history (see Figure [4](https://arxiv.org/html/2402.17753v1#S6.F4
+    "Figure 4 ‣ 6.1 Question Answering Task ‣ 6 Experimental Results ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")B). Retrieval-augmented generation
+    alleviates the drop in MM-Relevance to some extent.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图[4](https://arxiv.org/html/2402.17753v1#S6.F4 "Figure 4 ‣ 6.1 Question Answering
+    Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents")展示了多种MiniGPT-5训练变体在多模态对话生成中的有效性。将上下文融入训练可以提升表现，特别是将观察作为上下文的引入显著改善了结果。例如，在图[4](https://arxiv.org/html/2402.17753v1#S6.F4
+    "Figure 4 ‣ 6.1 Question Answering Task ‣ 6 Experimental Results ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")A中，检索到的观察包含有关讲者在视频游戏锦标赛中的经验，这使得预测出的对话和图像更忠实于讲者的个性。这个观察结果与之前在问答任务中的发现一致（参见表[3](https://arxiv.org/html/2402.17753v1#S5.T3
+    "Table 3 ‣ Multi-modal Dialogue Generation. ‣ 5 Experimental Setup ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")）。此外，我们还观察到，当对话历史的长度增加时，MM-相关性得分会下降（参见图[4](https://arxiv.org/html/2402.17753v1#S6.F4
+    "Figure 4 ‣ 6.1 Question Answering Task ‣ 6 Experimental Results ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents")B）。检索增强生成在一定程度上缓解了MM-相关性下降的问题。
+- en: 7 Conclusion
+  id: totrans-133
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 结论
+- en: We develop a human-machine pipeline to collect LoCoMo, a datset of 50 high-quality
+    very long conversations, each encompassing 300 turns and 9K tokens on avg., over
+    up to 35 sessions, and propose an evaluation framework consisting of three tasks
+    that evaluate models’ proficiency in long conversations. Our experiments show
+    that LLMs struggle to comprehend long-term narratives within the dialog and fail
+    to draw temporal and causal connections between events discussed by speakers.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们开发了一种人机协作流程来收集LoCoMo数据集，该数据集包含50个高质量的非常长的对话，每个对话平均包含300轮对话和9K个token，最长可达35轮，并提出了一个评估框架，包含三个任务，用以评估模型在长时间对话中的熟练程度。我们的实验表明，大型语言模型（LLMs）在理解对话中的长期叙事时存在困难，并且未能在讨论中建立事件之间的时间性和因果关系。
+- en: 8 Limitations
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 限制
+- en: Hybrid human-machine generated data.
+  id: totrans-136
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 混合人机生成数据。
+- en: Our dataset is sourced primarily from text generated by LLMs. We pursued this
+    method, which has quickly emerged as a popular alternative to time-intensive manual
+    data collection Kim et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib23));
+    Jang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib21)), to avoid
+    the logistical and legal complexities of collecting very long-term real-world
+    conversations at scale. We ensure that the dataset mirrors real-world interactions
+    as much as possible by having human annotators verify and edit the generated conversations.
+    However, we acknowledge that this dataset may not fully reflect the nuances of
+    real-world online conversations.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的数据集主要来源于LLM生成的文本。我们选择这种方法，它迅速成为了手动数据收集（需要大量时间投入）的热门替代方案 Kim等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib23)）；Jang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib21)），以避免大规模收集长期真实世界对话时所面临的后勤和法律复杂性。我们通过让人工注释员验证和编辑生成的对话，确保数据集尽可能反映现实世界中的互动。然而，我们也承认，该数据集可能无法完全反映现实世界在线对话的细微差别。
+- en: Limited exploration of multimodal behavior.
+  id: totrans-138
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 对多模态行为的探索有限。
+- en: Since the images in our dataset are sourced from the web, they do not demonstrate
+    the visual long-term consistencies that are usually exhibited in personal photos
+    (e.g., appearance, home environment, people and pets, etc.). Consequently, we
+    find that the images in our dataset can be replaced with their captions without
+    much loss of information, except for cases where OCR is required. Nevertheless,
+    our work is a first step toward research into the multimodal aspect of very long-term
+    conversations.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们数据集中的图像来自互联网，因此它们并未展示个人照片中通常表现出的视觉长期一致性（例如：外貌、家庭环境、人物和宠物等）。因此，我们发现，除了需要OCR的情况外，数据集中的图像可以用其说明文字替代，而不会丧失太多信息。尽管如此，我们的工作是朝着非常长期对话的多模态研究迈出的第一步。
+- en: Language.
+  id: totrans-140
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 语言。
+- en: Our LLM-based pipeline for generating long-term conversations has been developed
+    for the English language only. However, our pipeline can be made to work with
+    any other language using an LLM that is proficient at that language and appropriate
+    translations of our prompts.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们基于LLM的生成长期对话的流程目前只为英语语言开发。然而，我们的流程可以与任何其他语言一起使用，只要该语言的LLM足够熟练，并且能够适当翻译我们的提示语。
+- en: Closed-source LLMs.
+  id: totrans-142
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 封闭源代码LLM。
+- en: We use state-of-the-art LLMs in our dialog generation pipeline to create a dialog
+    dataset that is as realistic as possible. Unfortunately, this meant employing
+    the strongest commercial LLMs available through a paid API, similar to many concurrent
+    works that generate synthetic conversations Zhong et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib67));
+    Lu et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib38)). We will make
+    the code for our generative pipeline publicly available in the hope that it can
+    be made to work effectively with state-of-the-art open-source LLMs in the future.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在对话生成流程中使用了最先进的LLM（大型语言模型），以创建尽可能真实的对话数据集。不幸的是，这意味着我们采用了通过付费API提供的最强大的商业LLM，这与许多同时进行的工作类似，它们也生成了合成对话
+    Zhong等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib67)）；Lu等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib38)）。我们将公开我们的生成流程代码，希望将来能够使其与最先进的开源LLM有效配合使用。
+- en: Evaluation of long-form NLG.
+  id: totrans-144
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 长篇NLG的评估。
+- en: LLMs are prone to generating verbose answers even when prompted to answer in
+    short phrases. This creates challenges in evaluating the correctness of answers
+    provided by LLMs and has been widely documented in NLP literature Chang et al.
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib6)); Xu et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib57));
+    Krishna et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib25)). Our evaluation
+    framework suffers from the same challenges when used for experimenting with LLMs.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM在被提示以简短短语回答时，容易生成冗长的答案。这给评估LLM提供的答案的正确性带来了挑战，并且在NLP文献中已有广泛记录 Chang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib6)）；Xu等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib57)）；Krishna等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib25)）。我们的评估框架在用于LLM实验时也面临同样的挑战。
+- en: 9 Broader Impacts
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 9 更广泛的影响
+- en: We adopt and improve a framework of generative agents introduced in Park et al.
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib45)) for the generation of
+    long-term conversations. Consequently, the ethical concerns of generative agents
+    outlined by Park et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib45))
+    apply to our work as well, especially since the goal of our framework is to make
+    the conversations as realistic as possible.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们采用并改进了Park等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib45)）提出的生成代理框架，用于生成长期对话。因此，Park等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib45)）概述的生成代理伦理问题同样适用于我们的工作，特别是由于我们的框架目标是使对话尽可能真实。
+- en: Specifically, conversational agents that can pose as human beings with a realistic
+    life, as enabled by the temporal event graphs in our framework, pose the risk
+    that users may form parasocial relationships with such agents that may affect
+    their lives adversely. We recommend that any practical deployment of the generative
+    frameworks mentioned in our work be always prefaced with a disclaimer about the
+    source of the dialogs.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体而言，我们框架中的时间事件图使得对话代理能够表现得像具有人类生活的真实感，这可能导致用户与这些代理建立寄生社交关系，从而对他们的生活产生不利影响。因此，我们建议在实际部署我们工作中提到的生成框架时，应始终附上关于对话来源的免责声明。
+- en: Second, the use of multimodal LLMs Zheng et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib65))
+    to generate images conditioned on dialog can lead to the propagation of misinformation
+    and social biases, especially if the conversational agent can be coerced into
+    parroting false information or dangerous opinions.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二，使用多模态LLM（Zheng等人，[2023](https://arxiv.org/html/2402.17753v1#bib.bib65)）生成基于对话条件的图像，可能会导致错误信息和社会偏见的传播，尤其是当对话代理可能被迫重复虚假信息或危险观点时。
+- en: Third, it is tempting to use generative agents to substitute real humans for
+    a process, especially when there are significant challenges in working with humans
+    for a particular goal e.g., collecting real-world interactions between humans
+    over a year or more. Care must be taken to ensure that such substitutes are not
+    made in studies whose outcomes may be used to make real-world decisions with tangible
+    impacts on humans. Our work is merely a study of model comprehension in very long-term
+    conversations. We do not make any recommendations for real-world policies based
+    on this study and advise potential users of our framework to avoid making such
+    recommendations as well.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三，使用生成代理替代真实人类进行某些过程是诱人的，尤其是在与人类合作以达成特定目标时遇到重大挑战时，例如收集人类之间超过一年的真实互动数据。必须小心确保不会在那些结果可能用于做出对人类产生实际影响的现实世界决策的研究中使用此类替代物。我们的工作仅仅是对模型在非常长期对话中的理解进行的研究。我们不会基于这项研究为现实世界的政策提出任何建议，并且建议我们框架的潜在用户也避免做出此类建议。
+- en: References
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Ahn et al. (2023) Jaewoo Ahn, Yeda Song, Sangdoo Yun, and Gunhee Kim. 2023.
+    [MPCHAT: Towards multimodal persona-grounded conversation](https://doi.org/10.18653/v1/2023.acl-long.189).
+    In *Proceedings of the 61st Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers)*, pages 3354–3377, Toronto, Canada. Association
+    for Computational Linguistics.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ahn 等人（2023）Jaewoo Ahn, Yeda Song, Sangdoo Yun 和 Gunhee Kim. 2023. [MPCHAT：面向多模态人格驱动的对话](https://doi.org/10.18653/v1/2023.acl-long.189)。载于
+    *第61届计算语言学协会年会论文集（第一卷：长篇论文）*，第3354–3377页，加拿大多伦多。计算语言学协会。
+- en: 'Anantha et al. (2021) Raviteja Anantha, Svitlana Vakulenko, Zhucheng Tu, Shayne
+    Longpre, Stephen Pulman, and Srinivas Chappidi. 2021. Open-domain question answering
+    goes conversational via question rewriting. In *Proceedings of the 2021 Conference
+    of the North American Chapter of the Association for Computational Linguistics:
+    Human Language Technologies*, pages 520–534.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anantha 等人（2021）Raviteja Anantha, Svitlana Vakulenko, Zhucheng Tu, Shayne Longpre,
+    Stephen Pulman, 和 Srinivas Chappidi. 2021. 通过问题重写实现开放域问答对话化。载于 *2021年北美计算语言学协会年会论文集：人类语言技术*，第520–534页。
+- en: 'Antol et al. (2015) Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Margaret
+    Mitchell, Dhruv Batra, C Lawrence Zitnick, and Devi Parikh. 2015. Vqa: Visual
+    question answering. In *Proceedings of the IEEE international conference on computer
+    vision*, pages 2425–2433.'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Antol 等人（2015）Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Margaret Mitchell,
+    Dhruv Batra, C Lawrence Zitnick, 和 Devi Parikh. 2015. Vqa：视觉问答。载于 *IEEE国际计算机视觉大会论文集*，第2425–2433页。
+- en: Assmann and Czaplicka (1995) Jan Assmann and John Czaplicka. 1995. Collective
+    memory and cultural identity. *New german critique*, (65):125–133.
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Assmann and Czaplicka (1995) Jan Assmann 和 John Czaplicka. 1995. 集体记忆与文化认同。*新德国批评*，(65):125–133。
+- en: 'Bertsch et al. (2024) Amanda Bertsch, Uri Alon, Graham Neubig, and Matthew
+    Gormley. 2024. Unlimiformer: Long-range transformers with unlimited length input.
+    *Advances in Neural Information Processing Systems*, 36.'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Bertsch et al. (2024) Amanda Bertsch, Uri Alon, Graham Neubig, 和 Matthew Gormley.
+    2024. Unlimiformer: 支持无限长度输入的长程Transformer模型。*神经信息处理系统进展*，36。'
+- en: 'Chang et al. (2023) Yapei Chang, Kyle Lo, Tanya Goyal, and Mohit Iyyer. 2023.
+    Booookscore: A systematic exploration of book-length summarization in the era
+    of llms. In *The Twelfth International Conference on Learning Representations*.'
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chang et al. (2023) Yapei Chang, Kyle Lo, Tanya Goyal, 和 Mohit Iyyer. 2023.
+    Booookscore: 在大语言模型时代系统地探索书籍长度摘要。发表于*第十二届国际学习表示会议*。'
+- en: 'Chen et al. (2022) Mingda Chen, Zewei Chu, Sam Wiseman, and Kevin Gimpel. 2022.
+    Summscreen: A dataset for abstractive screenplay summarization. In *Proceedings
+    of the 60th Annual Meeting of the Association for Computational Linguistics (Volume
+    1: Long Papers)*, pages 8602–8615.'
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chen et al. (2022) Mingda Chen, Zewei Chu, Sam Wiseman, 和 Kevin Gimpel. 2022.
+    Summscreen: 用于抽象电影剧本摘要的一个数据集。发表于*第60届计算语言学协会年会论文集（第1卷：长篇论文）*，第8602–8615页。'
+- en: 'Chen et al. (2023) Yukang Chen, Shengju Qian, Haotian Tang, Xin Lai, Zhijian
+    Liu, Song Han, and Jiaya Jia. 2023. Longlora: Efficient fine-tuning of long-context
+    large language models. In *The Twelfth International Conference on Learning Representations*.'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chen et al. (2023) Yukang Chen, Shengju Qian, Haotian Tang, Xin Lai, Zhijian
+    Liu, Song Han, 和 Jiaya Jia. 2023. Longlora: 高效的长上下文大语言模型微调方法。发表于*第十二届国际学习表示会议*。'
+- en: Cooper (1999) Alan Cooper. 1999. *The inmates are running the asylum*. Springer.
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cooper (1999) Alan Cooper. 1999. *精神病院由病人掌控*。Springer。
+- en: 'Dao et al. (2022) Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and Christopher
+    Ré. 2022. Flashattention: Fast and memory-efficient exact attention with io-awareness.
+    *Advances in Neural Information Processing Systems*, 35:16344–16359.'
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Dao et al. (2022) Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, 和 Christopher
+    Ré. 2022. Flashattention: 高效且内存节省的精确注意力机制，具备IO意识。*神经信息处理系统进展*，35:16344–16359。'
+- en: Das et al. (2017) Abhishek Das, Satwik Kottur, Khushi Gupta, Avi Singh, Deshraj
+    Yadav, José MF Moura, Devi Parikh, and Dhruv Batra. 2017. Visual dialog. In *Proceedings
+    of the IEEE conference on computer vision and pattern recognition*, pages 326–335.
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Das et al. (2017) Abhishek Das, Satwik Kottur, Khushi Gupta, Avi Singh, Deshraj
+    Yadav, José MF Moura, Devi Parikh, 和 Dhruv Batra. 2017. 视觉对话。发表于*IEEE计算机视觉与模式识别会议论文集*，第326–335页。
+- en: 'Feng et al. (2023) Jiazhan Feng, Qingfeng Sun, Can Xu, Pu Zhao, Yaming Yang,
+    Chongyang Tao, Dongyan Zhao, and Qingwei Lin. 2023. [MMDialog: A large-scale multi-turn
+    dialogue dataset towards multi-modal open-domain conversation](https://doi.org/10.18653/v1/2023.acl-long.405).
+    In *Proceedings of the 61st Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers)*, pages 7348–7363, Toronto, Canada. Association
+    for Computational Linguistics.'
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Feng et al. (2023) Jiazhan Feng, Qingfeng Sun, Can Xu, Pu Zhao, Yaming Yang,
+    Chongyang Tao, Dongyan Zhao, 和 Qingwei Lin. 2023. [MMDialog: 一个大规模多轮对话数据集，面向多模态开放领域对话](https://doi.org/10.18653/v1/2023.acl-long.405)。发表于*第61届计算语言学协会年会论文集（第1卷：长篇论文）*，第7348–7363页，加拿大多伦多。计算语言学协会。'
+- en: 'Gao et al. (2023a) Silin Gao, Beatriz Borges, Soyoung Oh, Deniz Bayazit, Saya
+    Kanno, Hiromi Wakaki, Yuki Mitsufuji, and Antoine Bosselut. 2023a. [PeaCoK: Persona
+    commonsense knowledge for consistent and engaging narratives](https://doi.org/10.18653/v1/2023.acl-long.362).
+    In *Proceedings of the 61st Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers)*, pages 6569–6591, Toronto, Canada. Association
+    for Computational Linguistics.'
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Gao et al. (2023a) Silin Gao, Beatriz Borges, Soyoung Oh, Deniz Bayazit, Saya
+    Kanno, Hiromi Wakaki, Yuki Mitsufuji, 和 Antoine Bosselut. 2023a. [PeaCoK: 具有一致性和吸引力叙事的个性化常识知识](https://doi.org/10.18653/v1/2023.acl-long.362)。发表于*第61届计算语言学协会年会论文集（第1卷：长篇论文）*，第6569–6591页，加拿大多伦多。计算语言学协会。'
+- en: Gao et al. (2023b) Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen. 2023b.
+    [Enabling large language models to generate text with citations](https://doi.org/10.18653/v1/2023.emnlp-main.398).
+    In *Proceedings of the 2023 Conference on Empirical Methods in Natural Language
+    Processing*, pages 6465–6488, Singapore. Association for Computational Linguistics.
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Gao et al. (2023b) Tianyu Gao, Howard Yen, Jiatong Yu, 和 Danqi Chen. 2023b.
+    [使大语言模型生成带引用的文本](https://doi.org/10.18653/v1/2023.emnlp-main.398)。发表于*2023年自然语言处理实证方法会议论文集*，第6465–6488页，新加坡。计算语言学协会。
+- en: 'Ghazarian et al. (2022) Sarik Ghazarian, Nuan Wen, Aram Galstyan, and Nanyun
+    Peng. 2022. Deam: Dialogue coherence evaluation using amr-based semantic manipulations.
+    In *Proceedings of the 60th Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers)*, pages 771–785.'
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ghazarian等人（2022年）Sarik Ghazarian, Nuan Wen, Aram Galstyan 和 Nanyun Peng. 2022年.
+    Deam: 基于AMR的语义操作进行对话连贯性评估。见于*第60届计算语言学协会年会论文集（第1卷：长篇论文）*，页码771–785。'
+- en: 'He et al. (2023) Xingwei He, Zhenghao Lin, Yeyun Gong, Alex Jin, Hang Zhang,
+    Chen Lin, Jian Jiao, Siu Ming Yiu, Nan Duan, Weizhu Chen, et al. 2023. Annollm:
+    Making large language models to be better crowdsourced annotators. *arXiv preprint
+    arXiv:2303.16854*.'
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: He等人（2023年）Xingwei He, Zhenghao Lin, Yeyun Gong, Alex Jin, Hang Zhang, Chen
+    Lin, Jian Jiao, Siu Ming Yiu, Nan Duan, Weizhu Chen 等人. 2023年. Annollm：让大型语言模型成为更好的众包标注者。*arXiv预印本arXiv:2303.16854*。
+- en: 'Hirst and Echterhoff (2012) William Hirst and Gerald Echterhoff. 2012. Remembering
+    in conversations: The social sharing and reshaping of memories. *Annual review
+    of psychology*, 63:55–79.'
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hirst和Echterhoff（2012年）William Hirst 和 Gerald Echterhoff. 2012年. 对话中的记忆：记忆的社会分享与重塑。*心理学年鉴*，63：55–79。
+- en: Hirst and Manier (2008) William Hirst and David Manier. 2008. Towards a psychology
+    of collective memory. *Memory*, 16(3):183–200.
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hirst和Manier（2008年）William Hirst 和 David Manier. 2008年. 朝着集体记忆的心理学探索。*记忆*，16(3)：183–200。
+- en: Hirst et al. (2018) William Hirst, Jeremy K Yamashiro, and Alin Coman. 2018.
+    Collective memory from a psychological perspective. *Trends in cognitive sciences*,
+    22(5):438–451.
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hirst等人（2018年）William Hirst, Jeremy K Yamashiro 和 Alin Coman. 2018年. 从心理学角度看集体记忆。*认知科学趋势*，22(5)：438–451。
+- en: Jandaghi et al. (2023) Pegah Jandaghi, XiangHai Sheng, Xinyi Bai, Jay Pujara,
+    and Hakim Sidahmed. 2023. Faithful persona-based conversational dataset generation
+    with large language models. *arXiv preprint arXiv:2312.10007*.
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jandaghi等人（2023年）Pegah Jandaghi, XiangHai Sheng, Xinyi Bai, Jay Pujara 和 Hakim
+    Sidahmed. 2023年. 基于忠实人物的对话数据集生成与大型语言模型。*arXiv预印本arXiv:2312.10007*。
+- en: 'Jang et al. (2023) Jihyoung Jang, Minseong Boo, and Hyounghun Kim. 2023. [Conversation
+    chronicles: Towards diverse temporal and relational dynamics in multi-session
+    conversations](https://doi.org/10.18653/v1/2023.emnlp-main.838). In *Proceedings
+    of the 2023 Conference on Empirical Methods in Natural Language Processing*, pages
+    13584–13606, Singapore. Association for Computational Linguistics.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jang等人（2023年）Jihyoung Jang, Minseong Boo 和 Hyounghun Kim. 2023年. [对话编年史：朝着多会话中多样的时间和关系动态发展](https://doi.org/10.18653/v1/2023.emnlp-main.838)。见于*2023年自然语言处理实证方法会议论文集*，页码13584–13606，新加坡。计算语言学协会。
+- en: Jiang et al. (2023) Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris
+    Bamford, Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna
+    Lengyel, Guillaume Lample, Lucile Saulnier, et al. 2023. Mistral 7b. *arXiv preprint
+    arXiv:2310.06825*.
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jiang等人（2023年）Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford,
+    Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel,
+    Guillaume Lample, Lucile Saulnier 等人. 2023年. Mistral 7b. *arXiv预印本arXiv:2310.06825*。
+- en: 'Kim et al. (2023) Hyunwoo Kim, Jack Hessel, Liwei Jiang, Peter West, Ximing
+    Lu, Youngjae Yu, Pei Zhou, Ronan Bras, Malihe Alikhani, Gunhee Kim, Maarten Sap,
+    and Yejin Choi. 2023. [SODA: Million-scale dialogue distillation with social commonsense
+    contextualization](https://doi.org/10.18653/v1/2023.emnlp-main.799). In *Proceedings
+    of the 2023 Conference on Empirical Methods in Natural Language Processing*, pages
+    12930–12949, Singapore. Association for Computational Linguistics.'
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kim等人（2023年）Hyunwoo Kim, Jack Hessel, Liwei Jiang, Peter West, Ximing Lu, Youngjae
+    Yu, Pei Zhou, Ronan Bras, Malihe Alikhani, Gunhee Kim, Maarten Sap 和 Yejin Choi.
+    2023年. [SODA：通过社会常识语境化进行百万级对话蒸馏](https://doi.org/10.18653/v1/2023.emnlp-main.799)。见于*2023年自然语言处理实证方法会议论文集*，页码12930–12949，新加坡。计算语言学协会。
+- en: 'Kottur et al. (2019) Satwik Kottur, José M. F. Moura, Devi Parikh, Dhruv Batra,
+    and Marcus Rohrbach. 2019. [CLEVR-dialog: A diagnostic dataset for multi-round
+    reasoning in visual dialog](https://doi.org/10.18653/v1/N19-1058). In *Proceedings
+    of the 2019 Conference of the North American Chapter of the Association for Computational
+    Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)*, pages
+    582–595, Minneapolis, Minnesota. Association for Computational Linguistics.'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kottur等人（2019年）Satwik Kottur, José M. F. Moura, Devi Parikh, Dhruv Batra 和 Marcus
+    Rohrbach. 2019年. [CLEVR-dialog：一个用于视觉对话中多轮推理的诊断数据集](https://doi.org/10.18653/v1/N19-1058)。见于*2019年北美计算语言学协会会议：人类语言技术（长篇和短篇论文集）*，页码582–595，美国明尼苏达州明尼阿波利斯。计算语言学协会。
+- en: 'Krishna et al. (2023) Kalpesh Krishna, Erin Bransom, Bailey Kuehl, Mohit Iyyer,
+    Pradeep Dasigi, Arman Cohan, and Kyle Lo. 2023. Longeval: Guidelines for human
+    evaluation of faithfulness in long-form summarization. In *Proceedings of the
+    17th Conference of the European Chapter of the Association for Computational Linguistics*,
+    pages 1642–1661.'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Krishna 等人（2023）卡尔佩什·克里希纳、埃琳·布兰森、贝利·凯尔、莫希特·艾耶尔、普拉迪普·达西吉、阿尔曼·科汉、凯尔·洛。2023。Longeval：长篇摘要忠实度人工评估的指南。发表于*第17届欧洲计算语言学协会会议论文集*，第1642–1661页。
+- en: 'Kryściński et al. (2022) Wojciech Kryściński, Nazneen Rajani, Divyansh Agarwal,
+    Caiming Xiong, and Dragomir Radev. 2022. Booksum: A collection of datasets for
+    long-form narrative summarization. In *Findings of the Association for Computational
+    Linguistics: EMNLP 2022*, pages 6536–6558.'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kryściński 等人（2022）沃伊切赫·克里什琴斯基、纳兹宁·拉贾尼、迪维扬什·阿格瓦尔、谢明·熊、德拉戈米尔·拉德夫。2022。Booksum：一个用于长篇叙事摘要的数据集集合。发表于*计算语言学协会发现：EMNLP
+    2022*，第6536–6558页。
+- en: Lee et al. (2023a) Dong-Ho Lee, Jay Pujara, Mohit Sewak, Ryen White, and Sujay
+    Jauhar. 2023a. [Making large language models better data creators](https://doi.org/10.18653/v1/2023.emnlp-main.948).
+    In *Proceedings of the 2023 Conference on Empirical Methods in Natural Language
+    Processing*, pages 15349–15360, Singapore. Association for Computational Linguistics.
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lee 等人（2023a）李东浩、杰伊·普贾拉、莫希特·塞瓦克、瑞恩·怀特、苏贾伊·乔哈尔。2023a。[让大型语言模型成为更好的数据创建者](https://doi.org/10.18653/v1/2023.emnlp-main.948)。发表于*2023年自然语言处理经验方法会议论文集*，第15349–15360页，新加坡。计算语言学协会。
+- en: 'Lee et al. (2023b) Gibbeum Lee, Volker Hartmann, Jongho Park, Dimitris Papailiopoulos,
+    and Kangwook Lee. 2023b. [Prompted LLMs as chatbot modules for long open-domain
+    conversation](https://doi.org/10.18653/v1/2023.findings-acl.277). In *Findings
+    of the Association for Computational Linguistics: ACL 2023*, pages 4536–4554,
+    Toronto, Canada. Association for Computational Linguistics.'
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lee 等人（2023b）李吉範、福尔克·哈特曼、朴钟豪、迪米特里斯·帕帕伊利奥普洛斯、李康沃克。2023b。[提示式大型语言模型作为长篇开放领域对话的聊天模块](https://doi.org/10.18653/v1/2023.findings-acl.277)。发表于*计算语言学协会发现：ACL
+    2023*，第4536–4554页，加拿大多伦多。计算语言学协会。
+- en: 'Lee et al. (2023c) Young-Jun Lee, Byungsoo Ko, Han-Gyu Kim, Jonghwan Hyeon,
+    and Ho-Jin Choi. 2023c. Dialogcc: An automated pipeline for creating high-quality
+    multi-modal dialogue datasets. In *NeurIPS 2023 Workshop on Instruction Tuning
+    and Instruction Following*.'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lee 等人（2023c）李永俊、高秉秀、金汉奎、玄钟焕、崔浩振。2023c。Dialogcc：一个用于创建高质量多模态对话数据集的自动化管道。发表于*NeurIPS
+    2023 指令调优与指令跟随工作坊*。
+- en: 'Li et al. (2023a) Jiaqi Li, Mengmeng Wang, Zilong Zheng, and Muhan Zhang. 2023a.
+    Loogle: Can long-context language models understand long contexts? *arXiv preprint
+    arXiv:2311.04939*.'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2023a）李佳琪、王梦萌、郑子龙、张木寒。2023a。Loogle：长篇上下文语言模型能否理解长篇上下文？*arXiv 预印本 arXiv:2311.04939*。
+- en: 'Li et al. (2023b) Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. 2023b.
+    Blip-2: Bootstrapping language-image pre-training with frozen image encoders and
+    large language models. In *International Conference on Machine Learning*.'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2023b）李俊男、李东旭、西尔维奥·萨瓦雷塞、霍斯腾。2023b。Blip-2：通过冻结图像编码器和大型语言模型启动语言-图像预训练。发表于*国际机器学习会议*。
+- en: 'Li et al. (2017) Yanran Li, Hui Su, Xiaoyu Shen, Wenjie Li, Ziqiang Cao, and
+    Shuzi Niu. 2017. Dailydialog: A manually labelled multi-turn dialogue dataset.
+    In *Proceedings of the Eighth International Joint Conference on Natural Language
+    Processing (Volume 1: Long Papers)*, pages 986–995.'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li 等人（2017）李彦然、苏慧、沈晓宇、李文杰、曹子强、牛树志。2017。Dailydialog：一个手工标注的多轮对话数据集。发表于*第八届国际自然语言处理联合会议论文集（第一卷：长篇论文）*，第986–995页。
+- en: Liang et al. (2023) Xinnian Liang, Bing Wang, Hui Huang, Shuangzhi Wu, Peihao
+    Wu, Lu Lu, Zejun Ma, and Zhoujun Li. 2023. Unleashing infinite-length input capacity
+    for large-scale language models with self-controlled memory system. *arXiv preprint
+    arXiv:2304.13343*.
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liang 等人（2023）梁新年、王冰、黄慧、吴爽智、吴佩豪、陆璐、马泽俊、李周军。2023。利用自控记忆系统释放大规模语言模型的无限长输入能力。*arXiv
+    预印本 arXiv:2304.13343*。
+- en: 'Lin (2004) Chin-Yew Lin. 2004. [ROUGE: A package for automatic evaluation of
+    summaries](https://aclanthology.org/W04-1013). In *Text Summarization Branches
+    Out*, pages 74–81, Barcelona, Spain. Association for Computational Linguistics.'
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lin（2004）林志远。2004。[ROUGE：用于自动评估摘要的工具包](https://aclanthology.org/W04-1013)。发表于*文本摘要方法的拓展*，第74–81页，西班牙巴塞罗那。计算语言学协会。
+- en: 'Lin et al. (2023) Sheng-Chieh Lin, Akari Asai, Minghan Li, Barlas Oguz, Jimmy
+    Lin, Yashar Mehdad, Wen-tau Yih, and Xilun Chen. 2023. [How to train your dragon:
+    Diverse augmentation towards generalizable dense retrieval](https://doi.org/10.18653/v1/2023.findings-emnlp.423).
+    In *Findings of the Association for Computational Linguistics: EMNLP 2023*, pages
+    6385–6400, Singapore. Association for Computational Linguistics.'
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lin 等人（2023）Sheng-Chieh Lin、Akari Asai、Minghan Li、Barlas Oguz、Jimmy Lin、Yashar
+    Mehdad、Wen-tau Yih 和 Xilun Chen。2023年。[如何训练你的龙：朝向可泛化的密集检索的多样化增强](https://doi.org/10.18653/v1/2023.findings-emnlp.423)。在
+    *计算语言学协会发现：EMNLP 2023* 中，第6385–6400页，新加坡。计算语言学协会。
+- en: 'Liu et al. (2023) Nelson Liu, Tianyi Zhang, and Percy Liang. 2023. [Evaluating
+    verifiability in generative search engines](https://doi.org/10.18653/v1/2023.findings-emnlp.467).
+    In *Findings of the Association for Computational Linguistics: EMNLP 2023*, pages
+    7001–7025, Singapore. Association for Computational Linguistics.'
+  id: totrans-187
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人（2023）Nelson Liu、Tianyi Zhang 和 Percy Liang。2023年。[评估生成型搜索引擎的可验证性](https://doi.org/10.18653/v1/2023.findings-emnlp.467)。在
+    *计算语言学协会发现：EMNLP 2023* 中，第7001–7025页，新加坡。计算语言学协会。
+- en: 'Liu et al. (2024) Nelson F. Liu, Kevin Lin, John Hewitt, Ashwin Paranjape,
+    Michele Bevilacqua, Fabio Petroni, and Percy Liang. 2024. [Lost in the Middle:
+    How Language Models Use Long Contexts](https://doi.org/10.1162/tacl_a_00638).
+    *Transactions of the Association for Computational Linguistics*, 12:157–173.'
+  id: totrans-188
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Liu 等人（2024）Nelson F. Liu、Kevin Lin、John Hewitt、Ashwin Paranjape、Michele Bevilacqua、Fabio
+    Petroni 和 Percy Liang。2024年。[迷失在中间：语言模型如何使用长上下文](https://doi.org/10.1162/tacl_a_00638)。*计算语言学协会会刊*，12：157–173。
+- en: 'Lu et al. (2023) Junru Lu, Siyu An, Mingbao Lin, Gabriele Pergola, Yulan He,
+    Di Yin, Xing Sun, and Yunsheng Wu. 2023. Memochat: Tuning llms to use memos for
+    consistent long-range open-domain conversation. *arXiv preprint arXiv:2308.08239*.'
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Lu 等人（2023）Junru Lu、Siyu An、Mingbao Lin、Gabriele Pergola、Yulan He、Di Yin、Xing
+    Sun 和 Yunsheng Wu。2023年。Memochat：调整LLM以使用备忘录进行一致的长距离开放领域对话。*arXiv 预印本 arXiv:2308.08239*。
+- en: 'Mallen et al. (2023) Alex Mallen, Akari Asai, Victor Zhong, Rajarshi Das, Daniel
+    Khashabi, and Hannaneh Hajishirzi. 2023. [When not to trust language models: Investigating
+    effectiveness of parametric and non-parametric memories](https://doi.org/10.18653/v1/2023.acl-long.546).
+    In *Proceedings of the 61st Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers)*, pages 9802–9822, Toronto, Canada. Association
+    for Computational Linguistics.'
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mallen 等人（2023）Alex Mallen、Akari Asai、Victor Zhong、Rajarshi Das、Daniel Khashabi
+    和 Hannaneh Hajishirzi。2023年。[何时不信任语言模型：研究参数化和非参数化记忆的有效性](https://doi.org/10.18653/v1/2023.acl-long.546)。在
+    *计算语言学协会第61届年会论文集（第1卷：长篇论文）* 中，第9802–9822页，加拿大多伦多。计算语言学协会。
+- en: 'Meng et al. (2020) Yuxian Meng, Shuhe Wang, Qinghong Han, Xiaofei Sun, Fei
+    Wu, Rui Yan, and Jiwei Li. 2020. Openvidial: A large-scale, open-domain dialogue
+    dataset with visual contexts. *arXiv preprint arXiv:2012.15015*.'
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Meng 等人（2020）Yuxian Meng、Shuhe Wang、Qinghong Han、Xiaofei Sun、Fei Wu、Rui Yan
+    和 Jiwei Li。2020年。Openvidial：一个大规模开放领域的对话数据集，具有视觉上下文。*arXiv 预印本 arXiv:2012.15015*。
+- en: 'Min et al. (2023) Sewon Min, Kalpesh Krishna, Xinxi Lyu, Mike Lewis, Wen-tau
+    Yih, Pang Koh, Mohit Iyyer, Luke Zettlemoyer, and Hannaneh Hajishirzi. 2023. [FActScore:
+    Fine-grained atomic evaluation of factual precision in long form text generation](https://doi.org/10.18653/v1/2023.emnlp-main.741).
+    In *Proceedings of the 2023 Conference on Empirical Methods in Natural Language
+    Processing*, pages 12076–12100, Singapore. Association for Computational Linguistics.'
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Min 等人（2023）Sewon Min、Kalpesh Krishna、Xinxi Lyu、Mike Lewis、Wen-tau Yih、Pang
+    Koh、Mohit Iyyer、Luke Zettlemoyer 和 Hannaneh Hajishirzi。2023年。[FActScore：长文本生成中的事实精准度的细粒度原子评估](https://doi.org/10.18653/v1/2023.emnlp-main.741)。在
+    *2023年自然语言处理经验方法会议论文集* 中，第12076–12100页，新加坡。计算语言学协会。
+- en: 'Mostafazadeh et al. (2017) Nasrin Mostafazadeh, Chris Brockett, Bill Dolan,
+    Michel Galley, Jianfeng Gao, Georgios Spithourakis, and Lucy Vanderwende. 2017.
+    [Image-grounded conversations: Multimodal context for natural question and response
+    generation](https://aclanthology.org/I17-1047). In *Proceedings of the Eighth
+    International Joint Conference on Natural Language Processing (Volume 1: Long
+    Papers)*, pages 462–472, Taipei, Taiwan. Asian Federation of Natural Language
+    Processing.'
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mostafazadeh 等人（2017）Nasrin Mostafazadeh、Chris Brockett、Bill Dolan、Michel Galley、Jianfeng
+    Gao、Georgios Spithourakis 和 Lucy Vanderwende。2017年。[图像支持对话：自然问题和响应生成的多模态上下文](https://aclanthology.org/I17-1047)。在
+    *第八届国际自然语言处理联合会议论文集（第1卷：长篇论文）* 中，第462–472页，台湾台北。亚洲自然语言处理联盟。
+- en: 'Nie et al. (2021) Yixin Nie, Mary Williamson, Mohit Bansal, Douwe Kiela, and
+    Jason Weston. 2021. I like fish, especially dolphins: Addressing contradictions
+    in dialogue modeling. In *Proceedings of the 59th Annual Meeting of the Association
+    for Computational Linguistics and the 11th International Joint Conference on Natural
+    Language Processing (Volume 1: Long Papers)*, pages 1699–1713.'
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nie 等人（2021）Yixin Nie、Mary Williamson、Mohit Bansal、Douwe Kiela 和 Jason Weston。2021年。我喜欢鱼，尤其是海豚：解决对话建模中的矛盾。见于
+    *第59届计算语言学协会年会及第11届国际自然语言处理联合会议（卷1：长篇论文）*，第1699–1713页。
+- en: 'Papineni et al. (2002) Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing
+    Zhu. 2002. [Bleu: a method for automatic evaluation of machine translation](https://doi.org/10.3115/1073083.1073135).
+    In *Proceedings of the 40th Annual Meeting of the Association for Computational
+    Linguistics*, pages 311–318, Philadelphia, Pennsylvania, USA. Association for
+    Computational Linguistics.'
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Papineni 等人（2002）Kishore Papineni、Salim Roukos、Todd Ward 和 Wei-Jing Zhu。2002年。[Bleu：一种自动评估机器翻译的方法](https://doi.org/10.3115/1073083.1073135)。见于
+    *第40届计算语言学协会年会论文集*，第311–318页，宾夕法尼亚州费城，美国。计算语言学协会。
+- en: 'Park et al. (2023) Joon Sung Park, Joseph O’Brien, Carrie Jun Cai, Meredith Ringel
+    Morris, Percy Liang, and Michael S. Bernstein. 2023. [Generative agents: Interactive
+    simulacra of human behavior](https://doi.org/10.1145/3586183.3606763). In *Proceedings
+    of the 36th Annual ACM Symposium on User Interface Software and Technology*, UIST
+    ’23, New York, NY, USA. Association for Computing Machinery.'
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Park 等人（2023）Joon Sung Park、Joseph O’Brien、Carrie Jun Cai、Meredith Ringel Morris、Percy
+    Liang 和 Michael S. Bernstein。2023年。[生成代理：人类行为的互动模拟](https://doi.org/10.1145/3586183.3606763)。见于
+    *第36届ACM用户界面软件与技术年会论文集*，UIST ’23，纽约，NY，美国。计算机协会。
+- en: 'Pruitt and Grudin (2003) John Pruitt and Jonathan Grudin. 2003. Personas: practice
+    and theory. In *Proceedings of the 2003 conference on Designing for user experiences*,
+    pages 1–15.'
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Pruitt 和 Grudin（2003）John Pruitt 和 Jonathan Grudin。2003年。人物设定：实践与理论。见于 *2003年设计用户体验会议论文集*，第1–15页。
+- en: Ram et al. (2023) Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay, Amnon
+    Shashua, Kevin Leyton-Brown, and Yoav Shoham. 2023. [In-context retrieval-augmented
+    language models](https://doi.org/10.1162/tacl_a_00605). *Transactions of the Association
+    for Computational Linguistics*, 11:1316–1331.
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ram 等人（2023）Ori Ram、Yoav Levine、Itay Dalmedigos、Dor Muhlgay、Amnon Shashua、Kevin
+    Leyton-Brown 和 Yoav Shoham。2023年。[上下文检索增强语言模型](https://doi.org/10.1162/tacl_a_00605)。*计算语言学协会会刊*，11:1316–1331。
+- en: 'Shi et al. (2023) Weijia Shi, Sewon Min, Michihiro Yasunaga, Minjoon Seo, Rich
+    James, Mike Lewis, Luke Zettlemoyer, and Wen-tau Yih. 2023. Replug: Retrieval-augmented
+    black-box language models. *arXiv preprint arXiv:2301.12652*.'
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shi 等人（2023）Weijia Shi、Sewon Min、Michihiro Yasunaga、Minjoon Seo、Rich James、Mike
+    Lewis、Luke Zettlemoyer 和 Wen-tau Yih。2023年。Replug：检索增强黑盒语言模型。*arXiv 预印本 arXiv:2301.12652*。
+- en: 'Shum et al. (2020) Michael Shum, Stephan Zheng, Wojciech Kryscinski, Caiming
+    Xiong, and Richard Socher. 2020. [Sketch-fill-a-R: A persona-grounded chit-chat
+    generation framework](https://doi.org/10.18653/v1/2020.nlp4convai-1.14). In *Proceedings
+    of the 2nd Workshop on Natural Language Processing for Conversational AI*, pages
+    118–131, Online. Association for Computational Linguistics.'
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shum 等人（2020）Michael Shum、Stephan Zheng、Wojciech Kryscinski、Caiming Xiong 和
+    Richard Socher。2020年。[Sketch-fill-a-R：基于人物设定的闲聊生成框架](https://doi.org/10.18653/v1/2020.nlp4convai-1.14)。见于
+    *第二届对话AI自然语言处理研讨会论文集*，第118–131页，线上。计算语言学协会。
+- en: 'Shuster et al. (2020) Kurt Shuster, Samuel Humeau, Antoine Bordes, and Jason
+    Weston. 2020. [Image-chat: Engaging grounded conversations](https://doi.org/10.18653/v1/2020.acl-main.219).
+    In *Proceedings of the 58th Annual Meeting of the Association for Computational
+    Linguistics*, pages 2414–2429, Online. Association for Computational Linguistics.'
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shuster 等人（2020）Kurt Shuster、Samuel Humeau、Antoine Bordes 和 Jason Weston。2020年。[图像对话：引人入胜的有根对话](https://doi.org/10.18653/v1/2020.acl-main.219)。见于
+    *第58届计算语言学协会年会论文集*，第2414–2429页，线上。计算语言学协会。
+- en: 'Shuster et al. (2021) Kurt Shuster, Spencer Poff, Moya Chen, Douwe Kiela, and
+    Jason Weston. 2021. Retrieval augmentation reduces hallucination in conversation.
+    In *Findings of the Association for Computational Linguistics: EMNLP 2021*, pages
+    3784–3803.'
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shuster 等人（2021）Kurt Shuster、Spencer Poff、Moya Chen、Douwe Kiela 和 Jason Weston。2021年。《检索增强减少对话中的幻觉》。见于
+    *计算语言学协会会议成果：EMNLP 2021*，第3784–3803页。
+- en: 'Touvron et al. (2023) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, et al. 2023. Llama 2: Open foundation and fine-tuned chat models.
+    *arXiv preprint arXiv:2307.09288*.'
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Touvron 等（2023）Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad
+    Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale 等。2023年。Llama 2: 开放基础和微调的聊天模型。*arXiv 预印本 arXiv:2307.09288*。'
+- en: 'Wang and Zhao (2023) Yuqing Wang and Yun Zhao. 2023. Tram: Benchmarking temporal
+    reasoning for large language models. *arXiv preprint arXiv:2310.00835*.'
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wang 和 Zhao（2023）Yuqing Wang 和 Yun Zhao。2023年。Tram: 大型语言模型的时间推理基准测试。*arXiv
+    预印本 arXiv:2310.00835*。'
+- en: Welleck et al. (2019) Sean Welleck, Jason Weston, Arthur Szlam, and Kyunghyun
+    Cho. 2019. [Dialogue natural language inference](https://doi.org/10.18653/v1/P19-1363).
+    In *Proceedings of the 57th Annual Meeting of the Association for Computational
+    Linguistics*, pages 3731–3741, Florence, Italy. Association for Computational
+    Linguistics.
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Welleck 等（2019）Sean Welleck, Jason Weston, Arthur Szlam, 和 Kyunghyun Cho。2019年。[Dialogue
+    natural language inference](https://doi.org/10.18653/v1/P19-1363)。发表于*第57届计算语言学协会年会论文集*，第3731–3741页，意大利佛罗伦萨。计算语言学协会。
+- en: 'Wolf et al. (2020) Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond,
+    Clement Delangue, Anthony Moi, Pierric Cistac, Tim Rault, Remi Louf, Morgan Funtowicz,
+    Joe Davison, Sam Shleifer, Patrick von Platen, Clara Ma, Yacine Jernite, Julien
+    Plu, Canwen Xu, Teven Le Scao, Sylvain Gugger, Mariama Drame, Quentin Lhoest,
+    and Alexander Rush. 2020. [Transformers: State-of-the-art natural language processing](https://doi.org/10.18653/v1/2020.emnlp-demos.6).
+    In *Proceedings of the 2020 Conference on Empirical Methods in Natural Language
+    Processing: System Demonstrations*, pages 38–45, Online. Association for Computational
+    Linguistics.'
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wolf 等（2020）Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement
+    Delangue, Anthony Moi, Pierric Cistac, Tim Rault, Remi Louf, Morgan Funtowicz,
+    Joe Davison, Sam Shleifer, Patrick von Platen, Clara Ma, Yacine Jernite, Julien
+    Plu, Canwen Xu, Teven Le Scao, Sylvain Gugger, Mariama Drame, Quentin Lhoest,
+    和 Alexander Rush。2020年。[Transformers: State-of-the-art natural language processing](https://doi.org/10.18653/v1/2020.emnlp-demos.6)。发表于*2020年自然语言处理经验方法会议：系统演示*，第38–45页，在线。计算语言学协会。'
+- en: Xiao et al. (2023) Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and
+    Mike Lewis. 2023. Efficient streaming language models with attention sinks. *arXiv
+    preprint arXiv:2309.17453*.
+  id: totrans-207
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xiao 等（2023）Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, 和 Mike Lewis。2023年。具有注意力沉降的高效流式语言模型。*arXiv
+    预印本 arXiv:2309.17453*。
+- en: 'Xu et al. (2023) Fangyuan Xu, Yixiao Song, Mohit Iyyer, and Eunsol Choi. 2023.
+    [A critical evaluation of evaluations for long-form question answering](https://doi.org/10.18653/v1/2023.acl-long.181).
+    In *Proceedings of the 61st Annual Meeting of the Association for Computational
+    Linguistics (Volume 1: Long Papers)*, pages 3225–3245, Toronto, Canada. Association
+    for Computational Linguistics.'
+  id: totrans-208
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xu 等（2023）Fangyuan Xu, Yixiao Song, Mohit Iyyer, 和 Eunsol Choi。2023年。[A critical
+    evaluation of evaluations for long-form question answering](https://doi.org/10.18653/v1/2023.acl-long.181)。发表于*第61届计算语言学协会年会（第一卷：长篇论文）*，第3225–3245页，加拿大多伦多。计算语言学协会。
+- en: 'Xu et al. (2022) Jing Xu, Arthur Szlam, and Jason Weston. 2022. Beyond goldfish
+    memory: Long-term open-domain conversation. In *Proceedings of the 60th Annual
+    Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)*,
+    pages 5180–5197.'
+  id: totrans-209
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xu 等（2022）Jing Xu, Arthur Szlam, 和 Jason Weston。2022年。超越金鱼记忆：长期开放域对话。发表于*第60届计算语言学协会年会（第一卷：长篇论文）*，第5180–5197页。
+- en: 'Zang et al. (2021) Xiaoxue Zang, Lijuan Liu, Maria Wang, Yang Song, Hao Zhang,
+    and Jindong Chen. 2021. [PhotoChat: A human-human dialogue dataset with photo
+    sharing behavior for joint image-text modeling](https://doi.org/10.18653/v1/2021.acl-long.479).
+    In *Proceedings of the 59th Annual Meeting of the Association for Computational
+    Linguistics and the 11th International Joint Conference on Natural Language Processing
+    (Volume 1: Long Papers)*, pages 6142–6152, Online. Association for Computational
+    Linguistics.'
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zang 等（2021）Xiaoxue Zang, Lijuan Liu, Maria Wang, Yang Song, Hao Zhang, 和 Jindong
+    Chen。2021年。[PhotoChat: A human-human dialogue dataset with photo sharing behavior
+    for joint image-text modeling](https://doi.org/10.18653/v1/2021.acl-long.479)。发表于*第59届计算语言学协会年会和第11届国际联合自然语言处理会议（第一卷：长篇论文）*，第6142–6152页，在线。计算语言学协会。'
+- en: 'Zhang et al. (2021a) Chen Zhang, Yiming Chen, Luis Fernando D’Haro, Yan Zhang,
+    Thomas Friedrichs, Grandee Lee, and Haizhou Li. 2021a. Dynaeval: Unifying turn
+    and dialogue level evaluation. In *Proceedings of the 59th Annual Meeting of the
+    Association for Computational Linguistics and the 11th International Joint Conference
+    on Natural Language Processing (Volume 1: Long Papers)*, pages 5676–5689.'
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等人（2021a）Chen Zhang, Yiming Chen, Luis Fernando D’Haro, Yan Zhang, Thomas
+    Friedrichs, Grandee Lee, 和 Haizhou Li. 2021a. Dynaeval: 统一轮次和对话级别评估. 收录于*第59届计算语言学协会年会暨第11届国际联合自然语言处理会议（第一卷：长篇论文）*，第5676-5689页。'
+- en: 'Zhang et al. (2022) Chen Zhang, Luis Fernando D’Haro, Qiquan Zhang, Thomas
+    Friedrichs, and Haizhou Li. 2022. Fined-eval: Fine-grained automatic dialogue-level
+    evaluation. In *Proceedings of the 2022 Conference on Empirical Methods in Natural
+    Language Processing*, pages 3336–3355.'
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等人（2022）Chen Zhang, Luis Fernando D’Haro, Qiquan Zhang, Thomas Friedrichs,
+    和 Haizhou Li. 2022. Fined-eval: 精细化自动对话级别评估. 收录于*2022年自然语言处理实证方法会议论文集*，第3336-3355页。'
+- en: 'Zhang et al. (2023) Qiang Zhang, Jason Naradowsky, and Yusuke Miyao. 2023.
+    [Mind the gap between conversations for improved long-term dialogue generation](https://doi.org/10.18653/v1/2023.findings-emnlp.720).
+    In *Findings of the Association for Computational Linguistics: EMNLP 2023*, pages
+    10735–10762, Singapore. Association for Computational Linguistics.'
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhang等人（2023）Qiang Zhang, Jason Naradowsky, 和 Yusuke Miyao. 2023. [关注对话之间的差距，以改进长期对话生成](https://doi.org/10.18653/v1/2023.findings-emnlp.720).
+    收录于*计算语言学协会发现：EMNLP 2023*，第10735-10762页，新加坡。计算语言学协会。
+- en: 'Zhang et al. (2021b) Shiyue Zhang, Asli Celikyilmaz, Jianfeng Gao, and Mohit
+    Bansal. 2021b. Emailsum: Abstractive email thread summarization. In *Proceedings
+    of the 59th Annual Meeting of the Association for Computational Linguistics and
+    the 11th International Joint Conference on Natural Language Processing (Volume
+    1: Long Papers)*, pages 6895–6909.'
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等人（2021b）Shiyue Zhang, Asli Celikyilmaz, Jianfeng Gao, 和 Mohit Bansal.
+    2021b. Emailsum: 抽象化电子邮件线程摘要. 收录于*第59届计算语言学协会年会暨第11届国际联合自然语言处理会议（第一卷：长篇论文）*，第6895-6909页。'
+- en: 'Zhang et al. (2019) Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger,
+    and Yoav Artzi. 2019. Bertscore: Evaluating text generation with bert. In *International
+    Conference on Learning Representations*.'
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等人（2019）Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger, 和
+    Yoav Artzi. 2019. Bertscore: 使用BERT评估文本生成. 收录于*国际学习表示会议*。'
+- en: 'Zheng et al. (2023) Kaizhi Zheng, Xuehai He, and Xin Eric Wang. 2023. Minigpt-5:
+    Interleaved vision-and-language generation via generative vokens. *arXiv preprint
+    arXiv:2310.02239*.'
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zheng等人（2023）Kaizhi Zheng, Xuehai He, 和 Xin Eric Wang. 2023. Minigpt-5: 通过生成令牌实现交替的视觉与语言生成.
+    *arXiv预印本 arXiv:2310.02239*。'
+- en: 'Zheng et al. (2022) Yinhe Zheng, Guanyi Chen, Xin Liu, and Jian Sun. 2022.
+    [MMChat: Multi-modal chat dataset on social media](https://aclanthology.org/2022.lrec-1.621).
+    In *Proceedings of the Thirteenth Language Resources and Evaluation Conference*,
+    pages 5778–5786, Marseille, France. European Language Resources Association.'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zheng等人（2022）Yinhe Zheng, Guanyi Chen, Xin Liu, 和 Jian Sun. 2022. [MMChat:
+    社交媒体上的多模态聊天数据集](https://aclanthology.org/2022.lrec-1.621). 收录于*第十三届语言资源与评估会议论文集*，第5778-5786页，法国马赛。欧洲语言资源协会。'
+- en: 'Zhong et al. (2023) Wanjun Zhong, Lianghong Guo, Qiqi Gao, and Yanlin Wang.
+    2023. Memorybank: Enhancing large language models with long-term memory. *arXiv
+    preprint arXiv:2305.10250*.'
+  id: totrans-218
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhong等人（2023）Wanjun Zhong, Lianghong Guo, Qiqi Gao, 和 Yanlin Wang. 2023. Memorybank:
+    通过长期记忆增强大语言模型. *arXiv预印本 arXiv:2305.10250*。'
+- en: Zhou et al. (2020) Li Zhou, Jianfeng Gao, Di Li, and Heung-Yeung Shum. 2020.
+    The design and implementation of xiaoice, an empathetic social chatbot. *Computational
+    Linguistics*, 46(1):53–93.
+  id: totrans-219
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhou等人（2020）Li Zhou, Jianfeng Gao, Di Li, 和 Heung-Yeung Shum. 2020. Xiaoice的设计与实现，一个富有同理心的社交聊天机器人.
+    *计算语言学*，46(1)：53-93。
+- en: Appendix Overview
+  id: totrans-220
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录概览
+- en: 'The appendix is organized as follows:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 附录组织结构如下：
+- en: 'Section A: Details of generative pipeline for the LoCoMo dataset.'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: A节：LoCoMo数据集生成管道的详细信息。
+- en: 'Section B: Statistics of LoCoMo dataset, license for data release and annotator
+    details.'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: B节：LoCoMo数据集的统计信息、数据发布许可证及注释者详情。
+- en: 'Section C: Experimental setup and implementation details.'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: C节：实验设置和实施细节。
+- en: 'Section D: Additional results from evaluation on the LoCoMo benchmark.'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: D节：在LoCoMo基准测试上的额外评估结果。
+- en: '![Refer to caption](img/bf9f84d27f0776334835b4a46cd2319f.png)'
+  id: totrans-226
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/bf9f84d27f0776334835b4a46cd2319f.png)'
+- en: 'Figure 5: Prompt for persona statement ($p$) generation and examples of personas
+    in LoCoMo. The prompt used to generate expanded persona statements ($p$) from
+    initial personas ($p_{c}$) for the virtual agents in our conversation generation
+    pipeline (top) and select examples of persona statements present in the LoCoMo
+    dataset.'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：生成角色声明（$p$）的提示及 LoCoMo 中角色的示例。用于从初始角色（$p_{c}$）生成扩展角色声明（$p$）的提示，应用于我们对话生成管道中的虚拟代理（顶部），以及
+    LoCoMo 数据集中角色声明的精选示例。
+- en: Appendix A Generative Pipeline for LoCoMo
+  id: totrans-228
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A LoCoMo 生成管道
+- en: A.1 Persona
+  id: totrans-229
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 角色
+- en: We assign unique persona statement $p$ to each agent $\mathcal{L}_{i}$. For
+    this, we select a range of initial persona statements $p_{c}$ from the MSC dataset Xu
+    et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib58)), each encompassing
+    4 to 5 sentences. We employ gpt-3.5-turbo as $\mathcal{M}$ to expand these into
+    full persona statement $p$, conditioning $\mathcal{M}$ on the chosen statements
+    $p_{c}$. The prompt used for converting a short list of speaker attributes from
+    the MSC dataset Xu et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib58))
+    into a complete persona summary is presented in Fig. [5](https://arxiv.org/html/2402.17753v1#Ax1.F5
+    "Figure 5 ‣ Appendix Overview ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents"). We also use a single example of speaker attribute $\rightarrow$
+    persona summary as an in-context demonstration along with the prompt. A small
+    selection of personas showcasing the diversity of speakers in the LoCoMo dataset
+    is demonstrated in Fig. [5](https://arxiv.org/html/2402.17753v1#Ax1.F5 "Figure
+    5 ‣ Appendix Overview ‣ Evaluating Very Long-Term Conversational Memory of LLM
+    Agents").
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为每个代理 $\mathcal{L}_{i}$ 分配独特的角色声明 $p$。为此，我们从 MSC 数据集 Xu 等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib58)）中选择一系列初始角色声明
+    $p_{c}$，每个声明包含 4 到 5 个句子。我们使用 gpt-3.5-turbo 作为 $\mathcal{M}$，以这些初始声明 $p_{c}$ 为条件，扩展生成完整的角色声明
+    $p$。将 MSC 数据集 Xu 等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib58)）中的简短说话人属性列表转换为完整角色总结的提示如图
+    [5](https://arxiv.org/html/2402.17753v1#Ax1.F5 "图 5 ‣ 附录概览 ‣ 评估 LLM 代理的超长时段对话记忆")
+    所示。我们还使用一个说话人属性 $\rightarrow$ 角色总结的单个示例作为上下文演示，并附带提示。图 [5](https://arxiv.org/html/2402.17753v1#Ax1.F5
+    "图 5 ‣ 附录概览 ‣ 评估 LLM 代理的超长时段对话记忆") 展示了 LoCoMo 数据集中不同说话人的一小部分角色示例。
+- en: A.2 Temporal Event Graph
+  id: totrans-231
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 时间事件图
+- en: '![Refer to caption](img/8f7a4c50b63d0a8a89a3d04afb85cf67.png)'
+  id: totrans-232
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/8f7a4c50b63d0a8a89a3d04afb85cf67.png)'
+- en: 'Figure 6: Prompts for temporal event graph generation. The prompt used to generate
+    complete personas for the LLMs in our conversation generation pipeline (top) and
+    examples of personas present in the LoCoMo dataset.'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：生成时间事件图的提示。用于生成我们对话生成管道中的 LLM 完整角色的提示（顶部），以及 LoCoMo 数据集中角色的示例。
+- en: '![Refer to caption](img/e80f6d86ca135a59283b7a62d4ac351b.png)'
+  id: totrans-234
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/e80f6d86ca135a59283b7a62d4ac351b.png)'
+- en: 'Figure 7: Temporal Event Graph $\mathcal{G}$ Creation. Each event is generated
+    in accordance with the specified persona $p$ and causal connections $l$ between
+    events are depicted to illustrate the casual relationships among them.'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：时间事件图 $\mathcal{G}$ 创建。每个事件根据指定的角色 $p$ 生成，事件之间的因果关系 $l$ 被描绘出来，以说明它们之间的因果关系。
+- en: As outlined in Sec. [3.2](https://arxiv.org/html/2402.17753v1#S3.SS2 "3.2 Temporal
+    Event Graph ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents"), we use an iterative process for generating event graphs
+    consisting of causally connected events based on a given persona summary. The
+    base prompt for describing the constitution of the event graph, the nature of
+    events and causal connections between events is shown in Fig. [6](https://arxiv.org/html/2402.17753v1#A1.F6
+    "Figure 6 ‣ A.2 Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo
+    ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents"). First, the
+    base prompt is used along with the prompt for event graph initialization to generate
+    three independent events relevant to a given personality. Then, the base prompt
+    is combined with the prompt for the iterative generation of events to continue
+    generating events that are caused by one or more of the events that are already
+    present in the graph. See an example of a persona and the corresponding temporal
+    event graph in Fig. [7](https://arxiv.org/html/2402.17753v1#A1.F7 "Figure 7 ‣
+    A.2 Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents"). In the example, Jack aspires
+    to be a hotel manager. Consequently, he enrolls in a hotel management course in
+    July, and after three months, he expresses his excitement about the course on
+    social media. In a similar vein, his passion for gaming results in an invitation
+    from a well-known gaming company.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如[第3.2节](https://arxiv.org/html/2402.17753v1#S3.SS2 "3.2 Temporal Event Graph
+    ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")中所述，我们使用一个迭代过程来生成由因果连接事件组成的事件图，基于给定的人物摘要。描述事件图构成、事件的性质及事件间因果关系的基本提示如图[6](https://arxiv.org/html/2402.17753v1#A1.F6
+    "Figure 6 ‣ A.2 Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo
+    ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")所示。首先，基本提示与事件图初始化的提示一起使用，以生成与给定个性相关的三个独立事件。然后，基本提示与迭代生成事件的提示结合，继续生成由图中已存在的一个或多个事件引起的事件。请参见图[7](https://arxiv.org/html/2402.17753v1#A1.F7
+    "Figure 7 ‣ A.2 Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo
+    ‣ Evaluating Very Long-Term Conversational Memory of LLM Agents")中人物和相应的时间事件图示例。在这个例子中，Jack渴望成为一名酒店经理。因此，他在七月参加了一个酒店管理课程，三个月后，他在社交媒体上表达了对这门课程的兴奋。类似地，他对游戏的热情导致了一个知名游戏公司向他发出的邀请。
+- en: A.2.1 Virtual Agent Architecture
+  id: totrans-237
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: A.2.1 虚拟代理架构
+- en: As outlined in Section [3.3](https://arxiv.org/html/2402.17753v1#S3.SS3 "3.3
+    Virtual Agent Architecture ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents"), the virtual agents in our generative
+    pipelines are composed of two mechanisms, Reflect & respond Park et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib45))
+    and Image sharing & response.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如[第3.3节](https://arxiv.org/html/2402.17753v1#S3.SS3 "3.3 Virtual Agent Architecture
+    ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")中所述，我们生成管道中的虚拟代理由两个机制组成：反思与回应（Park等人，[2023](https://arxiv.org/html/2402.17753v1#bib.bib45)）和图像共享与响应。
+- en: Reflect & respond.
+  id: totrans-239
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 反思与回应。
+- en: This mechanism operates over a combination of short-term and long-term memory.
+    The short-term memory is a summary of a session that is conditioned on the summary
+    from a previous session. See the prompt given to LLMs in our pipeline for generating
+    summaries, and an example of a generated summary, in Fig. [8](https://arxiv.org/html/2402.17753v1#A1.F8
+    "Figure 8 ‣ Image sharing & response. ‣ A.2.1 Virtual Agent Architecture ‣ A.2
+    Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents"). The long-term memory is
+    a database of observations about each speaker, that are essentially assertive
+    statements about the speaker’s persona and life. See the prompt given to LLMs
+    in our pipeline for generating observations, and an example of observations extracted
+    from a conversation, in Fig. [9](https://arxiv.org/html/2402.17753v1#A1.F9 "Figure
+    9 ‣ Image sharing & response. ‣ A.2.1 Virtual Agent Architecture ‣ A.2 Temporal
+    Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents"). In practice, the conversation is annotated
+    with turn IDs for each turn, and the model is also instructed to indicate the
+    turn IDs that directly contribute to each observation. This allows us to keep
+    track of the evidence when using observations as the context for RAG-based models
+    used in our experiments (see Section [5](https://arxiv.org/html/2402.17753v1#S5
+    "5 Experimental Setup ‣ Evaluating Very Long-Term Conversational Memory of LLM
+    Agents")).
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该机制结合了短期记忆和长期记忆的工作。短期记忆是基于先前会话摘要生成的当前会话摘要。请参见我们管道中提供给 LLM 的生成摘要提示，以及图 [8](https://arxiv.org/html/2402.17753v1#A1.F8
+    "图 8 ‣ 图像共享与响应。‣ A.2.1 虚拟代理架构 ‣ A.2 时间事件图 ‣ 附录 A LoCoMo 生成管道 ‣ 评估大规模长时间对话记忆的 LLM
+    代理") 中生成的摘要示例。长期记忆是一个关于每个说话者的观察数据库，本质上是关于说话者个性和生活的断言性语句。请参见我们管道中提供给 LLM 的生成观察结果的提示，以及图
+    [9](https://arxiv.org/html/2402.17753v1#A1.F9 "图 9 ‣ 图像共享与响应。‣ A.2.1 虚拟代理架构 ‣
+    A.2 时间事件图 ‣ 附录 A LoCoMo 生成管道 ‣ 评估大规模长时间对话记忆的 LLM 代理") 中提取的观察结果示例。实际操作中，对话会通过每轮的轮次
+    ID 进行注释，且模型还会指示直接贡献于每个观察结果的轮次 ID。这使得我们能够在使用观察结果作为上下文的 RAG 模型中追踪证据，这些模型用于我们的实验（参见第
+    [5](https://arxiv.org/html/2402.17753v1#S5 "5 实验设置 ‣ 评估大规模长时间对话记忆的 LLM 代理") 节）。
+- en: Image sharing & response.
+  id: totrans-241
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 图像共享与响应。
+- en: See prompts for implementing image-sharing and image-response behaviors in Figure [10](https://arxiv.org/html/2402.17753v1#A1.F10
+    "Figure 10 ‣ Image sharing & response. ‣ A.2.1 Virtual Agent Architecture ‣ A.2
+    Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents").
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参见图 [10](https://arxiv.org/html/2402.17753v1#A1.F10 "图 10 ‣ 图像共享与响应。‣ A.2.1
+    虚拟代理架构 ‣ A.2 时间事件图 ‣ 附录 A LoCoMo 生成管道 ‣ 评估大规模长时间对话记忆的 LLM 代理") 中实现图像共享和图像响应行为的提示。
+- en: '![Refer to caption](img/a49d181dae9fcebb35a95bae77d98ff5.png)'
+  id: totrans-243
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/a49d181dae9fcebb35a95bae77d98ff5.png)'
+- en: 'Figure 8: Prompt for generating conversation summaries. The prompt used to
+    iteratively generate a summary for the current session by conditioning on summary
+    from preceding sessions and the raw conversation logs of the current session (top);
+    and an example of inputs for the prompt and corresponding output summary of a
+    session from the LoCoMo dataset.'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 8：用于生成对话摘要的提示。该提示通过条件化先前会话的摘要和当前会话的原始对话日志，迭代生成当前会话的摘要（上方）；以及来自 LoCoMo 数据集的会话示例输入和相应的输出摘要。
+- en: '![Refer to caption](img/e0fc0911f3414f9faeb4f7270dbca8d5.png)'
+  id: totrans-245
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/e0fc0911f3414f9faeb4f7270dbca8d5.png)'
+- en: 'Figure 9: Prompts for generating observations from conversations. The prompt
+    used to generate observations from a conversation (top); and an example of inputs
+    for the prompt and corresponding output observations for a session from the LoCoMo
+    dataset.'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 9：用于生成对话观察结果的提示。该提示用于从对话中生成观察结果（上方）；以及来自 LoCoMo 数据集的会话示例输入和相应的输出观察结果。
+- en: '![Refer to caption](img/0ce789d472c182c18e84fc9ac05e76e6.png)'
+  id: totrans-247
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/0ce789d472c182c18e84fc9ac05e76e6.png)'
+- en: 'Figure 10: Prompts for image-sharing and image-response behavior. The prompt
+    used to convert a caption generated by the virtual agent into an image query for
+    the web-based image crawler in our pipeline (top), and the prompt used to generate
+    a response grounded in the image shared by a virtual agent during a conversation
+    as well as the personas of the respective speakers (bottom).'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图10：图片共享和图片响应行为的提示。用于将虚拟代理生成的标题转换为我们管道中基于Web的图片爬虫的图片查询的提示（顶部），以及用于生成与虚拟代理在对话过程中共享的图片相关的响应的提示，同时结合相应发言者的角色（底部）。
+- en: A.3 Human Filtering
+  id: totrans-249
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 人类过滤
+- en: '![Refer to caption](img/e7ddbd660bdcea47bd6eb43bfdcef544.png)'
+  id: totrans-250
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/e7ddbd660bdcea47bd6eb43bfdcef544.png)'
+- en: 'Figure 11: Example of edits made by annotators. Human annotators are instructed
+    to make edits in the LLM-generated conversations to remove irrelevant The prompt
+    used to generate complete personas for the LLMs in our conversation generation
+    pipeline (top) and examples of personas present in the LoCoMo dataset.'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图11：标注员进行编辑的示例。人工标注员被指示在LLM生成的对话中进行编辑，以去除不相关的内容。用于生成LLM完整角色的提示（顶部），以及LoCoMo数据集中出现的角色示例。
+- en: 'Human annotators are instructed to edit the LLM-generated conversations in
+    the following scenarios:'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 人工标注员在以下场景下编辑LLM生成的对话：
+- en: •
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Remove an image if it is not relevant to the current dialog or the conversation.
+  id: totrans-254
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 如果图片与当前对话或对话内容无关，请将其移除。
+- en: •
+  id: totrans-255
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Add context about an image to the current speaker’s dialog if it is not discussed
+    by them but the subsequent speaker has reacted to the image.
+  id: totrans-256
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 如果当前发言者未讨论某张图片，但后续发言者对此图片做出反应，则将该图片的上下文添加到当前发言者的对话中。
+- en: •
+  id: totrans-257
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Replace an image if it does not match the caption that was used to query for
+    images.
+  id: totrans-258
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 如果图片与用于查询图片的标题不匹配，请替换图片。
+- en: •
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Edit the dialog when the information present in the dialog is inconsistent with
+    something said (or shared through an image) in earlier or later turns.
+  id: totrans-260
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 当对话中的信息与前后轮次中说的内容（或通过图片共享的内容）不一致时，编辑对话。
+- en: •
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Edit the dialog to ensure that the details in the conversation are consistent
+    with those given in the event for the session.
+  id: totrans-262
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 编辑对话以确保对话中的细节与会话中的事件一致。
+- en: •
+  id: totrans-263
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Remove any events from the event graph if they do not appear in the conversation.
+  id: totrans-264
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 如果事件图中的事件未出现在对话中，请将其移除。
+- en: See an example of some edits in Fig. [11](https://arxiv.org/html/2402.17753v1#A1.F11
+    "Figure 11 ‣ A.3 Human Filtering ‣ Appendix A Generative Pipeline for LoCoMo ‣
+    Evaluating Very Long-Term Conversational Memory of LLM Agents").
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查看图示[11](https://arxiv.org/html/2402.17753v1#A1.F11 "Figure 11 ‣ A.3 Human Filtering
+    ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")中的编辑示例。
+- en: Appendix B Dataset
+  id: totrans-266
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 数据集
+- en: B.1 Dataset Statistics
+  id: totrans-267
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.1 数据集统计
+- en: See a breakdown of the statistics of the conversations in the LoCoMo dataset
+    in the top panel of Table [5](https://arxiv.org/html/2402.17753v1#A2.T5 "Table
+    5 ‣ B.1 Dataset Statistics ‣ Appendix B Dataset ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents"). Also, see a breakdown of the statistics of the annotations
+    in the evaluation benchmark in the bottom panel of Table [5](https://arxiv.org/html/2402.17753v1#A2.T5
+    "Table 5 ‣ B.1 Dataset Statistics ‣ Appendix B Dataset ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents").
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查看LoCoMo数据集中对话统计的分解，见表[5](https://arxiv.org/html/2402.17753v1#A2.T5 "Table 5
+    ‣ B.1 Dataset Statistics ‣ Appendix B Dataset ‣ Evaluating Very Long-Term Conversational
+    Memory of LLM Agents")的顶部面板。同时，也可以查看评估基准中标注统计的分解，见表[5](https://arxiv.org/html/2402.17753v1#A2.T5
+    "Table 5 ‣ B.1 Dataset Statistics ‣ Appendix B Dataset ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents")的底部面板。
+- en: '| Conversation Statistics | # Counts |'
+  id: totrans-269
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对话统计 | 计数 |'
+- en: '| --- | --- |'
+  id: totrans-270
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Total. # conversations $h$. | 50 |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总会话数 $h$ | 50 |'
+- en: '| Avg. # sessions $k$. in conversation $h$ | 19.3 |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个对话中的会话数 $k$ | 19.3 |'
+- en: '| Avg. # turns $j$. in session $k$ | 15.8 |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个会话中的轮次数 $j$ | 15.8 |'
+- en: '| Avg. # tokens. conversation $h$ | 9,209.2 |'
+  id: totrans-274
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个对话 $h$ 的标记数 | 9,209.2 |'
+- en: '| Avg. # tokens. dialogue $h_{k_{j}}$ of turn $j$ in session $k$ | 30.2 |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个轮次中会话 $h_{k_{j}}$ 的标记数 | 30.2 |'
+- en: '| Avg. # tokens. observation $o_{k_{j}}$ of turn $j$ in session $k$ | 18.2
+    |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个轮次中会话 $k$ 的观察标记数 $o_{k_{j}}$ | 18.2 |'
+- en: '| Avg. # tokens. summary $w_{k}$ of session $k$ | 127.4 |'
+  id: totrans-277
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个会话 $k$ 的总结 $w_{k}$ 的标记数 | 127.4 |'
+- en: '| QA Benchmark Statistics |  |'
+  id: totrans-278
+  prefs: []
+  type: TYPE_TB
+  zh: '| QA 基准统计 |  |'
+- en: '| # questions. single-hop retrieval | 2,705 (36%) |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| 单跳检索问题数 | 2,705 (36%) |'
+- en: '| # questions. multi-hop retrieval | 1,104 (14.6%) |'
+  id: totrans-280
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多跳检索问题数 | 1,104 (14.6%) |'
+- en: '| # questions. temporal reasoning | 1,547 (20.6%) |'
+  id: totrans-281
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间推理问题数 | 1,547 (20.6%) |'
+- en: '| # questions. open domain knowledge | 285 (3.9%) |'
+  id: totrans-282
+  prefs: []
+  type: TYPE_TB
+  zh: '| 开放领域知识问题数 | 285 (3.9%) |'
+- en: '| # questions. adversarial | 1,871 (24.9%) |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对抗性问题数 | 1,871 (24.9%) |'
+- en: '| Total. # questions. | 7,512 |'
+  id: totrans-284
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总问题数 | 7,512 |'
+- en: '| Event Summarization Statistics |  |'
+  id: totrans-285
+  prefs: []
+  type: TYPE_TB
+  zh: '| 事件摘要统计数据 |  |'
+- en: '| Avg. # ground truth events. in conversation $h$ | 24.2 |'
+  id: totrans-286
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个对话中的平均真实事件数 $h$ | 24.2 |'
+- en: '| Avg. # tokens. event summary | 896.5 |'
+  id: totrans-287
+  prefs: []
+  type: TYPE_TB
+  zh: '| 事件摘要的平均token数 | 896.5 |'
+- en: '| Multi-modal Dialogue Generation Statistics |  |'
+  id: totrans-288
+  prefs: []
+  type: TYPE_TB
+  zh: '| 多模态对话生成统计数据 |  |'
+- en: '| Avg. # images. in conversation $h$ | 32.3 |'
+  id: totrans-289
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均每个对话中的图片数量 $h$ | 32.3 |'
+- en: 'Table 5: Dataset Statistics of conversation and corresponding benchmark'
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格5：对话数据集统计及相应基准
+- en: B.2 Dataset License
+  id: totrans-291
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.2 数据集许可证
+- en: The LoCoMo dataset will be released under the CC BY-NC 4.0 DEED license.⁸⁸8[https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/)
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LoCoMo数据集将根据CC BY-NC 4.0 DEED许可证发布。⁸⁸8[https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/)
+- en: B.3 Annotator Details
+  id: totrans-293
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: B.3 标注员详情
+- en: The annotators who worked on the LoCoMo dataset were in-house annotators and
+    we were unable to obtain their demographics due to the confidential nature of
+    such information.
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参与LoCoMo数据集标注的人员是内部标注员，由于信息的机密性，我们无法获得他们的人口统计信息。
+- en: Appendix C Experimental Setup
+  id: totrans-295
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录C 实验设置
+- en: C.1 Baselines
+  id: totrans-296
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.1 基准线
+- en: The conversations in the LoCoMo dataset are composed of natural language dialogs
+    and images that require higher-order reasoning and multimodal coreference resolution,
+    respectively. From initial studies, we observed that multimodal coreference resolution
+    can be performed effectively by replacing images in LoCoMo with their captions
+    generated using BLIP-2 Li et al. ([2023b](https://arxiv.org/html/2402.17753v1#bib.bib31)),
+    and using state-of-art LLMs to reason over natural language text interleaved with
+    image captions. Hence, our experiments for the question answering and event summarization
+    tasks are conducted using LLMs. We use the images directly only for experiments
+    on the multimodal dialog generation task.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LoCoMo数据集中的对话由自然语言对话和图片组成，这些图片分别需要进行更高阶的推理和多模态共指消解。从初步研究来看，我们观察到通过将LoCoMo中的图片替换为使用BLIP-2
+    Li等人（[2023b](https://arxiv.org/html/2402.17753v1#bib.bib31)）生成的标题，并使用最先进的LLM在夹杂有图片标题的自然语言文本上进行推理，可以有效地执行多模态共指消解。因此，我们在问题回答和事件摘要任务的实验中使用了LLM。我们仅在多模态对话生成任务的实验中直接使用图片。
+- en: Question Answering.
+  id: totrans-298
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 问题回答。
+- en: 'We carry out experiments using three distinct methodologies: (1) Base involves
+    utilizing LLMs to directly conduct the task within a constrained context. The
+    task description comes after the dialogue history. To accommodate the restricted
+    context window size, earlier dialogues are omitted; (2) Long-context employs LLMs
+    with an extended context window to expose the models to as much dialogue context
+    as possible; (3) Retrieval-augmented Generation (RAG) involves retrieving relevant
+    context from a database of dialog history, observations, or session-level summaries.
+    Observations are assertions about each speaker extracted from the dialog history
+    as described in §[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3 "3.3 Virtual
+    Agent Architecture ‣ 3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents"), see an example in Figure [9](https://arxiv.org/html/2402.17753v1#A1.F9
+    "Figure 9 ‣ Image sharing & response. ‣ A.2.1 Virtual Agent Architecture ‣ A.2
+    Temporal Event Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating
+    Very Long-Term Conversational Memory of LLM Agents"). Session-level summaries
+    are concise summaries of the conversation that takes place in each session, see
+    an example in Figure [8](https://arxiv.org/html/2402.17753v1#A1.F8 "Figure 8 ‣
+    Image sharing & response. ‣ A.2.1 Virtual Agent Architecture ‣ A.2 Temporal Event
+    Graph ‣ Appendix A Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents").'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过三种不同的方法进行了实验：（1）基础模型方法利用LLM直接在受限上下文中执行任务。任务描述在对话历史之后给出。为了适应受限的上下文窗口大小，早期的对话被省略；（2）长文本方法使用具有扩展上下文窗口的LLM，尽可能多地暴露模型于对话上下文中；（3）检索增强生成（RAG）方法从对话历史、观察结果或会话级总结的数据库中检索相关的上下文。观察结果是从对话历史中提取的关于每个说话者的断言，如§[3.3](https://arxiv.org/html/2402.17753v1#S3.SS3
+    "3.3 虚拟代理架构 ‣ LoCoMo生成管道 ‣ 评估LLM代理的长期对话记忆")所述，示例如图[9](https://arxiv.org/html/2402.17753v1#A1.F9
+    "图9 ‣ 图像分享与回应。 ‣ A.2.1 虚拟代理架构 ‣ A.2 时间事件图 ‣ 附录A LoCoMo生成管道 ‣ 评估LLM代理的长期对话记忆")所示。会话级总结是对每次会话中发生对话的简洁总结，示例如图[8](https://arxiv.org/html/2402.17753v1#A1.F8
+    "图8 ‣ 图像分享与回应。 ‣ A.2.1 虚拟代理架构 ‣ A.2 时间事件图 ‣ 附录A LoCoMo生成管道 ‣ 评估LLM代理的长期对话记忆")所示。
+- en: For the retrieval model, we employ DRAGON Lin et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib35)).
+    In the Base, we utilize Mistral-7B Jiang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib22)),
+    LLama-70B-chat Touvron et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib52)),
+    gpt-3.5-turbo ⁹⁹9https://platform.openai.com/docs/models/gpt-3-5, and gpt-4-turbo ^(10)^(10)10https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo.
+    To assess the effectiveness in practical scenarios for Long-context and RAG, we
+    draw comparisons using variants of gpt-3.5-turbo. We do not report the performance
+    of long-context fine-tuned open-source models Chen et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib8))
+    or those utilizing sliding window Bertsch et al. ([2024](https://arxiv.org/html/2402.17753v1#bib.bib5));
+    Dao et al. ([2022](https://arxiv.org/html/2402.17753v1#bib.bib10)) due to the
+    variability inherent across different open-source models and the potential reduction
+    in their capability on shorter context.
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于检索模型，我们采用了DRAGON Lin等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib35)）的方法。在基础模型中，我们利用了Mistral-7B
+    Jiang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib22)）、LLama-70B-chat
+    Touvron等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib52)）、gpt-3.5-turbo ⁹⁹9https://platform.openai.com/docs/models/gpt-3-5，以及gpt-4-turbo ^(10)^(10)10https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo。为了评估在实际场景中对长文本和RAG的效果，我们通过使用gpt-3.5-turbo的变体进行对比。我们没有报告长文本微调开源模型Chen等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib8)）或那些使用滑动窗口方法的Bertsch等人（[2024](https://arxiv.org/html/2402.17753v1#bib.bib5)）；Dao等人（[2022](https://arxiv.org/html/2402.17753v1#bib.bib10)）的表现，因为不同开源模型之间的变异性，以及它们在较短上下文下的能力可能有所下降。
+- en: Event Summarization.
+  id: totrans-301
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 事件总结。
+- en: We present experiments conducted in two distinct configurations. We use both
+    the Base and Long-context setups from the question answering task, but we refrained
+    from including RAG since summarization requires a comprehensive understanding
+    of the entire dialogue, rather than just retrieving a specific portion. A notable
+    distinction in our approach, compared to the question-answering task, lies in
+    our handling of the context. Specifically, we employ an iterative process of creating
+    a summary of a preceding session and then use that summary as a basis to generate
+    the summary for the subsequent session Chang et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib6)).
+    Further, we use a single in-context demonstration of input and output to guide
+    the model toward selecting only significant life events for the summary.
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们展示了在两种不同配置下进行的实验。我们使用了来自问答任务的Base和Long-context两种设置，但由于摘要需要对整个对话有全面的理解，而不仅仅是检索特定部分，因此我们没有包含RAG。与问答任务相比，我们的方法有一个显著的区别，体现在我们如何处理上下文。具体来说，我们采用了一个迭代过程，先对前一个会话进行总结，再以此总结为基础生成后续会话的摘要
+    Chang等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib6)）。此外，我们还使用了一个单一的上下文示范输入和输出，以引导模型选择摘要中仅包含重要的生活事件。
+- en: Multi-modal Dialogue Generation.
+  id: totrans-303
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 多模态对话生成
+- en: 'For evaluating multi-modal dialogue generation, we train MiniGPT-5 Zheng et al.
+    ([2023](https://arxiv.org/html/2402.17753v1#bib.bib65)) on 50 conversations generated
+    using our automated pipeline (without human filtering) as detailed in §[3](https://arxiv.org/html/2402.17753v1#S3
+    "3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents"). Three distinct versions of the model were developed, each with
+    varying training data: (1) Base trains on preceding dialogue turns; (2) + summary
+    trains on both prior dialogue turns and a global summary of the ongoing conversation;
+    (3) + observation trains on both preceding dialogue turns and relevant observations
+    retrieved from the conversation history. For each of these models, we started
+    with a MiniGPT-5 checkpoint pretrained on the MMDialog dataset Feng et al. ([2023](https://arxiv.org/html/2402.17753v1#bib.bib12)).'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在评估多模态对话生成时，我们训练了MiniGPT-5 Zheng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib65)），使用了我们自动化流程（未经过人工过滤）生成的50个对话，如§[3](https://arxiv.org/html/2402.17753v1#S3
+    "3 Generative Pipeline for LoCoMo ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents")所述。我们开发了三个不同版本的模型，每个模型的训练数据有所不同：（1）Base模型基于前面的对话轮次进行训练；（2）+ summary模型同时基于先前的对话轮次和正在进行的对话的全局总结进行训练；（3）+
+    observation模型基于先前的对话轮次和从对话历史中检索的相关观察进行训练。对于这些模型中的每一个，我们都从一个在MMDialog数据集上预训练的MiniGPT-5检查点开始训练
+    Feng等人（[2023](https://arxiv.org/html/2402.17753v1#bib.bib12)）。
+- en: C.2 Implementation Details
+  id: totrans-305
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.2 实现细节
+- en: We use OpenAI API and Huggingface Wolf et al. ([2020](https://arxiv.org/html/2402.17753v1#bib.bib55)),
+    as of January 2024, with specific settings of $temperature$ set to 0 and $top_{p}$
+    set to 1 for evaluation of the LoCoMo benchmark. All experiments, including those
+    for RAG-based models, MiniGPT-5 training, and inference, are conducted on an Nvidia
+    A6000 server with FP32\. We report results from a single inference run for each
+    model in our experiments. For MiniGPT-5, we used the hyperparameters recommended
+    in the original codebase and trained our models for 10 epochs, which took approximately
+    30 hours on a single A6000 GPU.
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用了OpenAI API和Huggingface Wolf等人（[2020](https://arxiv.org/html/2402.17753v1#bib.bib55)），截至2024年1月，针对LoCoMo基准测试进行评估时，设置了$temperature$为0，$top_{p}$为1。所有实验，包括基于RAG的模型、MiniGPT-5的训练和推理，都在一台搭载FP32的Nvidia
+    A6000服务器上进行。我们报告了每个模型在实验中的单次推理结果。对于MiniGPT-5，我们使用了原始代码库推荐的超参数，并将模型训练了10个epoch，这在单个A6000
+    GPU上大约花费了30小时。
+- en: We use the default implementations of BLEU^(11)^(11)11[https://www.nltk.org/_modules/nltk/translate/bleu_score.html](https://www.nltk.org/_modules/nltk/translate/bleu_score.html),
+    ROUGE^(12)^(12)12[https://pypi.org/project/rouge/](https://pypi.org/project/rouge/),
+    BertScore^(13)^(13)13[https://pypi.org/project/bert-score/](https://pypi.org/project/bert-score/),
+    FactScore^(14)^(14)14[https://github.com/shmsw25/FActScore](https://github.com/shmsw25/FActScore)
+    metrics in their respective Python packages in our evaluation protocol.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在评估协议中使用了BLEU^(11)^(11)11[https://www.nltk.org/_modules/nltk/translate/bleu_score.html](https://www.nltk.org/_modules/nltk/translate/bleu_score.html)、ROUGE^(12)^(12)12[https://pypi.org/project/rouge/](https://pypi.org/project/rouge/)、BertScore^(13)^(13)13[https://pypi.org/project/bert-score/](https://pypi.org/project/bert-score/)、FactScore^(14)^(14)14[https://github.com/shmsw25/FActScore](https://github.com/shmsw25/FActScore)等度量的默认实现，这些实现均来自其各自的Python包。
+- en: Appendix D Results
+  id: totrans-308
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录D 结果
+- en: '| Category | top-$k$ | BLEU-1/2 | Rouge-L | MM-R |'
+  id: totrans-309
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类别 | top-$k$ | BLEU-1/2 | Rouge-L | MM-R |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-310
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| Base | - | 57.1 / 34.2 | 12.4 | 56.1 |'
+  id: totrans-311
+  prefs: []
+  type: TYPE_TB
+  zh: '| 基础 | - | 57.1 / 34.2 | 12.4 | 56.1 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-312
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| + summary | 1 | 58.2 / 34.1 | 12.8 | 56.9 |'
+  id: totrans-313
+  prefs: []
+  type: TYPE_TB
+  zh: '| + 摘要 | 1 | 58.2 / 34.1 | 12.8 | 56.9 |'
+- en: '| + summary | 2 | 56.5 / 32.8 | 12.1 | 55.1 |'
+  id: totrans-314
+  prefs: []
+  type: TYPE_TB
+  zh: '| + 摘要 | 2 | 56.5 / 32.8 | 12.1 | 55.1 |'
+- en: '| + summary | 5 | 56.1 / 32.5 | 12.0 | 55.2 |'
+  id: totrans-315
+  prefs: []
+  type: TYPE_TB
+  zh: '| + 摘要 | 5 | 56.1 / 32.5 | 12.0 | 55.2 |'
+- en: '| + observation | 5 | 59.7 / 35.1 | 13.6 | 57.8 |'
+  id: totrans-316
+  prefs: []
+  type: TYPE_TB
+  zh: '| + 观察 | 5 | 59.7 / 35.1 | 13.6 | 57.8 |'
+- en: '| + observation | 10 | 59.1 / 34.9 | 12.8 | 57.1 |'
+  id: totrans-317
+  prefs: []
+  type: TYPE_TB
+  zh: '| + 观察 | 10 | 59.1 / 34.9 | 12.8 | 57.1 |'
+- en: '| + observation | 25 | 58.5 / 34.2 | 12.0 | 56.5 |'
+  id: totrans-318
+  prefs: []
+  type: TYPE_TB
+  zh: '| + 观察 | 25 | 58.5 / 34.2 | 12.0 | 56.5 |'
+- en: 'Table 6: Multi-modal dialogue generation performance comparison between different
+    training variants of MiniGPT-5. The optimal performance is shown in bold.'
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6：MiniGPT-5 不同训练变体之间的多模态对话生成性能比较。最佳性能以粗体显示。
+- en: D.1 Event Summarization Task
+  id: totrans-320
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.1 事件摘要任务
+- en: See an example of the five broad categories of event summarization errors made
+    by LLMs, outlined in Section [6.2](https://arxiv.org/html/2402.17753v1#S6.SS2
+    "6.2 Event Summarization Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents"), in Table [7](https://arxiv.org/html/2402.17753v1#A4.T7
+    "Table 7 ‣ D.1 Event Summarization Task ‣ Appendix D Results ‣ Evaluating Very
+    Long-Term Conversational Memory of LLM Agents").
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请参见表 [7](https://arxiv.org/html/2402.17753v1#A4.T7 "Table 7 ‣ D.1 Event Summarization
+    Task ‣ Appendix D Results ‣ Evaluating Very Long-Term Conversational Memory of
+    LLM Agents") 中列出的 LLM 生成的事件摘要错误的五个广泛类别的示例，这些内容在第 [6.2](https://arxiv.org/html/2402.17753v1#S6.SS2
+    "6.2 Event Summarization Task ‣ 6 Experimental Results ‣ Evaluating Very Long-Term
+    Conversational Memory of LLM Agents") 节中进行了概述。
+- en: '| Error Type | Explanation | Ground truth event or relevant dialogs | Predicted
+    event |'
+  id: totrans-322
+  prefs: []
+  type: TYPE_TB
+  zh: '| 错误类型 | 解释 | 真实事件或相关对话 | 预测事件 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-323
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Missing information | Key details about event are omitted because the model
+    fails to make causal and temporal connections over a long conversation. | Joanna
+    submits her third screenplay on loss, identity, and connection to a film contest
+    | Joanna submits her recent screenplay to a film contest. |'
+  id: totrans-324
+  prefs: []
+  type: TYPE_TB
+  zh: '| 信息缺失 | 由于模型未能在长对话中建立因果和时间关系，导致关键事件细节遗漏。 | Joanna 提交了她关于失落、身份和连接的第三部剧本，参加电影比赛。
+    | Joanna 提交了她最近的剧本，参加电影比赛。 |'
+- en: '| Hallucination | Non-existent details or details from a different event are
+    padded onto an event | N: ‘The gaming party was a great success!’ N: ‘… said they’d
+    want to do it again next month!’'
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '| 幻觉 | 事件中加入了不存在的细节或来自不同事件的细节 | N: ‘游戏聚会非常成功！’ N: ‘… 他们说下个月还想再做一次！’  '
+- en: 'N: ‘On another note, I made vegan ice cream …’ | Nate’s vegan ice cream is
+    a huge success and people want to do it again next month. |'
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'N: ‘另外，我做了素食冰淇淋…’ | Nate 的素食冰淇淋大获成功，大家想下个月再做一次。 |'
+- en: '| Misunder- -standing of dialog cues | e.g., model confuses a light-hearted
+    statement from a speaker as a serious statement | J: ‘.. these trails that made
+    me feel like writing a drama.’ N: ‘.. go together .. Maybe I’ll start to think
+    of a drama myself and write a screenplay …’'
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '| 对对话提示的误解 | 例如，模型将说话者的一句轻松话语误解为严肃的陈述 | J: ‘.. 这些小路让我觉得应该写个戏剧。’ N: ‘.. 一起走..
+    或许我也应该开始想想写个戏剧剧本……’'
+- en: 'J: ‘Haha, now that would be something! …’ | Nate considers writing his own
+    drama screenplay. |'
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'J: ‘哈哈，那真是太棒了！ …’ | Nate 考虑自己编写一部戏剧剧本。 |'
+- en: '| Speaker attribution | Event is attributed to the wrong speaker | Nate invites
+    Joanna to try his homemade lactose-free ice cream. | Joanna invites Nate to her
+    home to try her dairy-free ice cream recipe. |'
+  id: totrans-329
+  prefs: []
+  type: TYPE_TB
+  zh: '| 说话者归属 | 事件归属于错误的说话者 | Nate 邀请 Joanna 尝试他自制的无乳糖冰淇淋。 | Joanna 邀请 Nate 到她家尝试她的无奶冰淇淋食谱。
+    |'
+- en: '| Saliency | Unimportant interactions in the conversation are considered significant
+    by model | N: Hey Joanna, what’s been up since we last chatted? How’s it going?
+    | Nate asks Joanna how she has been she they last talked. |'
+  id: totrans-330
+  prefs: []
+  type: TYPE_TB
+  zh: '| 重要性错误 | 模型认为对话中的不重要互动具有重要性 | N: 嘿 Joanna，自从我们上次聊过之后，怎么样？过得怎么样？ | Nate 问 Joanna
+    自从上次聊天后过得怎么样。 |'
+- en: 'Table 7: Taxonomy of errors in LLM-generated event summaries. Five types of
+    errors predominantly occur in the event summaries generated by LLMs. Examples
+    are based on predictions from gpt-3.5-turbo.'
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7：LLM 生成的事件摘要中的错误分类。在 LLM 生成的事件摘要中，主要出现五种类型的错误。示例基于 gpt-3.5-turbo 的预测结果。
+- en: D.2 Multimodal Dialog Generation Task
+  id: totrans-332
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: D.2 多模态对话生成任务
+- en: Results from evaluation of various version of MiniGPT-5 model on the multimodal
+    dialog generation task in the LoCoMo benchmark is in Table [6](https://arxiv.org/html/2402.17753v1#A4.T6
+    "Table 6 ‣ Appendix D Results ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents").
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在LoCoMo基准测试中对MiniGPT-5模型的不同版本进行评估的结果见表[6](https://arxiv.org/html/2402.17753v1#A4.T6
+    "Table 6 ‣ Appendix D Results ‣ Evaluating Very Long-Term Conversational Memory
+    of LLM Agents")。

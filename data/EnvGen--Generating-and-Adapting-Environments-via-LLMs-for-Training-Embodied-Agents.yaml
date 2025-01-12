@@ -1,0 +1,3083 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 12:45:55'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:45:55
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: EnvGen：通过LLM生成和调整环境来训练具身代理
+- en: 来源：[https://arxiv.org/html/2403.12014/](https://arxiv.org/html/2403.12014/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2403.12014/](https://arxiv.org/html/2403.12014/)
+- en: 'Abhay Zala  Jaemin Cho^†^†footnotemark:  Han Lin  Jaehong Yoon  Mohit Bansal'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Abhay Zala  Jaemin Cho^†^†脚注标记：  Han Lin  Jaehong Yoon  Mohit Bansal
+- en: UNC Chapel Hill
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: UNC Chapel Hill
+- en: '{aszala, jmincho, hanlincs, jhyoon, mbansal}@cs.unc.edu'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{aszala, jmincho, hanlincs, jhyoon, mbansal}@cs.unc.edu'
+- en: '[https://envgen-llm.github.io](https://envgen-llm.github.io) equal contribution'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[https://envgen-llm.github.io](https://envgen-llm.github.io) 平等贡献'
+- en: Abstract
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'Recent state-of-the-art approaches for embodied learning via interaction directly
+    employ large language models (LLMs) as agents to determine the next steps in an
+    environment. Due to their world knowledge and reasoning capabilities, LLM agents
+    achieve stronger performance than previous smaller agents based on reinforcement
+    learning (RL); however, frequently calling LLMs is slow and expensive. This begs
+    an interesting question: Instead of directly employing LLMs as embodied agents,
+    can we use LLMs’ reasoning capabilities to adaptively create training environments
+    to help smaller embodied RL agents learn useful skills that they are weak at?
+    In this work, we propose EnvGen, a novel framework to address this question. First,
+    we prompt an LLM to generate training environments that allow agents to quickly
+    learn different tasks in parallel. Concretely, the LLM is given the task description
+    and environment simulator objectives that the agents should learn and is then
+    asked to generate a set of environment configurations (*e.g*., different terrains,
+    items initially given to agents, chances of finding certain objects, *etc*.).
+    Next, we train a small RL agent in a mixture of the original and LLM-generated
+    environments. Then, we enable the LLM to *continuously adapt* the generated environments
+    to progressively improve the skills that the agent is weak at, by providing feedback
+    to the LLM in the form of the agent’s performance. We demonstrate the usefulness
+    of EnvGen with comprehensive experiments in Crafter and Heist game environments.
+    We find that a small RL agent trained with EnvGen can outperform SOTA methods,
+    including a GPT-4 agent, and learns long-horizon tasks significantly faster. We
+    also show that using an LLM to adapt environments dynamically outperforms curriculum
+    learning approaches and how the LLM adapts training environments to help improve
+    RL agents’ weaker skills over time. Additionally, EnvGen is substantially more
+    efficient as it only uses a small number of LLM calls (*e.g*., 4 in total), whereas
+    LLM agents require one or more LLM calls per step (resulting in thousands of LLM
+    calls per episode). We also present detailed analyses of EnvGen’s design choices.'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，通过交互进行的具身学习的最先进方法直接将大型语言模型（LLMs）作为代理，用于确定环境中的下一步动作。由于它们的世界知识和推理能力，LLM代理比基于强化学习（RL）的较小代理表现得更强；然而，频繁调用LLM是缓慢且昂贵的。这引发了一个有趣的问题：我们能否利用LLM的推理能力，通过自适应地创建训练环境，帮助较小的具身RL代理学习它们薄弱的技能，而不是直接将LLM作为具身代理？在这项工作中，我们提出了EnvGen，一个解决这个问题的新框架。首先，我们提示LLM生成训练环境，使代理能够并行快速学习不同的任务。具体来说，LLM会收到任务描述和代理应该学习的环境模拟器目标，然后要求它生成一组环境配置（*例如*，不同的地形、最初给代理的物品、找到特定物品的概率，*等等*）。接下来，我们在原始环境和LLM生成的环境的混合中训练一个小型RL代理。然后，我们使LLM能够*持续适应*生成的环境，通过提供代理的表现反馈，不断改进代理薄弱的技能。我们通过在Crafter和Heist游戏环境中的全面实验，展示了EnvGen的有效性。我们发现，使用EnvGen训练的小型RL代理能够超越最先进的方法，包括GPT-4代理，并显著更快地学习长期任务。我们还展示了使用LLM动态调整环境优于课程学习方法，并说明了LLM如何随着时间的推移调整训练环境，帮助提高RL代理较弱的技能。此外，EnvGen在效率上也大大提高，因为它只需要调用少量的LLM（*例如*，总共4次），而LLM代理每一步都需要一次或更多LLM调用（导致每个回合有成千上万次LLM调用）。我们还展示了EnvGen设计选择的详细分析。
+- en: 1 Introduction
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: 'There has been growing interest in embodied AI, where agents learn through
+    interactions with environments instead of static datasets (Ahn et al., [2022](https://arxiv.org/html/2403.12014v2#bib.bib2);
+    Duan et al., [2022](https://arxiv.org/html/2403.12014v2#bib.bib18); Wang et al.,
+    [2023a](https://arxiv.org/html/2403.12014v2#bib.bib59); Yao et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib68);
+    Driess et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib16)). Open-world
+    games such as Minecraft (Mojang Studios, [2009](https://arxiv.org/html/2403.12014v2#bib.bib41))
+    and Crafter (Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24)) have
+    been widely used as research environments for embodied agents, where the agents
+    visually perceive their surroundings, traverse large terrains, and learn to unlock
+    various achievements (*e.g*., collecting resources, building tools, defeating
+    monsters, *etc*.). Some achievements can be easily unlocked within a few steps,
+    whereas others are more challenging as they only become accessible after the agent
+    completes a series of prerequisite achievements, requiring hundreds of steps (*i.e*.,
+    long-horizon tasks). As illustrated in [Fig. 1](https://arxiv.org/html/2403.12014v2#S1.F1
+    "In 1 Introduction ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents") (a), traditional embodied agents are based on reinforcement
+    learning (RL) (Hafner et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib25);
+    [2021](https://arxiv.org/html/2403.12014v2#bib.bib26); [2023](https://arxiv.org/html/2403.12014v2#bib.bib27);
+    Schulman et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib48); Burda
+    et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib9); Hessel et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib29);
+    Sekar et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib49); Moon et al.,
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)). However, these RL agents
+    usually struggle when learning such long-horizon tasks since the reward is sparsely
+    given only after the correct execution of successive actions, and it is very expensive
+    to automatically find many action sequences which lead to the reward (Aytar et al.,
+    [2018](https://arxiv.org/html/2403.12014v2#bib.bib5); Li et al., [2022a](https://arxiv.org/html/2403.12014v2#bib.bib35);
+    Yuan et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib69)), even after
+    long pretraining with curiosity-driven intrinsic reward (Walker et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib58)).'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在**具身 AI**方面，兴趣日益增长，代理通过与环境的互动来学习，而非静态数据集（Ahn et al., [2022](https://arxiv.org/html/2403.12014v2#bib.bib2);
+    Duan et al., [2022](https://arxiv.org/html/2403.12014v2#bib.bib18); Wang et al.,
+    [2023a](https://arxiv.org/html/2403.12014v2#bib.bib59); Yao et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib68);
+    Driess et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib16))。像《Minecraft》（Mojang
+    Studios, [2009](https://arxiv.org/html/2403.12014v2#bib.bib41)）和《Crafter》（Hafner,
+    [2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）这样的开放世界游戏被广泛用作具身代理的研究环境，代理能够视觉感知其周围环境，穿越广阔的地形，并学习解锁各种成就（*例如*，收集资源、建造工具、击败怪物、*等等*）。有些成就可以通过几步轻松解锁，而其他成就则更具挑战性，因为它们只有在代理完成一系列先决条件后才能解锁，这通常需要数百步（*即*，长时间跨度任务）。如[图
+    1](https://arxiv.org/html/2403.12014v2#S1.F1 "在 1 引言 ‣ EnvGen: 通过LLM生成和适应环境以训练具身代理")（a）所示，传统的具身代理基于强化学习（RL）（Hafner
+    et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib25); [2021](https://arxiv.org/html/2403.12014v2#bib.bib26);
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib27); Schulman et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib48);
+    Burda et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib9); Hessel et
+    al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib29); Sekar et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib49);
+    Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))。然而，这些RL代理在学习如此长时间跨度的任务时通常会遇到困难，因为奖励仅在连续的正确行动执行后才会稀疏地给予，而且自动找到多个导致奖励的行动序列代价非常高（Aytar
+    et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib5); Li et al., [2022a](https://arxiv.org/html/2403.12014v2#bib.bib35);
+    Yuan et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib69)），即使在通过好奇驱动的内在奖励进行长期预训练后（Walker
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib58)）。'
+- en: '![Refer to caption](img/51a7518b10cf7d04b1c8f6755f4052ee.png)'
+  id: totrans-14
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明文字](img/51a7518b10cf7d04b1c8f6755f4052ee.png)'
+- en: 'Figure 1: Comparison of different methods for creating embodied agents. Previous
+    works commonly use (a) small RL agents or (b) LLM agents to explore skills. In
+    (c) EnvGen, we train a small RL agent with diverse LLM-generated environments
+    that train different skills in parallel and can be adapted via feedback to help
+    the agents progressively improve skills that they are weaker at. Our method benefits
+    from using the world knowledge from LLMs while maintaining efficient training
+    through a lightweight RL agent.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：不同创建具身智能体的方法比较。之前的研究通常使用（a）小型RL智能体或（b）LLM智能体来探索技能。在（c）EnvGen中，我们通过多样化的LLM生成环境来训练一个小型RL智能体，这些环境可以并行地训练不同的技能，并通过反馈进行调整，以帮助智能体逐步提高他们较弱的技能。我们的方法通过利用LLM的世界知识，同时保持高效的训练，得益于使用轻量级RL智能体。
+- en: 'As large language models (LLMs) have shown remarkable progress in various tasks
+    that require complex reasoning (Brown et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib8);
+    OpenAI, [2023a](https://arxiv.org/html/2403.12014v2#bib.bib44); Touvron et al.,
+    [2023a](https://arxiv.org/html/2403.12014v2#bib.bib55); [b](https://arxiv.org/html/2403.12014v2#bib.bib56);
+    Chowdhery et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib12); Anil
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib4)), recent works study
+    implementing embodied agents based on LLMs. As illustrated in [Fig. 1](https://arxiv.org/html/2403.12014v2#S1.F1
+    "In 1 Introduction ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents") (b), these methods leverage LLMs’ world knowledge with
+    chain-of-thought reasoning (Nye et al., [2021](https://arxiv.org/html/2403.12014v2#bib.bib43);
+    Kojima et al., [2022](https://arxiv.org/html/2403.12014v2#bib.bib31); Wei et al.,
+    [2022](https://arxiv.org/html/2403.12014v2#bib.bib65)) by creating action plans,
+    giving feedback, and obtaining rewards throughout the episode (Yuan et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib69);
+    Wang et al., [2023c](https://arxiv.org/html/2403.12014v2#bib.bib61); Wu et al.,
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib67); Wang et al., [2023a](https://arxiv.org/html/2403.12014v2#bib.bib59);
+    [d](https://arxiv.org/html/2403.12014v2#bib.bib62); Zhao et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib70);
+    Du et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib17)). While these
+    LLM-based agents that verbalize their knowledge in reasoning steps have seen success
+    in achieving better performance over previous approaches, iteratively calling
+    LLMs throughout the episode is prohibitively slow and expensive (*e.g*., SPRING (Wu
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib67)) calls GPT-4 (OpenAI,
+    [2023a](https://arxiv.org/html/2403.12014v2#bib.bib44)) 9 times to take any action
+    step, which results in $270 USD to complete an episode). Du et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib17))
+    use LLMs to create rewards to train smaller agents, but the training is still
+    costly, as it requires many interactions between the LLMs and student agents.
+    This begs the question: Instead of directly employing LLMs as embodied agents,
+    can we use LLMs’ reasoning capability to adaptively create training environments
+    to help smaller embodied RL agents learn useful skills that they are weak at?'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '随着大语言模型（LLMs）在需要复杂推理的各类任务中取得了显著进展（Brown 等，[2020](https://arxiv.org/html/2403.12014v2#bib.bib8);
+    OpenAI， [2023a](https://arxiv.org/html/2403.12014v2#bib.bib44); Touvron 等，[2023a](https://arxiv.org/html/2403.12014v2#bib.bib55);
+    [b](https://arxiv.org/html/2403.12014v2#bib.bib56); Chowdhery 等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib12);
+    Anil 等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib4))，近期的研究开始探索基于LLM实现具身代理的方案。如[图1](https://arxiv.org/html/2403.12014v2#S1.F1
+    "In 1 Introduction ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents")（b）所示，这些方法通过链式推理（Nye 等，[2021](https://arxiv.org/html/2403.12014v2#bib.bib43);
+    Kojima 等，[2022](https://arxiv.org/html/2403.12014v2#bib.bib31); Wei 等，[2022](https://arxiv.org/html/2403.12014v2#bib.bib65)）利用LLMs的世界知识，创建行动计划、提供反馈并在整个过程中获得奖励（Yuan
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib69); Wang 等，[2023c](https://arxiv.org/html/2403.12014v2#bib.bib61);
+    Wu 等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib67); Wang 等，[2023a](https://arxiv.org/html/2403.12014v2#bib.bib59);
+    [d](https://arxiv.org/html/2403.12014v2#bib.bib62); Zhao 等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib70);
+    Du 等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib17))。虽然这些基于LLM的代理通过在推理步骤中口头表达其知识，成功实现了比以往方法更好的表现，但在整个过程中反复调用LLM的方式既缓慢又昂贵（*例如*，SPRING（Wu
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib67)）调用GPT-4（OpenAI，[2023a](https://arxiv.org/html/2403.12014v2#bib.bib44)）9次才能执行任何行动步骤，这导致完成一个回合的费用高达270美元）。Du
+    等（[2023](https://arxiv.org/html/2403.12014v2#bib.bib17)）利用LLM创造奖励来训练较小的代理，但训练过程仍然非常昂贵，因为它需要LLM与学生代理之间进行大量互动。这就提出了一个问题：与其直接使用LLM作为具身代理，是否可以利用LLM的推理能力，适应性地创建训练环境，帮助较小的具身强化学习代理学习它们薄弱的有用技能？'
+- en: 'To address this question, we propose EnvGen, a novel framework where an LLM
+    adaptively generates training environments to teach smaller embodied RL agents.
+    We aim to generate environments that can create various conditions (*e.g*., have
+    different terrains or some subgoals are already achieved) so that agents can learn
+    different skills in parallel and obtain more frequent rewards for challenging
+    long-horizon tasks than in the original environment. As shown in [Fig. 1](https://arxiv.org/html/2403.12014v2#S1.F1
+    "In 1 Introduction ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents") (c), EnvGen iterates over multiple training cycles,
+    each consisting of the following four steps:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了解决这个问题，我们提出了 EnvGen，这是一种新颖的框架，LLM 自适应地生成训练环境，以便训练较小的具身 RL 代理。我们的目标是生成能够创造各种条件（*例如*，具有不同的地形，或某些子目标已经实现）以便代理可以并行学习不同技能，并且相较于原始环境，在具有挑战性的长时程任务中能获得更频繁的奖励。如
+    [图 1](https://arxiv.org/html/2403.12014v2#S1.F1 "In 1 Introduction ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") (c) 所示，EnvGen
+    在多个训练周期中反复进行，每个周期包括以下四个步骤：'
+- en: •
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Step 1: We generate configurations for custom training environments (*i.e*.,
+    specifically created to train an RL agent on certain skills) by providing an LLM
+    with a prompt including task description, controllable simulator settings, and
+    simulator constraints (see [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents") and [Sec. 2](https://arxiv.org/html/2403.12014v2#S2 "2 EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") for details).
+    Then we use the generated configurations to create different custom environments
+    (*e.g*., different terrains, items initially given to agents, and chance of finding
+    certain objects) that can teach multiple skills in parallel.'
+  id: totrans-19
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '第 1 步：我们通过向 LLM 提供一个包含任务描述、可控模拟器设置和模拟器约束的提示，生成定制训练环境的配置（*即*，专门用于训练 RL 代理某些技能的环境）（详情见
+    [图 2](https://arxiv.org/html/2403.12014v2#S2.F2 "In 2 EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents") 和 [第 2 节](https://arxiv.org/html/2403.12014v2#S2
+    "2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")）。然后，我们利用生成的配置创建不同的定制环境（*例如*，不同的地形、初始分配给代理的物品以及找到某些物品的概率），这些环境可以并行教授多种技能。'
+- en: •
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Step 2: We first train the RL agent in multiple LLM-generated environments
+    (*i.e*., LLM environments), so that it can learn different useful skills in parallel.'
+  id: totrans-21
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 第 2 步：我们首先在多个 LLM 生成的环境中（*即*，LLM 环境）训练 RL 代理，使其能够并行学习不同的有用技能。
+- en: •
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Step 3: We then train the RL agent in the original environment to mitigate
+    overfitting to the LLM environments. Afterwards, we measure the current RL agent’s
+    performance in different tasks in the original environment to check which skills/tasks
+    the agent is still weak at.'
+  id: totrans-23
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 第 3 步：接着，我们在原始环境中训练 RL 代理，以减少对 LLM 环境的过拟合。之后，我们评估当前 RL 代理在原始环境中不同任务的表现，以检查代理在哪些技能/任务上仍然较弱。
+- en: •
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Step 4: We provide the RL agent’s successes/failures in different tasks (from
+    step 3) as feedback to the LLM, so that the LLM can adapt the custom training
+    environments to focus on progressively improving the skills that the agent is
+    weak at.'
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 第 4 步：我们将 RL 代理在不同任务中的成功/失败（来自第 3 步）作为反馈提供给 LLM，以便 LLM 可以调整定制的训练环境，专注于逐步提高代理在某些技能上的弱点。
+- en: Note that EnvGen only requires a few LLM calls (*e.g*., 4) for environment generation/updating
+    during the entire RL agent training process, whereas other works based on LLM
+    agents query an LLM once or multiple times every step (resulting in thousands
+    of LLM calls for a single episode).
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，EnvGen 在整个 RL 代理训练过程中，只需要通过少量的 LLM 调用（*例如*，4 次）来生成/更新环境，而基于 LLM 代理的其他工作则在每一步都查询一次或多次
+    LLM（这导致一个回合内会有成千上万次 LLM 调用）。
+- en: 'We study the usefulness of EnvGen in different game environments: Crafter (Hafner,
+    [2022](https://arxiv.org/html/2403.12014v2#bib.bib24)) and Heist (Cobbe et al.,
+    [2020](https://arxiv.org/html/2403.12014v2#bib.bib13)). In the Crafter environment,
+    a simple PPO-based (Schulman et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib48))
+    lightweight ($<5$M parameters) RL agent trained with our LLM-generated environments
+    outperforms strong baselines including a GPT-4 based agent that queries an LLM
+    multiple times at every step, and RL agents that use extensive pretraining (*e.g*.,
+    150M steps *vs*. less than 1M steps for us). When compared to just training longer
+    in the original Crafter environment and curriculum learning approaches such as
+    easy-to-hard and adversarial environments, an RL agent trained with EnvGen achieves
+    significant improvements on the overall score and long-horizon tasks. In Heist,
+    we also show that our LLM-generated environments can improve overall agent performance
+    and training stability. We also show a qualitative study on how the LLM adapts
+    training environments to help improve RL agents’ weaker skills over time. Finally,
+    we provide comprehensive analysis and ablation studies of the design choices of
+    EnvGen, including dynamically updating LLM environments (*i.e*., using adaptive
+    environments) *vs*. curriculum learning methods, frequency of environment updates,
+    EnvGen *vs*. longer training in the original environment, different LLMs for generating
+    environments, the number of LLM-generated environments, and the mixture ratio
+    between the original and LLM environment during training.'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们研究了EnvGen在不同游戏环境中的有效性：Crafter（Hafner，[2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）和Heist（Cobbe等，[2020](https://arxiv.org/html/2403.12014v2#bib.bib13)）。在Crafter环境中，使用我们LLM生成的环境训练的简单PPO（Schulman等，[2017](https://arxiv.org/html/2403.12014v2#bib.bib48)）基础强化学习代理（参数少于5M）表现超越了多个强基准，包括一个基于GPT-4的代理，它在每一步都多次查询LLM，和那些使用广泛预训练的RL代理（*例如*，150M步*对*我们不到1M步）。与仅在原始Crafter环境中进行更长时间训练，以及诸如由易到难和对抗性环境的课程学习方法相比，使用EnvGen训练的RL代理在整体分数和长期任务上实现了显著的提升。在Heist环境中，我们还展示了我们的LLM生成的环境能够提升整体代理性能和训练稳定性。我们还进行了定性研究，展示了LLM如何调整训练环境，帮助逐步提升RL代理的薄弱技能。最后，我们提供了对EnvGen设计选择的全面分析和消融研究，包括动态更新LLM环境（*即*，使用自适应环境）*vs*.课程学习方法、环境更新频率、EnvGen
+    *vs*.在原始环境中更长时间训练、用于生成环境的不同LLM、LLM生成的环境数量，以及训练过程中原始环境和LLM环境的混合比率。
+- en: '2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents'
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 EnvGen：通过大型语言模型（LLM）生成和调整环境以训练具身代理
+- en: 'We propose EnvGen, a novel framework where an LLM adaptively generates training
+    environments to train smaller embodied RL agents, enabling them to accomplish
+    various tasks within an environment, particularly long-horizon tasks. During the
+    training process, the LLM is given feedback (in the form of the agent’s performance)
+    and can adaptively update the training environments to progressively focus on
+    improving the tasks that the agent is weak at. In the following, we first explain
+    why it is challenging to explore long-horizon tasks in open-world games ([Sec. 2.1](https://arxiv.org/html/2403.12014v2#S2.SS1
+    "2.1 Preliminary: Exploration is Hard for Long-Horizon Tasks ‣ 2 EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents")). Then we explain
+    our method details, including how we generate environments and how agents are
+    trained in EnvGen ([Sec. 2.2](https://arxiv.org/html/2403.12014v2#S2.SS2 "2.2
+    EnvGen Method Details ‣ 2 EnvGen: Generating and Adapting Environments via LLMs
+    for Training Embodied Agents ‣ EnvGen: Generating and Adapting Environments via
+    LLMs for Training Embodied Agents")).'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们提出了EnvGen，这是一个新颖的框架，利用LLM自适应地生成训练环境，以训练较小的具身强化学习（RL）代理，使它们能够在环境中完成各种任务，尤其是长期任务。在训练过程中，LLM会根据代理的表现反馈（即代理的表现）进行调整，并能自适应地更新训练环境，逐步聚焦于提高代理薄弱的任务。接下来，我们首先解释为什么在开放世界游戏中探索长期任务具有挑战性（[第2.1节](https://arxiv.org/html/2403.12014v2#S2.SS1
+    "2.1 Preliminary: Exploration is Hard for Long-Horizon Tasks ‣ 2 EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents")）。然后我们解释我们的方法细节，包括如何生成环境以及如何在EnvGen中训练代理（[第2.2节](https://arxiv.org/html/2403.12014v2#S2.SS2
+    "2.2 EnvGen Method Details ‣ 2 EnvGen: Generating and Adapting Environments via
+    LLMs for Training Embodied Agents ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")）。'
+- en: '![Refer to caption](img/33095682cbed71f681575990720423f7.png)'
+  id: totrans-30
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见标题说明](img/33095682cbed71f681575990720423f7.png)'
+- en: 'Figure 2: In EnvGen, we generate and adapt multiple training environments with
+    an LLM to let the agent learn different skills effectively. EnvGen iterates over
+    $N^{\text{Cycle}}$ cycles, each consisting of four steps (see [Sec. 2.2](https://arxiv.org/html/2403.12014v2#S2.SS2
+    "2.2 EnvGen Method Details ‣ 2 EnvGen: Generating and Adapting Environments via
+    LLMs for Training Embodied Agents ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")).'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图2：在EnvGen中，我们通过大语言模型（LLM）生成并调整多个训练环境，以便让智能体有效地学习不同的技能。EnvGen会进行$N^{\text{Cycle}}$轮迭代，每一轮包括四个步骤（详见[第2.2节](https://arxiv.org/html/2403.12014v2#S2.SS2
+    "2.2 EnvGen 方法详情 ‣ 2 EnvGen: 通过LLM生成和调整环境以训练具身智能体 ‣ EnvGen: 通过LLM生成和调整环境以训练具身智能体")）。'
+- en: '2.1 Preliminary: Exploration is Hard for Long-Horizon Tasks'
+  id: totrans-32
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.1 初步：长时间任务的探索困难
+- en: 'In the RL framework, agents explore various states along a trajectory and amplify
+    policies based on the rewards received from those trajectories. However, exploration
+    for long-horizon tasks is slow and computationally expensive, as rewards for such
+    tasks are sparsely given only after a sequence of successful actions that often
+    involve achieving multiple subgoals. For example, the goal in Crafter (Hafner,
+    [2022](https://arxiv.org/html/2403.12014v2#bib.bib24)) is to unlock 22 achievements,
+    where some achievements can be unlocked quickly through several simple actions
+    and others require long chains of prerequisites (*e.g*., collect iron requires
+    make stone pickaxe, which must be preceded by collect stone, … *etc*.); see [Sec. 3.1](https://arxiv.org/html/2403.12014v2#S3.SS1
+    "3.1 Evaluated Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents") for
+    details. As shown in Hafner ([2022](https://arxiv.org/html/2403.12014v2#bib.bib24)),
+    existing agents in Crafter spend most exploration steps learning low-level achievements
+    but fail to unlock high-order achievements with many prerequisites.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在强化学习（RL）框架中，智能体沿着轨迹探索不同的状态，并根据从这些轨迹中获得的奖励来加强策略。然而，长时间任务的探索速度较慢，且计算开销较大，因为此类任务的奖励往往是稀疏的，仅在一系列成功动作后才会给予奖励，这些动作通常涉及完成多个子目标。例如，在Crafter（Hafner，[2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）中的目标是解锁22个成就，其中一些成就可以通过几次简单的动作迅速解锁，而其他一些则需要长链的先决条件（*例如*，收集铁需要制作石斧，而石斧的制作必须在收集石头之后进行，……
+    *等*）；详情见[第3.1节](https://arxiv.org/html/2403.12014v2#S3.SS1 "3.1 评估基准和训练详情 ‣ 3
+    实验设置 ‣ EnvGen: 通过LLM生成和调整环境以训练具身智能体")。正如Hafner（[2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）所展示的那样，Crafter中的现有智能体大多数时间都在学习低级成就，但未能解锁需要多个先决条件的高级成就。'
+- en: 2.2 EnvGen Method Details
+  id: totrans-34
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 2.2 EnvGen方法详情
+- en: 'We introduce EnvGen, where we train an embodied RL agent in multiple LLM-generated
+    environments (we refer to these as ‘LLM environments’ in the paper) that progressively
+    adapt to improve agent performance in multiple skills. The generated environments
+    can provide various conditions (*e.g*., different terrains, or some subgoals are
+    already achieved) so that agents can learn different skills in parallel and obtain
+    more frequent rewards for long-horizon tasks. As shown in [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents"), EnvGen iterates $N^{\text{Cycle}}$ training cycles, each consisting
+    of the following four steps:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们引入了EnvGen，在多个LLM生成的环境中训练具身强化学习智能体（在本文中，我们将这些环境称为“LLM环境”），这些环境会逐步调整以提升智能体在多项技能上的表现。生成的环境可以提供各种条件（*例如*，不同的地形，或某些子目标已完成），以便智能体可以并行学习不同的技能，并为长时间任务获得更频繁的奖励。如[图2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "在2 EnvGen: 通过LLM生成和调整环境以训练具身智能体 ‣ EnvGen: 通过LLM生成和调整环境以训练具身智能体")所示，EnvGen进行$N^{\text{Cycle}}$轮训练，每一轮包括以下四个步骤：'
+- en: 'Step 1: Generate training environments with an LLM. As illustrated in step
+    1 of [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2 "In 2 EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents"), we use an LLM
+    (*e.g*., GPT-4 (OpenAI, [2023a](https://arxiv.org/html/2403.12014v2#bib.bib44)))
+    to first generate $N^{\text{LLM-Env}}$ custom training environment configurations¹¹1We
+    find that N=4 works well; see [Table 6](https://arxiv.org/html/2403.12014v2#A3.T6
+    "In Different LLMs to generate environments. ‣ C.1 Design Choices, Ablations,
+    and Other Agent Architectures ‣ Appendix C Additional Experiment Results ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents") for
+    details. that can cover various objectives and skills that are required in the
+    original environment. The following describes the LLM input prompt components
+    used to create environment configurations.'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一步：使用LLM生成训练环境。如[图2](https://arxiv.org/html/2403.12014v2#S2.F2 "在2 EnvGen:通过LLM生成和调整环境以训练具身代理
+    ‣ EnvGen:通过LLM生成和调整环境以训练具身代理")步骤1所示，我们使用LLM（*例如*，GPT-4（OpenAI，[2023a](https://arxiv.org/html/2403.12014v2#bib.bib44)））首先生成$N^{\text{LLM-Env}}$自定义训练环境配置¹¹1我们发现N=4效果较好；详细内容见[表6](https://arxiv.org/html/2403.12014v2#A3.T6
+    "不同LLMs生成环境。 ‣ C.1设计选择、消融实验及其他代理架构 ‣ 附录C更多实验结果 ‣ EnvGen:通过LLM生成和调整环境以训练具身代理")，这些配置可以涵盖原始环境中所需的各种目标和技能。以下描述了用于创建环境配置的LLM输入提示组件。
+- en: '1.'
+  id: totrans-37
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'Task description: We provide a brief description of the environment and what
+    the LLM should do (*e.g*., “generate a set of training environments…”).'
+  id: totrans-38
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 任务描述：我们提供一个简短的环境描述，以及LLM应该执行的任务（*例如*，“生成一组训练环境……”）。
+- en: '2.'
+  id: totrans-39
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'Game/simulator details: We provide a list of objectives that need to be achieved
+    in the environment (*e.g*., “collect coal, collect iron, *etc*.” for Crafter);
+    a list of which simulator settings can be controlled (*e.g*., terrain, agent inventory);
+    and a list of constraints/rules that the simulator has (*e.g*., “skeletons only
+    spawn in mountains; …” for Crafter).'
+  id: totrans-40
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 游戏/模拟器细节：我们提供一个需要在环境中完成的目标列表（*例如*，“收集煤炭、收集铁矿、*等等*。”用于Crafter）；一个可以控制的模拟器设置列表（*例如*，地形、代理物品栏）；以及模拟器的约束/规则列表（*例如*，“骷髅只会在山脉中生成；…”用于Crafter）。
+- en: '3.'
+  id: totrans-41
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: 'Output environment configuration template: We provide a blank output configuration
+    template (*i.e*., a JSON object where the environment settings are empty) to the
+    LLM, and request it to fill in the values, creating $N^{\text{LLM-Env}}$ environment
+    configurations. Along with filling the templates, we also ask the LLM to verbally
+    explain the purpose for each environment (*e.g*., what the environment would teach
+    the agent); this would help users easily understand the environment generation
+    process.'
+  id: totrans-42
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 输出环境配置模板：我们提供一个空白的输出配置模板（*即*，一个环境设置为空的JSON对象）给LLM，并要求它填写值，生成$N^{\text{LLM-Env}}$个环境配置。在填写模板的同时，我们还要求LLM口头解释每个环境的目的（*例如*，该环境会教给代理什么）；这将帮助用户更容易理解环境生成过程。
+- en: '4.'
+  id: totrans-43
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '4.'
+- en: 'Adaptation feedback based on the RL agent’s performance: We provide the LLM
+    with the performance of the RL agent from the original environment (measured in
+    step 3 and summarized in step 4), as feedback for adapting LLM environments to
+    focus on skills that the RL agent is weak at. The feedback is given at the end
+    of each cycle, so it is only provided to LLM from the second cycle onwards.'
+  id: totrans-44
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 基于RL代理表现的适应性反馈：我们将RL代理在原始环境中的表现（在步骤3中测量并在步骤4中总结）作为反馈，提供给LLM，用于调整LLM环境，重点关注RL代理薄弱的技能。反馈会在每个周期结束时提供，因此从第二个周期开始才会向LLM提供反馈。
+- en: 'The obtained environment configurations are then rendered in the game’s simulator.
+    [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2 "In 2 EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") presents the
+    summary of input prompt and output environments from the GPT-4 model. We provide
+    more prompt details in [Appendix F](https://arxiv.org/html/2403.12014v2#A6 "Appendix
+    F Additional LLM Details ‣ EnvGen: Generating and Adapting Environments via LLMs
+    for Training Embodied Agents").'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '获得的环境配置随后将在游戏的模拟器中呈现。[图 2](https://arxiv.org/html/2403.12014v2#S2.F2 "In 2
+    EnvGen: Generating and Adapting Environments via LLMs for Training Embodied Agents
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents") 展示了来自 GPT-4 模型的输入提示和输出环境的摘要。我们在[附录 F](https://arxiv.org/html/2403.12014v2#A6
+    "Appendix F Additional LLM Details ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")中提供了更多的提示细节。'
+- en: 'Step 2: Train a small RL agent in the LLM-generated environments. As shown
+    in step 2 of [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2 "In 2 EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents"),
+    we train the small RL agent in the LLM-generated environments. Concretely, we
+    train the agent in the $N^{\text{LLM-Env}}$ LLM environments for $T^{\text{LLM-Env}}$
+    total steps in parallel.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '步骤 2：在 LLM 生成的环境中训练一个小型 RL 代理。如[图 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")的步骤 2 所示，我们在 LLM 生成的环境中训练小型 RL 代理。具体来说，我们在 $N^{\text{LLM-Env}}$ 个 LLM
+    环境中并行训练代理，总共进行 $T^{\text{LLM-Env}}$ 步骤。'
+- en: 'Step 3: Train and measure the RL agent’s performance in the original environment.
+    It is important to note that the goal of EnvGen is to improve the RL agent’s performance
+    in the original environment, instead of the performance only in the LLM environments.
+    To help the RL agent effectively adapt to the original environment and provide
+    the LLM with the current agent’s performance as feedback, we train the agent and
+    measure its performance in the original environment, as shown in step 3 of [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents"). First, to mitigate the overfitting to LLM environments, we train the
+    agent in the original environment for $T^{\text{Orig-Env}}$ steps.²²2We find that
+    $T^{\text{LLM-Env}}=T^{\text{Orig-Env}}$ works well; see [Table 7](https://arxiv.org/html/2403.12014v2#A3.T7
+    "In Number of LLM environments. ‣ C.1 Design Choices, Ablations, and Other Agent
+    Architectures ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") for details.
+    Next, to find the skills that the RL agent needs to improve at, we test the agent
+    in the original environment, without any parameter updates. Concretely, we measure
+    individual success rates for each environment task (*e.g*., Crafter achievements).
+    The agent performance is summarized (in step 4) and is provided to LLM as feedback
+    (in step 1) to adapt training environments in the next cycle. Moreover, importantly,
+    to obtain a more calibrated estimation of agent performance, we calculate the
+    average and variance of the task-specific scores by testing agents with multiple
+    random seeds (*i.e*., 12).'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '步骤 3：在原始环境中训练并测量 RL 代理的表现。需要特别注意的是，EnvGen 的目标是提高 RL 代理在原始环境中的表现，而不仅仅是在 LLM
+    环境中的表现。为了帮助 RL 代理有效适应原始环境，并将当前代理的表现作为反馈提供给 LLM，我们在原始环境中训练代理并测量其表现，如[图 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")的步骤 3 所示。首先，为了减轻对 LLM 环境的过拟合，我们在原始环境中训练代理 $T^{\text{Orig-Env}}$ 步骤。²²2我们发现
+    $T^{\text{LLM-Env}}=T^{\text{Orig-Env}}$ 效果很好；具体细节请见[表 7](https://arxiv.org/html/2403.12014v2#A3.T7
+    "In Number of LLM environments. ‣ C.1 Design Choices, Ablations, and Other Agent
+    Architectures ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents")。接下来，为了找出 RL
+    代理需要改进的技能，我们在原始环境中测试代理，而不进行任何参数更新。具体而言，我们测量每个环境任务的个体成功率（*例如*，Crafter 成就）。代理的表现总结（在步骤
+    4 中）并作为反馈提供给 LLM（在步骤 1 中）以适应下一周期的训练环境。此外，重要的是，为了获得更为精确的代理表现估计，我们通过使用多个随机种子（*即*，12）测试代理，计算任务特定分数的平均值和方差。'
+- en: 'Step 4: Send feedback to LLM to adapt environments (to focus on weak skills).
+    We provide the LLM with the agent’s performance from the original environment
+    (measured in step 3), as feedback for updating LLM environments. Concretely, we
+    list the agent’s average task-specific success rate in percentages along with
+    one standard deviation (*e.g*., “$\dots$ collect coal: 38% $\pm$ 6%, defeat skeleton:
+    10% $\pm$ 4% $\dots$”), as shown in step 4 of [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents"). In step 1 of the next cycle, the LLM can adaptively generate new environments
+    (by using the agent’s performance as feedback) to better help the RL agent learn
+    the skills it is weak at (*e.g*., defeat skeleton). EnvGen iterates this four-step
+    training cycle $N^{\text{Cycle}}$ times.'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '第4步：将反馈发送给LLM以调整环境（以专注于薄弱技能）。我们将智能体在原始环境中的表现（在第3步中衡量）提供给LLM作为反馈，用于更新LLM环境。具体而言，我们列出了智能体在特定任务中的平均成功率（以百分比表示）及其标准差（*例如*，“…
+    收集煤矿：38% $\pm$ 6%，击败骷髅：10% $\pm$ 4% …”），如[图2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")的第4步所示。在下一个周期的第1步，LLM可以自适应地生成新的环境（通过使用智能体的表现作为反馈），以更好地帮助RL智能体学习其薄弱的技能（*例如*，击败骷髅）。EnvGen将这一四步训练周期迭代$N^{\text{Cycle}}$次。'
+- en: 3 Experimental Setup
+  id: totrans-49
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 实验设置
+- en: 'In the following subsections, we present the benchmarks in which we evaluate
+    EnvGen framework on ([Sec. 3.1](https://arxiv.org/html/2403.12014v2#S3.SS1 "3.1
+    Evaluated Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents")) and the agent
+    architectures that we use for experiments ([Sec. 3.2](https://arxiv.org/html/2403.12014v2#S3.SS2
+    "3.2 Agent Architectures ‣ 3 Experimental Setup ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents")).'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在以下小节中，我们展示了评估EnvGen框架的基准测试（见 [第3.1节](https://arxiv.org/html/2403.12014v2#S3.SS1
+    "3.1 Evaluated Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")）以及我们在实验中使用的智能体架构（见
+    [第3.2节](https://arxiv.org/html/2403.12014v2#S3.SS2 "3.2 Agent Architectures ‣
+    3 Experimental Setup ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents")）。'
+- en: 3.1 Evaluated Benchmarks and Training Details
+  id: totrans-51
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 评估的基准和训练细节
+- en: '![Refer to caption](img/62405877b444e6979c84a24543e77f86.png)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/62405877b444e6979c84a24543e77f86.png)'
+- en: 'Figure 3: (a): Crafter gameplay screenshot. An agent explores a 2D world and
+    completes 22 achievements. (b): Crafter achievement hierarchy. Some achievements
+    can be completed right away; others require previous achievements to be unlocked
+    first (*i.e*., in a hierarchical order following the arrows).'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：（a）：Crafter游戏截图。一名智能体探索一个2D世界并完成22个成就。（b）：Crafter成就层级。部分成就可以立即完成；其他成就则需要先解锁先前的成就（*即*，按照箭头所示的层级顺序）。
+- en: 'Crafter. Crafter (Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24))
+    is an open-world 2D survival game focused on evaluating a broad range of agent
+    capabilities (see [Fig. 3](https://arxiv.org/html/2403.12014v2#S3.F3 "In 3.1 Evaluated
+    Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents")). Crafter features
+    22 achievements that an agent can unlock during an episode of play. Some achievements
+    can be unlocked in a few steps (*e.g*., collect wood, collect sapling, *etc*.),
+    but other achievements, such as make iron pickaxe or collect diamond, require
+    many training/exploration steps and several prerequisite achievements to be unlocked
+    (see [Fig. 3](https://arxiv.org/html/2403.12014v2#S3.F3 "In 3.1 Evaluated Benchmarks
+    and Training Details ‣ 3 Experimental Setup ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents") b). For example, to make
+    an iron pickaxe, an agent must first collect enough wood to make a table and a
+    wooden pickaxe, then go collect stone and return to the table (or collect more
+    wood to make a new one) and then construct a stone pickaxe. Then the agent still
+    needs to make a furnace, collect coal, and collect iron before the option to make
+    the iron pickaxe is possible.'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Crafter。Crafter（Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）是一个开放世界的2D生存游戏，旨在评估各种代理能力（参见[图3](https://arxiv.org/html/2403.12014v2#S3.F3
+    "在3.1评估的基准和训练细节 ‣ 3 实验设置 ‣ EnvGen: 通过LLM生成和适应环境以训练具身代理")））。Crafter包含22个成就，代理在游戏过程中可以解锁这些成就。一些成就可以通过几步操作解锁（*例如*，收集木材、收集幼苗，*等等*），但其他成就，例如制作铁镐或收集钻石，则需要多个训练/探索步骤以及一些前提成就才能解锁（参见[图3](https://arxiv.org/html/2403.12014v2#S3.F3
+    "在3.1评估的基准和训练细节 ‣ 3 实验设置 ‣ EnvGen: 通过LLM生成和适应环境以训练具身代理") b)）。例如，要制作铁镐，代理必须首先收集足够的木材制作工作台和木镐，然后去收集石头并返回工作台（或收集更多木材制作一个新的工作台），再制作石镐。接着，代理仍然需要制作熔炉，收集煤炭并收集铁矿石，才有可能解锁制作铁镐的选项。'
+- en: 'For EnvGen setup, we use $N^{\text{Cycle}}=4$ training cycles during agent
+    training (see [Table 3](https://arxiv.org/html/2403.12014v2#S4.T3 "In 4.4 Additional
+    Analysis and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents") for ablation of
+    having a different number of cycles). Each cycle uses 0.12M LLM-generated environment
+    steps (*i.e*., Crafter${}^{\text{EnvGen}}$ steps, see step 2 in [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")) and 0.12M Crafter steps ( step 3 in [Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")) and then we train for 1M steps in Crafter. In total, we train for 1.96M
+    steps ((0.12M + 0.12M) $\times$ 4 + 1M). Note that in order to maintain a fair
+    score comparison to baselines, we do not count any achievement during our training
+    cycle for score calculation since the training scores derived from LLM environments
+    and the original environment are not directly comparable. Instead, we only take
+    into account the achievements from the last 1M training steps in Crafter for the
+    score calculation. We also experiment with giving the baseline model additional
+    original environment steps to match the number of EnvGen steps (*i.e*., an additional
+    0.96M steps) to ensure that EnvGen is not better simply because of more steps.
+    The score for Crafter is computed as the geometric mean of individual success
+    rates of each achievement for each episode it is completed within 1M training
+    steps: $S=exp(\frac{1}{22}\sum^{22}_{i=1}ln(1+s_{i}))-1$, where $s_{i}$ is the
+    average success rate of the $i$th achievement across all episodes that occurred
+    during training. We report the average performance with 30 runs (= 3 different
+    initial LLM-generated Crafter${}^{\text{EnvGen}}$ environments $\times$ 10 different
+    random seeds).'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于EnvGen设置，我们在智能体训练过程中使用$N^{\text{Cycle}}=4$训练周期（参见[Table 3](https://arxiv.org/html/2403.12014v2#S4.T3
+    "In 4.4 Additional Analysis and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")了解不同周期数的消融实验）。每个周期使用0.12M
+    LLM生成的环境步骤（*即*，Crafter${}^{\text{EnvGen}}$步骤，参见[Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")的第2步）和0.12M Crafter步骤（参见[Fig. 2](https://arxiv.org/html/2403.12014v2#S2.F2
+    "In 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")的第3步），然后我们在Crafter中训练1M步。总共，我们训练了1.96M步（（0.12M + 0.12M）$\times$ 4 + 1M）。请注意，为了保持与基准的公平评分比较，我们在计算分数时不计算训练周期中的任何成就，因为从LLM环境和原始环境中获得的训练分数不可直接比较。相反，我们只考虑Crafter中最后1M训练步骤的成就来计算分数。我们还实验性地给予基准模型额外的原始环境步骤，以匹配EnvGen步骤的数量（*即*，额外的0.96M步骤），以确保EnvGen不只是因为步骤更多而表现更好。Crafter的分数计算为每个成就的单次成功率的几何平均数，计算公式为：$S=exp(\frac{1}{22}\sum^{22}_{i=1}ln(1+s_{i}))-1$，其中$s_{i}$是第$i$个成就的平均成功率，跨越所有在训练期间发生的集数。我们报告在30次运行中的平均表现（=
+    3个不同的初始LLM生成的Crafter${}^{\text{EnvGen}}$环境 $\times$ 10个不同的随机种子）。'
+- en: 'Heist. Heist is part of the OpenAI Procgen (Cobbe et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib13))
+    benchmark. In this environment, agents must successfully ‘steal’ the gem after
+    navigating a maze and opening all locks. See more details in [Sec. C.2](https://arxiv.org/html/2403.12014v2#A3.SS2
+    "C.2 Evaluation on Heist Environment ‣ Appendix C Additional Experiment Results
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents").'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Heist. Heist是OpenAI Procgen（Cobbe等人，[2020](https://arxiv.org/html/2403.12014v2#bib.bib13)）基准测试的一部分。在这个环境中，智能体必须成功“偷走”宝石，经过迷宫并打开所有锁。更多细节请参见[Sec.
+    C.2](https://arxiv.org/html/2403.12014v2#A3.SS2 "C.2 Evaluation on Heist Environment
+    ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")。'
+- en: 3.2 Agent Architectures
+  id: totrans-57
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 智能体架构
+- en: 'Our base RL agent. For both Crafter and Heist, we test the EnvGen framework
+    with a simple (CNN + linear layer) and lightweight ($<$5M) agent used in Moon
+    et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)), which is slightly
+    modified from the agent architecture used in IMPALA (Espeholt et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib19)).
+    Following Moon et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)),
+    we train the agent with a PPO (Schulman et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib48))
+    objective. At every step, the agent takes an RGB image (surroundings for Crafter,
+    entire maze for Heist) as input and outputs the value estimates and policy (action
+    probability). See [Fig. 3](https://arxiv.org/html/2403.12014v2#S3.F3 "In 3.1 Evaluated
+    Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents") (a) for an agent
+    visual input example. We provide additional model details in [Appendix E](https://arxiv.org/html/2403.12014v2#A5
+    "Appendix E RL Agent Implementation Details ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents").'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的基础RL代理。对于Crafter和Heist，我们在Moon et al.（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）中使用的简单（CNN
+    + 线性层）和轻量级（$<$5M）代理测试EnvGen框架，该代理经过轻微修改，基于IMPALA (Espeholt et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib19))中使用的代理架构。根据Moon
+    et al.（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）的方法，我们使用PPO (Schulman
+    et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib48))目标来训练该代理。在每一步中，代理接受一个RGB图像（Crafter的周围环境，Heist的整个迷宫）作为输入，并输出价值估计和策略（行动概率）。有关代理视觉输入示例，请参见[图3](https://arxiv.org/html/2403.12014v2#S3.F3
+    "在3.1评估基准和训练细节 ‣ 3 实验设置 ‣ EnvGen：通过LLMs生成和调整环境以训练具身代理")（a）。我们在[附录E](https://arxiv.org/html/2403.12014v2#A5
+    "附录E RL代理实现细节 ‣ EnvGen：通过LLMs生成和调整环境以训练具身代理")中提供了更多模型细节。
+- en: 'Baseline methods. For Crafter, we compare our method to two groups of recent
+    baselines – (1) methods that use frequent (*i.e*., more than thousands of) LLM
+    calls during training or inference: SPRING (Wu et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib67))
+    (based on GPT-4) and ELLM (Du et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib17))
+    (based on Codex (Chen et al., [2021](https://arxiv.org/html/2403.12014v2#bib.bib10)))
+    and (2) methods that do not use an LLM: DreamerV3 (Hafner et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib27)),
+    MuZero + SPR (Walker et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib58)),
+    LSTM-SPCNN (Stanić et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib51)),
+    PPO (Schulman et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib48)),
+    and Achievement Distillation (AD) (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)).
+    For Heist, we compare against the PPO agent. For the PPO and AD agents, we follow
+    the implementation of Moon et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)).
+    See [Appendix E](https://arxiv.org/html/2403.12014v2#A5 "Appendix E RL Agent Implementation
+    Details ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents") for the PPO/AD agent details.'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基准方法。对于Crafter，我们将我们的方法与两组最近的基准进行比较——(1) 在训练或推理过程中使用频繁（*即*，超过数千次的）LLM调用的方法：SPRING (Wu
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib67))（基于GPT-4）和ELLM (Du
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib17))（基于Codex (Chen et al.,
+    [2021](https://arxiv.org/html/2403.12014v2#bib.bib10))) 和(2) 不使用LLM的方法：DreamerV3 (Hafner
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib27))，MuZero + SPR (Walker
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib58))，LSTM-SPCNN (Stanić
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib51))，PPO (Schulman et al.,
+    [2017](https://arxiv.org/html/2403.12014v2#bib.bib48))，以及成就蒸馏（AD） (Moon et al.,
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))。对于Heist，我们与PPO代理进行比较。对于PPO和AD代理，我们遵循Moon
+    et al.（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）的实现。有关PPO/AD代理的详细信息，请参见[附录E](https://arxiv.org/html/2403.12014v2#A5
+    "附录E RL代理实现细节 ‣ EnvGen：通过LLMs生成和调整环境以训练具身代理")。
+- en: 4 Results and Analysis
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 结果与分析
+- en: 'We demonstrate the usefulness of the EnvGen method with comprehensive experiments
+    and analysis. We first compare RL agents trained with EnvGen to different baseline
+    methods on Crafter, an open-world game with 22 hierarchical achievements ([Sec. 4.1](https://arxiv.org/html/2403.12014v2#S4.SS1
+    "4.1 Comparison with State-of-the-art Methods on Crafter Environment ‣ 4 Results
+    and Analysis ‣ EnvGen: Generating and Adapting Environments via LLMs for Training
+    Embodied Agents")). Next, we present a detailed analysis of the improvements that
+    training with EnvGen environments can give RL agents on long-horizon tasks ([Sec. 4.2](https://arxiv.org/html/2403.12014v2#S4.SS2
+    "4.2 Detailed Achievement Analysis on Crafter Environment ‣ 4 Results and Analysis
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")). Then, we analyze how the LLM-based environment adaptation can help
+    an RL agent progressively improve the skills that the agent is weak at ([Sec. 4.3](https://arxiv.org/html/2403.12014v2#S4.SS3
+    "4.3 Adaptation of Training Environments Helps the Agent Improve Weaker Skills
+    ‣ 4 Results and Analysis ‣ EnvGen: Generating and Adapting Environments via LLMs
+    for Training Embodied Agents")). Lastly, we present various additional analysis
+    including experiments on Heist (a maze navigation game) and ablation studies on
+    EnvGen design choices ([Sec. 4.4](https://arxiv.org/html/2403.12014v2#S4.SS4 "4.4
+    Additional Analysis and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") and also in
+    the [Appendix C](https://arxiv.org/html/2403.12014v2#A3 "Appendix C Additional
+    Experiment Results ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents")).'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们通过全面的实验和分析展示了 EnvGen 方法的有效性。首先，我们将使用 EnvGen 训练的 RL 代理与 Crafter 中的不同基准方法进行比较，Crafter
+    是一款具有 22 个层次成就的开放世界游戏（[第 4.1 节](https://arxiv.org/html/2403.12014v2#S4.SS1 "4.1
+    Comparison with State-of-the-art Methods on Crafter Environment ‣ 4 Results and
+    Analysis ‣ EnvGen: Generating and Adapting Environments via LLMs for Training
+    Embodied Agents")）。接下来，我们详细分析了使用 EnvGen 环境进行训练如何使 RL 代理在长期任务上获得改进（[第 4.2 节](https://arxiv.org/html/2403.12014v2#S4.SS2
+    "4.2 Detailed Achievement Analysis on Crafter Environment ‣ 4 Results and Analysis
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")）。然后，我们分析了基于 LLM 的环境适应如何帮助 RL 代理逐步改善其薄弱技能（[第 4.3 节](https://arxiv.org/html/2403.12014v2#S4.SS3
+    "4.3 Adaptation of Training Environments Helps the Agent Improve Weaker Skills
+    ‣ 4 Results and Analysis ‣ EnvGen: Generating and Adapting Environments via LLMs
+    for Training Embodied Agents")）。最后，我们提供了各种额外的分析，包括对 Heist（一款迷宫导航游戏）的实验和对 EnvGen
+    设计选择的消融研究（[第 4.4 节](https://arxiv.org/html/2403.12014v2#S4.SS4 "4.4 Additional
+    Analysis and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents")）以及在 [附录 C](https://arxiv.org/html/2403.12014v2#A3
+    "Appendix C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")）中的实验结果。'
+- en: '| Models | Description | # LLM calls | # Agent Params | Score (%) | Reward
+    |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | 描述 | LLM 调用次数 | 代理参数数量 | 分数（%） | 奖励 |'
+- en: '| Human^∗ |  |  |  | 50.5 $\pm$ 6.8 | 14.3 $\pm$ 2.3 |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| Human^∗ |  |  |  | 50.5 $\pm$ 6.8 | 14.3 $\pm$ 2.3 |'
+- en: '| Random^∗ |  |  |  | 1.6 $\pm$ 0.0 | 2.1 $\pm$ 1.3 |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| Random^∗ |  |  |  | 1.6 $\pm$ 0.0 | 2.1 $\pm$ 1.3 |'
+- en: '| ELLM* (Du et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib17))
+    | 5M step PT in Crafter w/ Codex reward | 5M | 62M | - | 6.0 $\pm$ 0.4 |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| ELLM* （Du 等， [2023](https://arxiv.org/html/2403.12014v2#bib.bib17)） | 在 Crafter
+    中使用 Codex 奖励进行 5M 步 PT | 5M | 62M | - | 6.0 $\pm$ 0.4 |'
+- en: '| LSTM-SPCNN^∗ (Stanić et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib51))
+    |  |  | 135M | 11.7 $\pm$ 0.8 | 9.3 $\pm$ 0.2 |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| LSTM-SPCNN^∗ （Stanić 等， [2023](https://arxiv.org/html/2403.12014v2#bib.bib51)）
+    |  |  | 135M | 11.7 $\pm$ 0.8 | 9.3 $\pm$ 0.2 |'
+- en: '| DreamerV3^∗ (Hafner et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib27))
+    |  |  | 201M | 14.8 $\pm$ 1.4 | 10.9 $\pm$ 0.5 |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| DreamerV3^∗ （Hafner 等， [2023](https://arxiv.org/html/2403.12014v2#bib.bib27)）
+    |  |  | 201M | 14.8 $\pm$ 1.4 | 10.9 $\pm$ 0.5 |'
+- en: '| MuZero + SPR^∗ (Walker et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib58))
+    | 150M step PT in Crafter w/ RND reward |  | 54M | 16.4 $\pm$ 1.5 | 12.7 $\pm$
+    0.4 |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| MuZero + SPR^∗ （Walker 等， [2023](https://arxiv.org/html/2403.12014v2#bib.bib58)）
+    | 在 Crafter 中进行 150M 步 PT 使用 RND 奖励 |  | 54M | 16.4 $\pm$ 1.5 | 12.7 $\pm$ 0.4
+    |'
+- en: '| SPRING* (Wu et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib67))
+    | 9 queries to call GPT-4 per step | 2.7K^† | Unknown | 27.3 $\pm$ 1.2 | 12.3
+    $\pm$ 0.7 |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| SPRING* （Wu 等， [2023](https://arxiv.org/html/2403.12014v2#bib.bib67)） | 每步调用
+    GPT-4 的 9 个查询 | 2.7K^† | 未知 | 27.3 $\pm$ 1.2 | 12.3 $\pm$ 0.7 |'
+- en: '| PPO (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))
+    |  |  | 4M | 15.5 $\pm$ 0.6 | 10.5 $\pm$ 0.6 |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| PPO （Moon 等， [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)） |  |  |
+    4M | 15.5 $\pm$ 0.6 | 10.5 $\pm$ 0.6 |'
+- en: '| PPO (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))
+    | 0.96M step PT in Crafter |  | 4M | 26.4 $\pm$ 2.1 | 12.1 $\pm$ 1.0 |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| PPO （Moon 等， [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)） | 在 Crafter
+    中进行 0.96M 步 PT |  | 4M | 26.4 $\pm$ 2.1 | 12.1 $\pm$ 1.0 |'
+- en: '| AD* (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))
+    |  |  | 9M | 21.8 $\pm$ 1.4 | 12.6 $\pm$ 0.3 |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| AD*（Moon等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)） |  |  |
+    9M | 21.8 $\pm$ 1.4 | 12.6 $\pm$ 0.3 |'
+- en: '| AD (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)) |
+    0.96M step PT in Crafter |  | 9M | 31.8 $\pm$ 0.7 | 13.3 $\pm$ 1.2 |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| AD（Moon等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)） | 0.96M步Crafter预训练
+    |  | 9M | 31.8 $\pm$ 0.7 | 13.3 $\pm$ 1.2 |'
+- en: '| PPO + EnvGen (Ours) | 0.96M step PT w/ Crafter${}^{\text{EnvGen}}$ | 4 |
+    4M | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| PPO + EnvGen（我们的方案） | 0.96M步Crafter${}^{\text{EnvGen}}$预训练 | 4 | 4M | 32.2
+    $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+- en: '| AD + EnvGen (Ours) | 0.96M step PT w/ Crafter${}^{\text{EnvGen}}$ | 4 | 9M
+    | 35.3 $\pm$ 0.7 | 13.7 $\pm$ 0.8 |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| AD + EnvGen（我们的方案） | 0.96M步Crafter${}^{\text{EnvGen}}$预训练 | 4 | 9M | 35.3
+    $\pm$ 0.7 | 13.7 $\pm$ 0.8 |'
+- en: 'Table 1: Comparison of different agents in the Crafter (Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24))
+    environment. Following previous works, we report the geometric mean of success
+    rates across its 22 achievements and rewards for 1M Crafter steps. We experiment
+    with EnvGen on two models, PPO and Achievement Distillation. *: scores from the
+    Crafter Scoreboard (Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24))
+    and Moon et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)). $\dagger$:
+    average number of LLM calls to run a single episode, according to SPRING (Wu et al.,
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib67)). PT: Pretraining; AD: Achievement
+    Distillation.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 1：Crafter（Hafner，[2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）环境中不同智能体的比较。沿用之前的工作，我们报告了在其22个成就和奖励中的几何平均成功率，基于1M步的Crafter训练。我们在两个模型上使用EnvGen进行实验，分别是PPO和成就蒸馏。*:
+    来自Crafter排行榜（Hafner，[2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）和Moon等人（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）的得分。$\dagger$:
+    根据SPRING（Wu等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib67)）的报告，运行单个回合所需的LLM调用平均次数。PT：预训练；AD：成就蒸馏。'
+- en: 4.1 Comparison with State-of-the-art Methods on Crafter Environment
+  id: totrans-77
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 与最先进方法在Crafter环境中的比较
+- en: 'Small RL agent trained with EnvGen outperforms state-of-the-art baselines.
+    On the Crafter environment (described in [Sec. 3.1](https://arxiv.org/html/2403.12014v2#S3.SS1
+    "3.1 Evaluated Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")),
+    we compare a small PPO agent trained in Crafter${}^{\text{EnvGen}}$ (*i.e*., Crafter
+    environments generated with EnvGen) to state-of-the-art baseline methods. As shown
+    in [Table 1](https://arxiv.org/html/2403.12014v2#S4.T1 "In 4 Results and Analysis
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents"), we find that a small (4M parameters) PPO agent with EnvGen achieves
+    an average score of 32.2% and significantly outperforms the baselines (and also
+    in terms of the average reward). Note that some baseline agents have many more
+    parameters or pretraining steps such as SPRING (GPT-4 agent; 27.3%), and MuZero
+    + SPR (150M pretraining steps; 16.4%). Our method also only uses orders of magnitude
+    fewer LLM calls (only 4) than works like SPRING (2.7K on average) and ELLM (5M),
+    making it much cheaper/more efficient. EnvGen can also work with other RL agents
+    such as Achievement Distillation (AD) (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))
+    to achieve an even higher score (35.3%).'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '通过EnvGen训练的小型RL智能体超越了最先进的基线方法。在Crafter环境中（见[Sec. 3.1](https://arxiv.org/html/2403.12014v2#S3.SS1
+    "3.1 Evaluated Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")），我们将使用EnvGen生成的Crafter${}^{\text{EnvGen}}$环境训练的小型PPO智能体与最先进的基线方法进行比较。如[表
+    1](https://arxiv.org/html/2403.12014v2#S4.T1 "In 4 Results and Analysis ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")所示，我们发现，使用EnvGen的小型（4M参数）PPO智能体的平均得分为32.2%，显著超过了基线方法（并且在平均奖励方面也有优势）。需要注意的是，一些基线智能体的参数数量或预训练步骤要多得多，例如SPRING（GPT-4智能体；27.3%），MuZero
+    + SPR（150M预训练步骤；16.4%）。我们的方案还比像SPRING（平均2.7K次调用）和ELLM（500万次调用）这样的工作调用了数量级更少的LLM（仅4次），因此更便宜/更高效。EnvGen还可以与其他RL智能体（例如成就蒸馏（AD））合作，以达到更高的得分（35.3%）（Moon等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）。'
+- en: 4.2 Detailed Achievement Analysis on Crafter Environment
+  id: totrans-79
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 Crafter环境中的详细成就分析
+- en: 'Next, we analyze where EnvGen improves the overall score by checking individual
+    achievement success rates in detail. For this, we compare the same PPO agent architecture
+    trained with different setups: (1) an agent trained on Crafter for 1.96M steps
+    and (2) an agent trained on Crafter${}^{\text{EnvGen}}$ for 0.96M steps (0.24M
+    steps $\times$ 4 training cycles, see [Sec. 2.2](https://arxiv.org/html/2403.12014v2#S2.SS2
+    "2.2 EnvGen Method Details ‣ 2 EnvGen: Generating and Adapting Environments via
+    LLMs for Training Embodied Agents ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")) and then trained on Crafter for 1M steps.
+    We measure the success rate ([Fig. 4](https://arxiv.org/html/2403.12014v2#S4.F4
+    "In 4.2 Detailed Achievement Analysis on Crafter Environment ‣ 4 Results and Analysis
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")) of each achievement and unlocking speed ([Fig. 5](https://arxiv.org/html/2403.12014v2#S4.F5
+    "In 4.2 Detailed Achievement Analysis on Crafter Environment ‣ 4 Results and Analysis
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")) of iron tools in the last 1M training steps.'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '接下来，我们通过详细检查单个成就的成功率来分析EnvGen如何提高整体得分。为此，我们比较了在不同设置下训练的相同PPO代理架构：（1）在Crafter上训练1.96M步的代理，以及（2）在Crafter${}^{\text{EnvGen}}$上训练0.96M步（0.24M步
+    $\times$ 4训练周期，见[第2.2节](https://arxiv.org/html/2403.12014v2#S2.SS2 "2.2 EnvGen方法细节
+    ‣ 2 EnvGen: 通过LLMs生成和适应环境来训练具身代理 ‣ EnvGen: 通过LLMs生成和适应环境来训练具身代理")）后，在Crafter上再训练1M步。我们测量了每个成就的成功率（见[图4](https://arxiv.org/html/2403.12014v2#S4.F4
+    "在4.2节 Crafter环境中的详细成就分析 ‣ 4 结果与分析 ‣ EnvGen: 通过LLMs生成和适应环境来训练具身代理")）以及最后1M训练步中铁制工具的解锁速度（见[图5](https://arxiv.org/html/2403.12014v2#S4.F5
+    "在4.2节 Crafter环境中的详细成就分析 ‣ 4 结果与分析 ‣ EnvGen: 通过LLMs生成和适应环境来训练具身代理")）。'
+- en: '![Refer to caption](img/7c6d71a399d8288e753fa546237c685c.png)'
+  id: totrans-81
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/7c6d71a399d8288e753fa546237c685c.png)'
+- en: 'Figure 4: Success rates for all the Crafter achievements of two PPO agents (Moon
+    et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)) – (1) Baseline:
+    trained in Crafter for 1.96M steps, and (2) Ours: trained in 0.96M steps in Crafter${}^{\text{EnvGen}}$
+    and 1M in Crafter.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：两种PPO代理在所有Crafter成就中的成功率（Moon等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）–
+    （1）基准：在Crafter上训练1.96M步，和（2）我们的：在Crafter${}^{\text{EnvGen}}$上训练0.96M步，在Crafter上训练1M步。
+- en: 'EnvGen helps RL agents to tackle challenging long-horizon achievements. [Fig. 4](https://arxiv.org/html/2403.12014v2#S4.F4
+    "In 4.2 Detailed Achievement Analysis on Crafter Environment ‣ 4 Results and Analysis
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents") shows that training in Crafter${}^{\text{EnvGen}}$ improves scores of
+    several achievements. Notably, training in Crafter${}^{\text{EnvGen}}$ significantly
+    improves the scores of long-horizon achievements (with many prerequisites; see
+    [Fig. 3](https://arxiv.org/html/2403.12014v2#S3.F3 "In 3.1 Evaluated Benchmarks
+    and Training Details ‣ 3 Experimental Setup ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents")) such as stone and iron tools.
+    [Fig. 5](https://arxiv.org/html/2403.12014v2#S4.F5 "In 4.2 Detailed Achievement
+    Analysis on Crafter Environment ‣ 4 Results and Analysis ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") shows that after
+    unlocking the stone pickaxe, the RL agent trained in Crafter${}^{\text{EnvGen}}$
+    is significantly faster in unlocking iron tools. In [Sec. C.1](https://arxiv.org/html/2403.12014v2#A3.SS1
+    "C.1 Design Choices, Ablations, and Other Agent Architectures ‣ Appendix C Additional
+    Experiment Results ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents"), we also compare two AD agents, and show that Crafter${}^{\text{EnvGen}}$
+    improves the success rate of the most challenging achievement – ‘collect diamond’.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: EnvGen帮助强化学习（RL）代理解决具有挑战性的长时间跨度成就。[图 4](https://arxiv.org/html/2403.12014v2#S4.F4
+    "在4.2 Crafter环境的详细成就分析 ‣ 4 结果与分析 ‣ EnvGen：通过LLMs生成和调整环境以训练具身代理")显示，在Crafter${}^{\text{EnvGen}}$中训练可以提高多个成就的得分。值得注意的是，在Crafter${}^{\text{EnvGen}}$中训练显著提高了长时间跨度成就的得分（有许多前提条件；见[图
+    3](https://arxiv.org/html/2403.12014v2#S3.F3 "在3.1 评估的基准与训练细节 ‣ 3 实验设置 ‣ EnvGen：通过LLMs生成和调整环境以训练具身代理")），例如石器和铁器工具。[图
+    5](https://arxiv.org/html/2403.12014v2#S4.F5 "在4.2 Crafter环境的详细成就分析 ‣ 4 结果与分析
+    ‣ EnvGen：通过LLMs生成和调整环境以训练具身代理")显示，在解锁石制鹤嘴锄后，在Crafter${}^{\text{EnvGen}}$中训练的RL代理在解锁铁器工具时明显更快。在[附录C.1](https://arxiv.org/html/2403.12014v2#A3.SS1
+    "C.1 设计选择、消融实验与其他代理架构 ‣ 附录C 额外实验结果 ‣ EnvGen：通过LLMs生成和调整环境以训练具身代理")中，我们还比较了两种AD代理，并展示了Crafter${}^{\text{EnvGen}}$提高了最具挑战性的成就——“收集钻石”的成功率。
+- en: '![Refer to caption](img/0e1adf648f1d2103cb84ac9bef40a7cb.png)'
+  id: totrans-84
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/0e1adf648f1d2103cb84ac9bef40a7cb.png)'
+- en: 'Figure 5: Unlock times (the first moment when the agent completed an achievement)
+    for three long-horizon achievements (‘make stone pickaxe’, ‘make iron pickaxe’,
+    and ‘make iron sword’) of two PPO agents (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))
+    – (1) Baseline: trained in Crafter for 1.96M steps, and (2) Ours: trained for
+    0.96M steps in Crafter${}^{\text{EnvGen}}$ and for 1M steps in Crafter. The plot
+    shows the last 1M training steps out of 1.96M steps.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：三个长时间跨度成就（‘制作石制鹤嘴锄’，‘制作铁制鹤嘴锄’，和‘制作铁剑’）的解锁时间（代理完成成就的第一个时刻）对于两种PPO代理（Moon等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib42))
+    – (1) 基线：在Crafter中训练1.96M步，(2) 我们的：在Crafter${}^{\text{EnvGen}}$中训练0.96M步，并在Crafter中训练1M步。图表显示的是1.96M步训练中的最后1M步。
+- en: '![Refer to caption](img/31a6427f8e58e02e5aff4c9a13be9a66.png)'
+  id: totrans-86
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参阅说明文字](img/31a6427f8e58e02e5aff4c9a13be9a66.png)'
+- en: 'Figure 6: Adaptation of training environments based on agent performance over
+    EnvGen cycles. At the end of each cycle, the RL agent’s performance is given to
+    the LLM as feedback (*e.g*., ‘Collect coal is 2%’). The LLM uses the feedback
+    to adaptively generate new environments that can help the agent progressively
+    tackle skills it was previously weak at.'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 6：基于代理表现的EnvGen周期适应训练环境。在每个周期结束时，RL代理的表现作为反馈提供给LLM（*例如*，“收集煤炭是2%”）。LLM使用这些反馈自适应地生成新的环境，帮助代理逐步应对其之前较弱的技能。
+- en: 4.3 Adaptation of Training Environments Helps the Agent Improve Weaker Skills
+  id: totrans-88
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.3 训练环境的适应性帮助代理提高较弱的技能
+- en: '[Fig. 6](https://arxiv.org/html/2403.12014v2#S4.F6 "In 4.2 Detailed Achievement
+    Analysis on Crafter Environment ‣ 4 Results and Analysis ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") shows how the
+    LLM adaptively generates new training environments based on the intermediate performance
+    of our PPO-based RL agent. In the intermediate performance plots, we compare the
+    baseline agent trained only in Crafter and our RL agent trained in Crafter${}^{\text{EnvGen}}$.
+    In the cycle 2, given the feedback that the current RL agent is not good at collecting
+    coal, the LLM generates an environment to help the agent focus on it, improving
+    the agent’s performance for the skill. Likewise, in the cycle 3, given the feedback
+    that the agent is weak at making stone pickaxes, the LLM generates an environment
+    to help the agent more easily craft the stone pickaxe, helping the agent improve
+    it’s score for the skill. Powered by the adaptive LLM environment generation of
+    EnvGen, our agent learns to unlock these two achievements significantly faster
+    than the baseline agent.'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 6](https://arxiv.org/html/2403.12014v2#S4.F6 "在 4.2 详细成就分析中关于 Crafter 环境
+    ‣ 4 结果与分析 ‣ EnvGen: 通过 LLM 生成和适应环境来训练具身智能体") 展示了 LLM 如何基于我们基于 PPO 的 RL 智能体的中期表现自适应地生成新的训练环境。在中期表现图中，我们比较了仅在
+    Crafter 中训练的基线智能体和在 Crafter${}^{\text{EnvGen}}$ 中训练的 RL 智能体。在第二周期中，鉴于当前 RL 智能体在收集煤炭方面表现不佳，LLM
+    生成了一个新的环境，帮助智能体专注于此，从而提高了智能体在此技能上的表现。同样，在第三周期中，鉴于智能体在制作石制镐方面较弱，LLM 生成了一个新的环境，帮助智能体更容易地制作石制镐，从而提高了其技能得分。在
+    EnvGen 的自适应 LLM 环境生成的支持下，我们的智能体在解锁这两项成就的速度上显著快于基线智能体。'
+- en: 4.4 Additional Analysis and Ablation Studies
+  id: totrans-90
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.4 额外分析和消融研究
+- en: 'In the following, we show comprehensive design analysis and ablation studies
+    of EnvGen method: dynamically updating LLM environments (*i.e*., using adaptive
+    environments) *vs*. curriculum learning methods, and different frequencies of
+    environment updates. In [Appendix C](https://arxiv.org/html/2403.12014v2#A3 "Appendix
+    C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents"), we show comprehensive analysis and ablation
+    studies of EnvGen method: EnvGen *vs*. longer training in the original environment,
+    different LLMs for generating environments, the number of LLM environments, and
+    the ratio of training steps in the LLM *vs*. original environments. We also include
+    experiments on the Heist environment (see [Sec. 3.1](https://arxiv.org/html/2403.12014v2#S3.SS1
+    "3.1 Evaluated Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents"))
+    in [Sec. C.2](https://arxiv.org/html/2403.12014v2#A3.SS2 "C.2 Evaluation on Heist
+    Environment ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents").'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '接下来，我们展示了 EnvGen 方法的全面设计分析和消融研究：动态更新 LLM 环境（*即*，使用自适应环境）*vs*. 课程学习方法，以及不同频率的环境更新。在
+    [附录 C](https://arxiv.org/html/2403.12014v2#A3 "附录 C 额外实验结果 ‣ EnvGen: 通过 LLM 生成和适应环境来训练具身智能体")
+    中，我们展示了 EnvGen 方法的全面分析和消融研究：EnvGen *vs*. 在原环境中进行更长时间训练，使用不同的 LLM 生成环境、LLM 环境的数量，以及
+    LLM 环境与原始环境训练步骤的比例。我们还在 [Sec. 3.1](https://arxiv.org/html/2403.12014v2#S3.SS1
+    "3.1 评估基准和训练细节 ‣ 3 实验设置 ‣ EnvGen: 通过 LLM 生成和适应环境来训练具身智能体") 中包含了关于 Heist 环境的实验（见
+    [Sec. C.2](https://arxiv.org/html/2403.12014v2#A3.SS2 "C.2 Heist 环境评估 ‣ 附录 C 额外实验结果
+    ‣ EnvGen: 通过 LLM 生成和适应环境来训练具身智能体")）。'
+- en: '| Training Curriculum | Score (%) | Reward |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| 训练课程 | 得分 (%) | 奖励 |'
+- en: '| --- | --- | --- |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Fixed (no curriculum) | 29.9 $\pm$ 0.9 | 12.6 $\pm$ 0.8 |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| 固定（无课程） | 29.9 $\pm$ 0.9 | 12.6 $\pm$ 0.8 |'
+- en: '| Easy-to-Hard | 26.8 $\pm$ 1.5 | 12.7 $\pm$ 0.7 |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| 由易到难 | 26.8 $\pm$ 1.5 | 12.7 $\pm$ 0.7 |'
+- en: '| Adversarial | 26.8 $\pm$ 0.8 | 12.2 $\pm$ 0.7 |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对抗 | 26.8 $\pm$ 0.8 | 12.2 $\pm$ 0.7 |'
+- en: '| Adaptive+Dynamic Environments (EnvGen) | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6
+    |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自适应+动态环境 (EnvGen) | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+- en: 'Table 2: Comparison of RL agents trained in Crafter (Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24))
+    using no curriculum, an easy-to-hard curriculum, an adversarial curriculum, and
+    our adaptive+dynamic environments. Agents are trained for 0.96M steps using the
+    curriculum and then 1M in the default Crafter environment.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 2: 比较在 Crafter 中训练的 RL 智能体（Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24)），其中包括无课程、由易到难的课程、对抗课程和我们的自适应+动态环境。智能体在课程中训练
+    0.96M 步，然后在默认的 Crafter 环境中训练 1M 步。'
+- en: 'Different environment curricula: fixed, easy-to-hard, adversarial *vs*. adaptive.
+    [Table 2](https://arxiv.org/html/2403.12014v2#S4.T2 "In 4.4 Additional Analysis
+    and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents") shows that using LLM environments
+    that are adaptively updated based on intermediate agent performance to improve
+    weaker skills (last row) results in overall higher scoring agents than just using
+    the initial LLM environments for the whole training (32.2% *vs*. 29.9%). These
+    results indicate the effectiveness of the agent feedback and environment updating
+    (step 4 described in [Sec. 2](https://arxiv.org/html/2403.12014v2#S2 "2 EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")).'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '不同的环境课程：固定的、由易到难的、对抗性 *vs*. 自适应的。[表2](https://arxiv.org/html/2403.12014v2#S4.T2
+    "In 4.4 Additional Analysis and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents") 显示，使用基于中间代理表现自适应更新的LLM环境来改善较弱技能（最后一行）所得到的代理总体得分高于仅使用初始LLM环境进行整个训练（32.2%
+    *vs*. 29.9%）。这些结果表明，代理反馈和环境更新（第2节中描述的步骤4）的有效性。'
+- en: '[Table 2](https://arxiv.org/html/2403.12014v2#S4.T2 "In 4.4 Additional Analysis
+    and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents") also compares an agent trained
+    via EnvGen to the same agent trained with curriculum learning approaches such
+    as an easy-to-hard curriculum, similar to Ammanabrolu et al. ([2022](https://arxiv.org/html/2403.12014v2#bib.bib3))
+    (*i.e*., pre-defined training environment order based on environment difficulty)
+    and adversarial curriculum, similar to Parker-Holder et al. ([2022](https://arxiv.org/html/2403.12014v2#bib.bib46))
+    (*i.e*., updating to training environments that agent does worse in) in the Crafter
+    environment. Detailed setups of both baseline approaches are in the appendix.
+    The agent trained with EnvGen is able to achieve much higher performance (32.2%
+    *vs*. 26.8% for both curricula) indicating the effectiveness EnvGen’s approach
+    of adaptively generating training environments to improve agent weak skills. The
+    result indicates that creating more difficult environments does not necessarily
+    help the agent learn new skills over time.'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表2](https://arxiv.org/html/2403.12014v2#S4.T2 "In 4.4 Additional Analysis
+    and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents") 还比较了通过EnvGen训练的代理与使用课程学习方法训练的相同代理，例如由易到难的课程，这类似于Ammanabrolu等人（[2022](https://arxiv.org/html/2403.12014v2#bib.bib3)）的方法（*即*，基于环境难度的预定义训练环境顺序）和对抗性课程，这类似于Parker-Holder等人（[2022](https://arxiv.org/html/2403.12014v2#bib.bib46)）的方法（*即*，更新为代理表现较差的训练环境），均在Crafter环境中进行。两种基线方法的详细设置见附录。通过EnvGen训练的代理能够实现更高的性能（32.2%
+    *vs*. 26.8%，针对这两种课程），这表明EnvGen通过自适应生成训练环境来改善代理弱项的方式是有效的。结果表明，创建更难的环境并不一定能帮助代理随着时间的推移学习新技能。'
+- en: '| Environment Update Frequency | # Training cycles $N^{\text{Cycle}}$ | Score
+    (%) | Reward |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| 环境更新频率 | # 训练周期 $N^{\text{Cycle}}$ | 得分 (%) | 奖励 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Every 0.012M steps | 40 cycles | 30.8 $\pm$ 0.7 | 12.8 $\pm$ 0.6 |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每0.012M步 | 40个周期 | 30.8 $\pm$ 0.7 | 12.8 $\pm$ 0.6 |'
+- en: '| Every 0.06M steps | 8 cycles | 32.1 $\pm$ 0.5 | 12.7 $\pm$ 0.8 |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每0.06M步 | 8个周期 | 32.1 $\pm$ 0.5 | 12.7 $\pm$ 0.8 |'
+- en: '| Every 0.12M steps (default) | 4 cycles | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6
+    |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每0.12M步（默认） | 4个周期 | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+- en: 'Table 3: Different frequencies to give feedback to the LLM and update the environments
+    (see [Sec. 2](https://arxiv.org/html/2403.12014v2#S2 "2 EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") for details).
+    Agents are trained with 0.96M steps in Crafter${}^{\text{EnvGen}}$ and 1M steps
+    in Crafter environment.'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 3：不同频率对LLM提供反馈并更新环境（详情见[第2节](https://arxiv.org/html/2403.12014v2#S2 "2 EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")））。代理在Crafter${}^{\text{EnvGen}}$环境中训练了0.96M步，在Crafter环境中训练了1M步。'
+- en: Frequency of LLM feedback / environment updates.
+  id: totrans-107
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: LLM反馈/环境更新频率。
+- en: '[Table 3](https://arxiv.org/html/2403.12014v2#S4.T3 "In 4.4 Additional Analysis
+    and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents") shows that updating the LLM
+    environments at every 0.12M steps results in the best agent performance. While
+    increasing the cycles of environment feedback beyond 4 does not improve further,
+    we find that updating environments with feedback always helps improve the RL agent’s
+    performance compared to training only with the original Crafter environment in
+    [Table 1](https://arxiv.org/html/2403.12014v2#S4.T1 "In 4 Results and Analysis
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents") (26.4%) or the fixed LLM environment in [Table 2](https://arxiv.org/html/2403.12014v2#S4.T2
+    "In 4.4 Additional Analysis and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents") (29.9%).'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表3](https://arxiv.org/html/2403.12014v2#S4.T3 "在 4.4 附加分析与消融研究 ‣ 4 结果与分析 ‣
+    EnvGen：通过 LLM 为训练具身智能体生成和调整环境") 显示，在每 0.12M 步更新 LLM 环境时，智能体表现最佳。尽管将环境反馈的周期增加到
+    4 次以上并不会进一步提高表现，但我们发现，与仅使用 [表1](https://arxiv.org/html/2403.12014v2#S4.T1 "在 4
+    结果与分析 ‣ EnvGen：通过 LLM 为训练具身智能体生成和调整环境") 中的原始 Crafter 环境 (26.4%) 或 [表2](https://arxiv.org/html/2403.12014v2#S4.T2
+    "在 4.4 附加分析与消融研究 ‣ 4 结果与分析 ‣ EnvGen：通过 LLM 为训练具身智能体生成和调整环境") 中的固定 LLM 环境 (29.9%)
+    进行训练相比，更新环境并结合反馈总是有助于提高 RL 智能体的表现。'
+- en: 5 Related Works
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 相关工作
+- en: LLMs as open-world game agents. Recent works study using LLMs to create action
+    plans (*i.e*., a list of subgoals or skills to target) for embodied agents in
+    open-world games like Minecraft and Crafter (Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24)).
+    Most of these methods require calling LLMs frequently (*e.g*., at every step)
+    for planning the next steps (Yuan et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib69);
+    Wang et al., [2023c](https://arxiv.org/html/2403.12014v2#bib.bib61); Wu et al.,
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib67); Wang et al., [2023a](https://arxiv.org/html/2403.12014v2#bib.bib59);
+    [d](https://arxiv.org/html/2403.12014v2#bib.bib62); Zhao et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib70)).
+    Other methods, such as Li et al. ([2024](https://arxiv.org/html/2403.12014v2#bib.bib36));
+    Kwon et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib34)); Ma et al.
+    ([2023](https://arxiv.org/html/2403.12014v2#bib.bib40)); Du et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib17)),
+    have used LLMs to create/adjust rewards to train agents. Although these works
+    show initial promising results leveraging the world knowledge of LLMs to tackle
+    long-horizon tasks, iteratively calling LLMs throughout episodes is prohibitively
+    slow and expensive (*e.g*., running a single episode in the Crafter environment
+    with SPRING (Wu et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib67))
+    costs around $270 USD as they have 2.7K LLM calls on average). EnvGen only calls
+    LLMs a few times (*e.g*., 4 in total) to create training environments that focus
+    on helping the RL agent progressively improve its weaker skills.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM 作为开放世界游戏智能体。最近的研究探讨了使用 LLM 为具身智能体在开放世界游戏中（如 Minecraft 和 Crafter）创建行动计划（*即*，列出子目标或技能）(Hafner,
+    [2022](https://arxiv.org/html/2403.12014v2#bib.bib24))。这些方法大多数需要频繁调用 LLM（*例如*，每一步都调用一次）来规划下一步行动（Yuan
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib69)；Wang 等，[2023c](https://arxiv.org/html/2403.12014v2#bib.bib61)；Wu
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib67)；Wang 等，[2023a](https://arxiv.org/html/2403.12014v2#bib.bib59)；[d](https://arxiv.org/html/2403.12014v2#bib.bib62)；Zhao
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib70)）。其他方法，如 Li 等（[2024](https://arxiv.org/html/2403.12014v2#bib.bib36)）；Kwon
+    等（[2023](https://arxiv.org/html/2403.12014v2#bib.bib34)）；Ma 等（[2023](https://arxiv.org/html/2403.12014v2#bib.bib40)）；Du
+    等（[2023](https://arxiv.org/html/2403.12014v2#bib.bib17)），已使用 LLM 创建/调整奖励以训练智能体。尽管这些工作展示了利用
+    LLM 的世界知识解决长期任务的初步有希望的结果，但在整个任务过程中迭代调用 LLM 会非常慢且昂贵（*例如*，使用 SPRING 运行 Crafter 环境中的单个任务（Wu
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib67)）的成本约为 270 美元，因为他们平均有 2.7K
+    次 LLM 调用）。EnvGen 只在少数几次（*例如*，总共 4 次）调用 LLM 来创建训练环境，重点是帮助 RL 智能体逐步提高其较弱的技能。
+- en: Deep learning-based game/simulator content generation. Procedural content generation
+    (PCG) for games is about the automatic generation of levels, landscapes, items,
+    rules, quests, or other types of game contents (Shaker et al., [2016](https://arxiv.org/html/2403.12014v2#bib.bib50)).
+    While traditional PCG methods are based on search/solver/rule/grammar-based methods,
+    recent works apply deep learning methods such as GAN (Goodfellow et al., [2014](https://arxiv.org/html/2403.12014v2#bib.bib21))
+    for PCG (Liu et al., [2021](https://arxiv.org/html/2403.12014v2#bib.bib39); Kumaran
+    et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib32); Schubert et al.,
+    [2022](https://arxiv.org/html/2403.12014v2#bib.bib47)). Several works have explored
+    using LLMs to generate game content such as difficulty levels (Sudhakaran et al.,
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib52); Todd et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib54))
+    and scenes/environments (Kumaran et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib33);
+    Wang et al., [2023b](https://arxiv.org/html/2403.12014v2#bib.bib60); Afshar &
+    Li, [2024](https://arxiv.org/html/2403.12014v2#bib.bib1)). While these works aim
+    to help developers create new game content, we aim to improve RL agent performance
+    in the original environment. A line of work proposes unsupervised environment
+    design (UED) that manipulates the difficulty level of environments to be more
+    challenging to RL agents (Dennis et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib14);
+    Jiang et al., [2021](https://arxiv.org/html/2403.12014v2#bib.bib30); Parker-Holder
+    et al., [2022](https://arxiv.org/html/2403.12014v2#bib.bib46)). While these works
+    use a learned environment manipulator or evolutionary algorithms to maximize the
+    ‘regret’ (the difference between the expected return of the current and optimal
+    policies) in simple games such as MiniGrid (Chevalier-Boisvert et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib11)),
+    we use the world knowledge of LLMs to generate and adapt training environments
+    that can improve weaker skills based on comprehensive skill-specific feedback
+    from RL agents in open-world games with many challenging long-horizon tasks. To
+    help agents generalize to unseen tasks in a text-based dialogue game, Ammanabrolu
+    et al. ([2022](https://arxiv.org/html/2403.12014v2#bib.bib3)) augment new tasks
+    with LMs and use a manually designed, fixed curriculum. Unlike this work, we adaptively
+    generate training environments using LLMs’ world knowledge and automatically learning
+    a dynamic curriculum based on the RL agent’s feedback, so as to improve the agent’s
+    weaker skills in open-world games with visual inputs. Beyond game content generation,
+    several works visually augment vision-and-language navigation (VLN) simulators
+    (*e.g*., rendering the environments with different styles) using image generation
+    models (Li et al., [2022b](https://arxiv.org/html/2403.12014v2#bib.bib38); Wang
+    et al., [2023e](https://arxiv.org/html/2403.12014v2#bib.bib63); Li & Bansal, [2023](https://arxiv.org/html/2403.12014v2#bib.bib37)).
+    Such works could complement our LLM environments (*e.g*., augmenting our environments
+    with diverse colors and textures).
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于深度学习的游戏/模拟器内容生成。游戏的程序化内容生成（PCG）是指自动生成关卡、景观、物品、规则、任务或其他类型的游戏内容（Shaker 等，[2016](https://arxiv.org/html/2403.12014v2#bib.bib50)）。传统的PCG方法基于搜索/求解器/规则/语法方法，而近年来的研究采用了深度学习方法，如生成对抗网络（GAN）（Goodfellow
+    等，[2014](https://arxiv.org/html/2403.12014v2#bib.bib21)）进行PCG（Liu 等，[2021](https://arxiv.org/html/2403.12014v2#bib.bib39)；Kumaran
+    等，[2020](https://arxiv.org/html/2403.12014v2#bib.bib32)；Schubert 等，[2022](https://arxiv.org/html/2403.12014v2#bib.bib47)）。一些研究探索了使用大型语言模型（LLMs）来生成游戏内容，如难度级别（Sudhakaran
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib52)；Todd 等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib54)）以及场景/环境（Kumaran
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib33)；Wang 等，[2023b](https://arxiv.org/html/2403.12014v2#bib.bib60)；Afshar
+    & Li，[2024](https://arxiv.org/html/2403.12014v2#bib.bib1)）。尽管这些研究旨在帮助开发者创造新的游戏内容，但我们旨在提高RL智能体在原始环境中的表现。一项研究提出了无监督环境设计（UED），通过操控环境的难度级别，使其对RL智能体更具挑战性（Dennis
+    等，[2020](https://arxiv.org/html/2403.12014v2#bib.bib14)；Jiang 等，[2021](https://arxiv.org/html/2403.12014v2#bib.bib30)；Parker-Holder
+    等，[2022](https://arxiv.org/html/2403.12014v2#bib.bib46)）。虽然这些研究使用学习到的环境操控器或进化算法来最大化“遗憾”（当前策略与最优策略预期回报之间的差异），并应用于诸如MiniGrid（Chevalier-Boisvert
+    等，[2023](https://arxiv.org/html/2403.12014v2#bib.bib11)）等简单游戏，但我们则利用LLM的世界知识生成和调整训练环境，基于RL智能体在开放世界游戏中针对众多长期任务的全面技能反馈，来提高其较弱的技能。为了帮助智能体在文本对话游戏中推广到未见过的任务，Ammanabrolu
+    等（[2022](https://arxiv.org/html/2403.12014v2#bib.bib3)）通过语言模型（LMs）增强新的任务，并使用手动设计的固定课程。与此不同的是，我们利用LLM的世界知识自适应生成训练环境，并根据RL智能体的反馈自动学习动态课程，从而提高智能体在带有视觉输入的开放世界游戏中较弱的技能。除了游戏内容生成外，一些研究通过使用图像生成模型（Li
+    等，[2022b](https://arxiv.org/html/2403.12014v2#bib.bib38)；Wang 等，[2023e](https://arxiv.org/html/2403.12014v2#bib.bib63)；Li
+    & Bansal，[2023](https://arxiv.org/html/2403.12014v2#bib.bib37)）对视觉-语言导航（VLN）模拟器进行了视觉增强（*例如*，以不同风格渲染环境）。这些研究可以补充我们的LLM环境（*例如*，通过多样的颜色和纹理增强我们的环境）。
+- en: 6 Conclusion
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 结论
+- en: We propose EnvGen, a novel framework to improve embodied RL agent performance
+    by utilizing the world knowledge of LLMs to adaptively generate training environments.
+    In EnvGen, we give an LLM a prompt describing a game/simulator and ask the LLM
+    to generate the configurations to create new environments that can teach different
+    skills. Next, we train an agent in the LLM-generated environments, give feedback
+    to the LLM by testing the agent in the original environments, and then ask the
+    LLM to update the environments to teach agents skills they are weaker at. In two
+    challenging games, Crafter and Heist, we show that EnvGen increases agent performance
+    significantly, and training with LLM-generated environments is more effective
+    than training longer in the original environments. We also show that using an
+    LLM to adapt environments dynamically outperforms curriculum learning approaches
+    and how the LLM adapts training environments to help improve RL agents’ weaker
+    skills over time. Moreover, a lightweight model ($<$ 5M parameters) trained with
+    LLM-generated environments even outperforms an LLM agent with significantly fewer
+    LLM calls. We hope our work can guide future works in leveraging LLMs for embodied
+    agents.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提出了EnvGen，这是一个新颖的框架，通过利用大型语言模型（LLM）的世界知识，自适应地生成训练环境，从而提高具身强化学习（RL）代理的表现。在EnvGen中，我们为LLM提供一个描述游戏/模拟器的提示，并要求LLM生成配置，以创建能够教授不同技能的新环境。接下来，我们在LLM生成的环境中训练代理，通过在原始环境中测试代理并反馈给LLM，然后要求LLM更新环境，以便教授代理他们较弱的技能。在两个具有挑战性的游戏中，Crafter和Heist，我们展示了EnvGen显著提高了代理的表现，并且使用LLM生成的环境训练比在原始环境中训练更有效。我们还展示了，使用LLM动态调整环境的方式优于课程学习方法，并展示了LLM如何随着时间的推移，适应训练环境以帮助提高RL代理的弱项技能。此外，使用LLM生成环境训练的轻量级模型（参数少于5M）甚至在LLM调用次数显著较少的情况下，也优于LLM代理。我们希望我们的工作能够为未来利用LLM来提升具身代理的研究提供指导。
+- en: Acknowledgments
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 致谢
+- en: We thank Elias Stengel-Eskin and the reviewers for the thoughtful discussion
+    and feedback. This work was supported by DARPA ECOLE Program No. HR00112390060,
+    NSF-AI Engage Institute DRL-2112635, DARPA Machine Commonsense (MCS) Grant N66001-19-2-4031,
+    ARO Award W911NF2110220, ONR Grant N00014-23-1-2356, and a Bloomberg Data Science
+    Ph.D. Fellowship. The views contained in this article are those of the authors
+    and not of the funding agency.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们感谢Elias Stengel-Eskin和审稿人的深思熟虑的讨论和反馈。本研究得到了DARPA ECOLE计划（项目号：HR00112390060）、NSF-AI
+    Engage Institute DRL-2112635、DARPA机器常识（MCS）资助（编号：N66001-19-2-4031）、ARO奖项W911NF2110220、ONR资助（编号：N00014-23-1-2356）以及Bloomberg数据科学博士奖学金的支持。文中所包含的观点仅代表作者个人意见，并不代表资助机构的观点。
+- en: References
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Afshar & Li (2024) Aida Afshar and Wenchao Li. Delf: Designing learning environments
+    with foundation models. In *AAAI Workshop*, 2024.'
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Afshar & Li (2024) Aida Afshar 和 Wenchao Li. Delf: 使用基础模型设计学习环境。 在*AAAI Workshop*，2024。'
+- en: 'Ahn et al. (2022) Michael Ahn, Anthony Brohan, Noah Brown, Yevgen Chebotar,
+    Omar Cortes, Byron David, Chelsea Finn, Chuyuan Fu, Keerthana Gopalakrishnan,
+    Karol Hausman, Alex Herzog, Daniel Ho, Jasmine Hsu, Julian Ibarz, Brian Ichter,
+    Alex Irpan, Eric Jang, Rosario Jauregui Ruano, Kyle Jeffrey, Sally Jesmonth, Nikhil J.
+    Joshi, Ryan Julian, Dmitry Kalashnikov, Yuheng Kuang, Kuang Huei Lee, Sergey Levine,
+    Yao Lu, Linda Luu, Carolina Parada, Peter Pastor, Jornell Quiambao, Kanishka Rao,
+    Jarek Rettinghouse, Diego Reyes, Pierre Sermanet, Nicolas Sievers, Clayton Tan,
+    Alexander Toshev, Vincent Vanhoucke, Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Mengyuan
+    Yan, and Andy Zeng. Do As I Can, Not As I Say: Grounding Language in Robotic Affordances.
+    In *CoRL*, 2022.'
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ahn 等（2022）Michael Ahn, Anthony Brohan, Noah Brown, Yevgen Chebotar, Omar Cortes,
+    Byron David, Chelsea Finn, Chuyuan Fu, Keerthana Gopalakrishnan, Karol Hausman,
+    Alex Herzog, Daniel Ho, Jasmine Hsu, Julian Ibarz, Brian Ichter, Alex Irpan, Eric
+    Jang, Rosario Jauregui Ruano, Kyle Jeffrey, Sally Jesmonth, Nikhil J. Joshi, Ryan
+    Julian, Dmitry Kalashnikov, Yuheng Kuang, Kuang Huei Lee, Sergey Levine, Yao Lu,
+    Linda Luu, Carolina Parada, Peter Pastor, Jornell Quiambao, Kanishka Rao, Jarek
+    Rettinghouse, Diego Reyes, Pierre Sermanet, Nicolas Sievers, Clayton Tan, Alexander
+    Toshev, Vincent Vanhoucke, Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Mengyuan Yan,
+    和 Andy Zeng. Do As I Can, Not As I Say: Grounding Language in Robotic Affordances.
+    在*CoRL*，2022。'
+- en: Ammanabrolu et al. (2022) Prithviraj Ammanabrolu, Renee Jia, and Mark O Riedl.
+    Situated dialogue learning through procedural environment generation. In *Association
+    for Computational Linguistics (ACL)*, 2022. URL [https://arxiv.org/abs/2110.03262](https://arxiv.org/abs/2110.03262).
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ammanabrolu 等（2022）Prithviraj Ammanabrolu, Renee Jia, 和 Mark O Riedl. 通过程序化环境生成进行情境对话学习。
+    在*Association for Computational Linguistics (ACL)*，2022。网址 [https://arxiv.org/abs/2110.03262](https://arxiv.org/abs/2110.03262)。
+- en: Anil et al. (2023) Rohan Anil, Andrew M. Dai, Orhan Firat, Melvin Johnson, Dmitry
+    Lepikhin, Alexandre Passos, Siamak Shakeri, Emanuel Taropa, Paige Bailey, Zhifeng
+    Chen, Eric Chu, Jonathan H. Clark, Laurent El Shafey, Yanping Huang, Kathy Meier-Hellstern,
+    Gaurav Mishra, Erica Moreira, Mark Omernick, Kevin Robinson, Sebastian Ruder,
+    Yi Tay, Kefan Xiao, Yuanzhong Xu, Yujing Zhang, Gustavo Hernandez Abrego, Junwhan
+    Ahn, Jacob Austin, Paul Barham, Jan Botha, James Bradbury, Siddhartha Brahma,
+    Kevin Brooks, Michele Catasta, Yong Cheng, Colin Cherry, Christopher A. Choquette-Choo,
+    Aakanksha Chowdhery, Clément Crepy, Shachi Dave, Mostafa Dehghani, Sunipa Dev,
+    Jacob Devlin, Mark Díaz, Nan Du, Ethan Dyer, Vlad Feinberg, Fangxiaoyu Feng, Vlad
+    Fienber, Markus Freitag, Xavier Garcia, Sebastian Gehrmann, Lucas Gonzalez, Guy
+    Gur-Ari, Steven Hand, Hadi Hashemi, Le Hou, Joshua Howland, Andrea Hu, Jeffrey
+    Hui, Jeremy Hurwitz, Michael Isard, Abe Ittycheriah, Matthew Jagielski, Wenhao
+    Jia, Kathleen Kenealy, Maxim Krikun, Sneha Kudugunta, Chang Lan, Katherine Lee,
+    Benjamin Lee, Eric Li, Music Li, Wei Li, YaGuang Li, Jian Li, Hyeontaek Lim, Hanzhao
+    Lin, Zhongtao Liu, Frederick Liu, Marcello Maggioni, Aroma Mahendru, Joshua Maynez,
+    Vedant Misra, Maysam Moussalem, Zachary Nado, John Nham, Eric Ni, Andrew Nystrom,
+    Alicia Parrish, Marie Pellat, Martin Polacek, Alex Polozov, Reiner Pope, Siyuan
+    Qiao, Emily Reif, Bryan Richter, Parker Riley, Alex Castro Ros, Aurko Roy, Brennan
+    Saeta, Rajkumar Samuel, Renee Shelby, Ambrose Slone, Daniel Smilkov, David R.
+    So, Daniel Sohn, Simon Tokumine, Dasha Valter, Vijay Vasudevan, Kiran Vodrahalli,
+    Xuezhi Wang, Pidong Wang, Zirui Wang, Tao Wang, John Wieting, Yuhuai Wu, Kelvin
+    Xu, Yunhan Xu, Linting Xue, Pengcheng Yin, Jiahui Yu, Qiao Zhang, Steven Zheng,
+    Ce Zheng, Weikang Zhou, Denny Zhou, Slav Petrov, and Yonghui Wu. Palm 2 technical
+    report, 2023.
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anil 等人（2023）Rohan Anil、Andrew M. Dai、Orhan Firat、Melvin Johnson、Dmitry Lepikhin、Alexandre
+    Passos、Siamak Shakeri、Emanuel Taropa、Paige Bailey、Zhifeng Chen、Eric Chu、Jonathan
+    H. Clark、Laurent El Shafey、Yanping Huang、Kathy Meier-Hellstern、Gaurav Mishra、Erica
+    Moreira、Mark Omernick、Kevin Robinson、Sebastian Ruder、Yi Tay、Kefan Xiao、Yuanzhong
+    Xu、Yujing Zhang、Gustavo Hernandez Abrego、Junwhan Ahn、Jacob Austin、Paul Barham、Jan
+    Botha、James Bradbury、Siddhartha Brahma、Kevin Brooks、Michele Catasta、Yong Cheng、Colin
+    Cherry、Christopher A. Choquette-Choo、Aakanksha Chowdhery、Clément Crepy、Shachi
+    Dave、Mostafa Dehghani、Sunipa Dev、Jacob Devlin、Mark Díaz、Nan Du、Ethan Dyer、Vlad
+    Feinberg、Fangxiaoyu Feng、Vlad Fienber、Markus Freitag、Xavier Garcia、Sebastian Gehrmann、Lucas
+    Gonzalez、Guy Gur-Ari、Steven Hand、Hadi Hashemi、Le Hou、Joshua Howland、Andrea Hu、Jeffrey
+    Hui、Jeremy Hurwitz、Michael Isard、Abe Ittycheriah、Matthew Jagielski、Wenhao Jia、Kathleen
+    Kenealy、Maxim Krikun、Sneha Kudugunta、Chang Lan、Katherine Lee、Benjamin Lee、Eric
+    Li、Music Li、Wei Li、YaGuang Li、Jian Li、Hyeontaek Lim、Hanzhao Lin、Zhongtao Liu、Frederick
+    Liu、Marcello Maggioni、Aroma Mahendru、Joshua Maynez、Vedant Misra、Maysam Moussalem、Zachary
+    Nado、John Nham、Eric Ni、Andrew Nystrom、Alicia Parrish、Marie Pellat、Martin Polacek、Alex
+    Polozov、Reiner Pope、Siyuan Qiao、Emily Reif、Bryan Richter、Parker Riley、Alex Castro
+    Ros、Aurko Roy、Brennan Saeta、Rajkumar Samuel、Renee Shelby、Ambrose Slone、Daniel
+    Smilkov、David R. So、Daniel Sohn、Simon Tokumine、Dasha Valter、Vijay Vasudevan、Kiran
+    Vodrahalli、Xuezhi Wang、Pidong Wang、Zirui Wang、Tao Wang、John Wieting、Yuhuai Wu、Kelvin
+    Xu、Yunhan Xu、Linting Xue、Pengcheng Yin、Jiahui Yu、Qiao Zhang、Steven Zheng、Ce Zheng、Weikang
+    Zhou、Denny Zhou、Slav Petrov 和 Yonghui Wu。Palm 2 技术报告，2023。
+- en: Aytar et al. (2018) Yusuf Aytar, Tobias Pfaff, David Budden, Tom Le Paine, Ziyu
+    Wang, and Nando de Freitas. Playing hard exploration games by watching YouTube.
+    In *NeurIPS*, 2018. URL [http://arxiv.org/abs/1805.11592](http://arxiv.org/abs/1805.11592).
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Aytar 等人（2018）Yusuf Aytar、Tobias Pfaff、David Budden、Tom Le Paine、Ziyu Wang 和
+    Nando de Freitas。通过观看 YouTube 玩硬核探索游戏。在 *NeurIPS*，2018。网址 [http://arxiv.org/abs/1805.11592](http://arxiv.org/abs/1805.11592)。
+- en: Ba et al. (2016) Jimmy Lei Ba, Jamie Ryan Kiros, and Geoffrey E. Hinton. Layer
+    Normalization. In *NIPS 2016 Deep Learning Symposium*, 2016. URL [http://arxiv.org/abs/1607.06450](http://arxiv.org/abs/1607.06450).
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ba 等人（2016）Jimmy Lei Ba、Jamie Ryan Kiros 和 Geoffrey E. Hinton。层归一化。在 *NIPS 2016
+    深度学习研讨会*，2016。网址 [http://arxiv.org/abs/1607.06450](http://arxiv.org/abs/1607.06450)。
+- en: Bellemare et al. (2016) Marc G. Bellemare, Sriram Srinivasan, Georg Ostrovski,
+    Tom Schaul, David Saxton, and Rémi Munos. Unifying count-based exploration and
+    intrinsic motivation. In *NIPS*, 2016.
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Bellemare 等人（2016）Marc G. Bellemare、Sriram Srinivasan、Georg Ostrovski、Tom Schaul、David
+    Saxton 和 Rémi Munos。统一基于计数的探索与内在动机。在 *NIPS*，2016。
+- en: Brown et al. (2020) Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah,
+    Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry,
+    Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan,
+    Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, Christopher
+    Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack
+    Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya Sutskever, and Dario
+    Amodei. Language Models are Few-Shot Learners. In *NeurIPS*, 2020. URL [http://arxiv.org/abs/2005.14165](http://arxiv.org/abs/2005.14165).
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown 等人（2020）Tom B. Brown、Benjamin Mann、Nick Ryder、Melanie Subbiah、Jared Kaplan、Prafulla
+    Dhariwal、Arvind Neelakantan、Pranav Shyam、Girish Sastry、Amanda Askell、Sandhini
+    Agarwal、Ariel Herbert-Voss、Gretchen Krueger、Tom Henighan、Rewon Child、Aditya Ramesh、Daniel
+    M. Ziegler、Jeffrey Wu、Clemens Winter、Christopher Hesse、Mark Chen、Eric Sigler、Mateusz
+    Litwin、Scott Gray、Benjamin Chess、Jack Clark、Christopher Berner、Sam McCandlish、Alec
+    Radford、Ilya Sutskever 和 Dario Amodei. 语言模型是少样本学习者。在 *NeurIPS*，2020。URL [http://arxiv.org/abs/2005.14165](http://arxiv.org/abs/2005.14165)。
+- en: Burda et al. (2018) Yuri Burda, Harrison Edwards, Amos Storkey, and Oleg Klimov.
+    Exploration by Random Network Distillation. In *ICLR*, 2018.
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Burda 等人（2018）Yuri Burda、Harrison Edwards、Amos Storkey 和 Oleg Klimov. 通过随机网络蒸馏进行探索。在
+    *ICLR*，2018。
+- en: Chen et al. (2021) Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde
+    de Oliveira Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph, Greg
+    Brockman, Alex Ray, Raul Puri, Gretchen Krueger, Michael Petrov, Heidy Khlaaf,
+    Girish Sastry, Pamela Mishkin, Brooke Chan, Scott Gray, Nick Ryder, Mikhail Pavlov,
+    Alethea Power, Lukasz Kaiser, Mohammad Bavarian, Clemens Winter, Philippe Tillet,
+    Felipe Petroski Such, Dave Cummings, Matthias Plappert, Fotios Chantzis, Elizabeth
+    Barnes, Ariel Herbert-Voss, William Hebgen Guss, Alex Nichol, Alex Paino, Nikolas
+    Tezak, Jie Tang, Igor Babuschkin, Suchir Balaji, Shantanu Jain, William Saunders,
+    Christopher Hesse, Andrew N. Carr, Jan Leike, Josh Achiam, Vedant Misra, Evan
+    Morikawa, Alec Radford, Matthew Knight, Miles Brundage, Mira Murati, Katie Mayer,
+    Peter Welinder, Bob McGrew, Dario Amodei, Sam McCandlish, Ilya Sutskever, and
+    Wojciech Zaremba. Evaluating large language models trained on code, 2021.
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 陈等人（2021）Mark Chen、Jerry Tworek、Heewoo Jun、Qiming Yuan、Henrique Ponde de Oliveira
+    Pinto、Jared Kaplan、Harri Edwards、Yuri Burda、Nicholas Joseph、Greg Brockman、Alex
+    Ray、Raul Puri、Gretchen Krueger、Michael Petrov、Heidy Khlaaf、Girish Sastry、Pamela
+    Mishkin、Brooke Chan、Scott Gray、Nick Ryder、Mikhail Pavlov、Alethea Power、Lukasz
+    Kaiser、Mohammad Bavarian、Clemens Winter、Philippe Tillet、Felipe Petroski Such、Dave
+    Cummings、Matthias Plappert、Fotios Chantzis、Elizabeth Barnes、Ariel Herbert-Voss、William
+    Hebgen Guss、Alex Nichol、Alex Paino、Nikolas Tezak、Jie Tang、Igor Babuschkin、Suchir
+    Balaji、Shantanu Jain、William Saunders、Christopher Hesse、Andrew N. Carr、Jan Leike、Josh
+    Achiam、Vedant Misra、Evan Morikawa、Alec Radford、Matthew Knight、Miles Brundage、Mira
+    Murati、Katie Mayer、Peter Welinder、Bob McGrew、Dario Amodei、Sam McCandlish、Ilya
+    Sutskever 和 Wojciech Zaremba. 评估基于代码训练的大型语言模型，2021。
+- en: 'Chevalier-Boisvert et al. (2023) Maxime Chevalier-Boisvert, Bolun Dai, Mark
+    Towers, Rodrigo de Lazcano, Lucas Willems, Salem Lahlou, Suman Pal, Pablo Samuel
+    Castro, and Jordan Terry. Minigrid & miniworld: Modular & customizable reinforcement
+    learning environments for goal-oriented tasks. *CoRR*, abs/2306.13831, 2023.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chevalier-Boisvert 等人（2023）Maxime Chevalier-Boisvert、Bolun Dai、Mark Towers、Rodrigo
+    de Lazcano、Lucas Willems、Salem Lahlou、Suman Pal、Pablo Samuel Castro 和 Jordan Terry.
+    Minigrid & miniworld: 用于目标导向任务的模块化和可定制的强化学习环境。*CoRR*，abs/2306.13831，2023。'
+- en: 'Chowdhery et al. (2023) Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten
+    Bosma, Gaurav Mishra, Adam Roberts, Paul Barham, Hyung Won Chung, Charles Sutton,
+    Sebastian Gehrmann, Parker Schuh, Kensen Shi, Sasha Tsvyashchenko, Joshua Maynez,
+    Abhishek Rao, Parker Barnes, Yi Tay, Noam Shazeer, Vinodkumar Prabhakaran, Emily
+    Reif, Nan Du, Ben Hutchinson, Reiner Pope, James Bradbury, Jacob Austin, Michael
+    Isard, Guy Gur-Ari, Pengcheng Yin, Toju Duke, Anselm Levskaya, Sanjay Ghemawat,
+    Sunipa Dev, Henryk Michalewski, Xavier Garcia, Vedant Misra, Kevin Robinson, Liam
+    Fedus, Denny Zhou, Daphne Ippolito, David Luan, Hyeontaek Lim, Barret Zoph, Alexander
+    Spiridonov, Ryan Sepassi, David Dohan, Shivani Agrawal, Mark Omernick, Andrew M.
+    Dai, Thanumalayan Sankaranarayana Pillai, Marie Pellat, Aitor Lewkowycz, Erica
+    Moreira, Rewon Child, Oleksandr Polozov, Katherine Lee, Zongwei Zhou, Xuezhi Wang,
+    Brennan Saeta, Mark Diaz, Orhan Firat, Michele Catasta, Jason Wei, Kathy Meier-Hellstern,
+    Douglas Eck, Jeff Dean, Slav Petrov, and Noah Fiedel. PaLM: Scaling Language Modeling
+    with Pathways. *JMLR*, pp.  1–83, 2023. URL [http://arxiv.org/abs/2204.02311](http://arxiv.org/abs/2204.02311).'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Chowdhery 等人（2023）Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten
+    Bosma, Gaurav Mishra, Adam Roberts, Paul Barham, Hyung Won Chung, Charles Sutton,
+    Sebastian Gehrmann, Parker Schuh, Kensen Shi, Sasha Tsvyashchenko, Joshua Maynez,
+    Abhishek Rao, Parker Barnes, Yi Tay, Noam Shazeer, Vinodkumar Prabhakaran, Emily
+    Reif, Nan Du, Ben Hutchinson, Reiner Pope, James Bradbury, Jacob Austin, Michael
+    Isard, Guy Gur-Ari, Pengcheng Yin, Toju Duke, Anselm Levskaya, Sanjay Ghemawat,
+    Sunipa Dev, Henryk Michalewski, Xavier Garcia, Vedant Misra, Kevin Robinson, Liam
+    Fedus, Denny Zhou, Daphne Ippolito, David Luan, Hyeontaek Lim, Barret Zoph, Alexander
+    Spiridonov, Ryan Sepassi, David Dohan, Shivani Agrawal, Mark Omernick, Andrew
+    M. Dai, Thanumalayan Sankaranarayana Pillai, Marie Pellat, Aitor Lewkowycz, Erica
+    Moreira, Rewon Child, Oleksandr Polozov, Katherine Lee, Zongwei Zhou, Xuezhi Wang,
+    Brennan Saeta, Mark Diaz, Orhan Firat, Michele Catasta, Jason Wei, Kathy Meier-Hellstern,
+    Douglas Eck, Jeff Dean, Slav Petrov 和 Noah Fiedel. PaLM: 使用 Pathways 扩展语言建模. *JMLR*,
+    第1-83页，2023年. 网址 [http://arxiv.org/abs/2204.02311](http://arxiv.org/abs/2204.02311).'
+- en: Cobbe et al. (2020) Karl Cobbe, Chris Hesse, Jacob Hilton, and John Schulman.
+    Leveraging procedural generation to benchmark reinforcement learning. In Hal Daumé
+    III and Aarti Singh (eds.), *Proceedings of the 37th International Conference
+    on Machine Learning*, volume 119 of *Proceedings of Machine Learning Research*,
+    pp.  2048–2056\. PMLR, 13–18 Jul 2020. URL [https://proceedings.mlr.press/v119/cobbe20a.html](https://proceedings.mlr.press/v119/cobbe20a.html).
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cobbe 等人（2020）Karl Cobbe, Chris Hesse, Jacob Hilton 和 John Schulman. 利用程序生成进行强化学习基准测试.
+    见 Hal Daumé III 和 Aarti Singh（编辑），*第37届国际机器学习会议论文集*，*机器学习研究论文集*第119卷，第2048-2056页，PMLR，2020年7月13-18日.
+    网址 [https://proceedings.mlr.press/v119/cobbe20a.html](https://proceedings.mlr.press/v119/cobbe20a.html).
+- en: Dennis et al. (2020) Michael Dennis, Natasha Jaques, Eugene Vinitsky, Alexandre
+    Bayen, Stuart Russell, Andrew Critch, and Sergey Levine. Emergent complexity and
+    zero-shot transfer via unsupervised environment design. In *NIPS*, 2020.
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dennis 等人（2020）Michael Dennis, Natasha Jaques, Eugene Vinitsky, Alexandre Bayen,
+    Stuart Russell, Andrew Critch 和 Sergey Levine. 通过无监督环境设计实现的涌现复杂性和零-shot转移. 发表在
+    *NIPS* 会议，2020年.
+- en: 'DI-star Contributors (2021) DI-star Contributors. Di-star: An open-sourse reinforcement
+    learning framework for starcraftii. [https://github.com/opendilab/DI-star](https://github.com/opendilab/DI-star),
+    2021.'
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'DI-star 贡献者（2021）DI-star 贡献者. Di-star: 一个开源的强化学习框架，用于《星际争霸II》. [https://github.com/opendilab/DI-star](https://github.com/opendilab/DI-star)，2021年.'
+- en: 'Driess et al. (2023) Danny Driess, Fei Xia, Mehdi S. M. Sajjadi, Corey Lynch,
+    Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong,
+    Tianhe Yu, Wenlong Huang, Yevgen Chebotar, Pierre Sermanet, Daniel Duckworth,
+    Sergey Levine, Vincent Vanhoucke, Karol Hausman, Marc Toussaint, Klaus Greff,
+    Andy Zeng, Igor Mordatch, and Pete Florence. PaLM-E: An Embodied Multimodal Language
+    Model. In *ICML 2023*, 2023. URL [http://arxiv.org/abs/2303.03378](http://arxiv.org/abs/2303.03378).'
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Driess 等人（2023）Danny Driess, Fei Xia, Mehdi S. M. Sajjadi, Corey Lynch, Aakanksha
+    Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu,
+    Wenlong Huang, Yevgen Chebotar, Pierre Sermanet, Daniel Duckworth, Sergey Levine,
+    Vincent Vanhoucke, Karol Hausman, Marc Toussaint, Klaus Greff, Andy Zeng, Igor
+    Mordatch 和 Pete Florence. PaLM-E: 一种具身的多模态语言模型. 在 *ICML 2023* 会议上，2023年. 网址 [http://arxiv.org/abs/2303.03378](http://arxiv.org/abs/2303.03378).'
+- en: Du et al. (2023) Yuqing Du, Olivia Watkins, Zihan Wang, Cédric Colas, Trevor
+    Darrell, Pieter Abbeel, Abhishek Gupta, and Jacob Andreas. Guiding Pretraining
+    in Reinforcement Learning with Large Language Models. In *ICML*, 2023.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Du 等人（2023）Yuqing Du, Olivia Watkins, Zihan Wang, Cédric Colas, Trevor Darrell,
+    Pieter Abbeel, Abhishek Gupta 和 Jacob Andreas. 使用大型语言模型指导强化学习中的预训练. 在 *ICML* 会议上，2023年.
+- en: 'Duan et al. (2022) Jiafei Duan, Samson Yu, Hui Li Tan, Hongyuan Zhu, and Cheston
+    Tan. A survey of embodied ai: From simulators to research tasks. *IEEE Transactions
+    on Emerging Topics in Computational Intelligence*, 6(2):230–244, 2022. doi: 10.1109/TETCI.2022.3141105.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Duan 等（2022）Jiafei Duan、Samson Yu、Hui Li Tan、Hongyuan Zhu 和 Cheston Tan。体现人工智能调查：从模拟器到研究任务。*IEEE
+    Transactions on Emerging Topics in Computational Intelligence*，6(2)：230–244，2022。doi:
+    10.1109/TETCI.2022.3141105。'
+- en: 'Espeholt et al. (2018) Lasse Espeholt, Hubert Soyer, Remi Munos, Karen Simonyan,
+    Volodymyr Mnih, Tom Ward, Boron Yotam, Firoiu Vlad, Harley Tim, Iain Dunning,
+    Shane Legg, and Koray Kavukcuoglu. IMPALA: Scalable Distributed Deep-RL with Importance
+    Weighted Actor-Learner Architectures. In *ICML*, 2018. ISBN 9781510867963.'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Espeholt 等（2018）Lasse Espeholt、Hubert Soyer、Remi Munos、Karen Simonyan、Volodymyr
+    Mnih、Tom Ward、Boron Yotam、Firoiu Vlad、Harley Tim、Iain Dunning、Shane Legg 和 Koray
+    Kavukcuoglu。IMPALA：具有重要性加权行为者-学习者架构的可扩展分布式深度强化学习。发表于 *ICML*，2018。ISBN 9781510867963。
+- en: 'Fan et al. (2022) Linxi Fan, Guanzhi Wang, Yunfan Jiang, Ajay Mandlekar, Yuncong
+    Yang, Haoyi Zhu, Andrew Tang, De-An Huang, Yuke Zhu, Anima Anandkumar, and Ut Austin.
+    MineDojo: Building Open-Ended Embodied Agents with Internet-Scale Knowledge. In
+    *NeurIPS*, jun 2022. doi: 10.48550/arxiv.2206.08853. URL [https://arxiv.org/abs/2206.08853v2](https://arxiv.org/abs/2206.08853v2).'
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Fan 等（2022）Linxi Fan、Guanzhi Wang、Yunfan Jiang、Ajay Mandlekar、Yuncong Yang、Haoyi
+    Zhu、Andrew Tang、De-An Huang、Yuke Zhu、Anima Anandkumar 和 Ut Austin。MineDojo：构建具有互联网规模知识的开放式体现智能体。发表于
+    *NeurIPS*，2022年6月。doi: 10.48550/arxiv.2206.08853。网址 [https://arxiv.org/abs/2206.08853v2](https://arxiv.org/abs/2206.08853v2)。'
+- en: Goodfellow et al. (2014) Ian J. Goodfellow, Jean Pouget-Abadie, Mehdi Mirza,
+    Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio.
+    Generative Adversarial Networks. In *NIPS*, 2014. ISBN 1406.2661. URL [http://arxiv.org/abs/1406.2661](http://arxiv.org/abs/1406.2661).
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Goodfellow 等（2014）Ian J. Goodfellow、Jean Pouget-Abadie、Mehdi Mirza、Bing Xu、David
+    Warde-Farley、Sherjil Ozair、Aaron Courville 和 Yoshua Bengio。生成对抗网络。发表于 *NIPS*，2014。ISBN
+    1406.2661。网址 [http://arxiv.org/abs/1406.2661](http://arxiv.org/abs/1406.2661)。
+- en: 'Guo et al. (2024) Daya Guo, Qihao Zhu, Dejian Yang, Zhenda Xie, Kai Dong, Wentao
+    Zhang, Guanting Chen, Xiao Bi, Y. Wu, Y.K. Li, Fuli Luo, Yingfei Xiong, and Wenfeng
+    Liang. Deepseek-coder: When the large language model meets programming – the rise
+    of code intelligence, 2024. URL [https://arxiv.org/abs/2401.14196](https://arxiv.org/abs/2401.14196).'
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Guo 等（2024）郭大亚、朱启豪、杨德健、谢振达、董凯、张文韬、陈冠廷、毕晓、吴宇、李义凯、罗富立、熊英飞、梁文峰。Deepseek-coder：当大语言模型遇上编程——代码智能的崛起，2024。网址
+    [https://arxiv.org/abs/2401.14196](https://arxiv.org/abs/2401.14196)。
+- en: 'Guss et al. (2019) William H. Guss, Brandon Houghton, Nicholay Topin, Phillip
+    Wang, Cayden Codel, Manuela Veloso, and Ruslan Salakhutdinov. MineRL: A large-scale
+    dataset of minecraft demonstrations. In *IJCAI*, 2019. ISBN 9780999241141. doi:
+    10.24963/ijcai.2019/339.'
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Guss 等（2019）William H. Guss、Brandon Houghton、Nicholay Topin、Phillip Wang、Cayden
+    Codel、Manuela Veloso 和 Ruslan Salakhutdinov。MineRL：一个大规模的 Minecraft 演示数据集。发表于
+    *IJCAI*，2019。ISBN 9780999241141。doi: 10.24963/ijcai.2019/339。'
+- en: Hafner (2022) Danijar Hafner. Benchmarking the spectrum of agent capabilities.
+    In *ICLR*, 2022. URL [https://github.com/danijar/crafter](https://github.com/danijar/crafter).
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hafner（2022）Danijar Hafner。评估智能体能力的广度。发表于 *ICLR*，2022。网址 [https://github.com/danijar/crafter](https://github.com/danijar/crafter)。
+- en: 'Hafner et al. (2020) Danijar Hafner, Timothy Lillicrap, Jimmy Ba, and Mohammad
+    Norouzi. Dream to Control: Learning Behaviors by Latent Imagination. In *ICLR*,
+    2020.'
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hafner 等（2020）Danijar Hafner、Timothy Lillicrap、Jimmy Ba 和 Mohammad Norouzi。通过潜在想象学习行为：控制梦想。发表于
+    *ICLR*，2020。
+- en: Hafner et al. (2021) Danijar Hafner, Timothy Lillicrap, Mohammad Norouzi, and
+    Jimmy Ba. Mastering Atari with Discrete World Models. In *ICLR*, 2021.
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hafner 等（2021）Danijar Hafner、Timothy Lillicrap、Mohammad Norouzi 和 Jimmy Ba。通过离散世界模型掌握
+    Atari 游戏。发表于 *ICLR*，2021。
+- en: Hafner et al. (2023) Danijar Hafner, Jurgis Pasukonis, Jimmy Ba, and Timothy
+    Lillicrap. Mastering Diverse Domains through World Models, 2023. URL [http://arxiv.org/abs/2301.04104](http://arxiv.org/abs/2301.04104).
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hafner 等（2023）Danijar Hafner、Jurgis Pasukonis、Jimmy Ba 和 Timothy Lillicrap。通过世界模型掌握多样化领域，2023。网址
+    [http://arxiv.org/abs/2301.04104](http://arxiv.org/abs/2301.04104)。
+- en: He et al. (2016) Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep
+    Residual Learning for Image Recognition. In *CVPR*, 2016.
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: He 等（2016）Kaiming He、Xiangyu Zhang、Shaoqing Ren 和 Jian Sun。深度残差学习用于图像识别。发表于
+    *CVPR*，2016。
+- en: 'Hessel et al. (2018) Matteo Hessel, Joseph Modayil, Hado Van Hasselt, Tom Schaul,
+    Georg Ostrovski, Will Dabney, Dan Horgan, Bilal Piot, Mohammad Azar, and David
+    Silver. Rainbow: Combining improvements in deep reinforcement learning. In *AAAI*,
+    2018. ISBN 9781577358008. doi: 10.1609/aaai.v32i1.11796.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Hessel et al. (2018) Matteo Hessel, Joseph Modayil, Hado Van Hasselt, Tom Schaul,
+    Georg Ostrovski, Will Dabney, Dan Horgan, Bilal Piot, Mohammad Azar, 和 David Silver.
+    Rainbow: 结合深度强化学习的改进. 载于*AAAI*, 2018. ISBN 9781577358008. doi: 10.1609/aaai.v32i1.11796.'
+- en: Jiang et al. (2021) Minqi Jiang, Jakob Foerster, Michael Dennis, Edward Grefenstette,
+    Jack Parker-Holder, and Tim Rocktäschel. Replay-Guided Adversarial Environment
+    Design. In *NeurIPS*, 2021. ISBN 9781713845393.
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Jiang et al. (2021) Minqi Jiang, Jakob Foerster, Michael Dennis, Edward Grefenstette,
+    Jack Parker-Holder, 和 Tim Rocktäschel. 重放引导的对抗环境设计. 载于*NeurIPS*, 2021. ISBN 9781713845393.
+- en: Kojima et al. (2022) Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yutaka
+    Matsuo, and Yusuke Iwasawa. Large Language Models are Zero-Shot Reasoners. In
+    *NeurIPS*, 2022. URL [http://arxiv.org/abs/2205.11916](http://arxiv.org/abs/2205.11916).
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kojima et al. (2022) Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yutaka
+    Matsuo, 和 Yusuke Iwasawa. 大型语言模型是零-shot推理器. 载于*NeurIPS*, 2022. URL [http://arxiv.org/abs/2205.11916](http://arxiv.org/abs/2205.11916).
+- en: 'Kumaran et al. (2020) Vikram Kumaran, Bradford W. Mott, and James C. Lester.
+    Generating game levels for multiple distinct games with a common latent space.
+    In *AIIDE*, pp.  109–115, 2020. ISBN 9781577358497. doi: 10.1609/aiide.v16i1.7485.'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Kumaran et al. (2020) Vikram Kumaran, Bradford W. Mott, 和 James C. Lester.
+    为多个不同的游戏生成游戏关卡，采用共享的潜在空间. 载于*AIIDE*, 页109–115, 2020. ISBN 9781577358497. doi:
+    10.1609/aiide.v16i1.7485.'
+- en: 'Kumaran et al. (2023) Vikram Kumaran, Jonathan Rowe, Bradford Mott, and James
+    Lester. SCENECRAFT: Automating Interactive Narrative Scene Generation in Digital
+    Games with Large Language Models. In *AIIDE*, pp.  86–96, 2023. ISBN 157735883X.
+    doi: 10.1609/aiide.v19i1.27504.'
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Kumaran et al. (2023) Vikram Kumaran, Jonathan Rowe, Bradford Mott, 和 James
+    Lester. SCENECRAFT: 使用大型语言模型自动化数字游戏中的互动叙事场景生成. 载于*AIIDE*, 页86–96, 2023. ISBN 157735883X.
+    doi: 10.1609/aiide.v19i1.27504.'
+- en: Kwon et al. (2023) Minae Kwon, Sang Michael Xie, Kalesha Bullard, and Dorsa
+    Sadigh. Reward design with language models. In *International Conference on Learning
+    Representations*, 2023.
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kwon et al. (2023) Minae Kwon, Sang Michael Xie, Kalesha Bullard, 和 Dorsa Sadigh.
+    基于语言模型的奖励设计. 载于*International Conference on Learning Representations*, 2023.
+- en: Li et al. (2022a) Andrew C Li, Pashootan Vaezipoor, Rodrigo Toro Icarte, and
+    Sheila A. McIlraith. Exploring long-horizon reasoning with deep RL in combinatorially
+    hard tasks. In *Decision Awareness in Reinforcement Learning Workshop at ICML
+    2022*, 2022a. URL [https://openreview.net/forum?id=7vPSZASOF0o](https://openreview.net/forum?id=7vPSZASOF0o).
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Li et al. (2022a) Andrew C Li, Pashootan Vaezipoor, Rodrigo Toro Icarte, 和 Sheila A.
+    McIlraith. 在组合难题任务中探索深度强化学习的长期推理. 载于*Decision Awareness in Reinforcement Learning
+    Workshop at ICML 2022*, 2022a. URL [https://openreview.net/forum?id=7vPSZASOF0o](https://openreview.net/forum?id=7vPSZASOF0o).
+- en: 'Li et al. (2024) Hao Li, Xue Yang, Zhaokai Wang, Xizhou Zhu, Jie Zhou, Yu Qiao,
+    Xiaogang Wang, Hongsheng Li, Lewei Lu, and Jifeng Dai. Auto mc-reward: Automated
+    dense reward design with large language models for minecraft. In *IEEE/CVF Conference
+    on Computer Vision and Pattern Recognition*, 2024.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li et al. (2024) Hao Li, Xue Yang, Zhaokai Wang, Xizhou Zhu, Jie Zhou, Yu Qiao,
+    Xiaogang Wang, Hongsheng Li, Lewei Lu, 和 Jifeng Dai. Auto mc-reward: 使用大型语言模型自动化Minecraft的密集奖励设计.
+    载于*IEEE/CVF Conference on Computer Vision and Pattern Recognition*, 2024.'
+- en: 'Li & Bansal (2023) Jialu Li and Mohit Bansal. Panogen: Text-conditioned panoramic
+    environment generation for vision-and-language navigation. *Advances in Neural
+    Information Processing Systems*, 2023.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li & Bansal (2023) Jialu Li 和 Mohit Bansal. Panogen: 基于文本的全景环境生成用于视觉-语言导航.
+    *Advances in Neural Information Processing Systems*, 2023.'
+- en: 'Li et al. (2022b) Jialu Li, Hao Tan, and Mohit Bansal. Envedit: Environment
+    editing for vision-and-language navigation. In *Proceedings of the IEEE/CVF Conference
+    on Computer Vision and Pattern Recognition*, 2022b.'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li et al. (2022b) Jialu Li, Hao Tan, 和 Mohit Bansal. Envedit: 视觉-语言导航中的环境编辑.
+    载于*Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition*,
+    2022b.'
+- en: 'Liu et al. (2021) Jialin Liu, Sam Snodgrass, Ahmed Khalifa, Sebastian Risi,
+    Georgios N. Yannakakis, and Julian Togelius. Deep learning for procedural content
+    generation. *Neural Comput. Appl.*, 33(1):19–37, jan 2021. ISSN 0941-0643. doi:
+    10.1007/s00521-020-05383-8. URL [https://doi.org/10.1007/s00521-020-05383-8](https://doi.org/10.1007/s00521-020-05383-8).'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Liu et al. (2021) Jialin Liu, Sam Snodgrass, Ahmed Khalifa, Sebastian Risi,
+    Georgios N. Yannakakis, 和 Julian Togelius. 深度学习在程序内容生成中的应用. *Neural Comput. Appl.*,
+    33(1):19–37, 2021年1月. ISSN 0941-0643. doi: 10.1007/s00521-020-05383-8. URL [https://doi.org/10.1007/s00521-020-05383-8](https://doi.org/10.1007/s00521-020-05383-8).'
+- en: 'Ma et al. (2023) Yecheng Jason Ma, William Liang, Guanzhi Wang, De-An Huang,
+    Osbert Bastani, Dinesh Jayaraman, Yuke Zhu, Linxi Fan, and Anima Anandkumar. Eureka:
+    Human-level reward design via coding large language models. *ArXiv*, abs/2310.12931,
+    2023.'
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ma 等人 (2023) Yecheng Jason Ma, William Liang, Guanzhi Wang, De-An Huang, Osbert
+    Bastani, Dinesh Jayaraman, Yuke Zhu, Linxi Fan 和 Anima Anandkumar. Eureka：通过编码大型语言模型进行人类级奖励设计。*ArXiv*，abs/2310.12931，2023年。
+- en: Mojang Studios (2009) Mojang Studios. Minecraft, 2009. URL [https://www.minecraft.net/](https://www.minecraft.net/).
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Mojang Studios (2009) Mojang Studios. Minecraft，2009年。URL [https://www.minecraft.net/](https://www.minecraft.net/)。
+- en: Moon et al. (2023) Seungyong Moon, Junyoung Yeom, Bumsoo Park, and Hyun Oh Song.
+    Discovering Hierarchical Achievements in Reinforcement Learning via Contrastive
+    Learning. In *NeurIPS*, 2023. URL [http://arxiv.org/abs/2307.03486](http://arxiv.org/abs/2307.03486).
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Moon 等人 (2023) Seungyong Moon, Junyoung Yeom, Bumsoo Park 和 Hyun Oh Song. 通过对比学习发现强化学习中的层次成就。在
+    *NeurIPS*，2023年。URL [http://arxiv.org/abs/2307.03486](http://arxiv.org/abs/2307.03486)。
+- en: 'Nye et al. (2021) Maxwell Nye, Anders Johan Andreassen, Guy Gur-Ari, Henryk
+    Michalewski, Jacob Austin, David Bieber, David Dohan, Aitor Lewkowycz, Maarten
+    Bosma, David Luan, Charles Sutton, and Augustus Odena. Show Your Work: Scratchpads
+    for Intermediate Computation with Language Models, 2021. URL [http://arxiv.org/abs/2112.00114](http://arxiv.org/abs/2112.00114).'
+  id: totrans-159
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Nye 等人 (2021) Maxwell Nye, Anders Johan Andreassen, Guy Gur-Ari, Henryk Michalewski,
+    Jacob Austin, David Bieber, David Dohan, Aitor Lewkowycz, Maarten Bosma, David
+    Luan, Charles Sutton 和 Augustus Odena. 展示你的工作：使用语言模型进行中间计算的草稿本，2021年。URL [http://arxiv.org/abs/2112.00114](http://arxiv.org/abs/2112.00114)。
+- en: OpenAI (2023a) OpenAI. Gpt-4 technical report. *ArXiv*, 2023a. URL [https://api.semanticscholar.org/CorpusID:257532815](https://api.semanticscholar.org/CorpusID:257532815).
+  id: totrans-160
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2023a) OpenAI. GPT-4 技术报告。*ArXiv*，2023年。URL [https://api.semanticscholar.org/CorpusID:257532815](https://api.semanticscholar.org/CorpusID:257532815)。
+- en: OpenAI (2023b) OpenAI. Chatgpt. [https://openai.com/chatgpt](https://openai.com/chatgpt),
+    2023b.
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI (2023b) OpenAI. ChatGPT。 [https://openai.com/chatgpt](https://openai.com/chatgpt)，2023年。
+- en: Parker-Holder et al. (2022) Jack Parker-Holder, Minqi Jiang, Michael Dennis,
+    Mikayel Samvelyan, Jakob Foerster, Edward Grefenstette, and Tim Rocktäschel. Evolving
+    Curricula with Regret-Based Environment Design. In *ICML*, 2022.
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Parker-Holder 等人 (2022) Jack Parker-Holder, Minqi Jiang, Michael Dennis, Mikayel
+    Samvelyan, Jakob Foerster, Edward Grefenstette 和 Tim Rocktäschel. 通过基于遗憾的环境设计进化课程。在
+    *ICML*，2022年。
+- en: 'Schubert et al. (2022) Frederik Schubert, Maren Awiszus, and Bodo Rosenhahn.
+    TOAD-GAN: A Flexible Framework for Few-Shot Level Generation in Token-Based Games.
+    *IEEE Transactions on Games*, 14(2):284–293, 2022. ISSN 24751510. doi: 10.1109/TG.2021.3069833.'
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Schubert 等人 (2022) Frederik Schubert, Maren Awiszus 和 Bodo Rosenhahn. TOAD-GAN：一种用于基于令牌的游戏中少量生成的灵活框架。*IEEE
+    Transactions on Games*, 14(2):284–293, 2022年。ISSN 24751510。doi: 10.1109/TG.2021.3069833。'
+- en: Schulman et al. (2017) John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+    Radford, and Oleg Klimov. Proximal Policy Optimization Algorithms, 2017.
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schulman 等人 (2017) John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford
+    和 Oleg Klimov. 近端策略优化算法，2017年。
+- en: Sekar et al. (2020) Ramanan Sekar, Oleh Rybkin, Kostas Daniilidis, Pieter Abbeel,
+    Danijar Hafner, and Deepak Pathak. Planning to explore via self-supervisedworld
+    models. In *ICML*, 2020. ISBN 9781713821120.
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sekar 等人 (2020) Ramanan Sekar, Oleh Rybkin, Kostas Daniilidis, Pieter Abbeel,
+    Danijar Hafner 和 Deepak Pathak. 通过自监督世界模型规划探索。在 *ICML*，2020年。ISBN 9781713821120。
+- en: Shaker et al. (2016) Noor Shaker, Julian Togelius, and Mark J. Nelson. *Procedural
+    Content Generation in Games*. Springer Publishing Company, Incorporated, 1st edition,
+    2016. ISBN 3319427148.
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shaker 等人 (2016) Noor Shaker, Julian Togelius 和 Mark J. Nelson. *游戏中的过程内容生成*。Springer
+    Publishing Company，第一版，2016年。ISBN 3319427148。
+- en: Stanić et al. (2023) Aleksandar Stanić, Yujin Tang, David Ha, and Jürgen Schmidhuber.
+    Learning to generalize with object-centric agents in the open world survival game
+    crafter. *IEEE Transactions on Games*, 2023.
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Stanić 等人 (2023) Aleksandar Stanić, Yujin Tang, David Ha 和 Jürgen Schmidhuber.
+    在开放世界生存游戏 Crafter 中通过面向对象的代理学习泛化。*IEEE Transactions on Games*，2023年。
+- en: 'Sudhakaran et al. (2023) Shyam Sudhakaran, Miguel González-Duque, Claire Glanois,
+    Matthias Freiberger, Elias Najarro, and Sebastian Risi. MarioGPT: Open-Ended Text2Level
+    Generation through Large Language Models. In *NeurIPS*, 2023. URL [http://arxiv.org/abs/2302.05981](http://arxiv.org/abs/2302.05981).'
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sudhakaran 等人 (2023) Shyam Sudhakaran, Miguel González-Duque, Claire Glanois,
+    Matthias Freiberger, Elias Najarro 和 Sebastian Risi. MarioGPT：通过大型语言模型生成开放式文本2关卡。在
+    *NeurIPS*，2023年。URL [http://arxiv.org/abs/2302.05981](http://arxiv.org/abs/2302.05981)。
+- en: 'Sutton & Barto (2018) Richard S. Sutton and Andrew G. Barto. *Reinforcement
+    Learning: An Introduction*. The MIT Press, 2 edition, 2018.'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sutton & Barto (2018) Richard S. Sutton 和 Andrew G. Barto. *强化学习：导论*。MIT出版社，第二版，2018年。
+- en: 'Todd et al. (2023) Graham Todd, Sam Earle, Muhammad Umair Nasir, Michael Cerny
+    Green, and Julian Togelius. Level Generation Through Large Language Models. In
+    *FDG*, 2023. ISBN 9781450398565. doi: 10.1145/3582437.3587211.'
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Todd 等人（2023）Graham Todd、Sam Earle、Muhammad Umair Nasir、Michael Cerny Green
+    和 Julian Togelius。通过大型语言模型进行关卡生成。在 *FDG*，2023。ISBN 9781450398565。doi: 10.1145/3582437.3587211。'
+- en: 'Touvron et al. (2023a) Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+    Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal,
+    Eric Hambro, Faisal Azhar, Aurelien Rodriguez, Armand Joulin, Edouard Grave, and
+    Guillaume Lample. Llama: Open and efficient foundation language models, 2023a.'
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Touvron 等人（2023a）Hugo Touvron、Thibaut Lavril、Gautier Izacard、Xavier Martinet、Marie-Anne
+    Lachaux、Timothée Lacroix、Baptiste Rozière、Naman Goyal、Eric Hambro、Faisal Azhar、Aurelien
+    Rodriguez、Armand Joulin、Edouard Grave 和 Guillaume Lample。Llama：开放且高效的基础语言模型，2023a。
+- en: 'Touvron et al. (2023b) Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+    Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava,
+    Shruti Bhosale, Dan Bikel, Lukas Blecher, Cristian Canton Ferrer, Moya Chen, Guillem
+    Cucurull, David Esiobu, Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller, Cynthia
+    Gao, Vedanuj Goswami, Naman Goyal, Anthony Hartshorn, Saghar Hosseini, Rui Hou,
+    Hakan Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa, Isabel Kloumann, Artem
+    Korenev, Punit Singh Koura, Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee, Diana
+    Liskovich, Yinghai Lu, Yuning Mao, Xavier Martinet, Todor Mihaylov, Pushkar Mishra,
+    Igor Molybog, Yixin Nie, Andrew Poulton, Jeremy Reizenstein, Rashi Rungta, Kalyan
+    Saladi, Alan Schelten, Ruan Silva, Eric Michael Smith, Ranjan Subramanian, Xiaoqing Ellen
+    Tan, Binh Tang, Ross Taylor, Adina Williams, Jian Xiang Kuan, Puxin Xu, Zheng
+    Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan, Melanie Kambadur, Sharan Narang,
+    Aurelien Rodriguez, Robert Stojnic, Sergey Edunov, and Thomas Scialom. Llama 2:
+    Open foundation and fine-tuned chat models, 2023b.'
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Touvron 等人（2023b）Hugo Touvron、Louis Martin、Kevin Stone、Peter Albert、Amjad Almahairi、Yasmine
+    Babaei、Nikolay Bashlykov、Soumya Batra、Prajjwal Bhargava、Shruti Bhosale、Dan Bikel、Lukas
+    Blecher、Cristian Canton Ferrer、Moya Chen、Guillem Cucurull、David Esiobu、Jude Fernandes、Jeremy
+    Fu、Wenyin Fu、Brian Fuller、Cynthia Gao、Vedanuj Goswami、Naman Goyal、Anthony Hartshorn、Saghar
+    Hosseini、Rui Hou、Hakan Inan、Marcin Kardas、Viktor Kerkez、Madian Khabsa、Isabel Kloumann、Artem
+    Korenev、Punit Singh Koura、Marie-Anne Lachaux、Thibaut Lavril、Jenya Lee、Diana Liskovich、Yinghai
+    Lu、Yuning Mao、Xavier Martinet、Todor Mihaylov、Pushkar Mishra、Igor Molybog、Yixin
+    Nie、Andrew Poulton、Jeremy Reizenstein、Rashi Rungta、Kalyan Saladi、Alan Schelten、Ruan
+    Silva、Eric Michael Smith、Ranjan Subramanian、Xiaoqing Ellen Tan、Binh Tang、Ross
+    Taylor、Adina Williams、Jian Xiang Kuan、Puxin Xu、Zheng Yan、Iliyan Zarov、Yuchen Zhang、Angela
+    Fan、Melanie Kambadur、Sharan Narang、Aurelien Rodriguez、Robert Stojnic、Sergey Edunov
+    和 Thomas Scialom。Llama 2：开放基础和微调对话模型，2023b。
+- en: 'Vinyals et al. (2017) Oriol Vinyals, Timo Ewalds, Sergey Bartunov, Petko Georgiev,
+    Alexander Sasha Vezhnevets, Michelle Yeo, Alireza Makhzani, Heinrich Küttler,
+    John Agapiou, Julian Schrittwieser, John Quan, Stephen Gaffney, Stig Petersen,
+    Karen Simonyan, Tom Schaul, Hado van Hasselt, David Silver, Timothy Lillicrap,
+    Kevin Calderone, Paul Keet, Anthony Brunasso, David Lawrence, Anders Ekermo, Jacob
+    Repp, and Rodney Tsing. Starcraft ii: A new challenge for reinforcement learning,
+    2017. URL [https://arxiv.org/abs/1708.04782](https://arxiv.org/abs/1708.04782).'
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Vinyals 等人（2017）Oriol Vinyals、Timo Ewalds、Sergey Bartunov、Petko Georgiev、Alexander
+    Sasha Vezhnevets、Michelle Yeo、Alireza Makhzani、Heinrich Küttler、John Agapiou、Julian
+    Schrittwieser、John Quan、Stephen Gaffney、Stig Petersen、Karen Simonyan、Tom Schaul、Hado
+    van Hasselt、David Silver、Timothy Lillicrap、Kevin Calderone、Paul Keet、Anthony Brunasso、David
+    Lawrence、Anders Ekermo、Jacob Repp 和 Rodney Tsing。Starcraft II：强化学习的新挑战，2017。网址
+    [https://arxiv.org/abs/1708.04782](https://arxiv.org/abs/1708.04782)。
+- en: Walker et al. (2023) Jacob Walker, Eszter Vértes, Yazhe Li, Gabriel Dulac-Arnold,
+    Ankesh Anand, Théophane Weber, and Jessica B. Hamrick. Investigating the Role
+    of Model-Based Learning in Exploration and Transfer. In *ICML*, 2023.
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Walker 等人（2023）Jacob Walker、Eszter Vértes、Yazhe Li、Gabriel Dulac-Arnold、Ankesh
+    Anand、Théophane Weber 和 Jessica B. Hamrick。探讨基于模型的学习在探索与转移中的作用。在 *ICML*，2023。
+- en: 'Wang et al. (2023a) Guanzhi Wang, Yuqi Xie, Yunfan Jiang, Ajay Mandlekar, Chaowei
+    Xiao, Yuke Zhu, Linxi Fan, and Anima Anandkumar. Voyager: An Open-Ended Embodied
+    Agent with Large Language Models, 2023a. URL [http://arxiv.org/abs/2305.16291](http://arxiv.org/abs/2305.16291).'
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang 等人（2023a）Guanzhi Wang、Yuqi Xie、Yunfan Jiang、Ajay Mandlekar、Chaowei Xiao、Yuke
+    Zhu、Linxi Fan 和 Anima Anandkumar。Voyager：一个开放的具身智能体与大型语言模型，2023a。网址 [http://arxiv.org/abs/2305.16291](http://arxiv.org/abs/2305.16291)。
+- en: 'Wang et al. (2023b) Ruoyao Wang, Graham Todd, Xingdi Yuan, Ziang Xiao, Marc-Alexandre
+    Côté, and Peter Jansen. ByteSized32: A corpus and challenge task for generating
+    task-specific world models expressed as text games. In Houda Bouamor, Juan Pino,
+    and Kalika Bali (eds.), *Proceedings of the 2023 Conference on Empirical Methods
+    in Natural Language Processing*, pp.  13455–13471, Singapore, December 2023b.
+    Association for Computational Linguistics. doi: 10.18653/v1/2023.emnlp-main.830.
+    URL [https://aclanthology.org/2023.emnlp-main.830](https://aclanthology.org/2023.emnlp-main.830).'
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wang et al. (2023b) 若尧·王、格雷厄姆·托德、兴迪·袁、子昂·肖、马克-亚历山大·科特、彼得·詹森。ByteSized32：用于生成任务特定世界模型的语料库与挑战任务，表达为文本游戏。在Houda
+    Bouamor、Juan Pino和Kalika Bali（编辑）编著，*2023年自然语言处理经验方法会议论文集*，第13455–13471页，新加坡，2023年12月。计算语言学协会。doi:
+    10.18653/v1/2023.emnlp-main.830。网址 [https://aclanthology.org/2023.emnlp-main.830](https://aclanthology.org/2023.emnlp-main.830)。'
+- en: 'Wang et al. (2023c) Zihao Wang, Shaofei Cai, Guanzhou Chen, Anji Liu, Xiaojian
+    Ma, and Yitao Liang. Describe, Explain, Plan and Select: Interactive Planning
+    with Large Language Models Enables Open-World Multi-Task Agents. In *NeurIPS*,
+    2023c. URL [http://arxiv.org/abs/2302.01560](http://arxiv.org/abs/2302.01560).'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023c) 子浩·王、绍飞·蔡、冠洲·陈、安吉·刘、小剑·马、艺涛·梁。描述、解释、规划与选择：大型语言模型的交互式规划使开世界多任务代理成为可能。在*NeurIPS*，2023c。网址
+    [http://arxiv.org/abs/2302.01560](http://arxiv.org/abs/2302.01560)。
+- en: 'Wang et al. (2023d) Zihao Wang, Shaofei Cai, Anji Liu, Yonggang Jin, Jinbing
+    Hou, Bowei Zhang, Haowei Lin, Zhaofeng He, Zilong Zheng, Yaodong Yang, Xiaojian
+    Ma, and Yitao Liang. JARVIS-1: Open-World Multi-task Agents with Memory-Augmented
+    Multimodal Language Models, 2023d. URL [http://arxiv.org/abs/2311.05997](http://arxiv.org/abs/2311.05997).'
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023d) 子浩·王、绍飞·蔡、安吉·刘、永刚·金、金兵·侯、博伟·张、浩伟·林、赵锋·何、子龙·郑、耀东·杨、小剑·马、艺涛·梁。JARVIS-1：具有记忆增强的多模态语言模型的开世界多任务代理，2023d。网址
+    [http://arxiv.org/abs/2311.05997](http://arxiv.org/abs/2311.05997)。
+- en: Wang et al. (2023e) Zun Wang, Jialu Li, Yicong Hong, Yi Wang, Qi Wu, Mohit Bansal,
+    Stephen Gould, Hao Tan, and Yu Qiao. Scaling data generation in vision-and-language
+    navigation. In *ICCV*, 2023e.
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang et al. (2023e) 尊·王、佳璐·李、艺聪·洪、义·王、琪·吴、莫希特·班萨尔、斯蒂芬·古尔德、昊·谭、宇·乔。视觉-语言导航中的数据生成扩展。在*ICCV*，2023e。
+- en: Watkins (1989) Christopher J.C.H. Watkins. *Learning from Delayed Rewards*.
+    PhD thesis, University of Cambridge, England, May 1989.
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Watkins (1989) 克里斯托弗·J.C.H.·沃特金斯。*从延迟奖励中学习*。剑桥大学博士论文，英格兰，1989年5月。
+- en: Wei et al. (2022) Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian
+    Ichter, Fei Xia, Ed Chi, Quoc Le, and Denny Zhou. Chain-of-Thought Prompting Elicits
+    Reasoning in Large Language Models. In *NeurIPS*, pp.  1–43, 2022. URL [http://arxiv.org/abs/2201.11903](http://arxiv.org/abs/2201.11903).
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wei et al. (2022) 杰森·魏、雪智·王、大尔·舒尔曼、马尔滕·博斯马、布赖恩·伊赫特、飞·夏、埃德·奇、阔·乐、丹尼·周。链式思维提示引发大型语言模型中的推理。在*NeurIPS*，第1-43页，2022年。网址
+    [http://arxiv.org/abs/2201.11903](http://arxiv.org/abs/2201.11903)。
+- en: Weng (2020) Lilian Weng. Exploration strategies in deep reinforcement learning.
+    *lilianweng.github.io*, Jun 2020. URL [https://lilianweng.github.io/posts/2020-06-07-exploration-drl/](https://lilianweng.github.io/posts/2020-06-07-exploration-drl/).
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Weng (2020) 莉莲·翁。深度强化学习中的探索策略。*lilianweng.github.io*，2020年6月。网址 [https://lilianweng.github.io/posts/2020-06-07-exploration-drl/](https://lilianweng.github.io/posts/2020-06-07-exploration-drl/)。
+- en: 'Wu et al. (2023) Yue Wu, Shrimai Prabhumoye, So Yeon Min, Yonatan Bisk, Ruslan
+    Salakhutdinov, Amos Azaria, Tom Mitchell, and Yuanzhi Li. SPRING: Studying the
+    Paper and Reasoning to Play Games. In *NeurIPS*, 2023. URL [http://arxiv.org/abs/2305.15486](http://arxiv.org/abs/2305.15486).'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wu et al. (2023) 越·吴、施瑞梅·普拉布霍梅、素妍·敏、约纳坦·比斯克、鲁斯兰·萨拉库特迪诺夫、阿莫斯·阿扎里亚、汤姆·米切尔、元智·李。SPRING：研究论文与推理以玩游戏。在*NeurIPS*，2023。网址
+    [http://arxiv.org/abs/2305.15486](http://arxiv.org/abs/2305.15486)。
+- en: 'Yao et al. (2023) Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+    Karthik Narasimhan, and Yuan Cao. ReAct: Synergizing Reasoning and Acting in Language
+    Models. In *ICLR*, 2023. URL [http://arxiv.org/abs/2210.03629](http://arxiv.org/abs/2210.03629).'
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yao et al. (2023) 顺宇·姚、杰弗里·赵、滟·余、楠·杜、伊扎克·沙夫兰、卡尔提克·纳拉西姆汉、元·曹。ReAct：在语言模型中协同推理与行动。在*ICLR*，2023。网址
+    [http://arxiv.org/abs/2210.03629](http://arxiv.org/abs/2210.03629)。
+- en: Yuan et al. (2023) Haoqi Yuan, Chi Zhang, Hongcheng Wang, Feiyang Xie, Penglin
+    Cai, Hao Dong, and Zongqing Lu. Skill Reinforcement Learning and Planning for
+    Open-World Long-Horizon Tasks. In *Foundation Models for Decision Making Workshop
+    at NeurIPS*, 2023.
+  id: totrans-185
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Yuan et al. (2023) 侯祺·袁、志炀·张、宏成·王、飞扬·谢、鹏林·蔡、昊东·董、宗清·卢。开世界长时程任务的技能强化学习与规划。在*NeurIPS决策模型基础研讨会*，2023。
+- en: 'Zhao et al. (2023) Zhonghan Zhao, Wenhao Chai, Xuan Wang, Li Boyi, Shengyu
+    Hao, Shidong Cao, Tian Ye, Jenq-Neng Hwang, and Gaoang Wang. See and Think: Embodied
+    Agent in Virtual Environment, 2023. URL [http://arxiv.org/abs/2311.15209](http://arxiv.org/abs/2311.15209).'
+  id: totrans-186
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhao 等人（2023）赵中涵、柴文浩、王轩、李博怡、郝胜宇、曹士东、叶天、黄仁能、王高昂。见与思：虚拟环境中的具身智能体，2023年。网址 [http://arxiv.org/abs/2311.15209](http://arxiv.org/abs/2311.15209)。
+- en: Appendix
+  id: totrans-187
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录
+- en: 'In this appendix, we present additional related work ([Appendix A](https://arxiv.org/html/2403.12014v2#A1
+    "Appendix A Additional Related Works ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")), additional game environment details
+    ([Appendix B](https://arxiv.org/html/2403.12014v2#A2 "Appendix B Additional Game
+    Environment Details ‣ EnvGen: Generating and Adapting Environments via LLMs for
+    Training Embodied Agents")), additional experiment results ([Appendix C](https://arxiv.org/html/2403.12014v2#A3
+    "Appendix C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")), curriculum learning baseline method
+    details ([Appendix D](https://arxiv.org/html/2403.12014v2#A4 "Appendix D Curriculum
+    Learning Baseline Details ‣ EnvGen: Generating and Adapting Environments via LLMs
+    for Training Embodied Agents")), RL agent implementation details ([Appendix E](https://arxiv.org/html/2403.12014v2#A5
+    "Appendix E RL Agent Implementation Details ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents")), additional LLM details
+    ([Appendix F](https://arxiv.org/html/2403.12014v2#A6 "Appendix F Additional LLM
+    Details ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")), and limitations ([Appendix G](https://arxiv.org/html/2403.12014v2#A7
+    "Appendix G Limitations ‣ EnvGen: Generating and Adapting Environments via LLMs
+    for Training Embodied Agents")).'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本附录中，我们展示了其他相关工作（[附录 A](https://arxiv.org/html/2403.12014v2#A1 "附录 A 其他相关工作
+    ‣ EnvGen：通过LLM生成和调整环境来训练具身智能体")），附加的游戏环境细节（[附录 B](https://arxiv.org/html/2403.12014v2#A2
+    "附录 B 其他游戏环境细节 ‣ EnvGen：通过LLM生成和调整环境来训练具身智能体")），额外的实验结果（[附录 C](https://arxiv.org/html/2403.12014v2#A3
+    "附录 C 额外实验结果 ‣ EnvGen：通过LLM生成和调整环境来训练具身智能体")），课程学习基准方法细节（[附录 D](https://arxiv.org/html/2403.12014v2#A4
+    "附录 D 课程学习基准细节 ‣ EnvGen：通过LLM生成和调整环境来训练具身智能体")），RL智能体实现细节（[附录 E](https://arxiv.org/html/2403.12014v2#A5
+    "附录 E RL智能体实现细节 ‣ EnvGen：通过LLM生成和调整环境来训练具身智能体")），其他LLM细节（[附录 F](https://arxiv.org/html/2403.12014v2#A6
+    "附录 F 其他LLM细节 ‣ EnvGen：通过LLM生成和调整环境来训练具身智能体")），以及局限性（[附录 G](https://arxiv.org/html/2403.12014v2#A7
+    "附录 G 局限性 ‣ EnvGen：通过LLM生成和调整环境来训练具身智能体")）。
+- en: Appendix A Additional Related Works
+  id: totrans-189
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 其他相关工作
+- en: Reward designs in reinforcement learning. Finding good action trajectories is
+    critical in reinforcement learning (RL) (Sutton & Barto, [2018](https://arxiv.org/html/2403.12014v2#bib.bib53)).
+    While classic random exploration algorithms such as epsilon-greedy (Watkins, [1989](https://arxiv.org/html/2403.12014v2#bib.bib64))
+    work well in simple settings such as multi-armed bandit, it is not the case for
+    hard exploration problems where the environment gives very sparse rewards (Weng,
+    [2020](https://arxiv.org/html/2403.12014v2#bib.bib66)). A line of work studies
+    how to augment the original (extrinsic) rewards from the environment with intrinsic
+    rewards that encourage exploration (Bellemare et al., [2016](https://arxiv.org/html/2403.12014v2#bib.bib7);
+    Burda et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib9)). While such
+    intrinsic rewards can help RL agents discover novel states and improve their knowledge
+    about the environment, it often requires long pretraining and does not guarantee
+    that the intrinsic reward can help the target task. Another recent line of work
+    studies using LLMs to adjust reward functions to help RL agents progressively
+    learn certain tasks (Li et al., [2024](https://arxiv.org/html/2403.12014v2#bib.bib36);
+    Kwon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib34); Ma et al.,
+    [2023](https://arxiv.org/html/2403.12014v2#bib.bib40); Du et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib17)).
+    Instead of designing new rewards, in EnvGen, an LLM adaptively generates training
+    environments that can help the RL agent learn multiple skills it is weak at with
+    fewer training steps than in the original environment; reward design could be
+    complementary to our method.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 强化学习中的奖励设计。在强化学习（RL）中，寻找好的行动轨迹至关重要（Sutton & Barto, [2018](https://arxiv.org/html/2403.12014v2#bib.bib53)）。虽然经典的随机探索算法，如epsilon-greedy（Watkins,
+    [1989](https://arxiv.org/html/2403.12014v2#bib.bib64)），在多臂赌博机等简单设置中表现良好，但在需要解决困难探索问题时则不然，因为环境给出的奖励非常稀疏（Weng,
+    [2020](https://arxiv.org/html/2403.12014v2#bib.bib66)）。一系列工作研究了如何通过引入内在奖励来增强环境中的原始（外在）奖励，从而鼓励探索（Bellemare
+    et al., [2016](https://arxiv.org/html/2403.12014v2#bib.bib7); Burda et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib9)）。虽然这种内在奖励可以帮助强化学习代理发现新状态并提高其对环境的认知，但它通常需要长时间的预训练，并且不能保证内在奖励能够帮助目标任务。另一个近期的研究方向是使用大语言模型（LLMs）来调整奖励函数，帮助强化学习代理逐步学习某些任务（Li
+    et al., [2024](https://arxiv.org/html/2403.12014v2#bib.bib36); Kwon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib34);
+    Ma et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib40); Du et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib17)）。在EnvGen中，LLM自适应地生成训练环境，帮助强化学习代理在比原始环境更少的训练步骤下，学习多个其薄弱的技能；奖励设计可以与我们的方法互为补充。
+- en: Appendix B Additional Game Environment Details
+  id: totrans-191
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 额外的游戏环境细节
+- en: Heist Environment.
+  id: totrans-192
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 劫持环境。
+- en: 'Heist is part of the OpenAI Procgen (Cobbe et al., [2020](https://arxiv.org/html/2403.12014v2#bib.bib13))
+    benchmark. In this environment, agents must successfully ‘steal’ the gem after
+    navigating a maze and opening all locks (see [Fig. 7](https://arxiv.org/html/2403.12014v2#A2.F7
+    "In Heist Environment. ‣ Appendix B Additional Game Environment Details ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents")).
+    The gem is behind three layers of color-coded locks, each requiring that the previous
+    lock be unlocked first (*e.g*., to unlock the green lock, the blue lock must first
+    be unlocked). Following Moon et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)),
+    the final score is calculated as the average success of the agent in stealing
+    the gem in 100 test episodes in 10 different seeds (*i.e*., 1,000 runs in total).
+    For agent training, we use a total of 5M steps in the LLM-generated environments
+    (*i.e*., 5M Heist${}^{\text{EnvGen}}$ steps) and a total of 20M in the actual
+    Heist environment. As the game only provides scores on the final objective (’steal
+    gem‘) and the game is simple enough for the LLM-generated environments to cover
+    all scenarios with one generation, we only use $N^{\text{Cycle}}=1$ training cycle.'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 抢劫是 OpenAI Procgen（Cobbe 等人，[2020](https://arxiv.org/html/2403.12014v2#bib.bib13)）基准测试的一部分。在此环境中，特工必须成功“偷取”宝石，经过迷宫并解锁所有锁（参见[图
+    7](https://arxiv.org/html/2403.12014v2#A2.F7 "在抢劫环境中。 ‣ 附录 B 额外的游戏环境细节 ‣ EnvGen：通过
+    LLMs 生成和调整环境来训练具身智能体")）。宝石被三层彩色编码的锁挡住，每层锁要求先解锁前一个锁（*例如*，解锁绿色锁之前，必须先解锁蓝色锁）。根据 Moon
+    等人（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）的方法，最终分数计算为特工在 100 次测试回合中成功偷取宝石的平均值，测试回合使用了
+    10 个不同的种子（*即*，总共 1,000 次运行）。对于智能体训练，我们在 LLM 生成的环境中使用总计 500 万步（*即*，500 万步 Heist${}^{\text{EnvGen}}$）并在实际的抢劫环境中使用总计
+    2000 万步。由于游戏只提供最终目标（‘偷宝石’）的得分，并且游戏足够简单，LLM 生成的环境能够通过一次生成涵盖所有场景，我们仅使用 $N^{\text{Cycle}}=1$
+    个训练周期。
+- en: '![Refer to caption](img/539e894cbb695bcd373db97b4492f1a4.png)'
+  id: totrans-194
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参考说明文字](img/539e894cbb695bcd373db97b4492f1a4.png)'
+- en: 'Figure 7: (a): Heist gameplay screenshot. An agent aims to steal a gem (colored
+    yellow), navigating a maze and colored opening locks. (b): Heist achievement hierarchy.
+    The agent can only reach the gem after successively unlocking all locks in order.'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：（a）：抢劫游戏截图。一名特工瞄准偷取一颗宝石（黄色），在迷宫中穿行并开启彩色锁。 （b）：抢劫成就层级。特工必须依次解锁所有锁，才能到达宝石。
+- en: Appendix C Additional Experiment Results
+  id: totrans-196
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 C 额外的实验结果
+- en: C.1 Design Choices, Ablations, and Other Agent Architectures
+  id: totrans-197
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.1 设计选择、消融实验和其他智能体架构
+- en: 'In the following, we show comprehensive design choice and ablation studies
+    of EnvGen method: EnvGen *vs*. longer training in the original environment, different
+    LLMs for generating environments, the number of LLM environments, and the ratio
+    of training steps in the LLM environments to the original environment. Unless
+    otherwise noted, we use the PPO-based agent (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))
+    (described in [Sec. 3.2](https://arxiv.org/html/2403.12014v2#S3.SS2 "3.2 Agent
+    Architectures ‣ 3 Experimental Setup ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")) on the Crafter (Hafner, [2022](https://arxiv.org/html/2403.12014v2#bib.bib24))
+    benchmark (described in [Sec. 3.1](https://arxiv.org/html/2403.12014v2#S3.SS1
+    "3.1 Evaluated Benchmarks and Training Details ‣ 3 Experimental Setup ‣ EnvGen:
+    Generating and Adapting Environments via LLMs for Training Embodied Agents"))
+    with 0.96M steps in Crafter${}^{\text{EnvGen}}$ and average results for 30 runs
+    (10 different seeds, 3 different initial environments).'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下文中，我们展示了 EnvGen 方法的全面设计选择和消融研究：EnvGen *vs*. 在原始环境中进行更长时间的训练、使用不同的 LLMs 生成环境、LLM
+    环境的数量，以及 LLM 环境中的训练步骤与原始环境中的训练步骤比例。除非另有说明，我们使用基于 PPO 的智能体（Moon 等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）（在[第
+    3.2 节](https://arxiv.org/html/2403.12014v2#S3.SS2 "3.2 智能体架构 ‣ 3 实验设置 ‣ EnvGen：通过
+    LLMs 生成和调整环境来训练具身智能体")）在 Crafter（Hafner，[2022](https://arxiv.org/html/2403.12014v2#bib.bib24)）基准测试中（在[第
+    3.1 节](https://arxiv.org/html/2403.12014v2#S3.SS1 "3.1 评估基准和训练细节 ‣ 3 实验设置 ‣ EnvGen：通过
+    LLMs 生成和调整环境来训练具身智能体")）进行训练，Crafter${}^{\text{EnvGen}}$ 中使用了 96 万步，且为 30 次运行计算了平均结果（10
+    个不同的种子，3 个不同的初始环境）。
+- en: '| # Training Steps in Crafter${}^{\text{EnvGen}}$ | # Training Steps in Crafter
+    | Score (%) | Reward |'
+  id: totrans-199
+  prefs: []
+  type: TYPE_TB
+  zh: '| # 在 Crafter${}^{\text{EnvGen}}$ 中的训练步数 | # 在 Crafter 中的训练步数 | 得分（%） | 奖励
+    |'
+- en: '| (Total 1.24M steps) |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| （总计 124 万步） |'
+- en: '| - | 1.24M | 21.1 $\pm$ 2.3 | 11.0 $\pm$ 0.9 |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| - | 1.24M | 21.1 $\pm$ 2.3 | 11.0 $\pm$ 0.9 |'
+- en: '| 0.12M | 1.12M | 22.3 $\pm$ 1.5 | 11.6 $\pm$ 0.8 |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12 万 | 112 万 | 22.3 $\pm$ 1.5 | 11.6 $\pm$ 0.8 |'
+- en: '| (Total 1.48M steps) |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '| (共计 1.48M 步) |'
+- en: '| - | 1.48M | 21.9 $\pm$ 2.1 | 11.4 $\pm$ 0.9 |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '| - | 1.48M | 21.9 $\pm$ 2.1 | 11.4 $\pm$ 0.9 |'
+- en: '| 0.24M | 1.24M | 27.9 $\pm$ 1.2 | 12.4 $\pm$ 0.7 |'
+  id: totrans-205
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.24M | 1.24M | 27.9 $\pm$ 1.2 | 12.4 $\pm$ 0.7 |'
+- en: '| (Total 1.96M steps) |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '| (共计 1.96M 步) |'
+- en: '| - | 1.96M | 26.4 $\pm$ 2.1 | 12.1 $\pm$ 1.0 |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| - | 1.96M | 26.4 $\pm$ 2.1 | 12.1 $\pm$ 1.0 |'
+- en: '| 0.48M | 1.48M | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.48M | 1.48M | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+- en: 'Table 4: RL agents trained in Crafter${}^{\text{EnvGen}}$ environments *vs*.
+    agents trained only in the Crafter environment. We calculate the scores based
+    on the last 1M training steps in Crafter.'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：在 Crafter${}^{\text{EnvGen}}$ 环境中训练的 RL 智能体 *vs*. 仅在 Crafter 环境中训练的智能体。我们基于
+    Crafter 中最后 1M 步的训练计算得分。
+- en: EnvGen *vs*. longer training in the original environment.
+  id: totrans-210
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: EnvGen *vs*. 在原始环境中延长训练。
+- en: '[Table 4](https://arxiv.org/html/2403.12014v2#A3.T4 "In C.1 Design Choices,
+    Ablations, and Other Agent Architectures ‣ Appendix C Additional Experiment Results
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents") shows that when given an equivalent # of total training steps, the agents
+    trained with Crafter${}^{\text{EnvGen}}$ environments outperform the agents only
+    trained with Crafter (*e.g*., 22.3% *vs*. 21.1% for 1.24M total steps). Although
+    the agent performances tend to improve with longer training steps in both settings,
+    training with EnvGen shows stronger performance gains than only training longer
+    in Crafter (*e.g*., 32.2% *vs*. 26.4% for 1.96M total steps).'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 4](https://arxiv.org/html/2403.12014v2#A3.T4 "在 C.1 设计选择、消融实验与其他智能体架构 ‣
+    附录 C 额外实验结果 ‣ EnvGen：通过 LLM 为训练具身智能体生成和调整环境") 显示，当给定相同数量的总训练步数时，使用 Crafter${}^{\text{EnvGen}}$
+    环境训练的智能体表现优于仅在 Crafter 中训练的智能体（*例如*，1.24M 步时为 22.3% *vs*. 21.1%）。尽管在两种设置下，智能体的表现通常随着训练步数的增加而提高，但与仅在
+    Crafter 中延长训练步数相比，使用 EnvGen 训练显示出更强的表现提升（*例如*，1.96M 步时为 32.2% *vs*. 26.4%）。'
+- en: '| LLM | Score (%) | Reward |'
+  id: totrans-212
+  prefs: []
+  type: TYPE_TB
+  zh: '| LLM | 得分 (%) | 奖励 |'
+- en: '| --- | --- | --- |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Deepseek Coder 33B Instruct | 26.3 $\pm$ 0.9 | 12.1 $\pm$ 0.8 |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '| Deepseek Coder 33B Instruct | 26.3 $\pm$ 0.9 | 12.1 $\pm$ 0.8 |'
+- en: '| GPT-3.5-Turbo | 21.5 $\pm$ 2.8 | 11.6 $\pm$ 1.0 |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-Turbo | 21.5 $\pm$ 2.8 | 11.6 $\pm$ 1.0 |'
+- en: '| GPT-4-Turbo (default) | 29.9 $\pm$ 0.9 | 12.6 $\pm$ 0.8 |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4-Turbo (默认) | 29.9 $\pm$ 0.9 | 12.6 $\pm$ 0.8 |'
+- en: 'Table 5: Ablation of employing different LLMs to generate the environments.
+    Agents are trained with 0.96M steps in Crafter${}^{\text{EnvGen}}$ and 1M steps
+    in the Crafter environment.'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5：使用不同 LLM 生成环境的消融实验。智能体在 Crafter${}^{\text{EnvGen}}$ 中训练 0.96M 步，在 Crafter
+    环境中训练 1M 步。
+- en: Different LLMs to generate environments.
+  id: totrans-218
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 使用不同的 LLM 来生成环境。
+- en: 'To figure out which LLM can generate more useful training environments, we
+    experiment with three different LLMs (GPT-4-Turbo, GPT-3.5-Turbo (OpenAI, [2023b](https://arxiv.org/html/2403.12014v2#bib.bib45)),
+    and Deepseek Coder 33B Instruct (Guo et al., [2024](https://arxiv.org/html/2403.12014v2#bib.bib22)))
+    and use $N^{\text{Cycle}}=1$ (*i.e*., fixed environment). [Table 5](https://arxiv.org/html/2403.12014v2#A3.T5
+    "In EnvGen vs. longer training in the original environment. ‣ C.1 Design Choices,
+    Ablations, and Other Agent Architectures ‣ Appendix C Additional Experiment Results
+    ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents") shows that environments generated by GPT-4-Turbo outperform that of other
+    LLMs including GPT-3.5-Turbo and Deepseek Coder 33B Instruct. We see that GPT-3.5-Turbo
+    performs the worst with only a score of 21.5%, while Deepseek 33B Instruct is
+    able to get several points higher (26.3%) and GPT-4-Turbo, our default LLM, gets
+    a few extra points (29.9%).'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了找出哪个 LLM 能生成更有用的训练环境，我们实验了三种不同的 LLM（GPT-4-Turbo、GPT-3.5-Turbo (OpenAI, [2023b](https://arxiv.org/html/2403.12014v2#bib.bib45))，以及
+    Deepseek Coder 33B Instruct (Guo 等人, [2024](https://arxiv.org/html/2403.12014v2#bib.bib22))），并使用
+    $N^{\text{Cycle}}=1$（*即*，固定环境）。[表 5](https://arxiv.org/html/2403.12014v2#A3.T5
+    "在 EnvGen 与在原始环境中延长训练对比。 ‣ C.1 设计选择、消融实验与其他智能体架构 ‣ 附录 C 额外实验结果 ‣ EnvGen：通过 LLM
+    为训练具身智能体生成和调整环境") 显示，GPT-4-Turbo 生成的环境优于其他 LLM 生成的环境，包括 GPT-3.5-Turbo 和 Deepseek
+    Coder 33B Instruct。我们发现 GPT-3.5-Turbo 的表现最差，得分仅为 21.5%，而 Deepseek 33B Instruct
+    能够提高几分（26.3%），而 GPT-4-Turbo，作为我们的默认 LLM，则多得了几分（29.9%）。
+- en: '| # LLM environments | Score (%) | Reward |'
+  id: totrans-220
+  prefs: []
+  type: TYPE_TB
+  zh: '| # LLM 环境 | 得分 (%) | 奖励 |'
+- en: '| --- | --- | --- |'
+  id: totrans-221
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| 1 | 30.8 $\pm$ 0.5 | 12.8 $\pm$ 0.8 |'
+  id: totrans-222
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 30.8 $\pm$ 0.5 | 12.8 $\pm$ 0.8 |'
+- en: '| 2 | 29.1 $\pm$ 0.6 | 13.0 $\pm$ 0.6 |'
+  id: totrans-223
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 29.1 $\pm$ 0.6 | 13.0 $\pm$ 0.6 |'
+- en: '| 4 (default) | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+  id: totrans-224
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 (默认) | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+- en: '| 8 | 31.0 $\pm$ 0.8 | 12.9 $\pm$ 0.8 |'
+  id: totrans-225
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | 31.0 $\pm$ 0.8 | 12.9 $\pm$ 0.8 |'
+- en: 'Table 6: Different number of LLM environments being generated by the LLM per
+    cycle. Agents are trained with 0.96M steps in Crafter${}^{\text{EnvGen}}$ and
+    1M steps in the real Crafter environment.'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表6：LLM每个周期生成的不同数量的LLM环境。代理在Crafter${}^{\text{EnvGen}}$环境中训练0.96M步，在真实的Crafter环境中训练1M步。
+- en: Number of LLM environments.
+  id: totrans-227
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: LLM环境的数量。
+- en: '[Table 6](https://arxiv.org/html/2403.12014v2#A3.T6 "In Different LLMs to generate
+    environments. ‣ C.1 Design Choices, Ablations, and Other Agent Architectures ‣
+    Appendix C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents") shows that changing the number of environments
+    generated by the LLM at each cycle (*i.e*., 1, 2, 4, and 8) can slightly affect
+    agent performance. While training with four environments produces the highest
+    result, training with environments generated with any of the tested configurations
+    improves performance over training only with the original Crafter environment
+    (26.4%).'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表6](https://arxiv.org/html/2403.12014v2#A3.T6 "在不同的LLM中生成环境。‣ C.1 设计选择、消融实验和其他代理架构
+    ‣ 附录C 额外实验结果 ‣ EnvGen：通过LLM生成和调整环境以训练具身代理")显示，改变每个周期LLM生成的环境数量（*即*，1, 2, 4和8）会略微影响代理的表现。虽然使用四个环境进行训练产生了最高的结果，但使用任何测试配置生成的环境进行训练，相比仅在原始Crafter环境中训练，都能提高表现（提高了26.4%）。'
+- en: '| Ratio of Training Steps in Crafter${}^{\text{EnvGen}}$ : Crafter | Score
+    (%) | Reward |'
+  id: totrans-229
+  prefs: []
+  type: TYPE_TB
+  zh: '| Crafter${}^{\text{EnvGen}}$ : Crafter 训练步骤比例 | 分数（%） | 奖励 |'
+- en: '| --- | --- | --- |'
+  id: totrans-230
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| 5:1 | 30.3 $\pm$ 0.6 | 12.3 $\pm$ 0.9 |'
+  id: totrans-231
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5:1 | 30.3 $\pm$ 0.6 | 12.3 $\pm$ 0.9 |'
+- en: '| 2:1 | 30.1 $\pm$ 1.1 | 12.8 $\pm$ 0.7 |'
+  id: totrans-232
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2:1 | 30.1 $\pm$ 1.1 | 12.8 $\pm$ 0.7 |'
+- en: '| 1:1 (default) | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+  id: totrans-233
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1:1（默认） | 32.2 $\pm$ 0.6 | 12.6 $\pm$ 0.6 |'
+- en: 'Table 7: Different ratios of training steps in LLM-generated environments (Crafter${}^{\text{EnvGen}}$)
+    compared to training steps in the original Crafter environment (*e.g*., 2:1 indicates
+    that for every two training steps in Crafter${}^{\text{EnvGen}}$, the RL agent
+    gets one training step in Crafter). We keep the total number of training steps
+    constant at 1.96M.'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表7：LLM生成的环境（Crafter${}^{\text{EnvGen}}$）中训练步骤与原始Crafter环境中训练步骤的不同比例（*例如*，2:1表示每两个在Crafter${}^{\text{EnvGen}}$中的训练步骤，RL代理在Crafter中进行一个训练步骤）。我们将总训练步骤数保持为1.96M。
+- en: 'Ratio of training steps: LLM environments *vs*. original environment.'
+  id: totrans-235
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 训练步骤比例：LLM环境*对比*原始环境。
+- en: 'As mentioned in [Sec. 2.2](https://arxiv.org/html/2403.12014v2#S2.SS2 "2.2
+    EnvGen Method Details ‣ 2 EnvGen: Generating and Adapting Environments via LLMs
+    for Training Embodied Agents ‣ EnvGen: Generating and Adapting Environments via
+    LLMs for Training Embodied Agents"), in EnvGen, we train the RL agent in LLM environments
+    (step 2) and then in the original environment (step 3) to mitigate the agent from
+    overfitting to the LLM environments. We experiment with different ratios of training
+    steps in LLM environments (*i.e*., Crafter${}^{\text{EnvGen}}$) compared to training
+    steps in the original Crafter environment (*e.g*., 2:1 indicates that for every
+    two training steps in Crafter${}^{\text{EnvGen}}$, the RL agent gets one training
+    step in Crafter). As shown in [Table 7](https://arxiv.org/html/2403.12014v2#A3.T7
+    "In Number of LLM environments. ‣ C.1 Design Choices, Ablations, and Other Agent
+    Architectures ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents"), while different
+    ratios do not result in big differences, the default 1:1 ratio provides the highest
+    scores.'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如[第2.2节](https://arxiv.org/html/2403.12014v2#S2.SS2 "2.2 EnvGen方法细节 ‣ 2 EnvGen：通过LLM生成和调整环境以训练具身代理
+    ‣ EnvGen：通过LLM生成和调整环境以训练具身代理")中提到，在EnvGen中，我们先在LLM环境中训练RL代理（步骤2），然后在原始环境中训练（步骤3），以减少代理对LLM环境的过拟合。我们尝试了LLM环境中训练步骤与原始Crafter环境中训练步骤的不同比例（*即*，Crafter${}^{\text{EnvGen}}$中的每两个训练步骤，RL代理在Crafter中进行一个训练步骤）。如[表7](https://arxiv.org/html/2403.12014v2#A3.T7
+    "在LLM环境数量中。 ‣ C.1 设计选择、消融实验和其他代理架构 ‣ 附录C 额外实验结果 ‣ EnvGen：通过LLM生成和调整环境以训练具身代理")所示，尽管不同的比例没有产生大差异，默认的1:1比例提供了最高的分数。
+- en: Can simulators always understand LLM-generated environment configurations?
+  id: totrans-237
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 模拟器总是能理解LLM生成的环境配置吗？
+- en: We tested and analyzed the generated environments used in paper experiments
+    (109 total) and found that the LLM (GPT-4-Turbo) did not generate any environments
+    beyond what the Crafter or Heist simulators could handle. While we do not find
+    any such case, even if the LLM generates an invalid setup, we constrain all LLM-generated
+    settings in post-processing to be within simulator capabilities to ensure no accidental
+    errors in the simulator or environment generation.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们测试并分析了论文实验中使用的生成环境（共109个），并发现LLM（GPT-4-Turbo）没有生成超出Crafter或Heist模拟器能够处理的环境。尽管我们没有发现这样的情况，但即使LLM生成了无效的设置，我们也会在后处理过程中将所有LLM生成的设置限制在模拟器能力范围内，以确保模拟器或环境生成中不会发生意外错误。
+- en: 'Environment parameter naming: obscure *vs*. original.'
+  id: totrans-239
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 环境参数命名：模糊的*vs*原始的。
+- en: 'To determine whether or not the LLM in EnvGen is leveraging world knowledge
+    when generating environments we conduct an analysis experiment. We replace environment
+    parameter names from the original ones with obscure names (see [Fig. 9](https://arxiv.org/html/2403.12014v2#A3.F9
+    "In EnvGen can generalize to Heist. ‣ C.2 Evaluation on Heist Environment ‣ Appendix
+    C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")), in order to remove the use of prior
+    knowledge/expectation of how each parameter is useful to which skills. We find
+    that the performance decreases, from 32.2 $\pm$ 0.6 $\rightarrow$ to 28.5 $\pm$
+    0.6, indicating that the world knowledge/prior knowledge of the LLM is beneficial
+    in helping the LLM generate more suitable environments.'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了确定EnvGen中的LLM是否在生成环境时利用了世界知识，我们进行了一项分析实验。我们将环境参数的命名从原始名称替换为模糊名称（见[图9](https://arxiv.org/html/2403.12014v2#A3.F9
+    "In EnvGen can generalize to Heist. ‣ C.2 Evaluation on Heist Environment ‣ Appendix
+    C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents")），以消除对每个参数在技能上如何有用的先验知识/期望。我们发现性能有所下降，从32.2
+    $\pm$ 0.6降至28.5 $\pm$ 0.6，表明LLM的世界知识/先验知识在帮助LLM生成更合适的环境方面是有益的。'
+- en: Achievement Distillation + EnvGen.
+  id: totrans-241
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: Achievement Distillation + EnvGen。
+- en: 'As mentioned in the [Sec. 4.1](https://arxiv.org/html/2403.12014v2#S4.SS1 "4.1
+    Comparison with State-of-the-art Methods on Crafter Environment ‣ 4 Results and
+    Analysis ‣ EnvGen: Generating and Adapting Environments via LLMs for Training
+    Embodied Agents"), we also experiment using EnvGen with the Achievement Distillation
+    (AD) (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)) agent.
+    As shown in [Fig. 8](https://arxiv.org/html/2403.12014v2#A3.F8 "In Achievement
+    Distillation + EnvGen. ‣ C.1 Design Choices, Ablations, and Other Agent Architectures
+    ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents"), similar to our results on the PPO-based
+    agent, we find that by applying EnvGen, there is performance gain in long-horizon
+    tasks like making iron tools and collecting diamonds.'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如[第4.1节](https://arxiv.org/html/2403.12014v2#S4.SS1 "4.1 Comparison with State-of-the-art
+    Methods on Crafter Environment ‣ 4 Results and Analysis ‣ EnvGen: Generating and
+    Adapting Environments via LLMs for Training Embodied Agents")所述，我们还使用Achievement
+    Distillation (AD) (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42))代理进行实验。如[图8](https://arxiv.org/html/2403.12014v2#A3.F8
+    "In Achievement Distillation + EnvGen. ‣ C.1 Design Choices, Ablations, and Other
+    Agent Architectures ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents")所示，类似于我们在基于PPO的代理上的结果，我们发现通过应用EnvGen，长时间任务（如制作铁器和收集钻石）的表现有所提升。'
+- en: '![Refer to caption](img/57f03dfb095ba93039c5dbf83b4b5bbf.png)'
+  id: totrans-243
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/57f03dfb095ba93039c5dbf83b4b5bbf.png)'
+- en: 'Figure 8: Success rates for all Crafter achievements of two Achievement Distillation
+    (AD) agents (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)):
+    (1) Baseline: trained in Crafter for 1.96M steps, and (2) Ours: trained in Crafter${}^{\text{EnvGen}}$
+    for 0.96M steps and Crafter for 1M steps.'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图8：两种Achievement Distillation (AD) 代理的Crafter所有成就的成功率（Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）：(1)
+    基线：在Crafter中训练1.96M步，(2) 我们的：在Crafter${}^{\text{EnvGen}}$中训练0.96M步，并在Crafter中训练1M步。
+- en: C.2 Evaluation on Heist Environment
+  id: totrans-245
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: C.2 在Heist环境中的评估
+- en: '| Model | # Training Steps in Heist${}^{\text{EnvGen}}$ | # Training Steps
+    in Heist | Score (%) | Reward |'
+  id: totrans-246
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | Heist中的训练步数${}^{\text{EnvGen}}$ | Heist中的训练步数 | 得分（%） | 奖励 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-247
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| PPO | - | 25M | 25.9 $\pm$ 13.2 | 4.1 $\pm$ 1.8 |'
+  id: totrans-248
+  prefs: []
+  type: TYPE_TB
+  zh: '| PPO | - | 25M | 25.9 $\pm$ 13.2 | 4.1 $\pm$ 1.8 |'
+- en: '| PPO + EnvGen (Ours) | 5M | 20M | 37.7 $\pm$ 7.50 | 5.5 $\pm$ 0.9 |'
+  id: totrans-249
+  prefs: []
+  type: TYPE_TB
+  zh: '| PPO + EnvGen（我们的） | 5M | 20M | 37.7 $\pm$ 7.50 | 5.5 $\pm$ 0.9 |'
+- en: 'Table 8: Evaluation results on Heist. Scores are computed as the average success
+    rate over 100 test episodes over 10 different seeds.'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 8：Heist 上的评估结果。得分是基于 100 次测试剧集（10 个不同的种子）上的平均成功率计算得出的。
+- en: EnvGen can generalize to Heist.
+  id: totrans-251
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: EnvGen 可以推广到 Heist。
+- en: 'We also evaluate the effectiveness of EnvGen framework with Heist. We compare
+    the PPO-based agent trained with and without EnvGen (*i.e*., Heist${}^{\text{EnvGen}}$
+    environments). [Table 8](https://arxiv.org/html/2403.12014v2#A3.T8 "In C.2 Evaluation
+    on Heist Environment ‣ Appendix C Additional Experiment Results ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") shows that training
+    an agent with Heist${}^{\text{EnvGen}}$ environments is effective in improving
+    performance by increasing average scores (25.9% $\rightarrow$ 37.7%) and rewards
+    (4.1% $\rightarrow$ 5.5%), while also stabilizing training by reducing the score
+    variance (*i.e*., standard deviation goes down 13.2% $\rightarrow$ 7.5%).'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还通过 Heist 评估了 EnvGen 框架的有效性。我们比较了使用和不使用 EnvGen 训练的基于 PPO 的智能体（*即*，Heist${}^{\text{EnvGen}}$
+    环境）。[表 8](https://arxiv.org/html/2403.12014v2#A3.T8 "在 C.2 Heist 环境评估 ‣ 附录 C 额外实验结果
+    ‣ EnvGen：通过 LLM 生成和适配环境以训练具身智能体") 显示，使用 Heist${}^{\text{EnvGen}}$ 环境训练智能体在提高性能方面是有效的，具体表现为平均得分（25.9%
+    $\rightarrow$ 37.7%）和奖励（4.1% $\rightarrow$ 5.5%）的提高，同时通过减少得分方差（*即*，标准差从 13.2%
+    降至 7.5%）来稳定训练。
+- en: 'Before: Here is a list of parameters you can control when making an environment:
+    target_biome: grassland | mountain | beaches | natural coal_rarity: very common
+    | common | rare iron_rarity: very common | common | rare diamond_rarity: very
+    common | common | rare tree_rarity: very common | common | rare Here is a list
+    of items the agent can start with: sapling: 0-9 wood: 0-9 stone: 0-9 coal: 0-9
+    iron: 0-9 diamond: 0-9 wood_pickaxe: 0-1 stone_pickaxe: 0-1 iron_pickaxe: 0-1
+    wood_sword: 0-1 stone_sword: 0-1 iron_sword: 0-1 After: Here is a list of parameters
+    you can control when making an environment: parameter1: optionA | optionB | optionC
+    | optionD parameter2: optionE | optionF | optionG parameter3: optionE | optionF
+    | optionG parameter4: optionE | optionF | optionG parameter5: optionE | optionF
+    | optionG Here is a list of items the agent can start with: item1: 0-9 item2:
+    0-9 item3: 0-9 item4: 0-9 item5: 0-9 item6: 0-9 item7: 0-1 item8: 0-1 item9: 0-1
+    item10: 0-1 item11: 0-1 item12: 0-1'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '之前：以下是您在创建环境时可以控制的参数列表：target_biome: 草原 | 山地 | 海滩 | 自然 coal_rarity: 非常常见 |
+    常见 | 稀有 iron_rarity: 非常常见 | 常见 | 稀有 diamond_rarity: 非常常见 | 常见 | 稀有 tree_rarity:
+    非常常见 | 常见 | 稀有 以下是智能体可以开始时拥有的物品列表：sapling: 0-9 wood: 0-9 stone: 0-9 coal: 0-9
+    iron: 0-9 diamond: 0-9 wood_pickaxe: 0-1 stone_pickaxe: 0-1 iron_pickaxe: 0-1
+    wood_sword: 0-1 stone_sword: 0-1 iron_sword: 0-1 之后：以下是您在创建环境时可以控制的参数列表：parameter1:
+    optionA | optionB | optionC | optionD parameter2: optionE | optionF | optionG
+    parameter3: optionE | optionF | optionG parameter4: optionE | optionF | optionG
+    parameter5: optionE | optionF | optionG 以下是智能体可以开始时拥有的物品列表：item1: 0-9 item2: 0-9
+    item3: 0-9 item4: 0-9 item5: 0-9 item6: 0-9 item7: 0-1 item8: 0-1 item9: 0-1 item10:
+    0-1 item11: 0-1 item12: 0-1'
+- en: 'Figure 9: LLM prompt template for environment generation before and after parameter
+    and item names are replaced with obscure names.'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 9：环境生成的 LLM 提示模板，参数和物品名称在替换为模糊名称之前和之后。
+- en: Appendix D Curriculum Learning Baseline Details
+  id: totrans-255
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 D 课程学习基准细节
+- en: 'In the following, we describe the two baseline implementation details described
+    in [Table 2](https://arxiv.org/html/2403.12014v2#S4.T2 "In 4.4 Additional Analysis
+    and Ablation Studies ‣ 4 Results and Analysis ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents"): easy-to-hard and adversarial
+    curricula.'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在以下内容中，我们描述了[表 2](https://arxiv.org/html/2403.12014v2#S4.T2 "在 4.4 额外分析与消融研究
+    ‣ 4 结果与分析 ‣ EnvGen：通过 LLM 生成和适配环境以训练具身智能体") 中描述的两种基准实现细节：由易到难和对抗性课程。
+- en: Easy-to-hard curriculum.
+  id: totrans-257
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 由易到难的课程。
+- en: Similar to Ammanabrolu et al. ([2022](https://arxiv.org/html/2403.12014v2#bib.bib3)),
+    we create an easy-to-hard curriculum. An easy-to-hard curriculum has a pre-defined
+    order of training environments. The agent first trains in “easy" environments
+    and then by the end of the training process will be training in the “hard" environments.
+    To do this, we first ask the LLM to generate a set of 16 random environments and
+    train a validation agent (an agent only for the purpose of testing an environment
+    difficulty; not used during final agent training) on each environment. Then the
+    performance of the validation agent is measured and the environments are sorted
+    from easiest to hardest (*i.e*., from environments that resulted in higher agent
+    scores to lower agent scores). Then we train an agent on the top four easier environments
+    first and for every 0.24M steps we replace the training environments with the
+    next four environments in the sorted set (*i.e*., easy-to-hard curriculum).
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 Ammanabrolu 等人（[2022](https://arxiv.org/html/2403.12014v2#bib.bib3)），我们创建了一个由易到难的课程。一个由易到难的课程有一个预定义的训练环境顺序。智能体首先在“简单”环境中训练，然后在训练过程的最后将在“困难”环境中训练。为此，我们首先要求
+    LLM 生成一组 16 个随机环境，并在每个环境中训练一个验证智能体（该智能体仅用于测试环境难度；在最终智能体训练时不使用）。然后，测量验证智能体的表现，并将环境从最容易到最难排序（*即*，从导致智能体得分较高的环境到得分较低的环境）。接着，我们首先在四个较容易的环境中训练智能体，每
+    0.24M 步替换一次训练环境，使用排序后下一个四个环境（*即*，由易到难的课程）。
+- en: Adversarial curriculum.
+  id: totrans-259
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 对抗性课程。
+- en: Similar to Parker-Holder et al. ([2022](https://arxiv.org/html/2403.12014v2#bib.bib46)),
+    we create an adversarial curriculum. The adversarial curriculum approach involves
+    updating the agent’s training environments to ones where it has struggled. To
+    do this, we first generate a set of 16 random environments and train a validation
+    agent on each environment. Then, we measure and sort the environments by difficulty
+    (*i.e*., sorted from lowest to highest based on the validation agent’s score).
+    We take the top four hardest environments and train the final agent on these.
+    Then, generate a new set of environments and test the current agent on this set,
+    again sorting by difficulty. Then again, we take the top four hardest environments
+    and resume training on these. This process then repeats four times (every 0.24M
+    steps) creating an adversarial curriculum.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 Parker-Holder 等人（[2022](https://arxiv.org/html/2403.12014v2#bib.bib46)），我们创建了一个对抗性课程。对抗性课程方法涉及更新智能体的训练环境为其曾经挣扎过的环境。为此，我们首先生成一组
+    16 个随机环境，并在每个环境中训练一个验证智能体。然后，我们根据验证智能体的得分测量并排序环境的难度（*即*，从最低到最高排序）。我们选择最难的四个环境，并在这些环境中训练最终的智能体。接着，生成一组新的环境，并在此组环境中测试当前智能体，再次按难度排序。然后，我们再次选择最难的四个环境，并在这些环境中继续训练。这个过程会重复四次（每
+    0.24M 步），从而创建一个对抗性课程。
+- en: Appendix E RL Agent Implementation Details
+  id: totrans-261
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 E RL 智能体实现细节
+- en: PPO agent.
+  id: totrans-262
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: PPO 智能体。
+- en: 'We use the PPO-based (Schulman et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib48))
+    agent used in (Moon et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib42)),
+    which modifies the default ResNet (He et al., [2016](https://arxiv.org/html/2403.12014v2#bib.bib28))
+    architecture in IMPALA (Espeholt et al., [2018](https://arxiv.org/html/2403.12014v2#bib.bib19))
+    by increasing channel size and hidden size and adding a layer normalization Ba
+    et al. ([2016](https://arxiv.org/html/2403.12014v2#bib.bib6)) before each linear/convolutional
+    layer. We slightly modify this architecture further to place the layer norm after
+    the final linear layer instead of before. Hyperparameters for this model are shown
+    in [Table 9](https://arxiv.org/html/2403.12014v2#A5.T9 "In PPO agent. ‣ Appendix
+    E RL Agent Implementation Details ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents").'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用基于 PPO 的智能体（Schulman 等人，[2017](https://arxiv.org/html/2403.12014v2#bib.bib48)），该智能体在（Moon
+    等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）中使用，修改了默认的 ResNet（He
+    等人，[2016](https://arxiv.org/html/2403.12014v2#bib.bib28)）架构，增加了通道大小和隐藏层大小，并在每个线性/卷积层之前添加了层归一化（Ba
+    等人，[2016](https://arxiv.org/html/2403.12014v2#bib.bib6)）。我们进一步稍微修改了该架构，将层归一化放在最终线性层之后，而不是之前。该模型的超参数见[表
+    9](https://arxiv.org/html/2403.12014v2#A5.T9 "在 PPO 智能体中。 ‣ 附录 E RL 智能体实现细节 ‣
+    EnvGen：通过 LLM 为训练具身智能体生成和调整环境")。
+- en: '| Hyperparameter | Value |'
+  id: totrans-264
+  prefs: []
+  type: TYPE_TB
+  zh: '| 超参数 | 值 |'
+- en: '| Discount factor | 0.95 |'
+  id: totrans-265
+  prefs: []
+  type: TYPE_TB
+  zh: '| 折扣因子 | 0.95 |'
+- en: '| GAE smoothing parameter | 0.65 |'
+  id: totrans-266
+  prefs: []
+  type: TYPE_TB
+  zh: '| GAE 平滑参数 | 0.65 |'
+- en: '| # timesteps per rollout | 4096 |'
+  id: totrans-267
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每次回合的时间步数 | 4096 |'
+- en: '| # epochs per rollout | 3 |'
+  id: totrans-268
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每次回合的周期数 | 3 |'
+- en: '| # mini-batches per epoch | 8 |'
+  id: totrans-269
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个 epoch 的 mini-batch 数量 | 8 |'
+- en: '| Entropy bonus | 0.01 |'
+  id: totrans-270
+  prefs: []
+  type: TYPE_TB
+  zh: '| 熵奖励 | 0.01 |'
+- en: '| PPO clip range | 0.2 |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| PPO 截断范围 | 0.2 |'
+- en: '| Reward normalization | No |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| 奖励归一化 | 否 |'
+- en: '| EWMA decay rate | 0.99 |'
+  id: totrans-273
+  prefs: []
+  type: TYPE_TB
+  zh: '| EWMA 衰减率 | 0.99 |'
+- en: '| Learning rate | 3e-4 |'
+  id: totrans-274
+  prefs: []
+  type: TYPE_TB
+  zh: '| 学习率 | 3e-4 |'
+- en: '| Max grad norm | 0.5 |'
+  id: totrans-275
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最大梯度范数 | 0.5 |'
+- en: '| Value function coefficient | 0.5 |'
+  id: totrans-276
+  prefs: []
+  type: TYPE_TB
+  zh: '| 值函数系数 | 0.5 |'
+- en: 'Table 9: PPO agent hyperparameters. Hyperparameters are following Moon et al.
+    ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)).'
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表9：PPO 代理超参数。超参数遵循 Moon 等人（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）。
+- en: '| Hyperparameter | Value |'
+  id: totrans-278
+  prefs: []
+  type: TYPE_TB
+  zh: '| 超参数 | 值 |'
+- en: '| Policy regularizer coefficient | 1.0 |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| 策略正则化系数 | 1.0 |'
+- en: '| Value regularizer coefficient | 1.0 |'
+  id: totrans-280
+  prefs: []
+  type: TYPE_TB
+  zh: '| 值正则化系数 | 1.0 |'
+- en: '| Entropic regularizer coefficient | 0.05 |'
+  id: totrans-281
+  prefs: []
+  type: TYPE_TB
+  zh: '| 熵正则化系数 | 0.05 |'
+- en: '| # policy phases per auxiliary phase | 8 |'
+  id: totrans-282
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个辅助阶段的策略阶段数 | 8 |'
+- en: '| # epochs per auxiliary phase | 6 |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每个辅助阶段的 epoch 数 | 6 |'
+- en: 'Table 10: Achievement Distillation hyperparameters. Hyperparameters are following
+    Moon et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)).'
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表10：成就蒸馏超参数。超参数遵循 Moon 等人（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）。
+- en: Achievement distillation (AD) agent.
+  id: totrans-285
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 成就蒸馏（AD）代理。
+- en: 'Moon et al. ([2023](https://arxiv.org/html/2403.12014v2#bib.bib42)) builds
+    upon its PPO-based agent model and adds auxiliary training steps after the PPO
+    policy updates. Their auxiliary training consists of two parts: (1) intra-trajectory
+    achievement prediction and (2) cross-trajectory achievement matching. (1) Intra-trajectory
+    achievement prediction maximizes the similarity between state-action pairs and
+    the corresponding next achievement that needs to be unlocked in the achievement
+    hierarchy within an episode. (2) Cross-trajectory achievement matching maximizes
+    the similarity between achievements across episodes. Hyperparameters for this
+    model are shown in [Table 10](https://arxiv.org/html/2403.12014v2#A5.T10 "In PPO
+    agent. ‣ Appendix E RL Agent Implementation Details ‣ EnvGen: Generating and Adapting
+    Environments via LLMs for Training Embodied Agents").'
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Moon 等人（[2023](https://arxiv.org/html/2403.12014v2#bib.bib42)）在其基于 PPO 的代理模型的基础上，添加了在
+    PPO 策略更新后进行的辅助训练步骤。他们的辅助训练包含两部分：（1）轨迹内成就预测和（2）跨轨迹成就匹配。（1）轨迹内成就预测最大化状态-动作对与该情节中成就层级中需要解锁的下一个成就之间的相似度。（2）跨轨迹成就匹配最大化不同情节中成就之间的相似度。该模型的超参数见[表10](https://arxiv.org/html/2403.12014v2#A5.T10
+    "在 PPO 代理中。 ‣ 附录 E RL 代理实现细节 ‣ EnvGen：通过 LLM 生成和调整环境以训练具身代理")。
+- en: Appendix F Additional LLM Details
+  id: totrans-287
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 F 额外的 LLM 细节
+- en: Prompt Template.
+  id: totrans-288
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 提示模板。
+- en: 'In [Fig. 10](https://arxiv.org/html/2403.12014v2#A6.F10 "In Prompt Template.
+    ‣ Appendix F Additional LLM Details ‣ EnvGen: Generating and Adapting Environments
+    via LLMs for Training Embodied Agents") (a), we show the LLM prompt template that
+    is used to generate environments. The contents of the prompt can vary slightly
+    between different environments/games though generally remain the same. In [Fig. 10](https://arxiv.org/html/2403.12014v2#A6.F10
+    "In Prompt Template. ‣ Appendix F Additional LLM Details ‣ EnvGen: Generating
+    and Adapting Environments via LLMs for Training Embodied Agents") (b), we show
+    the additional prompt template that is used during the feedback step (step 4 in
+    [Sec. 2.2](https://arxiv.org/html/2403.12014v2#S2.SS2 "2.2 EnvGen Method Details
+    ‣ 2 EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training Embodied
+    Agents")). At each feedback cycle iteration, the additional prompt is concatenated
+    to the previous LLM output (*i.e*., maintaining a chat history).'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[图10](https://arxiv.org/html/2403.12014v2#A6.F10 "在提示模板中。 ‣ 附录 F 额外的 LLM 细节
+    ‣ EnvGen：通过 LLM 生成和调整环境以训练具身代理")（a）中，我们展示了用于生成环境的 LLM 提示模板。虽然不同的环境/游戏之间提示内容可能略有不同，但通常保持一致。在[图10](https://arxiv.org/html/2403.12014v2#A6.F10
+    "在提示模板中。 ‣ 附录 F 额外的 LLM 细节 ‣ EnvGen：通过 LLM 生成和调整环境以训练具身代理")（b）中，我们展示了在反馈步骤（[第2.2节](https://arxiv.org/html/2403.12014v2#S2.SS2
+    "2.2 EnvGen 方法细节 ‣ 2 EnvGen：通过 LLM 生成和调整环境以训练具身代理 ‣ EnvGen：通过 LLM 生成和调整环境以训练具身代理")）中使用的额外提示模板。在每次反馈循环迭代中，额外的提示会与先前的
+    LLM 输出拼接在一起（*即*，保持聊天历史）。
+- en: '![Refer to caption](img/cc7b0dd72781bfd50bf35b8b330dfe4e.png)'
+  id: totrans-290
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/cc7b0dd72781bfd50bf35b8b330dfe4e.png)'
+- en: 'Figure 10: The prompts that are given to the LLM to generate environments in
+    step 1 of [Sec. 2.2](https://arxiv.org/html/2403.12014v2#S2.SS2 "2.2 EnvGen Method
+    Details ‣ 2 EnvGen: Generating and Adapting Environments via LLMs for Training
+    Embodied Agents ‣ EnvGen: Generating and Adapting Environments via LLMs for Training
+    Embodied Agents").'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图10：在[第2.2节](https://arxiv.org/html/2403.12014v2#S2.SS2 "2.2 EnvGen方法细节 ‣ 2
+    EnvGen: 通过LLMs生成和适应环境以训练具身智能体 ‣ EnvGen: 通过LLMs生成和适应环境以训练具身智能体")中第1步给LLM的提示语。'
+- en: API Cost.
+  id: totrans-292
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: API费用。
+- en: As we use GPT-4-Turbo (1106-preview version) the API cost is $10.00 per 1M tokens
+    and $30.00 per 1M tokens. The initial environment generation cost is $0.03 and
+    then each iteration of the feedback cycle adds $0.04. Once the model is trained
+    via EnvGen it no longer requires any LLM calls for inference or further training
+    on the original environment. Works like SPRING (Wu et al., [2023](https://arxiv.org/html/2403.12014v2#bib.bib67))
+    require $270 USD and several thousand LLM calls per episode, which is much more
+    expensive than our work.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们使用的是GPT-4-Turbo（1106-preview版本），API费用为每百万个token $10.00和每百万个token $30.00。初始环境生成费用为$0.03，然后每次反馈循环迭代的费用为$0.04。一旦模型通过EnvGen训练完成，就不再需要任何LLM调用来进行推理或在原始环境上进行进一步训练。像SPRING（Wu等人，[2023](https://arxiv.org/html/2403.12014v2#bib.bib67)）这样的工作每一轮需要$270美元和数千次LLM调用，这比我们的工作要贵得多。
+- en: Appendix G Limitations
+  id: totrans-294
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录G：局限性
+- en: EnvGen relies on strong LLMs (*e.g*., GPT-4). But note that one of the main
+    motivations of EnvGen is to more efficiently use LLMs to help train embodied agents,
+    and as such EnvGen requires very few LLM calls (*e.g*., 4 calls), which only costs
+    less than $1 USD during the entire training. We hope that advances in quantization/distillation
+    and open-source models will make strong LLMs more accessible.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: EnvGen依赖于强大的LLMs（*例如*，GPT-4）。但需要注意的是，EnvGen的主要动机之一是更高效地使用LLMs来帮助训练具身智能体，因此EnvGen只需要极少的LLM调用（*例如*，4次调用），整个训练过程的费用不到1美元。我们希望量化/蒸馏技术和开源模型的进展能使强大的LLMs更加可及。
+- en: EnvGen also requires that the environment simulators can (or be easily edited
+    to) accept configurations in standard formats (*e.g*., JSON, CSV, YAML, TOML *etc*.),
+    and the LLM can correctly generate configurations in such formats. Note that such
+    text configuration formats are widely used for managing game simulators. In addition,
+    many games have open-source community-driven efforts that provide high-level configuration
+    documentation and settings, such as Minecraft wrappers (Guss et al., [2019](https://arxiv.org/html/2403.12014v2#bib.bib23);
+    Fan et al., [2022](https://arxiv.org/html/2403.12014v2#bib.bib20)) and Starcraft
+    wrappers (Vinyals et al., [2017](https://arxiv.org/html/2403.12014v2#bib.bib57);
+    DI-star Contributors, [2021](https://arxiv.org/html/2403.12014v2#bib.bib15)).
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: EnvGen还要求环境模拟器能够（或易于编辑成）接受标准格式的配置（*例如*，JSON、CSV、YAML、TOML *等*），并且LLM能够正确生成这些格式的配置。请注意，这些文本配置格式在管理游戏模拟器时被广泛使用。此外，许多游戏有开源的社区驱动项目，提供高级配置文档和设置，如Minecraft包装器（Guss等人，[2019](https://arxiv.org/html/2403.12014v2#bib.bib23）；Fan等人，[2022](https://arxiv.org/html/2403.12014v2#bib.bib20)）和Starcraft包装器（Vinyals等人，[2017](https://arxiv.org/html/2403.12014v2#bib.bib57)；DI-star贡献者，[2021](https://arxiv.org/html/2403.12014v2#bib.bib15)）。

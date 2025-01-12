@@ -1,0 +1,2206 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类别：未分类
+- en: 'date: 2025-01-11 13:08:18'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 13:08:18
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'VELMA: Verbalization Embodiment of LLM Agents for Vision and Language Navigation
+    in Street View'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: VELMA：大规模语言模型（LLM）代理的语言化体现，用于街景中的视觉与语言导航
+- en: 来源：[https://arxiv.org/html/2307.06082/](https://arxiv.org/html/2307.06082/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2307.06082/](https://arxiv.org/html/2307.06082/)
+- en: Raphael Schumann¹, Wanrong Zhu², Weixi Feng², Tsu-Jui Fu²,
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Raphael Schumann¹, Wanrong Zhu², Weixi Feng², Tsu-Jui Fu²,
+- en: Stefan Riezler^(1,3), William Yang Wang²
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Stefan Riezler^(1,3), William Yang Wang²
+- en: Abstract
+  id: totrans-8
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Incremental decision making in real-world environments is one of the most challenging
+    tasks in embodied artificial intelligence. One particularly demanding scenario
+    is Vision and Language Navigation (VLN) which requires visual and natural language
+    understanding as well as spatial and temporal reasoning capabilities. The embodied
+    agent needs to ground its understanding of navigation instructions in observations
+    of a real-world environment like Street View. Despite the impressive results of
+    LLMs in other research areas, it is an ongoing problem of how to best connect
+    them with an interactive visual environment. In this work, we propose VELMA, an
+    embodied LLM agent that uses a verbalization of the trajectory and of visual environment
+    observations as contextual prompt for the next action. Visual information is verbalized
+    by a pipeline that extracts landmarks from the human written navigation instructions
+    and uses CLIP to determine their visibility in the current panorama view. We show
+    that VELMA is able to successfully follow navigation instructions in Street View
+    with only two in-context examples. We further finetune the LLM agent on a few
+    thousand examples and achieve around 25% relative improvement in task completion
+    over the previous state-of-the-art for two datasets.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在现实世界环境中的增量决策是具身人工智能中最具挑战性的任务之一。一个特别具有挑战性的场景是视觉与语言导航（VLN），它要求具备视觉和自然语言理解能力以及空间和时间推理能力。具身代理需要将其对导航指令的理解与街景等现实世界环境的观察进行结合。尽管大规模语言模型（LLMs）在其他研究领域取得了令人印象深刻的成果，但如何将它们与互动的视觉环境最有效地连接仍然是一个未解决的问题。在这项工作中，我们提出了VELMA，一个具身的大规模语言模型代理，利用轨迹和视觉环境观察的语言化形式作为下一步动作的上下文提示。视觉信息通过一个流程进行语言化，该流程从人工书写的导航指令中提取地标，并使用CLIP模型确定它们在当前全景视图中的可见性。我们展示了VELMA能够仅通过两个上下文示例成功地跟随街景中的导航指令。我们进一步在几千个示例上微调了LLM代理，并在两个数据集上实现了任务完成度相对于之前最先进技术约25%的相对提升。
+- en: 1 Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: 'Large language models (LLMs), which have shown impressive reasoning capabilities
+    in traditional natural language processing tasks, are increasingly used as the
+    reasoning engine of embodied agents for, e.g., household robots (Shridhar et al.
+    [2020](#bib.bib28)), video games (Wang et al. [2023](#bib.bib33)) and indoor navigation (Zhou,
+    Hong, and Wu [2023](#bib.bib38)). These tasks are mostly based on simulations
+    that either feature computer-generated images with a fixed set of displayable
+    objects and textures, or are limited in scale and trajectory length. In this paper,
+    we present a verbalization embodiment of an LLM agent (VELMA) for urban vision
+    and language navigation in Street View. The unique challenge of this task is the
+    combination of a large-scale environment derived from an actual road network,
+    real-world panorama images with dense street scenes, and long navigation trajectories.
+    The agent needs to ground its understanding of the navigation instructions in
+    the observable environment and reason about the next action to reach the target
+    location. The navigation instructions are written by humans and include open-ended
+    landmark references and directional indications intended to guide the agent along
+    the desired path. In order to leverage the reasoning capabilities of LLMs, we
+    use embodiment by verbalization, a workflow where the task, including the agent’s
+    trajectory and visual observations of the environment, is verbalized, thus embodying
+    the LLM via natural language. Figure [1](#S1.F1 "Figure 1 ‣ 1 Introduction ‣ VELMA:
+    Verbalization Embodiment of LLM Agents for Vision and Language Navigation in Street
+    View") shows the verbalization at the ninth step of the current trajectory for
+    a given navigation instance. At each step, the LLM is prompted with the current
+    text sequence in order to predict the next action. Then the predicted action is
+    executed in the environment, and the new observations are verbalized and appended
+    to the prompt. This is repeated until the agent eventually predicts to stop.'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '大型语言模型（LLMs）在传统自然语言处理任务中展现了令人印象深刻的推理能力，现已越来越多地被用作具身智能体的推理引擎，例如家庭机器人（Shridhar
+    等 [2020](#bib.bib28)）、视频游戏（Wang 等 [2023](#bib.bib33)）和室内导航（Zhou, Hong 和 Wu [2023](#bib.bib38)）。这些任务大多基于模拟环境，模拟环境要么特征是计算机生成的图像，拥有固定集合的可显示物体和纹理，要么受限于规模和轨迹长度。本文中，我们展示了一个大型语言模型智能体的语言表达具身（VELMA），用于街景中的城市视觉与语言导航。该任务的独特挑战在于，结合了源自实际道路网络的大规模环境、具有密集街景的现实世界全景图像以及长时间的导航轨迹。智能体需要将导航指令与可观察的环境相结合，推理出下一步行动，以便到达目标位置。导航指令由人类编写，包含开放式的地标参考和方向指示，旨在引导智能体沿着期望的路径前进。为了充分发挥大型语言模型的推理能力，我们采用了语言表达具身的方法，这是一种将任务（包括智能体的轨迹和对环境的视觉观察）转化为语言的工作流，从而通过自然语言实现大型语言模型的具身。图[1](#S1.F1
+    "图 1 ‣ 1 引言 ‣ VELMA: 用于街景中视觉与语言导航的LLM智能体的语言表达具身")展示了在当前轨迹的第九步时，对于特定导航实例的语言表达。在每一步，都会提示LLM当前的文本序列，以便预测下一步行动。然后，执行预测的行动，并将新的观察结果转化为语言，添加到提示中。这个过程会一直重复，直到智能体预测停止为止。'
+- en: '![Refer to caption](img/c2c77b353eb64b9b8d3799f6606049c4.png)'
+  id: totrans-12
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/c2c77b353eb64b9b8d3799f6606049c4.png)'
+- en: 'Figure 1: Prompt sequence used to utilize LLMs for VLN in Street View. Verbalized
+    observations of the visual environment are in green and appended to the prompt
+    at each step. Agent actions (blue) are acquired by LLM next word prediction. Highlighting
+    of text for visual presentation only. Full navigation trajectories are, on average,
+    40 steps long.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 1：在街景中使用LLM进行VLN的提示序列。视觉环境的语言表达观察结果用绿色标示，并在每一步添加到提示中。智能体的行动（蓝色）通过LLM的下一个词预测获得。文本高亮仅用于视觉呈现。完整的导航轨迹平均长度为40步。
+- en: 'The main contributions of our work are as follows: (i) We introduce VELMA,
+    to our knowledge, the first LLM-based agent for urban VLN. (ii) We report few-shot
+    results for the urban VLN task and achieve new state-of-the-art performance by
+    finetuning our agent on the training set. (iii) We address and resolve limitations
+    of the commonly used Touchdown environment (Chen et al. [2019](#bib.bib4)), making
+    it amenable for few-shot agents.'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们工作的主要贡献如下：（i）我们介绍了VELMA，迄今为止，VELMA是第一个基于LLM的城市VLN智能体；（ii）我们报告了城市VLN任务的少量示例结果，并通过在训练集上微调智能体，达到了新的最先进性能；（iii）我们解决了常用的Touchdown环境（Chen
+    等 [2019](#bib.bib4)）的局限性，使其适用于少量示例的智能体。
+- en: 2 Related Work
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 相关工作
+- en: Outdoor VLN
+  id: totrans-16
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 户外 VLN
+- en: Agent models for the outdoor/urban VLN task (Chen et al. [2019](#bib.bib4))
+    commonly follow a sequence-to-sequence architecture where encoded text and image
+    representations are fused for each decoder step (Xiang, Wang, and Wang [2020](#bib.bib35);
+    Hermann et al. [2020](#bib.bib10); Mehta et al. [2020](#bib.bib17); Schumann and
+    Riezler [2022](#bib.bib26); Sun et al. [2023](#bib.bib29)). Other proposed agents
+    employ pretrained vision and language transformers that are finetuned on task-specific
+    data (Zhu et al. [2021](#bib.bib41); Armitage, Impett, and Sennrich [2023](#bib.bib2)).
+    Zhong et al. ([2021](#bib.bib37)) represent the visual environment by symbols
+    using semantic segmentation and extreme downsampling of panorama images, but their
+    agent does not improve over previous success rates. Other work uses CLIP to score
+    the presence of extracted landmarks at each panorama node in a graph and uses
+    this information to plan a route for given navigation instructions (Shah et al.
+    [2022](#bib.bib27)). Their non-urban environment has a graph with 300 nodes, and
+    the navigation path is planned a priori with full access to all panorama images
+    and landmark scores. In contrast, our agent is embodied and has to plan ad-hoc
+    with access to directly observed information only.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 面向户外/城市 VLN 任务的智能体模型（Chen 等人 [2019](#bib.bib4)）通常遵循序列到序列架构，在每个解码步骤中将编码后的文本和图像表示融合（Xiang、Wang
+    和 Wang [2020](#bib.bib35)；Hermann 等人 [2020](#bib.bib10)；Mehta 等人 [2020](#bib.bib17)；Schumann
+    和 Riezler [2022](#bib.bib26)；Sun 等人 [2023](#bib.bib29)）。其他提议的智能体使用预训练的视觉和语言变换器，在任务特定数据上进行微调（Zhu
+    等人 [2021](#bib.bib41)；Armitage、Impett 和 Sennrich [2023](#bib.bib2)）。Zhong 等人（[2021](#bib.bib37)）通过语义分割和全景图像的极度降采样，使用符号表示视觉环境，但他们的智能体在成功率上并没有优于之前的结果。其他工作使用
+    CLIP 对图中每个全景节点提取的地标进行评分，并利用这些信息为给定的导航指令规划路线（Shah 等人 [2022](#bib.bib27)）。他们的非城市环境具有一个包含
+    300 个节点的图，并且导航路径是先验规划的，能够访问所有全景图像和地标评分。相比之下，我们的智能体是具身的，只能在仅能访问直接观察到的信息的情况下进行临时规划。
+- en: Indoor VLN
+  id: totrans-18
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 室内 VLN
+- en: Indoor agents (Fried et al. [2018](#bib.bib8); Wang et al. [2019](#bib.bib34);
+    Tan, Yu, and Bansal [2019](#bib.bib30); Fu et al. [2020](#bib.bib9); Zhu et al.
+    [2020](#bib.bib40); Qi et al. [2020](#bib.bib20); Hong et al. [2021](#bib.bib11);
+    Chen et al. [2021](#bib.bib5); Li, Tan, and Bansal [2022](#bib.bib16)) are used
+    for navigation datasets like R2R (Anderson et al. [2018](#bib.bib1)) and RxR (Ku
+    et al. [2020](#bib.bib15)) or ObjectNav (Ramakrishnan et al. [2021](#bib.bib22);
+    Zhou et al. [2023](#bib.bib39)). Khandelwal et al. ([2022](#bib.bib13)) showed
+    that using the CLIP encoder for image features improves performance for a range
+    of vision and language tasks. Recently, Zhou, Hong, and Wu ([2023](#bib.bib38))
+    introduced an LLM-based agent for R2R that incorporates image information by transcribing
+    its entire content with an image-to-text model. This is feasible because the navigation
+    trajectories are only six steps on average compared to 40 steps in the urban VLN
+    task considered in our work. Another notable indoor VLN agent (Dorbala et al.
+    [2022](#bib.bib7)) uses CLIP to directly predict the next action by scoring the
+    compatibility of a sub-instruction with available waypoint images.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 室内智能体（Fried 等人 [2018](#bib.bib8)；Wang 等人 [2019](#bib.bib34)；Tan、Yu 和 Bansal
+    [2019](#bib.bib30)；Fu 等人 [2020](#bib.bib9)；Zhu 等人 [2020](#bib.bib40)；Qi 等人 [2020](#bib.bib20)；Hong
+    等人 [2021](#bib.bib11)；Chen 等人 [2021](#bib.bib5)；Li、Tan 和 Bansal [2022](#bib.bib16)）用于诸如
+    R2R（Anderson 等人 [2018](#bib.bib1)）和 RxR（Ku 等人 [2020](#bib.bib15)）或 ObjectNav（Ramakrishnan
+    等人 [2021](#bib.bib22)；Zhou 等人 [2023](#bib.bib39)）等导航数据集。Khandelwal 等人（[2022](#bib.bib13)）表明，使用
+    CLIP 编码器进行图像特征提取可以提高一系列视觉和语言任务的性能。最近，Zhou、Hong 和 Wu（[2023](#bib.bib38)）为 R2R 引入了一种基于
+    LLM 的智能体，通过图像到文本模型转录其全部内容，融合图像信息。这是可行的，因为导航轨迹平均仅为六步，而我们工作中考虑的城市 VLN 任务的平均步骤数为
+    40 步。另一个显著的室内 VLN 智能体（Dorbala 等人 [2022](#bib.bib7)）使用 CLIP 直接通过评估子指令与可用的途径图像的兼容性来预测下一个动作。
+- en: 3 Urban VLN Environment
+  id: totrans-20
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 城市 VLN 环境
+- en: 'We use the Touchdown environment introduced by Chen et al. ([2019](#bib.bib4)).
+    The environment is based on Google’s Street View and features 29,641 full-circle
+    panorama images connected by a navigation graph. It covers the dense urban street
+    network spanning lower Manhattan. The navigation graph is a directed graph $G=\langle
+    V,E\rangle$ where each edge $\langle v,v^{\prime}\rangle\in E$ is associated with
+    $\alpha_{\langle v,v^{\prime}\rangle}$ which is the heading direction from node
+    $v$ to node $v^{\prime}$ ranging from 0° to 360°. The agent state $s=(v,\alpha)$
+    is composed of its current position $v\in V$ and its heading direction $\alpha$.
+    The agent can move by executing an action $a\in\{{\tt{FORWARD}},{\tt{LEFT}},{\tt{RIGHT}},{\tt{STOP}}\}$.
+    The state transition function $s_{t+1}=\phi(a_{t},s_{t})$ defines the behavior
+    of the agent executing an action. In Chen et al. ([2019](#bib.bib4)), the agent’s
+    heading $\alpha_{t}$ at position $v$ is restricted to align with the heading of
+    an outgoing edge $\alpha_{\langle v,v^{\prime}\rangle}$. In case of the ${\tt{RIGHT}}$
+    action, the new state $s_{t+1}$ is $(v,\alpha_{\langle v,\vec{\mkern 0.0muv}\rangle})$
+    where $\vec{\mkern 0.0muv}$ is the neighboring node closest to the right of the
+    agent’s current heading. In other words, the agent is rotated in place to the
+    right until it snaps to the direction of an outgoing edge. Likewise, for the ${\tt{LEFT}}$
+    action. In the case of the ${\tt{FORWARD}}$ action, the agent moves along the
+    edge $\langle v,v^{\prime}\rangle$ according to its current heading direction
+    $\alpha_{t}=\alpha_{\langle v,v^{\prime}\rangle}$. The environment is then forced
+    to automatically rotate the agent’s heading towards an outgoing edge: $\alpha_{t+1}=\alpha_{\langle
+    v^{\prime},v^{*}\rangle}$ where $v^{*}$ is the neighbor node in the direction
+    closest to the previous heading $\alpha_{t}$.'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用了Chen等人（[2019](#bib.bib4)）介绍的Touchdown环境。该环境基于Google的街景，包含29,641张全景图像，通过导航图连接。它覆盖了下曼哈顿的密集城市街道网络。导航图是一个有向图$G=\langle
+    V,E\rangle$，其中每条边$\langle v,v^{\prime}\rangle\in E$都与$\alpha_{\langle v,v^{\prime}\rangle}$相关联，表示从节点$v$到节点$v^{\prime}$的朝向，范围从0°到360°。代理的状态$s=(v,\alpha)$由其当前位置$v\in
+    V$和朝向$\alpha$组成。代理可以通过执行动作$a\in\{{\tt{FORWARD}},{\tt{LEFT}},{\tt{RIGHT}},{\tt{STOP}}\}$来移动。状态转移函数$s_{t+1}=\phi(a_{t},s_{t})$定义了代理执行动作时的行为。在Chen等人（[2019](#bib.bib4)）中，代理在位置$v$的朝向$\alpha_{t}$被限制为与出边的朝向$\alpha_{\langle
+    v,v^{\prime}\rangle}$对齐。如果执行${\tt{RIGHT}}$动作，则新的状态$s_{t+1}$为$(v,\alpha_{\langle
+    v,\vec{\mkern 0.0muv}\rangle})$，其中$\vec{\mkern 0.0muv}$是代理当前朝向右侧最近的邻居节点。换句话说，代理会在原地向右旋转，直到其朝向与出边的方向一致。同样，执行${\tt{LEFT}}$动作时也是如此。如果执行${\tt{FORWARD}}$动作，则代理会沿着边$\langle
+    v,v^{\prime}\rangle$根据当前的朝向$\alpha_{t}=\alpha_{\langle v,v^{\prime}\rangle}$移动。随后，环境会强制自动调整代理的朝向，指向一条出边：$\alpha_{t+1}=\alpha_{\langle
+    v^{\prime},v^{*}\rangle}$，其中$v^{*}$是指向先前朝向$\alpha_{t}$最接近的邻居节点。
+- en: 3.1 Alignment Inconsistencies in Touchdown
+  id: totrans-22
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 Touchdown中的对齐不一致性
+- en: '![Refer to caption](img/f8e99eaa3f250e7266c5f9dbf430f21a.png)'
+  id: totrans-23
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/f8e99eaa3f250e7266c5f9dbf430f21a.png)'
+- en: 'Figure 2: The Touchdown environment introduced by Chen et al. ([2019](#bib.bib4))
+    can require action sequences that are semantically inconsistent with the correct
+    navigation instructions. In the depicted subgraph, the action sequence to move
+    from node 1 to node 5 is to move ${\tt{FORWARD}}$ four times. The semantically
+    correct sequence of actions would include a right turn in between. We fix the
+    problem by modifying the environment behavior and selecting the desired direction
+    at intersections in relation to all outgoing streets.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：Chen等人（[2019](#bib.bib4)）介绍的Touchdown环境可能需要执行语义上与正确导航指令不一致的动作序列。在所示的子图中，从节点1移动到节点5的动作序列是连续执行四次${\tt{FORWARD}}$。语义上正确的动作序列应包括其中的一次右转。我们通过修改环境行为来解决这个问题，并在交叉口选择相对于所有出街道的期望方向。
+- en: 'As described in Schumann and Riezler ([2022](#bib.bib26)), the automatic rotation
+    mentioned above can lead to generalization problems, e.g., when moving towards
+    the flat side of a T-intersection. For example, if the agent is automatically
+    rotated towards the right facing street and subsequently executes the ${\tt{RIGHT}}$
+    action, it rotates towards the direction it came from instead of clearing the
+    intersection in the intended direction. The same problem also occurs at intersections
+    with more than three directions. Figure [2](#S3.F2 "Figure 2 ‣ 3.1 Alignment Inconsistencies
+    in Touchdown ‣ 3 Urban VLN Environment ‣ VELMA: Verbalization Embodiment of LLM
+    Agents for Vision and Language Navigation in Street View") gives an illustrative
+    example that shows the navigation graph at a 4-way intersection. Because the environment
+    is derived from a real-world street layout, the nodes in the graph are not perfectly
+    arranged as in an artificial grid world. In order to make a right turn at the
+    intersection and to follow the route from $v^{1}$ to $v^{5}$, one expects to use
+    the action sequence $[{\tt{FORWARD}},{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}},{\tt{FORWARD}}]$.
+    However, when the agent reaches $v^{3}$, it is automatically rotated towards the
+    closest outgoing edge, in this case, $\langle v^{3},v^{4}\rangle$. This is because
+    the rotation $20\degree$→$50\degree$ towards $v_{4}$ is shorter than the rotation
+    $20\degree$→$345\degree$ towards $v_{7}$. As such, the required sequence of actions
+    to go from $v^{1}$ to $v^{5}$ in Chen et al. ([2019](#bib.bib4))’s environment
+    is $[{\tt{FORWARD}},{\tt{FORWARD}},{\tt{FORWARD}},{\tt{FORWARD}}]$. This is unpredictable
+    and is not correctly aligned with ”turn right at the intersection” instructions.¹¹1In
+    the Appendix we show more examples for 3-way, 4-way and 5-way intersections. To
+    alleviate this problem, Schumann and Riezler ([2022](#bib.bib26)) explicitly feed
+    the change of heading at each timestep as additional input to their model. This
+    enables the agent to anticipate the unexpected rotation and to adapt to it. Because
+    adding heading delta values to the text-based interface makes it convoluted and
+    unnecessarily difficult for few-shot learning, we propose a more intuitive way
+    to solve this ambiguity at intersections. We modify the state transition function
+    $\phi$ such that the agent is not automatically rotated when moving ${\tt{FORWARD}}$.
+    This means the agent’s heading $\alpha_{t}$ is not automatically aligned with
+    an outgoing edge. Instead, the direction is selected in relation to all outgoing
+    edges. The agent at node $v^{3}$ in Figure [2](#S3.F2 "Figure 2 ‣ 3.1 Alignment
+    Inconsistencies in Touchdown ‣ 3 Urban VLN Environment ‣ VELMA: Verbalization
+    Embodiment of LLM Agents for Vision and Language Navigation in Street View") has
+    the nodes $v^{6}$, $v^{7}$ and $v^{4}$ in front. The forward direction is selected
+    as the middle one of the three edges, the right direction as the right-most edge,
+    and the left direction as the left-most edge. This means that executing the ${\tt{RIGHT}}$
+    action at position $v^{3}$ will now rotate the agent towards node $v^{4}$ and
+    allows to use the semantically correct sequence of actions for the depicted route.
+    The proposed modification solves the issue of inconsistent action sequences at
+    intersections and allows to use agents that are not specifically trained in this
+    environment.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如Schumann和Riezler（[2022](#bib.bib26)）所述，上述提到的自动旋转可能会导致泛化问题，例如，当朝着T字路口的平坦侧行驶时。例如，如果代理自动旋转朝向右侧街道，然后执行${\tt{RIGHT}}$动作，它将朝着自己来的方向旋转，而不是按照预期的方向清理交叉口。这个问题在具有三个以上方向的交叉口也会发生。图[2](#S3.F2
+    "图2 ‣ 3.1 Touchdown中的对齐不一致 ‣ 3 城市VLN环境 ‣ VELMA: 面向视觉和语言导航的LLM代理的口头化体现")给出了一个示例，展示了四通道交叉口的导航图。由于该环境源自现实世界的街道布局，图中的节点并不像人工网格世界那样完美排列。为了在交叉口右转并沿着从$v^{1}$到$v^{5}$的路线行驶，预期的动作序列是$[{\tt{FORWARD}},{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}},{\tt{FORWARD}}]$。然而，当代理到达$v^{3}$时，它会自动旋转朝向最近的出口边缘，在此情况下是$\langle
+    v^{3},v^{4}\rangle$。这是因为朝着$v_{4}$的旋转$20\degree$→$50\degree$比朝着$v_{7}$的旋转$20\degree$→$345\degree$更短。因此，在Chen等人（[2019](#bib.bib4)）的环境中，从$v^{1}$到$v^{5}$所需的动作序列是$[{\tt{FORWARD}},{\tt{FORWARD}},{\tt{FORWARD}},{\tt{FORWARD}}]$。这无法预测，并且与“在交叉口右转”指令不一致。¹¹1在附录中我们展示了更多关于三通、四通和五通交叉口的例子。为了缓解这个问题，Schumann和Riezler（[2022](#bib.bib26)）明确地将每个时间步的航向变化作为附加输入提供给他们的模型。这使得代理能够预测意外的旋转并适应它。由于在基于文本的接口中添加航向增量值使得操作变得复杂且不必要地增加了少样本学习的难度，我们提出了一种更直观的方法来解决交叉口的歧义。我们修改了状态转移函数$\phi$，使得当代理移动${\tt{FORWARD}}$时不会自动旋转。这意味着代理的航向$\alpha_{t}$不会自动与出口边缘对齐。相反，方向是根据所有出口边缘来选择的。图[2](#S3.F2
+    "图2 ‣ 3.1 Touchdown中的对齐不一致 ‣ 3 城市VLN环境 ‣ VELMA: 面向视觉和语言导航的LLM代理的口头化体现")中的代理在节点$v^{3}$时，前面有节点$v^{6}$、$v^{7}$和$v^{4}$。前进方向选择为三条边缘中的中间一条，右转方向选择为最右边的边缘，左转方向选择为最左边的边缘。这意味着在$v^{3}$位置执行${\tt{RIGHT}}$动作将使代理朝向节点$v^{4}$旋转，并允许使用语义正确的动作序列来表示该路线。所提议的修改解决了交叉口处动作序列不一致的问题，并使得在该环境中没有专门训练的代理也能使用。'
+- en: 3.2 Turning Around
+  id: totrans-26
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 调头
+- en: 'We additionally introduce the ${\tt{TURN\_AROUND}}$ action which lets the agent
+    reverse its direction: $s_{t+1}=(v,\alpha_{t}-180\degree)$. In the unmodified
+    environment, this is achieved using the ${\tt{LEFT}}$ or ${\tt{RIGHT}}$ action
+    on regular street segments. The new action is better aligned with natural language
+    verbalizations of direction reversal and promotes intuitive communication with
+    the environment.'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们额外引入了${\tt{TURN\_AROUND}}$动作，允许代理反转其方向：$s_{t+1}=(v,\alpha_{t}-180\degree)$。在未修改的环境中，这可以通过在常规街道段上使用${\tt{LEFT}}$或${\tt{RIGHT}}$动作来实现。这个新动作更符合自然语言中的方向反转表达，促进了与环境的直观沟通。
+- en: 4 Navigation Task
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 导航任务
+- en: 'The objective of the navigation task is to find the goal location by following
+    the given navigation instructions. A navigation instance is defined by the initial
+    state $s_{1}$, target node $\hat{v}_{T}$, gold path $(\hat{v}_{1},\hat{v}_{2}...,\hat{v}_{T})$
+    and navigation instructions text $n=(w_{1},w_{2},...,w_{N})$. The agent starts
+    at $s_{1}$ and predicts the next action $a_{1}$ based on the navigation instructions
+    and current observations. These are the panorama image and number of outgoing
+    edges at the current position. The environment processes the action and puts the
+    agent into a new state: $s_{2}=\phi(a_{1},s_{1})$. This is repeated until the
+    agent predicts ${\tt{STOP}}$ at the presumed goal location. If the agent stops
+    within one neighboring node of the target node, the navigation objective is considered
+    accomplished.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导航任务的目标是通过遵循给定的导航指令找到目标位置。一个导航实例由初始状态$s_{1}$、目标节点$\hat{v}_{T}$、黄金路径$(\hat{v}_{1},\hat{v}_{2}...,\hat{v}_{T})$和导航指令文本$n=(w_{1},w_{2},...,w_{N})$定义。代理从$s_{1}$开始，根据导航指令和当前观察预测下一个动作$a_{1}$。这些观察包括当前所在位置的全景图像和出发边的数量。环境处理该动作并将代理置于新的状态：$s_{2}=\phi(a_{1},s_{1})$。这一过程不断重复，直到代理在假定的目标位置预测${\tt{STOP}}$。如果代理在目标节点的一个邻近节点处停下，则认为导航任务已完成。
+- en: '| Egocentric Spatial Reasoning |'
+  id: totrans-30
+  prefs: []
+  type: TYPE_TB
+  zh: '| 自我中心空间推理 |'
+- en: '| --- |'
+  id: totrans-31
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- |'
+- en: '| 1. | … turn so the orange construction barrier is on your left … |'
+  id: totrans-32
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1. | … 转弯让橙色的施工障碍物在你左侧 … |'
+- en: '| 2. | … a red truck in front of you … |'
+  id: totrans-33
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2. | … 你前方有一辆红色卡车 … |'
+- en: '| 3. | … a playground on the far right corner ahead … |'
+  id: totrans-34
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3. | … 前方远处的右角有一个游乐场 … |'
+- en: '| Allocentric Spatial Reasoning |'
+  id: totrans-35
+  prefs: []
+  type: TYPE_TB
+  zh: '| 他心态空间推理 |'
+- en: '| 4. | … green metal pole with pink flowers on top … |'
+  id: totrans-36
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4. | … 绿色的金属杆上方有粉红色的花 … |'
+- en: '| 5. | … building with columns around the windows … |'
+  id: totrans-37
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5. | … 建筑物周围有窗户上的柱子 … |'
+- en: '| 6. | … stop in between Chase and Dunkin’ Donuts … |'
+  id: totrans-38
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6. | … 在Chase和Dunkin'' Donuts之间停下 … |'
+- en: '| Temporal Reasoning |'
+  id: totrans-39
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间推理 |'
+- en: '| 7. | … go straight until you see Chipotle and then … |'
+  id: totrans-40
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7. | … 直行直到你看到Chipotle，然后 … |'
+- en: '| 8. | … once you passed the underpass … |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8. | … 一旦你通过了天桥 … |'
+- en: '| 9. | … stop when the park on your right ends … |'
+  id: totrans-42
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9. | … 当你右侧的公园结束时停下 … |'
+- en: '| Other |'
+  id: totrans-43
+  prefs: []
+  type: TYPE_TB
+  zh: '| 其他 |'
+- en: '| 10. | … proceed straight through three more intersections … |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10. | … 直行穿过三个交叉口 … |'
+- en: '| 11. | … you should see TD Bank on your left … |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11. | … 你应该看到左侧的TD Bank … |'
+- en: '| 12. | … if you see Dory Oyster Bar, you have gone too far … |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12. | … 如果你看到Dory Oyster Bar，就说明你走得太远了 … |'
+- en: 'Table 1: Reasoning skills the embodied LLM agent must possess in order to successfully
+    complete the navigation task. Each with three example snippets from the navigation
+    instructions.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1：完成导航任务所需的推理能力。每个能力附带三段导航指令的示例。
+- en: 4.1 Challenges
+  id: totrans-48
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.1 挑战
+- en: '![Refer to caption](img/cddf454324e197a9f5c1c04f5bd4ebb3.png)'
+  id: totrans-49
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/cddf454324e197a9f5c1c04f5bd4ebb3.png)'
+- en: 'Figure 3: Overview of the proposed agent VELMA navigating in the Street View
+    environment. The prompt sequence includes the task description, navigation instructions,
+    and verbalized navigation trajectory up to the current timestep. The next action
+    is decided by next word prediction utilizing an LLM and subsequently executed
+    in the environment. This puts the agent into a new state, and the landmark scorer
+    determines if an extracted landmark is visible in the current panorama view. The
+    verbalizer takes this landmark information along with the information about a
+    potential intersection and produces the current observations text. This text is
+    then appended to the prompt sequence and again used to predict the next action.
+    This process is repeated until the agent stops and the alleged target location.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：所提议的智能体 VELMA 在街景环境中的导航概述。提示序列包括任务描述、导航指令和到当前时间步的语言化导航轨迹。下一步动作由大型语言模型（LLM）通过下一个词预测决定，随后在环境中执行。这使得智能体进入新的状态，地标评分器决定在当前全景视图中提取的地标是否可见。语言化器将该地标信息与潜在交叉口的信息一起处理，并生成当前的观察文本。该文本随后被追加到提示序列中，并再次用于预测下一个动作。这个过程会重复，直到智能体停止并到达预定目标位置。
+- en: 'One main challenge to successfully follow the navigation instructions is to
+    reliably detect landmarks in the panorama images along the route. The landmarks
+    mentioned in the instructions are open-ended and can refer to any object or structure
+    found in street scenes, including vegetation, building features, vehicle types,
+    street signs, construction utilities, company logos and store names. The agent
+    also needs to posses different types of reasoning, most importantly spatial reasoning
+    to follow general directions, locate landmarks and evaluate stopping conditions.
+    The agent also needs to understand the temporal aspect of the task and reason
+    about the sequence of previous observations and actions. See Table [1](#S4.T1
+    "Table 1 ‣ 4 Navigation Task ‣ VELMA: Verbalization Embodiment of LLM Agents for
+    Vision and Language Navigation in Street View") for example snippets from the
+    navigation instructions.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 成功遵循导航指令的一个主要挑战是能够可靠地检测到路线上的全景图像中的地标。指令中提到的地标是开放性的，可能指代街景中任何物体或结构，包括植被、建筑特征、车辆类型、街道标志、建筑设施、公司标识和商店名称。智能体还需要具备不同类型的推理能力，最重要的是空间推理能力，以便按照一般指示定位地标并评估停止条件。智能体还需要理解任务的时间性方面，并推理出之前观察和行动的顺序。有关导航指令的示例片段，请参见表[1](#S4.T1
+    "表1 ‣ 4 导航任务 ‣ VELMA：视觉和语言导航中的大型语言模型体现在街景中的描述")。
+- en: 4.2 Datasets
+  id: totrans-52
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 4.2 数据集
+- en: 'There are two datasets that provide navigation instructions for the environment
+    described in Section [3](#S3 "3 Urban VLN Environment ‣ VELMA: Verbalization Embodiment
+    of LLM Agents for Vision and Language Navigation in Street View"): Touchdown (Chen
+    et al. [2019](#bib.bib4)) and Map2seq (Schumann and Riezler [2021](#bib.bib25)).
+    Each dataset includes around 10k navigation instances, and we utilize them in
+    the more challenging unseen scenario introduced by Schumann and Riezler ([2022](#bib.bib26)).
+    This means that generalization is crucial because the training routes are located
+    in an area that is geographically separated from the area of development and test
+    routes. The main difference between the two datasets is that Touchdown instructions
+    were written by annotators who followed the route in Street View, while Map2seq
+    instructions were written by annotators that saw a map of the route. The Map2seq
+    navigation instructions were later validated to also be correct in Street View.
+    Another difference is that the initial state in Map2seq orientates the agent towards
+    the correct direction which leads to overall better task completion rates than
+    for Touchdown instances.'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有两个数据集提供了第[3](#S3 "3 城市VLN环境 ‣ VELMA：视觉和语言导航中的大型语言模型体现在街景中的描述")节中所述环境的导航指令：Touchdown（Chen
+    等人 [2019](#bib.bib4)）和 Map2seq（Schumann 和 Riezler [2021](#bib.bib25)）。每个数据集包含约
+    10k 个导航实例，我们在 Schumann 和 Riezler（[2022](#bib.bib26)）提出的更具挑战性的未见场景中使用它们。这意味着泛化能力至关重要，因为训练路线位于与开发和测试路线的区域地理上分隔开的位置。两个数据集之间的主要区别在于，Touchdown
+    的指令是由跟随街景路线的标注员编写的，而 Map2seq 的指令是由看到路线地图的标注员编写的。Map2seq 的导航指令后来经过验证，证明在街景中也是正确的。另一个区别是，Map2seq
+    中的初始状态会将智能体朝向正确方向进行定位，因此其任务完成率普遍高于 Touchdown 实例。
+- en: '![Refer to caption](img/5004720ea498b30fe1fe49c3b2c6ccbd.png)![Refer to caption](img/38ad8969d2a1fa203fbd94b6d4391afe.png)'
+  id: totrans-54
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/5004720ea498b30fe1fe49c3b2c6ccbd.png)![参见标题](img/38ad8969d2a1fa203fbd94b6d4391afe.png)'
+- en: 'Figure 4: Distribution of CLIP scores between a landmark and panorama images
+    in the training area. The CLIP score represents the semantic similarity of the
+    panorama image and the text caption ”picture of $[$landmark$]$”. The distribution
+    is used to standardize the score of the landmark and a novel panorama. The threshold
+    $\tau$ is defined on the standardized score and used to determine the visibility
+    of the landmark in the novel panorama image.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：训练区域中地标与全景图像之间的CLIP得分分布。CLIP得分表示全景图像与文本说明“$[$地标$]$的图片”之间的语义相似度。该分布用于标准化地标和新全景图的得分。阈值$\tau$在标准化得分上定义，用于确定地标在新全景图像中的可见性。
+- en: 5 LLM Agent
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 LLM代理
+- en: 'In this section, we propose the urban VLN agent that uses an LLM to reason
+    about the next action. To this end, we verbalize the navigation task, especially
+    the environment observations. The workflow includes the extraction of landmarks
+    that are mentioned in the instructions and determining their visibility in the
+    current panorama image. The verbalizer then integrates the visible landmarks and
+    street intersections into an observation text phrase $o_{t}$ at each step. The
+    complete text prompt at timestep $t$ is composed as follows:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们提出了一个城市VLN代理，它使用LLM推理下一步的动作。为此，我们将导航任务，特别是环境观察进行语言化。工作流程包括提取指令中提到的地标，并确定它们在当前全景图中的可见性。语言化器然后将可见的地标和街道交叉口整合到每一步的观察文本短语$o_{t}$中。时间步$t$的完整文本提示如下所示：
+- en: '|  | $x_{t}=[d^{a},n,d^{b},o_{1},1,a_{1},o_{2},2,a_{2},...,o_{t},t],$ |  |
+    (1) |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $x_{t}=[d^{a},n,d^{b},o_{1},1,a_{1},o_{2},2,a_{2},...,o_{t},t],$ |  |
+    (1) |'
+- en: 'where $[\;]$ denotes string concatenation, $d^{a}$ and $d^{b}$ are part of
+    the task description and $n$ is the navigation instructions text. Punctuation
+    and formatting are omitted in the notation for brevity. Figure [3](#S4.F3 "Figure
+    3 ‣ 4.1 Challenges ‣ 4 Navigation Task ‣ VELMA: Verbalization Embodiment of LLM
+    Agents for Vision and Language Navigation in Street View") shows a prompt sequence
+    at $t=8$ on the left. This formulation of the navigation task enables the agent
+    to predict the next action by next word prediction:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$[\;]$表示字符串连接，$d^{a}$和$d^{b}$是任务描述的一部分，$n$是导航指令文本。为简洁起见，符号和格式省略。图[3](#S4.F3
+    "图 3 ‣ 4.1 挑战 ‣ 4 导航任务 ‣ VELMA：视觉和语言导航中的LLM代理的语言表达")显示了左侧$t=8$时的提示序列。这个导航任务的表达方式使得代理能够通过下一个单词预测来预测下一个动作：
+- en: '|  | $a_{t}=\operatorname*{arg\,max}_{w\in A}P_{LLM}(w&#124;x_{t}),$ |  | (2)
+    |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $a_{t}=\operatorname*{arg\,max}_{w\in A}P_{LLM}(w&#124;x_{t}),$ |  | (2)
+    |'
+- en: where $A$ are the literals of the five defined actions and $P_{LLM}$ is a black-box
+    language model with no vision capabilities.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$A$是定义的五个动作字面值，$P_{LLM}$是一个没有视觉能力的黑盒语言模型。
+- en: 5.1 Landmark Extractor
+  id: totrans-62
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.1 地标提取器
+- en: 'Each navigation instructions text $n$ mentions multiple landmarks for visual
+    guidance. In order to determine if a mentioned landmark is visible in the current
+    panorama view, we first have to extract them from the instructions text. For this,
+    we create a single prompt that includes five in-context examples of navigation
+    instructions paired with a list of landmarks (shown in the Appendix). It is used
+    by the LLM to automatically generate the list of landmarks $(l_{1},l_{2},...,l_{L})$
+    mentioned in the given navigation instructions. The landmark extractor is depicted
+    in the top middle of Figure [3](#S4.F3 "Figure 3 ‣ 4.1 Challenges ‣ 4 Navigation
+    Task ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and Language Navigation
+    in Street View") and executed before the navigation starts.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每条导航指令文本$n$提到多个地标用于视觉指导。为了确定提到的地标在当前全景图中是否可见，我们首先需要从指令文本中提取出这些地标。为此，我们创建了一个单一的提示，包含五个带有地标列表的导航指令示例（见附录）。该提示由LLM使用，以自动生成给定导航指令中提到的地标列表$(l_{1},l_{2},...,l_{L})$。地标提取器如图[3](#S4.F3
+    "图 3 ‣ 4.1 挑战 ‣ 4 导航任务 ‣ VELMA：视觉和语言导航中的LLM代理的语言表达")中所示，且在导航开始之前执行。
+- en: 5.2 Landmark Scorer
+  id: totrans-64
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.2 地标评分器
+- en: 'At each step, the agent observes a panorama view $p^{\alpha}_{v}$, defined
+    by its current position $v$ and heading direction $\alpha$. The view is an 800x460
+    sized image cut from the panorama with 60° field-of-view. In order to determine
+    if a landmark $l_{i}$ is visible in the view, we employ a CLIP model (Radford
+    et al. [2021](#bib.bib21)) to embed the image and the caption: ”picture of [$l_{i}$]”.
+    The similarity score of the two embeddings determines the visibility of the landmark.
+    Because the scores can be biased towards certain types of landmarks, we standardize
+    them using all views $p^{*}_{train}$ of the [~](~)20k panorama images in the training
+    area. Recall that we operate in the unseen scenario where the training area and
+    evaluation area are geographically separated. The standardized score of a landmark
+    is:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每一步，代理会观察一个全景视角$p^{\alpha}_{v}$，该视角由当前的位置$v$和朝向方向$\alpha$定义。该视角是从全景图中裁剪出的一个800x460大小的图像，视野为60°。为了确定地标$l_{i}$是否在视角中可见，我们使用CLIP模型（Radford等，[2021](#bib.bib21)）将图像和标题："[$l_{i}$]的图片"进行嵌入。两个嵌入的相似度得分决定了地标的可见性。由于得分可能对某些类型的地标产生偏差，因此我们使用训练区域中的所有视角$p^{*}_{train}$，即约20k张全景图像，对得分进行标准化。请记住，我们在一个未见过的场景中进行操作，其中训练区域和评估区域在地理上是分离的。地标的标准化得分为：
+- en: '|  | $\begin{gathered}z(l,p^{\alpha}_{v})=\frac{\text{CLIP}(l,p^{\alpha}_{v})-\mu(C_%
+    {l})}{\sigma(C_{l})}\\ \text{where }C_{l}=\{\text{CLIP}(l,p^{\alpha^{\prime}}_{v^{\prime}})\mid
+    p^{% \alpha^{\prime}}_{v^{\prime}}\in p^{*}_{train}\}.\end{gathered}$ |  | (3)
+    |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\begin{gathered}z(l,p^{\alpha}_{v})=\frac{\text{CLIP}(l,p^{\alpha}_{v})-\mu(C_%
+    {l})}{\sigma(C_{l})}\\ \text{其中 }C_{l}=\{\text{CLIP}(l,p^{\alpha^{\prime}}_{v^{\prime}})\mid
+    p^{% \alpha^{\prime}}_{v^{\prime}}\in p^{*}_{train}\}.\end{gathered}$ |  | (3)
+    |'
+- en: 'If the standardized score is larger than the threshold $\tau$, the landmark
+    is classified as visible in the current view. The process does not require annotations
+    and is completely unsupervised, allowing to score novel landmarks. The threshold
+    is the only tunable parameter in the landmark scorer. Figure [4](#S4.F4 "Figure
+    4 ‣ 4.2 Datasets ‣ 4 Navigation Task ‣ VELMA: Verbalization Embodiment of LLM
+    Agents for Vision and Language Navigation in Street View") shows the distribution
+    of unstandardized CLIP scores and views at different threshold values for two
+    example landmarks. While the views at $\tau=4.0$ both show the correct landmark,
+    the view at $\tau=3.0$ for ”Bank of America” shows an HSBC branch, and for ”yellow
+    truck” it shows a white truck. This suggests that the optimal threshold lies between
+    the two values. As depicted on the right in Figure [3](#S4.F3 "Figure 3 ‣ 4.1
+    Challenges ‣ 4 Navigation Task ‣ VELMA: Verbalization Embodiment of LLM Agents
+    for Vision and Language Navigation in Street View"), the agent also evaluates
+    views to the left and right of the current heading. Each panorama view direction
+    $(p^{\alpha-90\degree}_{v},p^{\alpha-45\degree}_{v},p^{\alpha}_{v},p^{\alpha+45%
+    \degree}_{v},p^{\alpha+90\degree}_{v})$ is associated with a string literal $m$
+    valued left, slightly left, ahead, slightly right or right, respectively. A visible
+    landmark $l_{i}$ and the corresponding direction literal $m_{i}$ are passed to
+    the verbalizer. A full navigation trajectory includes around 200 image views (40
+    steps and 5 view directions per step) and each landmark is typically visible in
+    only one or two views.'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果标准化得分大于阈值$\tau$，则地标在当前视角下被分类为可见。该过程不需要标注，并且是完全无监督的，从而能够对新的地标进行评分。阈值是地标评分器中唯一可调节的参数。图[4](#S4.F4
+    "图4 ‣ 4.2 数据集 ‣ 4 导航任务 ‣ VELMA: 用于街景中的视觉和语言导航的LLM代理的语言化体现")展示了在不同阈值下，两个示例地标的标准化CLIP得分和视角的分布。当$\tau=4.0$时，两个视角都显示了正确的地标，而在$\tau=3.0$时，”美国银行”显示了汇丰银行分行，而”黄色卡车”显示了白色卡车。这表明最佳阈值应该介于这两个值之间。如图[3](#S4.F3
+    "图3 ‣ 4.1 挑战 ‣ 4 导航任务 ‣ VELMA: 用于街景中的视觉和语言导航的LLM代理的语言化体现")右侧所示，代理还会评估当前朝向的左侧和右侧视角。每个全景视角方向$(p^{\alpha-90\degree}_{v},p^{\alpha-45\degree}_{v},p^{\alpha}_{v},p^{\alpha+45\degree}_{v},p^{\alpha+90\degree}_{v})$与一个字符串字面值$m$相关，分别表示左侧、略左、正前方、略右和右侧。一个可见的地标$l_{i}$和相应的方向字面值$m_{i}$将传递给语言生成器。一个完整的导航轨迹包括大约200个图像视角（每步40个视角，每步5个视角方向），每个地标通常只在一个或两个视角中可见。'
+- en: 5.3 Verbalizer
+  id: totrans-68
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 5.3 语言生成器
+- en: 'The verbalizer is a template-based component that produces environment observations
+    in text form. There are two types of environment observations. First, there are
+    street intersections that are detected based on the number of outgoing edges $N(v)$
+    at the current node $v$ in the navigation graph. If there are three or more outgoing
+    edges at step $t$, the verbalizer encodes this information into the observation
+    string $o_{t}^{e}$: ”There is a $[N(v)]$-way intersection”. Extracting this information
+    directly from the navigation graph is akin to the junction type embedding used
+    by the ORAR model (Schumann and Riezler [2022](#bib.bib26)) and is motivated by
+    direction arrows displayed in the Street View GUI that human navigators used during
+    data collection. The other type of observations are landmarks visible in the panorama
+    view. The landmark name $l_{i}$ and direction literal $m_{i}$ are used to verbalize
+    the observation $o_{t}^{l}$: ”There is $[l_{i}]$ on your $[m_{i}]$”. The complete
+    observation is $o_{t}=[o_{t}^{e},o_{t}^{l}]$, where the respective string is empty
+    if no intersection or landmark is detected. The observation is appended to the
+    prompt in Equation [1](#S5.E1 "1 ‣ 5 LLM Agent ‣ VELMA: Verbalization Embodiment
+    of LLM Agents for Vision and Language Navigation in Street View") and used by
+    the agent to decide the next action.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '语言生成器（verbalizer）是一个基于模板的组件，用于生成文本形式的环境观察信息。环境观察分为两种类型。第一种是街道交叉口，通过在导航图中的当前节点$v$上的出边数$N(v)$来检测。如果在步骤$t$上有三个或更多的出边，语言生成器会将此信息编码成观察字符串$o_{t}^{e}$：“这里有一个$[N(v)]$路口”。从导航图中直接提取该信息类似于ORAR模型使用的交叉口类型嵌入（Schumann
+    和 Riezler [2022](#bib.bib26)），并且灵感来源于数据采集过程中人类导航员使用的街景视图GUI上的方向箭头。另一种类型的观察是全景视图中可见的地标。地标名称$l_{i}$和方向字面量$m_{i}$用于表达观察$o_{t}^{l}$：“在你的$[m_{i}]$方向有$[l_{i}]$”。完整的观察是$o_{t}=[o_{t}^{e},o_{t}^{l}]$，如果没有检测到交叉口或地标，相应的字符串为空。该观察会被附加到公式[1](#S5.E1
+    "1 ‣ 5 LLM Agent ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and
+    Language Navigation in Street View")中的提示中，并供代理决定下一步操作。'
+- en: 6 Experiments
+  id: totrans-70
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 个实验
+- en: '|  | Development Set | Test Set |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 开发集 | 测试集 |'
+- en: '|  | Touchdown | Map2seq | Touchdown | Map2seq |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | Touchdown | Map2seq | Touchdown | Map2seq |'
+- en: '| Model | SPD↓ | KPA↑ | TC↑ | SPD↓ | KPA↑ | TC↑ | SPD↓ | KPA↑ | TC↑ | SPD↓
+    | KPA↑ | TC↑ |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| 模型 | SPD↓ | KPA↑ | TC↑ | SPD↓ | KPA↑ | TC↑ | SPD↓ | KPA↑ | TC↑ | SPD↓ | KPA↑
+    | TC↑ |'
+- en: '| ORAR-ResNet | 20.0 ±0.7 | - |  15.4 ±2.2 | 11.9 ±0.4 | - |  27.6 ±1.8 | 20.8 ±0.6
+    | - |  14.9 ±1.2 | 13.0 ±0.3 | - |  30.3  ±1.8 |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| ORAR-ResNet | 20.0 ±0.7 | - |  15.4 ±2.2 | 11.9 ±0.4 | - |  27.6 ±1.8 | 20.8 ±0.6
+    | - |  14.9 ±1.2 | 13.0 ±0.3 | - |  30.3  ±1.8 |'
+- en: '| ORAR^($\spadesuit$)-ResNet | 16.5 ±0.1 |  64.0 ±0.2 |  22.6 ±0.6 | 10.3 ±0.4
+    |  74.4 ±0.8 |  29.9 ±1.7 | 17.4 ±0.2 |  62.3 ±0.1 |  19.1 ±1.0 | 10.9 ±0.1 |
+     74.7 ±0.2 |  32.5 ±1.4 |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| ORAR^($\spadesuit$)-ResNet | 16.5 ±0.1 |  64.0 ±0.2 |  22.6 ±0.6 | 10.3 ±0.4
+    |  74.4 ±0.8 |  29.9 ±1.7 | 17.4 ±0.2 |  62.3 ±0.1 |  19.1 ±1.0 | 10.9 ±0.1 |
+     74.7 ±0.2 |  32.5 ±1.4 |'
+- en: '| ORAR^($\spadesuit$)-OpenCLIP | 17.5 ±0.2 |  63.7 ±1.0 |  21.5 ±0.9 | 10.0 ±0.2
+    |  75.3 ±0.5 |  32.8 ±1.5 | 17.0 ±0.1 |  63.4 ±0.4 |  20.0 ±0.1 | 10.5 ±0.5 |
+     75.1 ±0.7 |  34.0 ±0.5 |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| ORAR^($\spadesuit$)-OpenCLIP | 17.5 ±0.2 |  63.7 ±1.0 |  21.5 ±0.9 | 10.0 ±0.2
+    |  75.3 ±0.5 |  32.8 ±1.5 | 17.0 ±0.1 |  63.4 ±0.4 |  20.0 ±0.1 | 10.5 ±0.5 |
+     75.1 ±0.7 |  34.0 ±0.5 |'
+- en: '|  | 2-Shot In-Context Learning |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 2-次上下文学习 |'
+- en: '| VELMA-Mixtral | 28.4 |  47.2 |  6.5 | 21.1 |  56.8 |  8.0 | - | - | - | -
+    | - | - |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| VELMA-Mixtral | 28.4 |  47.2 |  6.5 | 21.1 |  56.8 |  8.0 | - | - | - | -
+    | - | - |'
+- en: '| VELMA-GPT-3 | 22.2 |  49.1 |  6.8 | 19.1 |  58.1 |  9.2 | - | - | - | - |
+    - | - |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| VELMA-GPT-3 | 22.2 |  49.1 |  6.8 | 19.1 |  58.1 |  9.2 | - | - | - | - |
+    - | - |'
+- en: '| VELMA-GPT-4 | 21.8 |  56.1 |  10.0 | 12.8 |  70.1 |  23.1 | - | - | - | -
+    | - | - |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| VELMA-GPT-4 | 21.8 |  56.1 |  10.0 | 12.8 |  70.1 |  23.1 | - | - | - | -
+    | - | - |'
+- en: '|  | LLM Finetuning, full training set |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | LLM微调，完整训练集 |'
+- en: '| VELMA-FT | 18.3 ±0.4 |  62.0 ±0.1 |  23.4 ±0.2 | 8.7 ±0.0 |  78.7 ±0.3 |
+     41.3 ±0.9 | 18.2 ±0.3 |  62.2 ±0.2 |  23.5 ±0.4 | 9.7 ±0.3 |  78.0 ±0.1 |  40.0 ±1.0
+    |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| VELMA-FT | 18.3 ±0.4 |  62.0 ±0.1 |  23.4 ±0.2 | 8.7 ±0.0 |  78.7 ±0.3 |
+     41.3 ±0.9 | 18.2 ±0.3 |  62.2 ±0.2 |  23.5 ±0.4 | 9.7 ±0.3 |  78.0 ±0.1 |  40.0 ±1.0
+    |'
+- en: '| VELMA-RBL | 15.5 ±0.3 |  63.6 ±0.6 |  26.0 ±0.6 | 8.3 ±0.1 |  79.5 ±0.4 |
+     45.3 ±0.5 | 16.0 ±0.7 |  62.8 ±1.3 |  26.4 ±1.7 | 8.3 ±0.2 |  79.6 ±0.4 |  47.5 ±0.7
+    |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| VELMA-RBL | 15.5 ±0.3 |  63.6 ±0.6 |  26.0 ±0.6 | 8.3 ±0.1 |  79.5 ±0.4 |
+     45.3 ±0.5 | 16.0 ±0.7 |  62.8 ±1.3 |  26.4 ±1.7 | 8.3 ±0.2 |  79.6 ±0.4 |  47.5 ±0.7
+    |'
+- en: 'Table 2: Results for the urban VLN task on Touchdown and Map2seq in the unseen
+    scenario, meaning the training area is geographically separated from the area
+    where development and test routes are located. ORAR-ResNet (Schumann and Riezler
+    [2022](#bib.bib26)) is the previous best model and follows a seq-to-seq architecture
+    that fuses text and image features during decoding. We retrained this model in
+    our improved environment (ORAR^($\spadesuit$)-ResNet) and also with the same image
+    feature extractor (ORAR^($\spadesuit$)-OpenCLIP) that we use in the landmark scorer.
+    VELMA-GPT-3 and VELMA-GPT-4 models employ our proposed verbalization workflow
+    and are prompted with two in-context examples. Due to cost and data leakage concerns,
+    we evaluate the GPT models on the development sets only. VELMA-FT is LLaMa-7b
+    finetuned on all training text sequences (around 6k for each dataset). The VELMA-RBL
+    finetuning process is described in Section [3](#S6.T3 "Table 3 ‣ Response-Based
+    Learning ‣ 6.4 Finetuning Results ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment
+    of LLM Agents for Vision and Language Navigation in Street View"). All experiments
+    are repeated three times with different random seeds (mean/std reported). Bold
+    values are the nominal best results and underlined are best few-shot results.'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表2：在未见过的场景中，Touchdown和Map2seq的城市VLN任务结果，即训练区域与开发和测试路线所在区域在地理上是分离的。ORAR-ResNet（Schumann和Riezler
+    [2022](#bib.bib26)）是先前最好的模型，采用了一个seq-to-seq架构，在解码过程中融合了文本和图像特征。我们在改进后的环境中重新训练了该模型（ORAR^($\spadesuit$)-ResNet），并且使用与地标评分器中相同的图像特征提取器（ORAR^($\spadesuit$)-OpenCLIP）。VELMA-GPT-3和VELMA-GPT-4模型采用了我们提出的表达化工作流，并通过两个上下文示例进行提示。由于成本和数据泄露的考虑，我们仅在开发集上评估GPT模型。VELMA-FT是LLaMa-7b，在所有训练文本序列上进行了微调（每个数据集约6k条）。VELMA-RBL微调过程在第[3](#S6.T3
+    "Table 3 ‣ Response-Based Learning ‣ 6.4 Finetuning Results ‣ 6 Experiments ‣
+    VELMA: Verbalization Embodiment of LLM Agents for Vision and Language Navigation
+    in Street View")节中进行了描述。所有实验都重复了三次，使用不同的随机种子（报告的是均值/标准差）。粗体值为名义上的最佳结果，下划线为最佳少量学习结果。'
+- en: 'We conducted experiments²²2Project page: [https://velma.schumann.pub/](https://velma.schumann.pub/)
+    and code: [https://github.com/raphael-sch/VELMA](https://github.com/raphael-sch/VELMA)
+    to evaluate the navigation performance of the proposed LLM agent in finetuning
+    and in-context learning settings. We used CLIP-ViT-bigG-14-laion2B-39B-b160k (Schuhmann
+    et al. [2022](#bib.bib24)) as the CLIP model in the landmark scorer. We set the
+    threshold $\tau=3.5$ for all experiments. The threshold was selected by inspecting
+    the distribution of CLIP scores (as in Figure [4](#S4.F4 "Figure 4 ‣ 4.2 Datasets
+    ‣ 4 Navigation Task ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision
+    and Language Navigation in Street View")) for a handful of landmarks. On purpose,
+    we did not systematically tune it in order to not violate the premise of few-shot
+    learning.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们进行了实验²²2项目页面：[https://velma.schumann.pub/](https://velma.schumann.pub/)和代码：[https://github.com/raphael-sch/VELMA](https://github.com/raphael-sch/VELMA)，以评估所提出的LLM代理在微调和上下文学习设置中的导航性能。我们使用CLIP-ViT-bigG-14-laion2B-39B-b160k（Schuhmann等人[2022](#bib.bib24)）作为地标评分器中的CLIP模型。我们为所有实验设置了阈值$\tau=3.5$。该阈值是通过检查CLIP得分的分布（如图[4](#S4.F4
+    "Figure 4 ‣ 4.2 Datasets ‣ 4 Navigation Task ‣ VELMA: Verbalization Embodiment
+    of LLM Agents for Vision and Language Navigation in Street View")中所示）为少数地标选择的。我们故意没有系统地调整该阈值，以避免违反少量学习的前提。'
+- en: 6.1 Landmark Extraction
+  id: totrans-86
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1 地标提取
+- en: 'We ran the landmark extractor once for all instances using GPT-3 (Brown et al.
+    [2020](#bib.bib3)) and used the same extracted landmarks in all experiments. On
+    average, 2.7 landmarks were extracted from a navigation instructions text. Around
+    58% of the landmarks in the test sets are novel, i.e., they are not used in the
+    training instances. In order to estimate the quality of the automatically extracted
+    landmarks, we annotated 50 instances of each development set by hand. For Touchdown
+    we calculated an F1-score of 96.3 (precision: 97.2, recall: 95.4) and the F1-score
+    for Map2seq is 99.6 (precision: 100, recall: 99.3). This shows that GPT-3 reliably
+    extracts landmarks from the instructions text and reusing them for all experiments
+    is minimizing the inaccuracies introduced by this workflow step.'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用GPT-3（Brown等人[2020](#bib.bib3)）对所有实例运行了一次地标提取器，并在所有实验中使用相同的提取地标。平均而言，从导航指令文本中提取了2.7个地标。测试集中的大约58%的地标是新的，即它们未在训练实例中使用。为了评估自动提取的地标的质量，我们手动标注了每个开发集中的50个实例。对于Touchdown，我们计算得到了96.3的F1分数（精确度：97.2，召回率：95.4），Map2seq的F1分数为99.6（精确度：100，召回率：99.3）。这表明，GPT-3能够可靠地从指令文本中提取地标，并且在所有实验中重复使用这些地标，最小化了这一工作流程步骤所引入的不准确性。
+- en: 6.2 Metrics and Baseline
+  id: totrans-88
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2 衡量标准和基线
+- en: We use three metrics to measure navigation performance. The task completion (TC)
+    rate is a binary metric that measures whether the agent successfully stopped within
+    one neighboring node of the target location. Shortest-path distance (SPD) calculates
+    the shortest path length between the stopping location and goal location (Chen
+    et al. [2019](#bib.bib4)). Key point accuracy (KPA) measures the ratio of correct
+    decisions at key points. Key points include the initial step, intersections along
+    the gold route, and the target location.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用三项衡量标准来评估导航性能。任务完成率（TC）是一个二元指标，衡量代理是否成功在目标位置的一个相邻节点内停下。最短路径距离（SPD）计算停止位置和目标位置之间的最短路径长度（Chen等人
+    [2019](#bib.bib4)）。关键点准确率（KPA）衡量在关键点处做出正确决策的比例。关键点包括初始步骤、金路线上的交叉点以及目标位置。
+- en: 'For baselines, we use the current state-of-the-art agent model for urban VLN
+    called ORAR (Schumann and Riezler [2022](#bib.bib26)). The model employs a seq-to-seq
+    architecture where the encoder LSTM reads the navigation instructions text, and
+    the multi-layer decoder LSTM receives image feature vectors of the current panorama
+    view as additional input at each action decoding step. The ORAR model is a very
+    strong baseline beating more sophisticated models like the VLN Transformer (Zhu
+    et al. [2021](#bib.bib41)). Because the environment modifications introduced in
+    Section [3](#S3 "3 Urban VLN Environment ‣ VELMA: Verbalization Embodiment of
+    LLM Agents for Vision and Language Navigation in Street View") spare the agents
+    from learning specific irregularities, we additionally retrain ORAR in the improved
+    environment for a fair comparison.'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于基线，我们使用当前最先进的城市VLN代理模型ORAR（Schumann和Riezler [2022](#bib.bib26)）。该模型采用seq-to-seq架构，其中编码器LSTM读取导航指令文本，多层解码器LSTM在每个动作解码步骤中接收当前全景视图的图像特征向量作为额外输入。ORAR模型是一个非常强大的基线，超越了像VLN
+    Transformer（Zhu等人 [2021](#bib.bib41)）这样的更复杂模型。由于第[3](#S3 "3 Urban VLN Environment
+    ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and Language Navigation
+    in Street View")节中介绍的环境修改使得代理不需要学习特定的不规则性，我们还在改进后的环境中重新训练ORAR，以便进行公平比较。'
+- en: 6.3 Few-Shot Learning Results
+  id: totrans-91
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.3 少量样本学习结果
+- en: '![Refer to caption](img/6382e3990c91b454f98776c7734e98c6.png)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/6382e3990c91b454f98776c7734e98c6.png)'
+- en: 'Figure 5: Key point accuracy (KPA) for 2-shot in-context learning of large
+    language models with increasing parameter count. The ${\tt{FORWARD}}$-Only baseline
+    predicts walking forward until the average trajectory length is reached and performs
+    better than predicting random directions.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：随着参数数量增加，大型语言模型在2-shot上下文学习中的关键点准确率（KPA）。${\tt{FORWARD}}$-Only基线模型预测一直向前走，直到达到平均轨迹长度，并且比预测随机方向的效果更好。
+- en: 'The proposed text-only interface allows us to use large language models as
+    reasoners without updating their weights or fusing image representations. The
+    prompt consists of a short task description and two in-context examples (2-shot).
+    The examples are full text sequences along the gold route for randomly selected
+    navigation instances in the training set. The two plots in Figure [5](#S6.F5 "Figure
+    5 ‣ 6.3 Few-Shot Learning Results ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment
+    of LLM Agents for Vision and Language Navigation in Street View") show that performance
+    scales with parameter count and varies across model families. The ${\tt{FORWARD}}$-Only
+    baseline reveals that OPT (Zhang et al. [2022](#bib.bib36)) can barely compete
+    with a basic heuristic, even at a model size of 65 billion parameters. LLaMa (Touvron
+    et al. [2023a](#bib.bib31)) and especially LLaMa-2 (Touvron et al. [2023b](#bib.bib32))
+    show promising navigation skills reaching 48.3 and 57.7 key point accuracy (KPA)
+    on Touchdown and Map2seq, respectively. However, this KPA score only translates
+    to task completion (TC) rates of 2.1 and 3.2, revealing that the model is not
+    able to consistently predict correct actions throughout the whole navigation trajectory.
+    Mistral-7b performs on par with a LLaMA-2 model twice its size, but also fails
+    to score task completion rates significantly higher than 3\. The only few-shot
+    LLMs that achieve substantial TC rates are GPT-3, GPT-4 (OpenAI [2023](#bib.bib19))
+    and Mixtral (Mistral AI Team [2023](#bib.bib18)). As listed in Table [2](#S6.T2
+    "Table 2 ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision
+    and Language Navigation in Street View"), VELMA-GPT-4 achieves the best results
+    for the 2-shot setting. It reaches 44% and 77% of the TC rate reported for the
+    previous state-of-the-art model ORAR^($\spadesuit$)-ResNet which is a seq-to-seq
+    model that has direct access to image features and was trained on the full training
+    set. In contrast, the LLMs in our work act as a blind agent that solely relies
+    on observation descriptions produced by the verbalizer. This is remarkable because
+    LLMs are not explicitly trained to experience embodiment in a visual environment.
+    This is emergent behavior unearthed by verbalizing the VLN task. We also observe
+    that GPT-4 invokes the ${\tt{TURN\_AROUND}}$ action in useful ways, e.g. to return
+    a few steps when it notices that it went past the described goal location. This
+    emphasizes the effectiveness of intuitive communication with the environment.'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所提出的仅文本接口使我们能够使用大型语言模型作为推理器，而无需更新其权重或融合图像表示。提示由简短的任务描述和两个上下文示例（2-shot）组成。示例是训练集中随机选择的导航实例的完整文本序列，沿着黄金路线进行。图[5](#S6.F5
+    "图5 ‣ 6.3 少样本学习结果 ‣ 6 实验 ‣ VELMA：街景视图中面向视觉和语言导航的LLM代理的语言化体现")中的两个图表显示，性能随着参数数量的增加而提升，并且在不同的模型家族之间有所不同。${\tt{FORWARD}}$-Only基准揭示了OPT（Zhang等人[2022](#bib.bib36)）几乎无法与一个基本启发式方法竞争，即使在65亿参数的模型规模下也是如此。LLaMa（Touvron等人[2023a](#bib.bib31)）尤其是LLaMa-2（Touvron等人[2023b](#bib.bib32)）显示出有前景的导航技能，分别在Touchdown和Map2seq上达到了48.3和57.7的关键点精度（KPA）。然而，这个KPA分数仅转化为2.1和3.2的任务完成率（TC），揭示了模型在整个导航过程中无法始终如一地预测正确的动作。Mistral-7b的表现与一个尺寸是其两倍的LLaMA-2模型相当，但也未能显著提高任务完成率，仍低于3。唯一能够达到显著TC率的少样本LLM是GPT-3、GPT-4（OpenAI
+    [2023](#bib.bib19)）和Mixtral（Mistral AI Team [2023](#bib.bib18)）。如表[2](#S6.T2 "表2
+    ‣ 6 实验 ‣ VELMA：街景视图中面向视觉和语言导航的LLM代理的语言化体现")所示，VELMA-GPT-4在2-shot设置下取得了最佳结果。它达到了前一先进模型ORAR^($\spadesuit$)-ResNet的TC率的44%和77%，该模型是一个seq-to-seq模型，能够直接访问图像特征，并且是在完整训练集上训练的。相比之下，我们工作中的LLM作为一个盲代理，仅依赖于由语言化器生成的观察描述。这一点非常了不起，因为LLM并未明确训练在视觉环境中体验体现。这是通过对VLN任务的语言化而挖掘出来的突现行为。我们还观察到，GPT-4以有用的方式调用了${\tt{TURN\_AROUND}}$动作，例如当它注意到自己走过描述的目标位置时，它会返回几步。这突显了与环境进行直观沟通的有效性。
+- en: 6.4 Finetuning Results
+  id: totrans-95
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.4 微调结果
+- en: 'To further explore the capabilities of the proposed LLM agent, we finetune
+    LLaMa-7b on all training instances of the respective dataset, denoted by VELMA-FT
+    in Table [2](#S6.T2 "Table 2 ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment
+    of LLM Agents for Vision and Language Navigation in Street View"). Each training
+    instance is the full text sequence that is produced by following the gold path.
+    The visibility of landmarks is determined by the landmark scorer during training
+    because gold annotations are not available. There are 6,770 training instances
+    for Touchdown and 5,737 for Map2seq. We finetune for 20 epochs using LoRA (Hu
+    et al. [2022](#bib.bib12)) to adapt query, key and value projections of the attention
+    layer as well as input and output projection of each transformer layer. The best
+    model is selected by task completion on the development set. The resulting agent
+    outperforms the previous state-of-the-art model ORAR^* by 10% and 16% relative
+    TC rate. Comparing ORAR^* which fuses image features at the vector level to VELMA-FT
+    which finetunes on verbalizations of observations, shows that the text-based environment
+    observations are less prone to overfitting.'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了进一步探索所提出的LLM代理的能力，我们对LLaMa-7b进行了微调，使用的是各自数据集的所有训练实例，在表格[2](#S6.T2 "Table
+    2 ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and
+    Language Navigation in Street View")中标记为VELMA-FT。每个训练实例是通过遵循黄金路径生成的完整文本序列。地标的可见性由地标评分器在训练过程中确定，因为没有黄金注释可用。Touchdown有6,770个训练实例，Map2seq有5,737个。我们使用LoRA
+    (Hu等人 [2022](#bib.bib12))对查询、键和值投影的注意力层进行微调，同时对每个变换层的输入和输出投影进行调整，微调过程为20个epoch。通过开发集上的任务完成度来选择最佳模型。最终的代理模型比之前的最先进模型ORAR^*在相对TC率上提高了10%和16%。将ORAR^*（在向量级融合图像特征）与VELMA-FT（在观察的语言化表示上进行微调）进行比较，结果表明基于文本的环境观察更不容易过拟合。'
+- en: Response-Based Learning
+  id: totrans-97
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 基于响应的学习
+- en: '|  | Touchdown | Map2seq |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | Touchdown | Map2seq |'
+- en: '| Image Model | SPD↓ | TC↑ | SPD↓ | TC↑ |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| 图像模型 | SPD↓ | TC↑ | SPD↓ | TC↑ |'
+- en: '| no image | 26.7 ±0.4 | 15.0 ±0.6 | 9.1 ±0.2 | 37.8 ±1.0 |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| 无图像 | 26.7 ±0.4 | 15.0 ±0.6 | 9.1 ±0.2 | 37.8 ±1.0 |'
+- en: '| CLIP | 20.2 ±0.3 | 20.8 ±0.5 | 8.8 ±0.5 | 39.2 ±0.5 |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| CLIP | 20.2 ±0.3 | 20.8 ±0.5 | 8.8 ±0.5 | 39.2 ±0.5 |'
+- en: '| OpenCLIP | 18.3 ±0.4 | 23.4 ±0.2 | 8.7 ±0.0 | 41.3 ±0.9 |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| OpenCLIP | 18.3 ±0.4 | 23.4 ±0.2 | 8.7 ±0.0 | 41.3 ±0.9 |'
+- en: 'Table 3: Vision ablation on the development set. We finetune a separate LLaMa-7b
+    model for each ablation. CLIP refers to clip-vit-large-patch14 (Radford et al.
+    [2021](#bib.bib21)). The OpenCLIP image model refers to CLIP-ViT-bigG-14-laion2B-39B-b160k (Schuhmann
+    et al. [2022](#bib.bib24)).'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3：开发集上的视觉消融实验。我们对每个消融实验分别进行了LLaMa-7b模型的微调。CLIP指的是clip-vit-large-patch14 (Radford等人
+    [2021](#bib.bib21))。OpenCLIP图像模型指的是CLIP-ViT-bigG-14-laion2B-39B-b160k (Schuhmann等人
+    [2022](#bib.bib24))。
+- en: 'A navigation task is successfully completed if the agent stops at either the
+    goal location or an adjacent neighboring node. Training the agent with teacher-forcing
+    to exactly follow the gold route penalizes the agent for stopping one step short
+    or one step past the target node, despite accomplishing the navigation objective.
+    Furthermore, the agent can not learn to recover from incorrect decisions during
+    inference. We thus train the agent to directly optimize the TC metric while also
+    feeding it its own actions during training, called VELMA-RBL in Table [2](#S6.T2
+    "Table 2 ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision
+    and Language Navigation in Street View"). The procedure for VELMA-RBL is inspired
+    by response-based learning (Clarke et al. [2010](#bib.bib6)) and imitation learning (Ross,
+    Gordon, and Bagnell [2011](#bib.bib23)) and is outlined in Algorithm [1](#alg1
+    "Algorithm 1 ‣ Response-Based Learning ‣ 6.4 Finetuning Results ‣ 6 Experiments
+    ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and Language Navigation
+    in Street View"). The loss for an instance at training step $j$ is either computed
+    by teacher forcing the gold action sequence $\hat{\mathbf{a}}$, or by student
+    forcing, determined by a mixing parameter $\lambda$. In student forcing, the actions
+    decoded by the current model weights $\theta_{j}$ are executed instead of the
+    gold actions. If this trajectory ends within one neighboring node of the target
+    location, the predicted action sequence $\mathbf{a}_{j}$ is considered correct
+    and used as the reference to train the agent. If the agent stops at the wrong
+    location, an oracle path is computed to provide the optimal counterfactual action
+    at each step in the trajectory. In our case, the oracle’s optimal next action
+    is computed as the shortest path to the goal location. We set $\lambda=0.5$ to
+    collect training losses in a batch evenly from both training strategies. Manually
+    inspecting trajectories produced by the trained agent, we found improvements of
+    following instructions that have stopping criteria like ”Stop a few steps before
+    Y.” or ”Stop at X. If you see Y you have gone too far.”. In both cases, the agent
+    learned to walk past the uncertain stopping location and to invoke the ${\tt{TURN\_AROUND}}$
+    action in order to walk back once landmark Y appeared. The described training
+    procedure leads to a significant increase of task completion rate by 2.9 and 7.5
+    for Touchdown and Map2seq, respectively. Overall, our contributions in this work
+    amount to a relative increase of task completion by 77% and 57% over the previously
+    reported state-of-the-art for urban VLN on the Touchdown and Map2seq datasets.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果智能体停在目标位置或相邻的邻近节点，则导航任务被认为成功完成。使用教师强制训练智能体严格按照黄金路径执行动作，尽管完成了导航目标，仍会因停在目标节点之前或之后一步而受到惩罚。此外，智能体无法在推理过程中从错误决策中恢复。因此，我们训练智能体直接优化任务完成度（TC）指标，同时在训练过程中输入智能体自身的动作，这在表[2](#S6.T2
+    "表 2 ‣ 6 实验 ‣ VELMA：视觉语言导航中的大型语言模型智能体的语言表达")中被称为 VELMA-RBL。VELMA-RBL 的过程受到基于响应的学习（Clarke
+    等人 [2010](#bib.bib6)）和模仿学习（Ross、Gordon 和 Bagnell [2011](#bib.bib23)）的启发，并在算法[1](#alg1
+    "算法 1 ‣ 基于响应的学习 ‣ 6.4 微调结果 ‣ 6 实验 ‣ VELMA：视觉语言导航中的大型语言模型智能体的语言表达")中概述。训练步骤 $j$
+    中某个实例的损失是通过教师强制黄金动作序列 $\hat{\mathbf{a}}$ 或学生强制（由混合参数 $\lambda$ 决定）来计算的。在学生强制中，当前模型权重
+    $\theta_{j}$ 解码出的动作会替代黄金动作。如果该轨迹结束时距离目标位置一个邻近节点，则预测的动作序列 $\mathbf{a}_{j}$ 被视为正确，并作为训练智能体的参考。如果智能体停在错误的位置，则计算出一个预言路径，为轨迹中的每一步提供最佳反事实动作。在我们的案例中，预言者的最佳下一步动作是计算到目标位置的最短路径。我们设置
+    $\lambda=0.5$，以便从两种训练策略中均匀收集训练损失。通过人工检查经过训练的智能体所产生的轨迹，我们发现，在需要停止的任务中，例如“在 Y 之前停几步”或“在
+    X 停，如果你看到 Y，说明你走得太远了”，智能体在这两种情况下都学会了走过不确定的停止位置，并在看到地标 Y 后执行 ${\tt{TURN\_AROUND}}$
+    动作，掉头返回。描述的训练过程显著提高了任务完成率，Touchdown 和 Map2seq 分别提高了 2.9 和 7.5。总体而言，我们在这项工作中的贡献使得在
+    Touchdown 和 Map2seq 数据集上，城市视觉语言导航（VLN）的任务完成率相对于之前报告的最先进技术分别提高了 77% 和 57%。
+- en: Algorithm 1 RBL Optimization of Task Completion
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 任务完成的 RBL 优化
+- en: mixing ratio $\lambda$, training step $j$, model weights $\theta_{j}$, gold
+    action sequence $\hat{\mathbf{a}}$, prompt $x_{1}$if $random(0,1)<\lambda$ then     $\mathbf{a}_{\theta_{j}}=StudentForcing(\theta_{j},x_{1})$     $\mathbf{a}_{j}=\operatorname*{arg\,max}\mathbf{a}_{\theta_{j}}$     if $TaskCompletion(\mathbf{a}_{j})=1$ then         $loss_{j}=\mathcal{L}_{CE}(\mathbf{a}_{\theta_{j}},\mathbf{a}_{j})$     else         ${\mathbf{a}}^{\ast}_{j}=Oracle_{stepwise}(\mathbf{a}_{j})$         $loss_{j}=\mathcal{L}_{CE}(\mathbf{a}_{\theta_{j}},{\mathbf{a}}^{\ast}_{j})$     end ifelse     $\mathbf{a}_{\theta_{j}}=TeacherForcing(\theta_{j},x_{1},\hat{\mathbf{a}})$     $loss_{j}=\mathcal{L}_{CE}(\mathbf{a}_{\theta_{j}},\hat{\mathbf{a}})$end if
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 混合比率$\lambda$，训练步骤$j$，模型权重$\theta_{j}$，黄金动作序列$\hat{\mathbf{a}}$，提示$x_{1}$如果$random(0,1)<\lambda$则     $\mathbf{a}_{\theta_{j}}=StudentForcing(\theta_{j},x_{1})$     $\mathbf{a}_{j}=\operatorname*{arg\,max}\mathbf{a}_{\theta_{j}}$     如果$TaskCompletion(\mathbf{a}_{j})=1$则         $loss_{j}=\mathcal{L}_{CE}(\mathbf{a}_{\theta_{j}},\mathbf{a}_{j})$     否则         ${\mathbf{a}}^{\ast}_{j}=Oracle_{stepwise}(\mathbf{a}_{j})$         $loss_{j}=\mathcal{L}_{CE}(\mathbf{a}_{\theta_{j}},{\mathbf{a}}^{\ast}_{j})$     结束如果否则     $\mathbf{a}_{\theta_{j}}=TeacherForcing(\theta_{j},x_{1},\hat{\mathbf{a}})$     $loss_{j}=\mathcal{L}_{CE}(\mathbf{a}_{\theta_{j}},\hat{\mathbf{a}})$结束如果
+- en: 6.5 Image Ablation
+  id: totrans-107
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.5 图像消融
+- en: 'In this section, we ablate the image model used by the landmark scorer. We
+    finetune a LLaMa-7b model according to Section [6.4](#S6.SS4 "6.4 Finetuning Results
+    ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and
+    Language Navigation in Street View") and use CLIP (Radford et al. [2021](#bib.bib21)),
+    OpenCLIP (Schuhmann et al. [2022](#bib.bib24)) or no image model in the landmark
+    scorer. The latter case means that no landmark observation is passed to the prompt
+    sequence. The results in Table [3](#S6.T3 "Table 3 ‣ Response-Based Learning ‣
+    6.4 Finetuning Results ‣ 6 Experiments ‣ VELMA: Verbalization Embodiment of LLM
+    Agents for Vision and Language Navigation in Street View") show that OpenCLIP
+    is better suited for detecting landmarks in our navigation task than the original
+    CLIP model. This is in line with better ImageNet results reported by the OpenCLIP
+    authors and suggests that the agent can directly benefit from further improvements
+    of CLIP models. Appending no landmarks to the prompt sequence further degrades
+    performance, especially on Touchdown.'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们对地标评分器使用的图像模型进行消融实验。我们根据第[6.4节](#S6.SS4 "6.4 微调结果 ‣ 6 实验 ‣ VELMA：面向街景视图中视觉与语言导航的LLM代理的语言化体现")微调了一个LLaMa-7b模型，并在地标评分器中使用CLIP（Radford等人，[2021](#bib.bib21)）、OpenCLIP（Schuhmann等人，[2022](#bib.bib24)）或不使用图像模型。后一种情况意味着没有地标观察传递到提示序列中。表[3](#S6.T3
+    "表3 ‣ 基于响应的学习 ‣ 6.4 微调结果 ‣ 6 实验 ‣ VELMA：面向街景视图中视觉与语言导航的LLM代理的语言化体现")中的结果显示，OpenCLIP比原始的CLIP模型更适合用于我们导航任务中的地标检测。这与OpenCLIP作者报告的更好的ImageNet结果一致，并表明代理可以直接从CLIP模型的进一步改进中受益。将地标从提示序列中移除进一步降低了性能，特别是在Touchdown任务中。
+- en: 7 Conclusion
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 结论
+- en: We introduced VELMA, an agent for urban vision and language navigation, which
+    utilizes a large language model to infer its next action. The LLM is continuously
+    queried with a text prompt that verbalizes the task description, navigation instructions,
+    visual observations, and past trajectory of the agent. In order to include observed
+    landmarks in the prompt, we propose an unsupervised pipeline that extracts landmarks
+    from the instructions and determines their visibility in the current panorama
+    view based on thresholded CLIP scores. We evaluate the embodied LLM agent in a
+    modified version of the commonly used Touchdown environment based on Street View.
+    One proposed modification is fixing a problem at intersections that led to incorrect
+    alignments of action sequences, and another modification adds the ${\tt{TURN\_AROUND}}$
+    action which provides a more intuitive way to communicate with the environment.
+    The proposed agent achieves strong few-shot in-context learning results of 10
+    and 23 task completion rates for Touchdown and Map2seq, respectively, and yields
+    new state-of-the-art results of 26 and 47 task completion rates when finetuned
+    on the full training set. The finetuning results show that verbalization is not
+    an inherent limitation for this task and in-context learning with better base
+    models or improved prompting techniques could outperform our reported few shot
+    results.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们介绍了VELMA，一个用于城市视觉和语言导航的智能体，它利用大型语言模型推断下一步的行动。该大型语言模型通过文本提示不断地被查询，该提示将任务描述、导航指令、视觉观察以及智能体的过去轨迹进行口头化。为了在提示中包含观察到的地标，我们提出了一种无监督的流程，从指令中提取地标，并根据阈值化的CLIP分数确定它们在当前全景视图中的可见性。我们在基于街景的常用Touchdown环境的修改版本中评估了具身的LLM智能体。一个提出的修改是修复交叉口的问题，该问题导致了行动序列的错误对齐，另一个修改是增加了${\tt{TURN\_AROUND}}$动作，这提供了一种更直观的方式与环境进行互动。该智能体在Touchdown和Map2seq任务中的few-shot上下文学习结果分别为10和23的任务完成率，当在完整训练集上进行微调时，分别达到了26和47的任务完成率，创下了新的最先进成果。微调结果表明，口头化并不是此任务的固有限制，使用更好的基础模型或改进的提示技术进行上下文学习可能超越我们报告的few-shot结果。
+- en: Acknowledgments
+  id: totrans-111
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 致谢
+- en: The research reported in this paper was supported by a Google Focused Research
+    Award.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文所报告的研究得到了Google Focused Research Award的资助。
+- en: References
+  id: totrans-113
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: 'Anderson et al. (2018) Anderson, P.; Wu, Q.; Teney, D.; Bruce, J.; Johnson,
+    M.; Sünderhauf, N.; Reid, I.; Gould, S.; and Van Den Hengel, A. 2018. Vision-and-language
+    navigation: Interpreting visually-grounded navigation instructions in real environments.
+    In *Proceedings of the IEEE conference on computer vision and pattern recognition*,
+    3674–3683.'
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Anderson等（2018）Anderson, P.; Wu, Q.; Teney, D.; Bruce, J.; Johnson, M.; Sünderhauf,
+    N.; Reid, I.; Gould, S.; 和Van Den Hengel, A. 2018. 《视觉和语言导航：解释在真实环境中基于视觉的导航指令》。发表于《IEEE计算机视觉与模式识别大会论文集》，3674-3683页。
+- en: Armitage, Impett, and Sennrich (2023) Armitage, J.; Impett, L.; and Sennrich,
+    R. 2023. A Priority Map for Vision-and-Language Navigation with Trajectory Plans
+    and Feature-Location Cues. In *Proceedings of the IEEE/CVF Winter Conference on
+    Applications of Computer Vision*, 1094–1103.
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Armitage, Impett和Sennrich（2023）Armitage, J.; Impett, L.; 和Sennrich, R. 2023.
+    《带有轨迹规划和特征位置提示的视觉与语言导航优先级图》。发表于《IEEE/CVF冬季计算机视觉应用会议论文集》，1094-1103页。
+- en: Brown et al. (2020) Brown, T.; Mann, B.; Ryder, N.; Subbiah, M.; Kaplan, J. D.;
+    Dhariwal, P.; Neelakantan, A.; Shyam, P.; Sastry, G.; Askell, A.; Agarwal, S.;
+    Herbert-Voss, A.; Krueger, G.; Henighan, T.; Child, R.; Ramesh, A.; Ziegler, D.;
+    Wu, J.; Winter, C.; Hesse, C.; Chen, M.; Sigler, E.; Litwin, M.; Gray, S.; Chess,
+    B.; Clark, J.; Berner, C.; McCandlish, S.; Radford, A.; Sutskever, I.; and Amodei,
+    D. 2020. Language Models are Few-Shot Learners. In Larochelle, H.; Ranzato, M.;
+    Hadsell, R.; Balcan, M.; and Lin, H., eds., *Advances in Neural Information Processing
+    Systems*, volume 33, 1877–1901\. Curran Associates, Inc.
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Brown等（2020）Brown, T.; Mann, B.; Ryder, N.; Subbiah, M.; Kaplan, J. D.; Dhariwal,
+    P.; Neelakantan, A.; Shyam, P.; Sastry, G.; Askell, A.; Agarwal, S.; Herbert-Voss,
+    A.; Krueger, G.; Henighan, T.; Child, R.; Ramesh, A.; Ziegler, D.; Wu, J.; Winter,
+    C.; Hesse, C.; Chen, M.; Sigler, E.; Litwin, M.; Gray, S.; Chess, B.; Clark, J.;
+    Berner, C.; McCandlish, S.; Radford, A.; Sutskever, I.; and Amodei, D. 2020. 《语言模型是少样本学习者》。发表于Larochelle,
+    H.; Ranzato, M.; Hadsell, R.; Balcan, M.; 和Lin, H.编辑的《神经信息处理系统的进展》，第33卷，1877-1901页，Curran
+    Associates, Inc.
+- en: 'Chen et al. (2019) Chen, H.; Suhr, A.; Misra, D.; Snavely, N.; and Artzi, Y.
+    2019. TOUCHDOWN: Natural Language Navigation and Spatial Reasoning in Visual Street
+    Environments. In *Proceedings of the IEEE/CVF Conference on Computer Vision and
+    Pattern Recognition (CVPR)*. Long Beach, California.'
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2019）Chen, H.; Suhr, A.; Misra, D.; Snavely, N.; 和 Artzi, Y. 2019. TOUCHDOWN：自然语言导航与视觉街道环境中的空间推理。在
+    *IEEE/CVF计算机视觉与模式识别大会（CVPR）论文集*。加利福尼亚州长滩。
+- en: 'Chen et al. (2021) Chen, S.; Guhur, P.-L.; Schmid, C.; and Laptev, I. 2021.
+    History aware multimodal transformer for vision-and-language navigation. *Advances
+    in neural information processing systems*, 34: 5834–5847.'
+  id: totrans-118
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Chen 等人（2021）Chen, S.; Guhur, P.-L.; Schmid, C.; 和 Laptev, I. 2021. 历史感知多模态变压器用于视觉与语言导航。
+    *神经信息处理系统进展*，34：5834–5847。
+- en: 'Clarke et al. (2010) Clarke, J.; Goldwasser, D.; Chang, M.-W.; and Roth, D.
+    2010. Driving Semantic Parsing from the World’s Response. In *Proceedings of the
+    Fourteenth Conference on Computational Natural Language Learning*, 18–27\. Uppsala,
+    Sweden: Association for Computational Linguistics.'
+  id: totrans-119
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Clarke 等人（2010）Clarke, J.; Goldwasser, D.; Chang, M.-W.; 和 Roth, D. 2010. 从世界的响应中驱动语义解析。在
+    *第十四届计算自然语言学习会议论文集*，18–27。瑞典乌普萨拉：计算语言学会。
+- en: 'Dorbala et al. (2022) Dorbala, V. S.; Sigurdsson, G.; Piramuthu, R.; Thomason,
+    J.; and Sukhatme, G. S. 2022. Clip-nav: Using clip for zero-shot vision-and-language
+    navigation. In *CoRL 2022 Workshop on Language and Robot Learning*.'
+  id: totrans-120
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Dorbala 等人（2022）Dorbala, V. S.; Sigurdsson, G.; Piramuthu, R.; Thomason, J.;
+    和 Sukhatme, G. S. 2022. Clip-nav：使用 CLIP 进行零样本视觉与语言导航。在 *CoRL 2022 语言与机器人学习工作坊*。
+- en: Fried et al. (2018) Fried, D.; Hu, R.; Cirik, V.; Rohrbach, A.; Andreas, J.;
+    Morency, L.-P.; Berg-Kirkpatrick, T.; Saenko, K.; Klein, D.; and Darrell, T. 2018.
+    Speaker-Follower Models for Vision-and-Language Navigation. In *Neural Information
+    Processing Systems (NeurIPS)*.
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fried 等人（2018）Fried, D.; Hu, R.; Cirik, V.; Rohrbach, A.; Andreas, J.; Morency,
+    L.-P.; Berg-Kirkpatrick, T.; Saenko, K.; Klein, D.; 和 Darrell, T. 2018. 面向视觉与语言导航的说话人-跟随者模型。在
+    *神经信息处理系统（NeurIPS）*。
+- en: 'Fu et al. (2020) Fu, T.-J.; Wang, X. E.; Peterson, M. F.; Grafton, S. T.; Eckstein,
+    M. P.; and Wang, W. Y. 2020. Counterfactual vision-and-language navigation via
+    adversarial path sampler. In *Computer Vision–ECCV 2020: 16th European Conference,
+    Glasgow, UK, August 23–28, 2020, Proceedings, Part VI 16*, 71–86\. Springer.'
+  id: totrans-122
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Fu 等人（2020）Fu, T.-J.; Wang, X. E.; Peterson, M. F.; Grafton, S. T.; Eckstein,
+    M. P.; 和 Wang, W. Y. 2020. 通过对抗路径采样器进行反事实视觉与语言导航。在 *计算机视觉–ECCV 2020：第16届欧洲会议，英国格拉斯哥，2020年8月23日至28日，会议录，第VI部分
+    16*，71–86。Springer。
+- en: Hermann et al. (2020) Hermann, K. M.; Malinowski, M.; Mirowski, P.; Banki-Horvath,
+    A.; Anderson, K.; and Hadsell, R. 2020. Learning to Follow Directions in Street
+    View. In *Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)*.
+    New York, New York.
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hermann 等人（2020）Hermann, K. M.; Malinowski, M.; Mirowski, P.; Banki-Horvath,
+    A.; Anderson, K.; 和 Hadsell, R. 2020. 学习在街景中跟随指示。在 *美国人工智能大会（AAAI）论文集*。纽约，纽约。
+- en: 'Hong et al. (2021) Hong, Y.; Wu, Q.; Qi, Y.; Rodriguez-Opazo, C.; and Gould,
+    S. 2021. Vln bert: A recurrent vision-and-language bert for navigation. In *Proceedings
+    of the IEEE/CVF conference on Computer Vision and Pattern Recognition*, 1643–1653.'
+  id: totrans-124
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hong 等人（2021）Hong, Y.; Wu, Q.; Qi, Y.; Rodriguez-Opazo, C.; 和 Gould, S. 2021.
+    Vln bert：一种用于导航的循环视觉与语言 BERT。在 *IEEE/CVF计算机视觉与模式识别大会论文集*，1643–1653。
+- en: 'Hu et al. (2022) Hu, E. J.; yelong shen; Wallis, P.; Allen-Zhu, Z.; Li, Y.;
+    Wang, S.; Wang, L.; and Chen, W. 2022. LoRA: Low-Rank Adaptation of Large Language
+    Models. In *International Conference on Learning Representations*.'
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Hu 等人（2022）Hu, E. J.; yelong shen; Wallis, P.; Allen-Zhu, Z.; Li, Y.; Wang,
+    S.; Wang, L.; 和 Chen, W. 2022. LoRA：大型语言模型的低秩适配。在 *国际学习表征会议*。
+- en: 'Khandelwal et al. (2022) Khandelwal, A.; Weihs, L.; Mottaghi, R.; and Kembhavi,
+    A. 2022. Simple but Effective: CLIP Embeddings for Embodied AI. In *Proceedings
+    of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)*,
+    14829–14838.'
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Khandelwal 等人（2022）Khandelwal, A.; Weihs, L.; Mottaghi, R.; 和 Kembhavi, A. 2022.
+    简单但有效：用于具身 AI 的 CLIP 嵌入。在 *IEEE/CVF计算机视觉与模式识别大会（CVPR）论文集*，14829–14838。
+- en: 'Kingma and Ba (2015) Kingma, D. P.; and Ba, J. 2015. Adam: A Method for Stochastic
+    Optimization. In *Proceedings of the International Conference on Learning Representations
+    (ICLR)*. San Diego, California.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kingma 和 Ba（2015）Kingma, D. P.; 和 Ba, J. 2015. Adam：一种随机优化方法。在 *国际学习表征会议（ICLR）论文集*。加利福尼亚州圣地亚哥。
+- en: 'Ku et al. (2020) Ku, A.; Anderson, P.; Patel, R.; Ie, E.; and Baldridge, J.
+    2020. Room-Across-Room: Multilingual Vision-and-Language Navigation with Dense
+    Spatiotemporal Grounding. In *Proceedings of the 2020 Conference on Empirical
+    Methods in Natural Language Processing (EMNLP)*, 4392–4412.'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Ku 等人（2020）Ku, A.; Anderson, P.; Patel, R.; Ie, E.; 和 Baldridge, J. 2020. Room-Across-Room:
+    使用密集时空基础的多语言视觉与语言导航。发表于 *2020年自然语言处理实证方法会议（EMNLP）论文集*，4392–4412。'
+- en: 'Li, Tan, and Bansal (2022) Li, J.; Tan, H.; and Bansal, M. 2022. Envedit: Environment
+    editing for vision-and-language navigation. In *Proceedings of the IEEE/CVF Conference
+    on Computer Vision and Pattern Recognition*, 15407–15417.'
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Li、Tan 和 Bansal（2022）Li, J.; Tan, H.; 和 Bansal, M. 2022. Envedit: 面向视觉与语言导航的环境编辑。发表于
+    *IEEE/CVF计算机视觉与模式识别会议论文集*，15407–15417。'
+- en: 'Mehta et al. (2020) Mehta, H.; Artzi, Y.; Baldridge, J.; Ie, E.; and Mirowski,
+    P. 2020. Retouchdown: Releasing Touchdown on StreetLearn as a Public Resource
+    for Language Grounding Tasks in Street View. In *Proceedings of the Third International
+    Workshop on Spatial Language Understanding (SpLU)*. Online.'
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Mehta 等人（2020）Mehta, H.; Artzi, Y.; Baldridge, J.; Ie, E.; 和 Mirowski, P. 2020.
+    Retouchdown: 将 Touchdown 作为街景中语言基础任务的公共资源发布到 StreetLearn。发表于 *第三届空间语言理解国际研讨会（SpLU）论文集*。在线发布。'
+- en: 'Mistral AI Team (2023) Mistral AI Team. 2023. Mixtral of Experts: A High Quality
+    Sparse Mixture-of-Experts. *Mistral AI Blog*. Accessed: December 18, 2023.'
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Mistral AI团队（2023）Mistral AI Team. 2023. Mixtral of Experts: 高质量稀疏专家混合模型。*Mistral
+    AI 博客*。访问日期：2023年12月18日。'
+- en: OpenAI (2023) OpenAI. 2023. GPT-4 Technical Report. *ArXiv*, abs/2303.08774.
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: OpenAI（2023）OpenAI. 2023. GPT-4技术报告。*ArXiv*, abs/2303.08774。
+- en: 'Qi et al. (2020) Qi, Y.; Wu, Q.; Anderson, P.; Wang, X.; Wang, W. Y.; Shen,
+    C.; and Hengel, A. v. d. 2020. Reverie: Remote embodied visual referring expression
+    in real indoor environments. In *Proceedings of the IEEE/CVF Conference on Computer
+    Vision and Pattern Recognition*, 9982–9991.'
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Qi 等人（2020）Qi, Y.; Wu, Q.; Anderson, P.; Wang, X.; Wang, W. Y.; Shen, C.; 和
+    Hengel, A. v. d. 2020. Reverie: 在真实室内环境中远程体现的视觉指代表达。发表于 *IEEE/CVF计算机视觉与模式识别会议论文集*，9982–9991。'
+- en: Radford et al. (2021) Radford, A.; Kim, J. W.; Hallacy, C.; Ramesh, A.; Goh,
+    G.; Agarwal, S.; Sastry, G.; Askell, A.; Mishkin, P.; Clark, J.; Krueger, G.;
+    and Sutskever, I. 2021. Learning Transferable Visual Models From Natural Language
+    Supervision. In *ICML*.
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Radford 等人（2021）Radford, A.; Kim, J. W.; Hallacy, C.; Ramesh, A.; Goh, G.; Agarwal,
+    S.; Sastry, G.; Askell, A.; Mishkin, P.; Clark, J.; Krueger, G.; 和 Sutskever,
+    I. 2021. 从自然语言监督中学习可转移的视觉模型。发表于 *ICML*。
+- en: 'Ramakrishnan et al. (2021) Ramakrishnan, S. K.; Gokaslan, A.; Wijmans, E.;
+    Maksymets, O.; Clegg, A.; Turner, J. M.; Undersander, E.; Galuba, W.; Westbury,
+    A.; Chang, A. X.; Savva, M.; Zhao, Y.; and Batra, D. 2021. Habitat-Matterport
+    3D Dataset (HM3D): 1000 Large-scale 3D Environments for Embodied AI. In *Thirty-fifth
+    Conference on Neural Information Processing Systems Datasets and Benchmarks Track
+    (Round 2)*.'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ramakrishnan 等人（2021）Ramakrishnan, S. K.; Gokaslan, A.; Wijmans, E.; Maksymets,
+    O.; Clegg, A.; Turner, J. M.; Undersander, E.; Galuba, W.; Westbury, A.; Chang,
+    A. X.; Savva, M.; Zhao, Y.; 和 Batra, D. 2021. Habitat-Matterport 3D 数据集（HM3D）：用于具身AI的大规模
+    3D 环境数据集。发表于 *第35届神经信息处理系统会议数据集与基准赛道（第二轮）*。
+- en: Ross, Gordon, and Bagnell (2011) Ross, S.; Gordon, G. J.; and Bagnell, J. A.
+    2011. A Reduction of Imitation Learning and Structured Prediction to No-Regret
+    Online Learning. In *Proceedings of the 14th International Conference on Artificial
+    Intelligence and Statistics (AISTATS)*. Fort Lauderdale, FL, USA.
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Ross、Gordon 和 Bagnell（2011）Ross, S.; Gordon, G. J.; 和 Bagnell, J. A. 2011. 将模仿学习和结构化预测简化为无悔在线学习。发表于
+    *第14届人工智能与统计国际会议（AISTATS）论文集*。美国佛罗里达州劳德代尔堡。
+- en: 'Schuhmann et al. (2022) Schuhmann, C.; Beaumont, R.; Vencu, R.; Gordon, C. W.;
+    Wightman, R.; Cherti, M.; Coombes, T.; Katta, A.; Mullis, C.; Wortsman, M.; Schramowski,
+    P.; Kundurthy, S. R.; Crowson, K.; Schmidt, L.; Kaczmarczyk, R.; and Jitsev, J.
+    2022. LAION-5B: An open large-scale dataset for training next generation image-text
+    models. In *Thirty-sixth Conference on Neural Information Processing Systems Datasets
+    and Benchmarks Track*.'
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Schuhmann 等人（2022）Schuhmann, C.; Beaumont, R.; Vencu, R.; Gordon, C. W.; Wightman,
+    R.; Cherti, M.; Coombes, T.; Katta, A.; Mullis, C.; Wortsman, M.; Schramowski,
+    P.; Kundurthy, S. R.; Crowson, K.; Schmidt, L.; Kaczmarczyk, R.; 和 Jitsev, J.
+    2022. LAION-5B: 用于训练下一代图像-文本模型的开放大规模数据集。发表于 *第36届神经信息处理系统会议数据集与基准赛道*。'
+- en: 'Schumann and Riezler (2021) Schumann, R.; and Riezler, S. 2021. Generating
+    Landmark Navigation Instructions from Maps as a Graph-to-Text Problem. In *Proceedings
+    of the 59th Annual Meeting of the Association for Computational Linguistics and
+    the 11th International Joint Conference on Natural Language Processing (Volume
+    1: Long Papers)*, 489–502\. Online: Association for Computational Linguistics.'
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schumann 和 Riezler（2021）Schumann, R.; 和 Riezler, S. 2021. 将地图上的地标导航指令生成作为图到文本问题。发表于
+    *第59届计算语言学会年会和第11届国际联合自然语言处理大会（第1卷：长篇论文）*，489–502。在线：计算语言学会。
+- en: 'Schumann and Riezler (2022) Schumann, R.; and Riezler, S. 2022. Analyzing Generalization
+    of Vision and Language Navigation to Unseen Outdoor Areas. In *Proceedings of
+    the 60th Annual Meeting of the Association for Computational Linguistics (Volume
+    1: Long Papers)*, 7519–7532\. Dublin, Ireland: Association for Computational Linguistics.'
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Schumann 和 Riezler（2022）Schumann, R.; 和 Riezler, S. 2022. 分析视觉与语言导航在未见过的户外区域中的泛化能力。发表于
+    *第60届计算语言学会年会（第1卷：长篇论文）*，7519–7532。都柏林，爱尔兰：计算语言学会。
+- en: 'Shah et al. (2022) Shah, D.; Osinski, B.; Ichter, B.; and Levine, S. 2022.
+    LM-Nav: Robotic Navigation with Large Pre-Trained Models of Language, Vision,
+    and Action. arXiv:2207.04429.'
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shah 等人（2022）Shah, D.; Osinski, B.; Ichter, B.; 和 Levine, S. 2022. LM-Nav：使用大型预训练语言、视觉和动作模型进行机器人导航。arXiv:2207.04429。
+- en: 'Shridhar et al. (2020) Shridhar, M.; Thomason, J.; Gordon, D.; Bisk, Y.; Han,
+    W.; Mottaghi, R.; Zettlemoyer, L.; and Fox, D. 2020. ALFRED: A Benchmark for Interpreting
+    Grounded Instructions for Everyday Tasks. In *The IEEE Conference on Computer
+    Vision and Pattern Recognition (CVPR)*.'
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Shridhar 等人（2020）Shridhar, M.; Thomason, J.; Gordon, D.; Bisk, Y.; Han, W.;
+    Mottaghi, R.; Zettlemoyer, L.; 和 Fox, D. 2020. ALFRED：用于解释日常任务指令的基准测试。发表于 *IEEE计算机视觉与模式识别大会（CVPR）*。
+- en: Sun et al. (2023) Sun, Y.; Qiu, Y.; Aoki, Y.; and Kataoka, H. 2023. Outdoor
+    Vision-and-Language Navigation Needs Object-Level Alignment. *Sensors*, 23(13).
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Sun 等人（2023）Sun, Y.; Qiu, Y.; Aoki, Y.; 和 Kataoka, H. 2023. 户外视觉与语言导航需要对象级对齐。*传感器*，23(13)。
+- en: 'Tan, Yu, and Bansal (2019) Tan, H.; Yu, L.; and Bansal, M. 2019. Learning to
+    Navigate Unseen Environments: Back Translation with Environmental Dropout. In
+    *Proceedings of the 2019 Conference of the North American Chapter of the Association
+    for Computational Linguistics: Human Language Technologies, Volume 1 (Long and
+    Short Papers)*, 2610–2621\. Minneapolis, Minnesota: Association for Computational
+    Linguistics.'
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Tan, Yu 和 Bansal（2019）Tan, H.; Yu, L.; 和 Bansal, M. 2019. 学习在未见过的环境中导航：使用环境丢失的回译方法。发表于
+    *2019年北美计算语言学会年会：人类语言技术会议论文集，卷1（长篇和短篇论文）*，2610–2621。明尼阿波利斯，明尼苏达州：计算语言学会。
+- en: 'Touvron et al. (2023a) Touvron, H.; Lavril, T.; Izacard, G.; Martinet, X.;
+    Lachaux, M.-A.; Lacroix, T.; Rozière, B.; Goyal, N.; Hambro, E.; Azhar, F.; Rodriguez,
+    A.; Joulin, A.; Grave, E.; and Lample, G. 2023a. LLaMA: Open and Efficient Foundation
+    Language Models. arXiv:2302.13971.'
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Touvron 等人（2023a）Touvron, H.; Lavril, T.; Izacard, G.; Martinet, X.; Lachaux,
+    M.-A.; Lacroix, T.; Rozière, B.; Goyal, N.; Hambro, E.; Azhar, F.; Rodriguez,
+    A.; Joulin, A.; Grave, E.; 和 Lample, G. 2023a. LLaMA：开放和高效的基础语言模型。arXiv:2302.13971。
+- en: 'Touvron et al. (2023b) Touvron, H.; Martin, L.; Stone, K.; Albert, P.; Almahairi,
+    A.; Babaei, Y.; Bashlykov, N.; Batra, S.; Bhargava, P.; Bhosale, S.; Bikel, D.;
+    Blecher, L.; Ferrer, C. C.; Chen, M.; Cucurull, G.; Esiobu, D.; Fernandes, J.;
+    Fu, J.; Fu, W.; Fuller, B.; Gao, C.; Goswami, V.; Goyal, N.; Hartshorn, A.; Hosseini,
+    S.; Hou, R.; Inan, H.; Kardas, M.; Kerkez, V.; Khabsa, M.; Kloumann, I.; Korenev,
+    A.; Koura, P. S.; Lachaux, M.-A.; Lavril, T.; Lee, J.; Liskovich, D.; Lu, Y.;
+    Mao, Y.; Martinet, X.; Mihaylov, T.; Mishra, P.; Molybog, I.; Nie, Y.; Poulton,
+    A.; Reizenstein, J.; Rungta, R.; Saladi, K.; Schelten, A.; Silva, R.; Smith, E. M.;
+    Subramanian, R.; Tan, X. E.; Tang, B.; Taylor, R.; Williams, A.; Kuan, J. X.;
+    Xu, P.; Yan, Z.; Zarov, I.; Zhang, Y.; Fan, A.; Kambadur, M.; Narang, S.; Rodriguez,
+    A.; Stojnic, R.; Edunov, S.; and Scialom, T. 2023b. Llama 2: Open Foundation and
+    Fine-Tuned Chat Models. arXiv:2307.09288.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Touvron 等人（2023b）Touvron, H.; Martin, L.; Stone, K.; Albert, P.; Almahairi,
+    A.; Babaei, Y.; Bashlykov, N.; Batra, S.; Bhargava, P.; Bhosale, S.; Bikel, D.;
+    Blecher, L.; Ferrer, C. C.; Chen, M.; Cucurull, G.; Esiobu, D.; Fernandes, J.;
+    Fu, J.; Fu, W.; Fuller, B.; Gao, C.; Goswami, V.; Goyal, N.; Hartshorn, A.; Hosseini,
+    S.; Hou, R.; Inan, H.; Kardas, M.; Kerkez, V.; Khabsa, M.; Kloumann, I.; Korenev,
+    A.; Koura, P. S.; Lachaux, M.-A.; Lavril, T.; Lee, J.; Liskovich, D.; Lu, Y.;
+    Mao, Y.; Martinet, X.; Mihaylov, T.; Mishra, P.; Molybog, I.; Nie, Y.; Poulton,
+    A.; Reizenstein, J.; Rungta, R.; Saladi, K.; Schelten, A.; Silva, R.; Smith, E.
+    M.; Subramanian, R.; Tan, X. E.; Tang, B.; Taylor, R.; Williams, A.; Kuan, J.
+    X.; Xu, P.; Yan, Z.; Zarov, I.; Zhang, Y.; Fan, A.; Kambadur, M.; Narang, S.;
+    Rodriguez, A.; Stojnic, R.; Edunov, S.; 和 Scialom, T. 2023b. Llama 2：开放基础和微调聊天模型。arXiv:2307.09288。
+- en: 'Wang et al. (2023) Wang, G.; Xie, Y.; Jiang, Y.; Mandlekar, A.; Xiao, C.; Zhu,
+    Y.; Fan, L.; and Anandkumar, A. 2023. Voyager: An Open-Ended Embodied Agent with
+    Large Language Models. *arXiv preprint arXiv: Arxiv-2305.16291*.'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Wang等人（2023）Wang, G.; Xie, Y.; Jiang, Y.; Mandlekar, A.; Xiao, C.; Zhu, Y.;
+    Fan, L.; 和Anandkumar, A. 2023. Voyager: 一个开放式的具身代理，配合大语言模型。*arXiv预印本 arXiv:Arxiv-2305.16291*。'
+- en: Wang et al. (2019) Wang, X.; Huang, Q.; Celikyilmaz, A.; Gao, J.; Shen, D.;
+    Wang, Y.-F.; Wang, W. Y.; and Zhang, L. 2019. Reinforced Cross-Modal Matching
+    and Self-Supervised Imitation Learning for Vision-Language Navigation. In *Proceedings
+    of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)*.
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Wang等人（2019）Wang, X.; Huang, Q.; Celikyilmaz, A.; Gao, J.; Shen, D.; Wang, Y.-F.;
+    Wang, W. Y.; 和Zhang, L. 2019. 强化的跨模态匹配与自监督模仿学习用于视觉-语言导航。发表于*IEEE/CVF计算机视觉与模式识别会议论文集（CVPR）*。
+- en: 'Xiang, Wang, and Wang (2020) Xiang, J.; Wang, X.; and Wang, W. Y. 2020. Learning
+    to Stop: A Simple yet Effective Approach to Urban Vision-Language Navigation.
+    In *Findings of the Association for Computational Linguistics (ACL Findings)*.
+    Online.'
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Xiang, Wang, 和Wang（2020）Xiang, J.; Wang, X.; 和Wang, W. Y. 2020. 学会停止：一种简单而有效的城市视觉-语言导航方法。发表于*计算语言学会（ACL）发现*。在线。
+- en: 'Zhang et al. (2022) Zhang, S.; Roller, S.; Goyal, N.; Artetxe, M.; Chen, M.;
+    Chen, S.; Dewan, C.; Diab, M.; Li, X.; Lin, X. V.; et al. 2022. Opt: Open pre-trained
+    transformer language models. *arXiv preprint arXiv:2205.01068*.'
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhang等人（2022）Zhang, S.; Roller, S.; Goyal, N.; Artetxe, M.; Chen, M.; Chen,
+    S.; Dewan, C.; Diab, M.; Li, X.; Lin, X. V.; 等人 2022. Opt: 开放式预训练变换器语言模型。*arXiv预印本
+    arXiv:2205.01068*。'
+- en: 'Zhong et al. (2021) Zhong, V.; Hanjie, A. W.; Wang, S.; Narasimhan, K.; and
+    Zettlemoyer, L. 2021. SILG: The Multi-domain Symbolic Interactive Language Grounding
+    Benchmark. In Ranzato, M.; Beygelzimer, A.; Dauphin, Y.; Liang, P.; and Vaughan,
+    J. W., eds., *Advances in Neural Information Processing Systems*, volume 34, 21505–21519\.
+    Curran Associates, Inc.'
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhong等人（2021）Zhong, V.; Hanjie, A. W.; Wang, S.; Narasimhan, K.; 和Zettlemoyer,
+    L. 2021. SILG: 多领域符号互动语言基础基准。见Ranzato, M.; Beygelzimer, A.; Dauphin, Y.; Liang,
+    P.; 和Vaughan, J. W. 编，*神经信息处理系统进展*，第34卷，21505–21519。Curran Associates, Inc.'
+- en: 'Zhou, Hong, and Wu (2023) Zhou, G.; Hong, Y.; and Wu, Q. 2023. NavGPT: Explicit
+    Reasoning in Vision-and-Language Navigation with Large Language Models. arXiv:2305.16986.'
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhou, Hong, 和Wu（2023）Zhou, G.; Hong, Y.; 和Wu, Q. 2023. NavGPT: 在大语言模型下进行视觉-语言导航的显式推理。arXiv:2305.16986。'
+- en: 'Zhou et al. (2023) Zhou, K.; Zheng, K.; Pryor, C.; Shen, Y.; Jin, H.; Getoor,
+    L.; and Wang, X. E. 2023. ESC: Exploration with Soft Commonsense Constraints for
+    Zero-shot Object Navigation. *arXiv preprint arXiv:2301.13166*.'
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhou等人（2023）Zhou, K.; Zheng, K.; Pryor, C.; Shen, Y.; Jin, H.; Getoor, L.;
+    和Wang, X. E. 2023. ESC: 利用软常识约束进行零-shot物体导航。*arXiv预印本 arXiv:2301.13166*。'
+- en: 'Zhu et al. (2020) Zhu, W.; Hu, H.; Chen, J.; Deng, Z.; Jain, V.; Ie, E.; and
+    Sha, F. 2020. BabyWalk: Going Farther in Vision-and-Language Navigation by Taking
+    Baby Steps. In *Proceedings of the 58th Annual Meeting of the Association for
+    Computational Linguistics*, 2539–2556.'
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 'Zhu等人（2020）Zhu, W.; Hu, H.; Chen, J.; Deng, Z.; Jain, V.; Ie, E.; 和Sha, F.
+    2020. BabyWalk: 通过采取婴儿步伐在视觉-语言导航中走得更远。发表于*第58届计算语言学会年会论文集*，2539–2556。'
+- en: 'Zhu et al. (2021) Zhu, W.; Wang, X.; Fu, T.-J.; Yan, A.; Narayana, P.; Sone,
+    K.; Basu, S.; and Wang, W. Y. 2021. Multimodal Text Style Transfer for Outdoor
+    Vision-and-Language Navigation. In *Proceedings of the 16th Conference of the
+    European Chapter of the Association for Computational Linguistics: Main Volume*,
+    1207–1221\. Online: Association for Computational Linguistics.'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Zhu等人（2021）Zhu, W.; Wang, X.; Fu, T.-J.; Yan, A.; Narayana, P.; Sone, K.; Basu,
+    S.; 和Wang, W. Y. 2021. 用于户外视觉-语言导航的多模态文本风格迁移。发表于*第16届欧洲计算语言学会分会会议论文集：主卷*，1207–1221。在线：计算语言学会。
+- en: Appendix A Finetuning Details
+  id: totrans-155
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录A 微调细节
+- en: In the finetuning experiments, we use the official LLaMA-7b weights and finetune
+    a LoRA adapter for q_proj and v_proj. LoRA hyperparameter are set to $r=8$, $alpha=16$,
+    $dropout=0.05$ and no bias. We use Adam (Kingma and Ba [2015](#bib.bib14)) as
+    the optimizer with a learning rate of $0.0003$, warmup ratio of 0.1 and linear
+    decay. The batch size is 16 and we train for 20 epochs. We use greedy decoding
+    for all experiments.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在微调实验中，我们使用官方LLaMA-7b权重，并为q_proj和v_proj微调一个LoRA适配器。LoRA超参数设置为$r=8$，$alpha=16$，$dropout=0.05$且无偏置。我们使用Adam（Kingma和Ba
+    [2015](#bib.bib14)）作为优化器，学习率为$0.0003$，预热比例为0.1，线性衰减。批量大小为16，训练20个epoch。所有实验使用贪心解码。
+- en: Appendix B Modified Environment
+  id: totrans-157
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录B 修改后的环境
+- en: 'In Section [3.1](#S3.SS1 "3.1 Alignment Inconsistencies in Touchdown ‣ 3 Urban
+    VLN Environment ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and
+    Language Navigation in Street View") we propose modifications to the environment
+    introduced by Chen et al. ([2019](#bib.bib4)). In Table [4](#A5.T4 "Table 4 ‣
+    Appendix E Full Prompt Sequence ‣ VELMA: Verbalization Embodiment of LLM Agents
+    for Vision and Language Navigation in Street View") we give an overview of action
+    sequences required to clear 3-way, 4-way and 5-way intersections in different
+    directions in the original environment implementation and our modified environment.
+    It is clear that the action sequences required in our improved environment are
+    more intuitive and are necessary to enable few-short agents to interact with it.'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在第[3.1节](#S3.SS1 "3.1 着陆点不一致性 ‣ 3 城市 VLN 环境 ‣ VELMA：大语言模型代理的口头化表现，用于街景中的视觉与语言导航")中，我们提出了对陈等人（[2019](#bib.bib4)）提出的环境的修改。在[表
+    4](#A5.T4 "表 4 ‣ 附录 E 完整提示序列 ‣ VELMA：大语言模型代理的口头化表现，用于街景中的视觉与语言导航")中，我们概述了在原始环境实现和我们修改后的环境中，分别清除三叉路口、四叉路口和五叉路口的动作序列。很明显，我们改进后的环境所需的动作序列更加直观，且对于使少量步骤的代理能够与环境进行交互是必要的。
+- en: Appendix C Landmark Extraction
+  id: totrans-159
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 C 地标提取
+- en: 'The landmarks mentioned in the navigation instructions are extracted before
+    the run starts. We do this by a separate prompt that we feed to GPT-3\. The prompt
+    for Map2seq instructions is shown in Figure [8](#A5.F8 "Figure 8 ‣ Appendix E
+    Full Prompt Sequence ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision
+    and Language Navigation in Street View") and the one for Touchdown in Figure [9](#A5.F9
+    "Figure 9 ‣ Appendix E Full Prompt Sequence ‣ VELMA: Verbalization Embodiment
+    of LLM Agents for Vision and Language Navigation in Street View"). It provides
+    five instructions texts paired with a list of extracted landmarks as in-context
+    examples. The lists of example landmarks were compiled by hand and the same prompt
+    is used for each instance. There are no gold annotations for extracted landmarks
+    and as such no quantitative evaluation is possible. In Figure [10](#A5.F10 "Figure
+    10 ‣ Appendix E Full Prompt Sequence ‣ VELMA: Verbalization Embodiment of LLM
+    Agents for Vision and Language Navigation in Street View") we show landmarks extracted
+    by GPT-3 using this prompt.'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行开始之前，会提取导航指令中提到的地标。我们通过一个单独的提示喂给 GPT-3 来完成此操作。Map2seq 指令的提示如[图 8](#A5.F8
+    "图 8 ‣ 附录 E 完整提示序列 ‣ VELMA：大语言模型代理的口头化表现，用于街景中的视觉与语言导航")所示，而 Touchdown 的提示如[图
+    9](#A5.F9 "图 9 ‣ 附录 E 完整提示序列 ‣ VELMA：大语言模型代理的口头化表现，用于街景中的视觉与语言导航")所示。它提供了五个指令文本，并配有一组提取出的地标作为上下文示例。这些示例地标列表是手动编制的，且每个实例使用相同的提示。由于没有提取地标的标准注释，因此无法进行定量评估。在[图
+    10](#A5.F10 "图 10 ‣ 附录 E 完整提示序列 ‣ VELMA：大语言模型代理的口头化表现，用于街景中的视觉与语言导航")中，我们展示了通过该提示由
+    GPT-3 提取的地标。
+- en: Appendix D Landmark Scorer
+  id: totrans-161
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 D 地标评分器
+- en: 'We show the CLIP score distribution and panorama views at certain thresholds
+    for additional landmarks in Figure [6](#A5.F6 "Figure 6 ‣ Appendix E Full Prompt
+    Sequence ‣ VELMA: Verbalization Embodiment of LLM Agents for Vision and Language
+    Navigation in Street View"). Some navigation instructions refer to the flow up
+    traffic when orientating the agent in the beginning of Touchdown instances, e.g.
+    ”Orientate yourself with against the flow of traffic…”. To support this kind instructions,
+    we score the phrases ”the front view of a vehicle” and ”the rear view of a vehicle”
+    once, before the start. Whichever phrase scores higher with the initial perspective,
+    determines if the agent is facing against the traffic or with the flow of traffic
+    respectively. This traffic flow prediction is then provided as an environment
+    observation string before the first step of the agent.'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在[图 6](#A5.F6 "图 6 ‣ 附录 E 完整提示序列 ‣ VELMA：大语言模型代理的口头化表现，用于街景中的视觉与语言导航")中展示了某些阈值下，额外地标的
+    CLIP 得分分布和全景视图。一些导航指令提到在定位代理时，与交通流向对齐的方向，例如：“将自己定向与交通流逆行…”。为了支持这种类型的指令，我们在开始之前，对短语“车辆的前视图”和“车辆的后视图”进行评分。无论哪个短语在初始视角下得分更高，都可以确定代理是面对交通流逆行，还是顺着交通流行驶。然后，这个交通流向预测作为环境观察字符串，在代理执行第一步之前提供。
+- en: Appendix E Full Prompt Sequence
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 E 完整提示序列
+- en: 'In Figure [7](#A5.F7 "Figure 7 ‣ Appendix E Full Prompt Sequence ‣ VELMA: Verbalization
+    Embodiment of LLM Agents for Vision and Language Navigation in Street View") we
+    show a full prompt sequence for a given navigation instance. The agent predicted
+    ${\tt{STOP}}$ at timestep 14 and thus finished the trajectory. In the depicted
+    case the agent followed the correct route and successfully completed the navigation
+    objective. For visualization purposes the trajectory is shortened. On average
+    the routes in Touchdown and Map2seq require 40 steps to be completed. This also
+    means the agents has to evaluate 200 panorama views for each navigation instance.'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在图[7](#A5.F7 "图7 ‣ 附录E 完整提示序列 ‣ VELMA：街景中视觉与语言导航的LLM代理的言语化体现")中，我们展示了给定导航实例的完整提示序列。代理在第14时刻预测到${\tt{STOP}}$，因此完成了轨迹。在该示例中，代理跟随了正确的路线，并成功完成了导航目标。为了便于可视化，轨迹进行了简化。平均而言，Touchdown和Map2seq的路线需要40步才能完成。这也意味着每个导航实例需要评估200个全景视图。
+- en: '![Refer to caption](img/bd5154112bc5dfcaed0d435e53bcb7c4.png)![Refer to caption](img/8a8b5e29b732358efeaa7be2a7e5afaa.png)![Refer
+    to caption](img/f5624cbc6819a95e248a162712741cf5.png)'
+  id: totrans-165
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/bd5154112bc5dfcaed0d435e53bcb7c4.png)![参见标题](img/8a8b5e29b732358efeaa7be2a7e5afaa.png)![参见标题](img/f5624cbc6819a95e248a162712741cf5.png)'
+- en: 'Figure 6: Distribution of CLIP scores between a landmark and panorama images
+    in the training area. The CLIP score represents the semantic similarity of the
+    panorama image and the text caption ”picture of $[$landmark$]$”. The distribution
+    is used to standardize the score of the landmark and a novel panorama. The threshold
+    $\tau$ is defined on the standardized score and used to determine the visibility
+    of the landmark in the novel panorama image.'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：训练区域中地标与全景图像之间CLIP得分的分布。CLIP得分表示全景图像与文本描述“$[$地标$]$的图片”之间的语义相似性。此分布用于标准化地标和新颖全景图像的得分。阈值$\tau$在标准化得分上定义，并用于确定地标在新颖全景图像中的可见性。
+- en: '![Refer to caption](img/fb421999e4298fb386332ae35dd71e11.png)'
+  id: totrans-167
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题](img/fb421999e4298fb386332ae35dd71e11.png)'
+- en: 'Figure 7: Finished prompt sequence used to utilize LLMs for VLN in Street View.
+    Verbalized observations of the visual environment are in green and appended to
+    the prompt at each step. Agent actions (blue) are acquired by LLM next word prediction.
+    Highlighting of text and shortening of route for visual presentation only. Full
+    navigation trajectories are on average 40 steps long.'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图7：完成的提示序列，用于在街景中利用LLM进行VLN。视觉环境的言语化观察结果以绿色表示，并在每一步附加到提示中。代理的动作（蓝色）通过LLM的下一步预测获得。文本的高亮和路线的简化仅用于视觉展示。完整的导航轨迹平均需要40步。
+- en: '| Intersection | Path | Environment by Chen et al. | Our Environment |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| 十字路口 | 路径 | 陈等人提出的环境 | 我们的环境 |'
+- en: '| ![[Uncaptioned image]](img/25eb90b9b0cb64f4694a6fa83a31385c.png) | 2→3→4
+    | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| ![[未标注的图像]](img/25eb90b9b0cb64f4694a6fa83a31385c.png) | 2→3→4 | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$ |'
+- en: '| 2→3→5 | $[{\tt{FORWARD}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2→3→5 | $[{\tt{FORWARD}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+- en: '| ![[Uncaptioned image]](img/a0ada889930ec027da8526312ddc8f9c.png) | 2→3→4
+    | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{LEFT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| ![[未标注的图像]](img/a0ada889930ec027da8526312ddc8f9c.png) | 2→3→4 | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$ |'
+- en: '| 2→3→5 | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2→3→5 | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{FORWARD}}]$
+    |'
+- en: '| 2→3→6 | $[{\tt{FORWARD}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2→3→6 | $[{\tt{FORWARD}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+- en: '| ![[Uncaptioned image]](img/7b3f03a9ab8d0a5b72836425b2f75b04.png) | 2→3→4
+    | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{LEFT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| ![[未标注的图像]](img/7b3f03a9ab8d0a5b72836425b2f75b04.png) | 2→3→4 | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{LEFT}},{\tt{FORWARD}}]$ |'
+- en: '| 2→3→5 | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2→3→5 | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{LEFT}},{\tt{FORWARD}}]$
+    |'
+- en: '| 2→3→6 | $[{\tt{FORWARD}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2→3→6 | $[{\tt{FORWARD}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+- en: '|  | 2→3→7 | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 2→3→7 | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{FORWARD}}]$ | $[{\tt{FORWARD}},{\tt{RIGHT}},{\tt{RIGHT}},{\tt{FORWARD}}]$
+    |'
+- en: 'Table 4: Comparison of the Touchdown environment implemented by Chen et al.
+    ([2019](#bib.bib4)) and the improved implementation proposed by us. The action
+    sequence required to clear an intersection in different directions in our improved
+    environment is semantically aligned with the expected outcome.'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 4：比较陈等人（[2019](#bib.bib4)）实现的Touchdown环境和我们提出的改进实现。在我们改进的环境中，清理不同方向交叉口所需的动作序列与预期结果在语义上是对齐的。
+- en: Head to the end of the block and make a right. Pass a Subway entrance on the
+    right and go through the light. At the next light with Staples on the corner,
+    make a right. Stop in front of the library that is a few buildings down on the
+    right.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 走到街区的尽头右转。经过右侧的地铁入口，继续通过交通信号灯。在下一个交通信号灯处，角落里有订书机，右转。停在几栋楼之外的图书馆前面。
+- en: 'Landmarks:'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. a subway entrance
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 地铁入口
+- en: 2\. Staples
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. 订书机
+- en: 3\. a library
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 一座图书馆
+- en: Go straight through the light ahead of you, then turn right at the next one.
+    After your turn, you will see Starbucks on the left. At the light after that,
+    turn left. Pass the church on the left and then stop after Hot Kitchen. You should
+    be able to see a bike rental on the right.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直行通过前方的交通信号灯，然后在下一个交通信号灯处右转。转弯后，你会看到星巴克在左侧。接下来的交通信号灯处左转。经过左侧的教堂后，停在热厨房后面。你应该能在右侧看到一个自行车租赁点。
+- en: 'Landmarks:'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. Starbucks
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 星巴克
+- en: 2\. a church
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. 一座教堂
+- en: 3\. Hot Kitchen
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 热厨房
+- en: 4\. a bike rental
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4\. 一处自行车租赁点
+- en: Head to the intersection and turn left. Continue to the end of the block and
+    turn right. Go straight and past the intersection. Stop 1/3 of the way down the
+    block with the large building on your right.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 走到交叉口左转。继续走到街区的尽头并右转。直行通过交叉口，停在街区的1/3处，右侧是一个大楼。
+- en: 'Landmarks:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: None
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无
+- en: Walk to the light with Just Sweet and turn right. Go through a light with an
+    AMC and a couple more blocks until you see a tiny park or plaza on the far left
+    corner. Turn left passing that park and then make a left turn almost immediately
+    after. Stop after a couple of steps, where a road from the right joins the main
+    road.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 走到有“仅限甜品”的交通信号灯处右转。继续走过一个有AMC的信号灯，再走几个街区，直到你看到一个位于左远角的小公园或广场。左转经过那个公园，然后立即左转。走几步后停下，那里有一条来自右侧的路与主干道交汇。
+- en: 'Landmarks:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. Just Sweet
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 仅限甜品
+- en: 2\. AMC
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. AMC
+- en: 3\. a park
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 一个公园
+- en: 4\. a plaza
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4\. 一个广场
+- en: Go straight through the next 3 lights past the bus stops and at the 4th light
+    shortly after the 3rd take a left. Stop just past the bus stop and Neta diner.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直行通过接下来的3个交通信号灯，经过公交车站后，在第4个信号灯处左转，刚过第3个信号灯。停在公交车站和Neta餐厅后面。
+- en: 'Landmarks:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. bus stop
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 公交车站
+- en: 2\. Neta diner
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. Neta餐厅
+- en: '{navigation instructions}'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{导航指示}'
+- en: 'Landmarks:'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: <>
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <>
+- en: 'Figure 8: Prompt to extract landmarks from navigation instruction in Map2seq.'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 8：从Map2seq导航指令中提取地标的提示
+- en: You will start of at an intersection. To begin, make sure you are going in the
+    direction of the blue and white van with orange cones around it. Pass that van.
+    Go straight through the first intersection you get to. You will come to a light
+    at an intersection where there is a building with a green awning. Take a right.
+    Go straight until you are in the middle of the intersection. In front of you,
+    there is a building with a red sign above the entrance.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你将从一个交叉口开始。首先，确保你朝着蓝白色厢型车的方向走，车周围有橙色锥桶。经过那辆车。通过第一个交叉口直行。你会来到一个交通信号灯处，那里有一栋带绿色遮阳棚的建筑。右转。继续直行，直到你走到交叉口的中央。前方有一座建筑，入口上方有一个红色标志。
+- en: 'Landmarks:'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. a blue and white van
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 一辆蓝白色的厢型车
+- en: 2\. orange cones
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. 橙色锥桶
+- en: 3\. a green awning
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 一个绿色的遮阳棚
+- en: 4\. a red sign above the entrance
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4\. 入口上方的红色标志
+- en: Turn to the right until you’re looking down the street. There should be a red
+    SUV on the right side of the frame now. Begin moving forward until you reach an
+    intersection. Take a left here. Keep moving forward until reaching a three-way
+    intersection. Take another left here. Move forward three times. Turn to the right
+    until you see a red and white street sign next to a series of green boards.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向右转，直到你看到街道。现在应该能在画面的右侧看到一辆红色SUV。继续前行，直到到达一个交叉口。此处左转。继续前行，直到到达一个三叉路口。再左转。继续前行三次。向右转，直到看到红白相间的街道标志，旁边是系列绿色板子。
+- en: 'Landmarks:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. a red SUV
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1\. 一辆红色SUV
+- en: 2\. a red and white street sign
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. 一块红白相间的街道标志
+- en: 3\. a series of green boards
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 一系列绿色的板子
+- en: Head in the direction of traffic and continue going straight. You will have
+    the opportunity to turn right, but DON’T. Keep going straight. When you reach
+    the intersection, turn left. Keep going straight. You will reach an intersection,
+    but keep going straight. Just before you reach the next intersection, you will
+    see a bus stop on the right in front of a credit union.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 朝着交通流向前进并继续直行。你会有机会右转，但不要右转。继续直行。当你到达交叉口时，左转。继续直行。你会到达一个交叉口，但继续直行。就在你到达下一个交叉口之前，你会看到一个公交车站，位于一个信用合作社前的右侧。
+- en: 'Landmarks:'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. a bus stop
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1. 一个公交车站
+- en: 2\. credit union
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2. 信用合作社
+- en: If you look around there should be a beige building on your right and a green
+    awning. You want to head in the same direction as the the red building with a
+    staircase and a green awning if you check your surrounding. Make a left turn at
+    the intersection when you arrive. Follow the road until you reach another intersection.
+    At this intersection make a left turn. You should be in an alley. If you go up
+    a few steps there should be a bicycle leaning on a tree. There should be a white
+    car next to the bike. Up ahead at least one step is a silver car and a light green
+    car.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你环顾四周，应该能看到右侧的米色建筑和绿色雨棚。如果你查看周围环境，你想朝着红色建筑走，那里有一座楼梯和绿色雨棚。到达交叉口时左转。沿着道路走，直到到达另一个交叉口。在这个交叉口左转。你应该进入一条小巷。如果你走上几步，应该会看到一辆自行车靠在一棵树上。自行车旁边应该有一辆白色汽车。前方至少有一步，看到一辆银色汽车和一辆浅绿色汽车。
+- en: 'Landmarks:'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. beige building
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1. 米色建筑
+- en: 2\. green awning
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2. 绿色雨棚
+- en: 3\. a red building with a staircase and a green awning
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3. 一座红色建筑，带楼梯和绿色雨棚
+- en: 4\. a bicycle leaning on a tree
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4. 一辆自行车靠在树上
+- en: 5\. a white car next to the bike
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 5. 一辆白色汽车靠近自行车
+- en: 6\. a silver car
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 6. 一辆银色汽车
+- en: 7\. a light green car
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 7. 一辆浅绿色汽车
+- en: Turn so your facing the intersection. You will take one step and be in the intersection.
+    Turn Left, you will see some construction barriers on your left. Go one block
+    and at the very next intersection go left again. Go about half a block or so and
+    you will see another orange barricade on your left. There will be some tarps covering
+    construction stuff and scaffolding. At the beginning of the barricade, there is
+    an orange safety light.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 朝着交叉口的方向转。你会走一步就到达交叉口。左转，你会看到左边有一些施工路障。走一街区，到下一个交叉口时再左转。大约走半个街区左右，你会看到左侧的另一个橙色路障。路障的开始处会有一个橙色安全灯。
+- en: 'Landmarks:'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: 1\. construction barriers
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1. 施工路障
+- en: 2\. orange barricade
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2. 橙色路障
+- en: 3\. tarps covering construction stuff and scaffolding
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3. 用帆布遮盖的建筑材料和脚手架
+- en: 4\. orange safety light
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4. 橙色安全灯
+- en: '{navigation instructions}'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{导航指令}'
+- en: 'Landmarks:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标：
+- en: <>
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <>
+- en: 'Figure 9: Prompt to extract landmarks from navigation instruction in Touchdown.'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 9：从“Touchdown”中的导航指令提取地标的提示。
+- en: 'Map2seq: Head through the first intersection and at the next light make a right.
+    Go past the next light and the Butcher Daughter will be on the far left corner.
+    At the next light make a left and stop in front of Kings Avenue Tattooing.'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Map2seq：穿过第一个交叉口，在下一个红绿灯处右转。经过下一个红绿灯，Butcher Daughter会在远左角。下一个红绿灯处左转，在Kings
+    Avenue Tattooing前停下。
+- en: 'Extracted Landmarks: ”The Butcher Daughter”, ”Kings Avenue Tattooing” Head
+    past the market and the cathedral and make a right at the light. At the next light
+    with the Delicatessen on the corner make a left. Stop in front of the fire hall.'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提取的地标：“The Butcher Daughter”，“Kings Avenue Tattooing”。穿过市场和大教堂，在红绿灯处右转。下一个红绿灯处，角落有一家熟食店，左转。停在消防站前。
+- en: 'Extracted Landmarks: ”a market”, ”a cathedral”, ”a Delicatessen”, ”a fire hall”
+    Go to the end of the block and turn left. Pass More Parlour on the right and turn
+    right at the lights. Go past the park on the left to the lights and turn left
+    and take two steps. Stop at Straus Square on the right before the bike rental.'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提取的地标：“一个市场”，“一座大教堂”，“一家熟食店”，“一个消防站”。走到街道尽头左转。经过右侧的More Parlour，在红绿灯处右转。经过左侧的公园，到达红绿灯处左转并走两步。停在右侧的Straus
+    Square，靠近自行车租赁处。
+- en: 'Extracted Landmarks: ”More Parlour, ”a park”, ”Straus Square”, ”a bike rental”
+    Turn right at the lights. Pass Spitzer’s Corner on the next left and turn left.
+    Go down the long block and through the double set of lights. Stop just before
+    Farmhouse on the right corner.'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提取的地标：“More Parlour”，“一个公园”，“Straus Square”，“一个自行车租赁”。在红绿灯处右转。经过下一个左转的Spitzer’s
+    Corner，左转。走过长街区，穿过两组红绿灯。就在Farmhouse右侧的角落前停下。
+- en: 'Extracted Landmarks: ”Spitzer’s Corner”, ”Farmhouse” Touchdown: You’re going
+    to go down the narrow street, not the big/main street here. Turn yourself so you’ve
+    got that big mural of a guy with nunchucks at your back, and you’re facing down
+    the narrow street where you’ll go in the same direction the parked cars are facing.
+    Go down that street, and pass through the first intersection with the stop sign.
+    At the second intersection, turn right. Go until you’re nearly in the next intersection
+    (right before you’d be standing on the crosswalk).'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提取的地标：“斯皮策角”，“农舍” 目标地点：你需要走一条狭窄的街道，而不是这条大的/主干道。转身，让背后的壁画（画着拿着双截棍的人）在你背后，你正面朝向狭窄街道，在这个街道上，你将与停着的车相同的方向前进。沿着这条街走，经过第一个有停车标志的交叉口。在第二个交叉口右转。继续走，直到你几乎到达下一个交叉口（就在你站在斑马线之前）。
+- en: 'Extracted Landmarks: ”mural of a guy with nunchucks”, ”parked cars”, ”stop
+    sign”, ”crosswalk” You’re basically starting in an intersection. Move to the center
+    of the intersection, and turn yourself so the restaurant with the bright yellow
+    awnings and sidewalk barriers is on your right side (you’ll pass it on your right
+    as you walk down the street). Go down that street, with the yellow restaurant
+    on your right, and go to the next intersection. Turn right. Look at the buildings
+    on your right. A short way down the block you’ll come to a bar with a wood bench
+    out front. There is also a red velvet rope near the bench.'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提取的地标：“双截棍壁画”，“停放的汽车”，“停车标志”，“斑马线” 你基本上是从一个交叉口开始的。走到交叉口的中央，转身使有明黄色遮阳篷和人行道围栏的餐厅位于你的右侧（当你沿街走时，会从右侧经过它）。沿着这条街走，餐厅在你右侧，继续前进到下一个交叉口。右转。看看你右侧的建筑。沿街走一小段，你会看到前面有一家酒吧，外面有一张木长椅。长椅旁边还有一条红色天鹅绒绳。
+- en: 'Extracted Landmarks: ”restaurant with bright yellow awnings and sidewalk barriers”,
+    ”bar with a wood bench”, ”red velvet rope” Turn yourself around left so that you
+    are going with the flow of traffic, there should be a green door on your right.
+    Go forward and make a right turn at the first intersection. There will be a black
+    awning on your right. Continue forward. When you come to the next intersection,
+    make another right turn. As you get near the next intersection, you will see large
+    red brick buildings on your right. You will see a pallet of green sandbags sitting
+    along the sidewalk.'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提取的地标：“有明黄色遮阳篷和人行道围栏的餐厅”，“有木长椅的酒吧”，“红色天鹅绒绳” 站到左边，使自己与交通流向一致，右侧应有一扇绿色的门。继续前行，在第一个交叉口右转。右侧会有一个黑色遮阳篷。继续前进。当你到达下一个交叉口时，再次右转。当你接近下一个交叉口时，你会看到右侧有一些大型红砖建筑。你还会看到一堆绿色沙袋放在人行道上。
+- en: 'Extracted Landmarks: ”green door black awning”, ”large red brick buildings”,
+    ”pallet of green sandbags”'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提取的地标：“绿色门黑色遮阳篷”，“大型红砖建筑”，“一堆绿色沙袋”
+- en: 'Figure 10: Landmarks extracted by GPT-3 using the 5-shot prompt for Map2seq
+    and Touchdown.'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图10：GPT-3使用5-shot提示提取的地标，用于Map2seq和Touchdown。

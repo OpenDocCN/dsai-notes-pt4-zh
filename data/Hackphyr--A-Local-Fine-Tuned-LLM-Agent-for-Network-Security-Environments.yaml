@@ -1,0 +1,2900 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 12:14:51'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'date: 2025-01-11 12:14:51'
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'Hackphyr: 用于网络安全环境的本地微调LLM代理'
+- en: 来源：[https://arxiv.org/html/2409.11276/](https://arxiv.org/html/2409.11276/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2409.11276/](https://arxiv.org/html/2409.11276/)
+- en: Maria Rigaki Carlos Catania Sebastian Garcia
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Maria Rigaki Carlos Catania Sebastian Garcia
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Large Language Models (LLMs) have shown remarkable potential across various
+    domains, including cybersecurity. Using commercial cloud-based LLMs may be undesirable
+    due to privacy concerns, costs, and network connectivity constraints. In this
+    paper, we present Hackphyr, a locally fine-tuned LLM to be used as a red-team
+    agent within network security environments. Our fine-tuned 7 billion parameter
+    model can run on a single GPU card and achieves performance comparable with much
+    larger and more powerful commercial models such as GPT-4\. Hackphyr clearly outperforms
+    other models, including GPT-3.5-turbo, and baselines, such as Q-learning agents
+    in complex, previously unseen scenarios. To achieve this performance, we generated
+    a new task-specific cybersecurity dataset to enhance the base model’s capabilities.
+    Finally, we conducted a comprehensive analysis of the agents’ behaviors that provides
+    insights into the planning abilities and potential shortcomings of such agents,
+    contributing to the broader understanding of LLM-based agents in cybersecurity
+    contexts.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）在多个领域展现出了显著的潜力，包括网络安全。由于隐私问题、成本和网络连接限制，使用商业云端大型语言模型可能并不可取。在本文中，我们介绍了Hackphyr，这是一种本地微调的LLM，用作网络安全环境中的红队代理。我们的微调模型拥有70亿个参数，能够在单张GPU卡上运行，并且其性能与更大、更强大的商业模型，如GPT-4，表现相当。Hackphyr显著优于其他模型，包括GPT-3.5-turbo，以及基线模型，如在复杂、以前未见过的场景中的Q学习代理。为了实现这一性能，我们生成了一个新的任务特定的网络安全数据集，以增强基础模型的能力。最后，我们对代理的行为进行了全面分析，提供了对这些代理规划能力和潜在缺点的洞察，推动了对基于LLM的代理在网络安全领域的广泛理解。
+- en: 'keywords:'
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 'keywords:'
+- en: large language models , agents , reinforcement learning , network security\affiliation
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: large language models , agents , reinforcement learning , network security\affiliation
+- en: '[inst1]organization=Faculty of Electrical Engineering, Czech Technical University
+    in Prague,city=Prague, country=Czech Republic'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[inst1]organization=电气工程学院，捷克技术大学，城市=布拉格，国家=捷克共和国'
+- en: \affiliation
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \affiliation
+- en: '[inst2]organization=Engineering School, National University of Cuyo,city=Mendoza,
+    country=Argentina'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[inst2]organization=工程学院，库约国立大学，城市=门多萨，国家=阿根廷'
+- en: \affiliation
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: \affiliation
+- en: '[inst3]organization=National Scientific and Technical Research Council (CONICET),country=Argentina'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[inst3]organization=国家科学与技术研究委员会（CONICET），国家=阿根廷'
+- en: 1 Introduction
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 1 引言
+- en: Autonomous agents are systems that interact with and adapt to their environments
+    to achieve specific goals. Traditionally, human defenders have been the primary
+    responders to security breaches. The potential deployment of Autonomous Intelligent
+    Cyber Agents (AICA) [[1](https://arxiv.org/html/2409.11276v1#bib.bib1)] for defensive
+    operations could transform cyber defenses. At the same time, offensive agents,
+    also known as Red-team Agents, have the potential to test existing defenses and
+    uncover potential problems. These agents could preemptively identify threats making
+    defense a dynamic, continuous process.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自主代理是与环境互动并适应环境以实现特定目标的系统。传统上，人类防御者是应对安全漏洞的主要响应者。自主智能网络代理（AICA）[[1](https://arxiv.org/html/2409.11276v1#bib.bib1)]的潜在部署可能会改变网络防御。同时，进攻性代理，也称为红队代理，具有测试现有防御并发现潜在问题的能力。这些代理可以预先识别威胁，使防御成为一个动态、持续的过程。
+- en: 'In recent years, Reinforcement Learning (RL) techniques have emerged as the
+    predominant method for developing autonomous agents to navigate and adapt to dynamic
+    environments [[2](https://arxiv.org/html/2409.11276v1#bib.bib2), [3](https://arxiv.org/html/2409.11276v1#bib.bib3)].
+    Reinforcement learning-based agents evolve through direct interactions with their
+    environments, learning to optimize behaviors through a trial-and-error approach
+    supported by reward systems. Trial-and-error comes with certain shortcomings:
+    it requires hundreds of thousands of training episodes to learn a policy, and
+    once trained, the policy is not flexible. An agent trained in one specific environment
+    configuration will not work without retraining in a slightly different scenario.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，强化学习（RL）技术已成为开发自主代理以应对动态环境的主要方法[[2](https://arxiv.org/html/2409.11276v1#bib.bib2),
+    [3](https://arxiv.org/html/2409.11276v1#bib.bib3)]。基于强化学习的代理通过与环境的直接交互进行进化，学习通过试错法来优化行为，并由奖励系统进行支持。试错法有一定的缺点：它需要数十万次训练回合才能学习一个策略，并且一旦训练完成，该策略就缺乏灵活性。在一个特定环境配置中训练的代理在稍微不同的场景中将无法正常工作，除非重新训练。
+- en: LLMs have achieved notable successes in recent years, demonstrating significant
+    potential in mimicking human-like behavior [[4](https://arxiv.org/html/2409.11276v1#bib.bib4),
+    [5](https://arxiv.org/html/2409.11276v1#bib.bib5)]. Building upon this capability,
+    a growing research area has employed LLMs as central controllers to construct
+    autonomous agents to obtain human-like decision-making capabilities [[6](https://arxiv.org/html/2409.11276v1#bib.bib6),
+    [7](https://arxiv.org/html/2409.11276v1#bib.bib7)]. Compared to RL approaches,
+    LLM-based agents encapsulate a vast spectrum of human knowledge and a richer understanding
+    of the world that enables them to act without needing additional or specific training [[8](https://arxiv.org/html/2409.11276v1#bib.bib8)].
+    Secondly, pre-trained language models exhibit remarkable adaptability, as they
+    can be easily adapted to new tasks or domains with relatively minimal additional
+    training, offering a significant advantage over other machine learning models
+    that may require extensive retraining [[9](https://arxiv.org/html/2409.11276v1#bib.bib9)].
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）近年来取得了显著的成功，展示了在模仿类人行为方面的巨大潜力[[4](https://arxiv.org/html/2409.11276v1#bib.bib4),
+    [5](https://arxiv.org/html/2409.11276v1#bib.bib5)]。基于这一能力，越来越多的研究领域已将LLMs作为核心控制器，构建自主代理，以获得类人决策能力[[6](https://arxiv.org/html/2409.11276v1#bib.bib6),
+    [7](https://arxiv.org/html/2409.11276v1#bib.bib7)]。与强化学习（RL）方法相比，基于LLM的代理能够封装广泛的人类知识和更丰富的世界理解，使其能够在无需额外或特定训练的情况下行动[[8](https://arxiv.org/html/2409.11276v1#bib.bib8)]。其次，预训练语言模型展现出了显著的适应性，因为它们可以通过相对较少的额外训练，轻松适应新任务或领域，这为其提供了相较其他可能需要广泛重新训练的机器学习模型的显著优势[[9](https://arxiv.org/html/2409.11276v1#bib.bib9)]。
+- en: Prior work has explored the intersection of LLMs, cybersecurity, and sequential
+    decision-making [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]. The authors
+    proposed a novel approach that uses pre-trained LLMs as agents within cybersecurity
+    environments. However, the models used were proprietary models running on the
+    cloud. The use of cloud-based language models suffers from several problems. These
+    models are costly to access, limiting accessibility and reproducibility. Furthermore,
+    the models are often unilaterally changed without explanations or updates, raising
+    concerns about their stability and reliability.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 先前的研究探讨了LLMs、网络安全和序列决策的交集[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]。作者提出了一种新颖的方法，利用预训练的LLMs作为网络安全环境中的代理。然而，所使用的模型是运行在云上的专有模型。使用基于云的语言模型存在一些问题。这些模型访问成本高，限制了其可达性和可复现性。此外，这些模型常常单方面更改，且没有解释或更新，这引发了对其稳定性和可靠性的担忧。
+- en: The situation can be even more critical in the context of cyber security. Communicating
+    possibly sensitive information about a company network to a cloud-based proprietary
+    model for additional analysis could be a major threat to the security and privacy
+    of the company. In contrast, open-source models are freely available, promoting
+    accessibility, reproducibility, and privacy. Additionally, many open source models
+    come in smaller parameter sizes that allow inference to be performed in lower-cost
+    hardware in the company premises if required. However, smaller model sizes often
+    mean lower performance and the need for further model fine-tuning to a specific
+    task.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在网络安全的背景下，情况可能更加严重。将可能敏感的公司网络信息传递给基于云的专有模型进行额外分析，可能会对公司的安全性和隐私构成重大威胁。相比之下，开源模型是免费的，促进了可访问性、可重复性和隐私性。此外，许多开源模型具有较小的参数规模，允许在公司场地的低成本硬件上进行推理。如果需要，较小的模型规模通常意味着较低的性能，并且可能需要进一步的模型微调以适应特定任务。
+- en: In this work, we fine-tuned a 7 billion pre-trained LLM (Zephyr-7b-$\beta$)
+    to be used as a red team agent in the NetSecGame environment [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)].
+    For the fine-tuning process, we created a new dataset that helped boost the base
+    model’s understanding of the environment and its ability to propose valid and
+    useful actions. Our agent was evaluated in three scenarios with varying levels
+    of complexity and compared to pre-trained commercial LLMs and RL baselines such
+    as Q-learning. Finally, we performed a detailed behavioral analysis of each agent’s
+    actions to evaluate their planning ability and how it matches human-like behavior.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这项工作中，我们对一个7亿参数的预训练LLM（Zephyr-7b-$\beta$）进行了微调，使其能够作为NetSecGame环境中的红队代理[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]。在微调过程中，我们创建了一个新的数据集，帮助提升基础模型对环境的理解，并增强其提出有效和有用行动的能力。我们的代理在三个复杂度不同的场景中进行了评估，并与预训练的商业LLM和强化学习基线（如Q-learning）进行了比较。最后，我们对每个代理的行为进行了详细的分析，评估了它们的规划能力及其与人类行为的匹配度。
+- en: 'This paper makes several key contributions to the field:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文对该领域做出了若干关键贡献：
+- en: '1.'
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: A locally deployed model named Hackphyr, specifically fine-tuned to work in
+    the NetSecGame environment.
+  id: totrans-25
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一种本地部署的模型，名为Hackphyr，专门针对NetSecGame环境进行了微调。
+- en: '2.'
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: A novel dataset, accompanied by an ablation study that analyzes the impact of
+    different dataset components on model performance. This analysis provides valuable
+    insights into the factors that most significantly influence the effectiveness
+    of the fine-tuned model in network security environments.
+  id: totrans-27
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 提出了一个新颖的数据集，并附有消融研究，分析了不同数据集组件对模型性能的影响。该分析为理解哪些因素在网络安全环境中最显著地影响微调模型的效果提供了有价值的见解。
+- en: '3.'
+  id: totrans-28
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: A detailed behavioral analysis of three LLM-based agents (GPT-4, Zephyr-7b-$\beta$,
+    Hackphyr). This analysis offers a unique perspective on the decision-making processes
+    of each model, providing information on their ability to navigate and solve network
+    security challenges autonomously.
+  id: totrans-29
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 对三种基于LLM的代理（GPT-4、Zephyr-7b-$\beta$、Hackphyr）进行了详细的行为分析。这一分析为每个模型的决策过程提供了独特的视角，提供了它们在自主解决网络安全挑战中的能力信息。
+- en: 'The rest of the paper is organized as follows: Sections [2](https://arxiv.org/html/2409.11276v1#S2
+    "2 Background ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")
+    and [3](https://arxiv.org/html/2409.11276v1#S3 "3 Related Work ‣ Hackphyr: A Local
+    Fine-Tuned LLM Agent for Network Security Environments") present the background
+    knowledge and related work, respectively. The NetSecGame environment is presented
+    in Section [4](https://arxiv.org/html/2409.11276v1#S4 "4 The NetSecGame Environment
+    ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments"),
+    and the general agent design is described in Section [5](https://arxiv.org/html/2409.11276v1#S5
+    "5 LLM Agent Design ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments"). Section [6](https://arxiv.org/html/2409.11276v1#S6 "6 Supervised
+    Fine-tuning Methodology ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments") details the supervised fine-tuning methodology, including the dataset
+    creation and the hyper-parameter tuning process. The design of experiments and
+    the three different scenario configurations are presented in Section [7](https://arxiv.org/html/2409.11276v1#S7
+    "7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments"). The experiments’ results and the agents’ behavioral analysis are
+    described in Sections [8](https://arxiv.org/html/2409.11276v1#S8 "8 Results ‣
+    Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments") and [9](https://arxiv.org/html/2409.11276v1#S9
+    "9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments"), respectively. The dataset ablation study details are in Section [10](https://arxiv.org/html/2409.11276v1#S10
+    "10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network
+    Security Environments"). Finally, we discuss some findings and limitations of
+    the work in Section [11](https://arxiv.org/html/2409.11276v1#S11 "11 Discussion
+    ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments") and
+    conclude the paper with Section [12](https://arxiv.org/html/2409.11276v1#S12 "12
+    Conclusions ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments").'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本文的其余部分结构如下：第[2](https://arxiv.org/html/2409.11276v1#S2 "2 Background ‣ Hackphyr:
+    A Local Fine-Tuned LLM Agent for Network Security Environments")节和第[3](https://arxiv.org/html/2409.11276v1#S3
+    "3 Related Work ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")节分别介绍背景知识和相关工作。NetSecGame环境在第[4](https://arxiv.org/html/2409.11276v1#S4
+    "4 The NetSecGame Environment ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network
+    Security Environments")节中介绍，通用代理设计在第[5](https://arxiv.org/html/2409.11276v1#S5
+    "5 LLM Agent Design ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")节中描述。第[6](https://arxiv.org/html/2409.11276v1#S6 "6 Supervised Fine-tuning
+    Methodology ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")节详细说明了监督微调方法，包括数据集创建和超参数调优过程。实验设计和三种不同场景配置在第[7](https://arxiv.org/html/2409.11276v1#S7
+    "7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")节中介绍。实验结果和代理行为分析分别在第[8](https://arxiv.org/html/2409.11276v1#S8 "8
+    Results ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")节和第[9](https://arxiv.org/html/2409.11276v1#S9
+    "9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")节中描述。数据集消融研究的详细信息在第[10](https://arxiv.org/html/2409.11276v1#S10
+    "10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network
+    Security Environments")节中给出。最后，我们在第[11](https://arxiv.org/html/2409.11276v1#S11
+    "11 Discussion ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")节讨论一些发现和工作的局限性，并在第[12](https://arxiv.org/html/2409.11276v1#S12
+    "12 Conclusions ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")节总结全文。'
+- en: 2 Background
+  id: totrans-31
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 2 背景
+- en: The term Large Language Models (LLMs) typically refers to transformer-based
+    models [[11](https://arxiv.org/html/2409.11276v1#bib.bib11)] of billions of parameters
+    that are trained to perform tasks related to Natural Language Processing (NLP).
+    The input text is usually split into smaller chunks (tokens), and the models are
+    trained to predict the next token $t$ after the input sequence.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型（LLMs）通常指基于变换器的模型[[11](https://arxiv.org/html/2409.11276v1#bib.bib11)]，这些模型拥有数十亿个参数，经过训练后能够执行与自然语言处理（NLP）相关的任务。输入文本通常会被拆分成更小的单元（标记），模型经过训练后可以预测输入序列后的下一个标记$t$。
+- en: Formally, given a series of tokens $t_{1},\dots,t_{N-1}$, a language modelling
+    aims to calculate the joint probability
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正式来说，给定一系列标记$t_{1},\dots,t_{N-1}$，语言建模旨在计算联合概率
+- en: '|  | $P(t_{1}\dots t_{N})=\prod_{i=1}^{N}P(t_{i}&#124;t_{1},\dots,t_{N-1})$
+    |  |'
+  id: totrans-34
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $P(t_{1}\dots t_{N})=\prod_{i=1}^{N}P(t_{i}&#124;t_{1},\dots,t_{N-1})$
+    |  |'
+- en: Large language models use neural networks (transformers) to estimate this probability
+    and sample the next token in the sequence ${t}_{N}\sim f_{\theta}(t_{N}|t_{1},\dots,t_{N-1})$,
+    where $f_{\theta}$ is the trained model with parameters $\theta$.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型语言模型使用神经网络（变换器）来估计这个概率，并从序列中采样下一个令牌 ${t}_{N}\sim f_{\theta}(t_{N}|t_{1},\dots,t_{N-1})$，其中
+    $f_{\theta}$ 是带有参数 $\theta$ 的训练模型。
+- en: There are several stages in the training of LLMs. The first stage is the unsupervised
+    pre-training with many tokens. The resulting models can perform next-token prediction
+    and generally perform well in varied tasks related to the data. However, these
+    large models, often called foundational, sometimes do not perform well in certain
+    specialized tasks. Foundational models can adapt to tasks such as classification
+    using Supervised Fine-Tuning (SFT) [[12](https://arxiv.org/html/2409.11276v1#bib.bib12),
+    [13](https://arxiv.org/html/2409.11276v1#bib.bib13)]. Fine-tuning requires labeled
+    data, but these datasets are usually much smaller than those used for the pre-training
+    phase. Sometimes, the dataset can be produced using the answers of a more capable
+    model that is used as a teacher. This method is also called distilled SFT (dSFT) [[14](https://arxiv.org/html/2409.11276v1#bib.bib14),
+    [15](https://arxiv.org/html/2409.11276v1#bib.bib15)]. A common fine-tuning use
+    case is instruction fine-tuning [[16](https://arxiv.org/html/2409.11276v1#bib.bib16)],
+    which aims to align language models with user intent and thus create useful assistants
+    and chatbots. These days, many models release an instruction fine-tuned version
+    along with the pre-trained model.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 训练大型语言模型（LLM）有几个阶段。第一阶段是通过大量的令牌进行无监督预训练。训练出的模型可以执行下一个令牌预测，并且通常在与数据相关的各种任务中表现良好。然而，这些大型模型，通常被称为基础模型，有时在某些专业任务中表现不佳。基础模型可以通过监督微调（SFT）适应分类等任务[[12](https://arxiv.org/html/2409.11276v1#bib.bib12),
+    [13](https://arxiv.org/html/2409.11276v1#bib.bib13)]。微调需要标注数据，但这些数据集通常比预训练阶段使用的数据集要小得多。有时，数据集可以通过使用更强大的模型作为教师模型生成，这种方法也叫做蒸馏微调（dSFT）[[14](https://arxiv.org/html/2409.11276v1#bib.bib14),
+    [15](https://arxiv.org/html/2409.11276v1#bib.bib15)]。一个常见的微调用例是指令微调[[16](https://arxiv.org/html/2409.11276v1#bib.bib16)]，旨在将语言模型与用户意图对齐，从而创建有用的助手和聊天机器人。如今，许多模型都会发布与预训练模型一起发布的指令微调版本。
+- en: Fine-tuning large models with billions of parameters can be time and resource-intensive.
+    Several Parameter-Efficient Fine-Tuning (PEFT) methods have been proposed that
+    allow the training of fewer parameters while retaining the knowledge of the base
+    foundational model. The method used in this work is a version of Low-Rank Adaptation
+    (LoRA) [[17](https://arxiv.org/html/2409.11276v1#bib.bib17)]. LoRA is a supervised
+    fine-tuning method that introduces low-rank matrices that adapt the model’s weights
+    during training. The result of training with LoRA is the trained adapters, which
+    can then be merged into the base model.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对具有数十亿参数的大型模型进行微调可能需要大量的时间和资源。为此，提出了几种参数高效微调（PEFT）方法，可以在保持基础模型知识的同时，训练更少的参数。本研究中使用的方法是低秩适应（LoRA）[[17](https://arxiv.org/html/2409.11276v1#bib.bib17)]的一个版本。LoRA
+    是一种监督微调方法，它引入低秩矩阵，在训练过程中调整模型的权重。使用 LoRA 训练的结果是训练出的适配器，之后这些适配器可以合并到基础模型中。
+- en: A further step towards alignment of the model with human goals is Reinforcement
+    Learning from Human Feedback (RLHF), which requires the creation of a reward model
+    that can evaluate the model’s responses. Once trained, the reward model can be
+    used with any reinforcement learning algorithm to update the base model to align
+    with human preferences. RLHF requires datasets that contain human feedback and
+    ratings of language model responses.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使模型与人类目标对齐的进一步步骤是基于人类反馈的强化学习（RLHF），该方法需要创建一个能够评估模型响应的奖励模型。一旦训练完成，奖励模型可以与任何强化学习算法一起使用，以更新基础模型并使其与人类偏好对齐。RLHF
+    需要包含人类反馈和语言模型响应评分的数据集。
+- en: When faced with a complex task, humans tend to deconstruct it into simpler subtasks
+    and solve them individually. Pre-trained language models, especially earlier versions
+    such as GPT-3, were shown to have limited abilities when it comes to logical reasoning
+    and planning. However, providing one or more examples as input can improve the
+    model’s ability to answer questions requiring reasoning [[18](https://arxiv.org/html/2409.11276v1#bib.bib18)].
+    The idea of guiding or teaching the model about the expected behavior during inference
+    time using prompts is called In-context Learning (ICL). In contrast to fine-tuning,
+    ICL does not require any training and places the task of teaching the model to
+    the user that supplies the prompts.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在面对复杂任务时，人类倾向于将其分解为更简单的子任务并逐个解决。预训练语言模型，尤其是早期版本如GPT-3，在逻辑推理和规划方面的能力有限。然而，提供一个或多个示例作为输入可以提高模型回答需要推理问题的能力[[18](https://arxiv.org/html/2409.11276v1#bib.bib18)]。引导或教导模型在推理时执行预期行为的思想被称为**上下文学习（ICL）**。与微调不同，ICL不需要任何训练，而是将教导模型的任务交给提供提示的用户。
+- en: Leveraging a few demonstrative examples to guide a language model’s behavior
+    is known as k-shot example learning, where $k$ represents the number of examples
+    provided. The core idea is that by exposing the model to a handful of high-quality
+    examples illustrating the desired reasoning process and expected outputs, the
+    model can learn to generalize and apply that knowledge to solve novel problems.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用一些示范性示例来引导语言模型的行为被称为k-shot示例学习，其中$k$表示提供的示例数量。核心思想是，通过向模型展示少量高质量的示例，说明期望的推理过程和预期的输出，模型可以学习如何进行概括，并将这些知识应用于解决新问题。
+- en: One popular technique explored to improve k-shot example learning is Chain of
+    Thought (CoT) [[19](https://arxiv.org/html/2409.11276v1#bib.bib19)]. The CoT approach
+    provides the model with example inputs and outputs and explicitly demonstrates
+    the step-by-step reasoning used to arrive at the final answer. The goal of explicitly
+    showcasing the thought process is to help the model better understand the underlying
+    logic and gain insights into the reasoning required to solve the given problem.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了提高k-shot示例学习，探索了一种流行的技术——**思维链（CoT）**[[19](https://arxiv.org/html/2409.11276v1#bib.bib19)]。CoT方法为模型提供示例输入和输出，并明确展示用于得出最终答案的逐步推理过程。明确展示思维过程的目的是帮助模型更好地理解潜在的逻辑，并深入了解解决给定问题所需的推理。
+- en: 3 Related Work
+  id: totrans-42
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 3 相关工作
+- en: 3.1 Planning and Exploration
+  id: totrans-43
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.1 规划与探索
+- en: Pre-trained large language models (LLMs) have shown some reasoning capabilities,
+    using prompting techniques and ICL. However, they often face challenges in long-term
+    planning, leading to occasional hallucinations and ineffective or irrelevant actions.
+    Several frameworks have been developed to address these limitations that employ
+    multi-stage prompting to enhance LLM agents’ planning abilities by integrating
+    reasoning and self-reflection. Notable examples include ReAct [[20](https://arxiv.org/html/2409.11276v1#bib.bib20)],
+    Reflexion [[21](https://arxiv.org/html/2409.11276v1#bib.bib21)], Describe, Explain,
+    Plan and Select (DEPS)[[22](https://arxiv.org/html/2409.11276v1#bib.bib22)], and
+    Reasoning via Planning (RAP)[[23](https://arxiv.org/html/2409.11276v1#bib.bib23)].
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 预训练的大型语言模型（LLMs）已经展现了一些推理能力，利用提示技术和**上下文学习（ICL）**。然而，它们在长期规划方面常面临挑战，导致偶尔出现幻觉和无效或不相关的行动。为了解决这些局限性，已经开发出几个框架，采用多阶段提示，通过整合推理和自我反思来增强LLM代理的规划能力。著名的例子包括ReAct [[20](https://arxiv.org/html/2409.11276v1#bib.bib20)]，Reflexion [[21](https://arxiv.org/html/2409.11276v1#bib.bib21)]，Describe,
+    Explain, Plan and Select (DEPS)[[22](https://arxiv.org/html/2409.11276v1#bib.bib22)]，以及Reasoning
+    via Planning (RAP)[[23](https://arxiv.org/html/2409.11276v1#bib.bib23)]。
+- en: ReAct [[20](https://arxiv.org/html/2409.11276v1#bib.bib20)] combines reasoning
+    with action. Reflexion [[21](https://arxiv.org/html/2409.11276v1#bib.bib21)] advances
+    this concept by introducing a sequential decision-making framework that includes
+    self-reflection and evaluation, assessing the quality of actions and trajectories
+    within an episode. This framework utilizes short-term memory to track actions
+    during an episode and long-term memory to inform future decisions, allowing agents
+    to learn from past experiences.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ReAct [[20](https://arxiv.org/html/2409.11276v1#bib.bib20)]结合了推理与行动。Reflexion [[21](https://arxiv.org/html/2409.11276v1#bib.bib21)]通过引入一个包括自我反思和评估的顺序决策框架推进了这一概念，评估行动和轨迹在一个回合中的质量。该框架利用短期记忆追踪一个回合中的行动，并利用长期记忆为未来决策提供信息，使代理能够从过去的经验中学习。
+- en: The RAP framework [[23](https://arxiv.org/html/2409.11276v1#bib.bib23)] takes
+    a different approach and uses an LLM as a world model to simulate actions and
+    evaluate outcomes. RAP uses Monte Carlo Tree Search (MCTS) to explore various
+    reasoning paths, with the LLM incrementally building a reasoning tree that considers
+    the most promising steps. By leveraging the world model to predict potential outcomes,
+    RAP helps the LLM refine its reasoning process through rewards derived from these
+    outcomes. This approach allows the agent to simulate and anticipate the consequences
+    of different actions, improving its planning and decision-making abilities.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RAP 框架 [[23](https://arxiv.org/html/2409.11276v1#bib.bib23)] 采取了不同的方法，使用大语言模型作为世界模型来模拟行动并评估结果。RAP
+    使用蒙特卡洛树搜索（MCTS）探索不同的推理路径，大语言模型逐步构建一个推理树，考虑最有前景的步骤。通过利用世界模型预测潜在结果，RAP 帮助大语言模型通过这些结果获得的奖励来完善其推理过程。这种方法使代理能够模拟并预测不同行动的后果，从而提高其规划和决策能力。
+- en: In addition to planning tasks, LLM-based agents have been successful in exploration,
+    as demonstrated by Du et al.[[6](https://arxiv.org/html/2409.11276v1#bib.bib6)]
+    and Wang et al.[[7](https://arxiv.org/html/2409.11276v1#bib.bib7)]. Voyager used
+    an automatic curriculum, a skill library, and an iterative prompting mechanism
+    for open-ended exploration in the Minecraft game environment. Similarly, Du et
+    al. proposed using pre-trained LLMs to provide ”intrinsic motivation” that guides
+    the exploration and goal setting of the agent in the Crafter[[24](https://arxiv.org/html/2409.11276v1#bib.bib24)]
+    and Housekeep[[25](https://arxiv.org/html/2409.11276v1#bib.bib25)] environments.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了规划任务外，基于大语言模型的代理在探索方面也取得了成功，正如 Du 等人 [[6](https://arxiv.org/html/2409.11276v1#bib.bib6)]
+    和 Wang 等人 [[7](https://arxiv.org/html/2409.11276v1#bib.bib7)] 所示。Voyager 在 Minecraft
+    游戏环境中使用了自动化课程、技能库和迭代提示机制进行开放式探索。类似地，Du 等人提出了使用预训练的大语言模型提供“内在动机”，以引导代理在 Crafter
+    [[24](https://arxiv.org/html/2409.11276v1#bib.bib24)] 和 Housekeep [[25](https://arxiv.org/html/2409.11276v1#bib.bib25)]
+    环境中的探索与目标设定。
+- en: Other works have also explored using LLMs for planning tasks, such as Spring [[26](https://arxiv.org/html/2409.11276v1#bib.bib26)],
+    which uses an LLM to ”study” a paper describing the Crafter game environment.
+    Using the summarized knowledge from the paper, it employs a guided Q&A approach
+    with the LLM to select the best action.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他研究也探讨了使用大语言模型（LLMs）进行规划任务，例如 Spring [[26](https://arxiv.org/html/2409.11276v1#bib.bib26)]，它使用大语言模型“学习”一篇描述
+    Crafter 游戏环境的论文。通过论文中总结的知识，它采用引导式问答方式与大语言模型互动，选择最佳行动。
+- en: Earlier research has explored using LLMs for classical planning tasks [[27](https://arxiv.org/html/2409.11276v1#bib.bib27),
+    [28](https://arxiv.org/html/2409.11276v1#bib.bib28)], particularly within Planning
+    Domain Definition Language (PDDL) domains. These studies highlighted the challenges
+    of generating plans across diverse domains. Silver et al. [[29](https://arxiv.org/html/2409.11276v1#bib.bib29)]
+    demonstrated improved performance by using LLMs to generate plans as Python programs,
+    refining them through debugging. However, classical planning approaches are limited
+    to fully observable environments, which do not apply to cybersecurity domains’
+    complex and dynamic settings.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 早期的研究探讨了将大语言模型应用于经典规划任务 [[27](https://arxiv.org/html/2409.11276v1#bib.bib27),
+    [28](https://arxiv.org/html/2409.11276v1#bib.bib28)]，特别是在规划领域定义语言（PDDL）领域内。这些研究突出了在不同领域生成计划的挑战。Silver
+    等人 [[29](https://arxiv.org/html/2409.11276v1#bib.bib29)] 通过使用大语言模型生成 Python 程序作为计划并通过调试加以完善，展示了性能的提升。然而，经典规划方法局限于完全可观察的环境，这对于网络安全领域复杂且动态的环境并不适用。
+- en: 3.2 Red Teaming
+  id: totrans-50
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 3.2 红队演练
+- en: The integration of Large Language Models (LLMs) in cybersecurity, particularly
+    in automating penetration testing and red teaming, is a rapidly developing area
+    of research. Previous studies underscore the diverse capabilities of LLMs within
+    this realm and illustrate their potential and limitations.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大语言模型（LLMs）在网络安全中的整合，特别是在自动化渗透测试和红队演练方面，是一个迅速发展的研究领域。以往的研究强调了大语言模型在这一领域的多样化能力，并展示了其潜力与局限性。
+- en: 'Happe et al. (2023) propose a structured approach to penetration testing by
+    categorizing tasks into higher and lower levels: higher-level tasks focus on planning
+    and orchestration, while lower-level tasks involve executing specific attack tools.
+    However, the practical application of their findings remains constrained, as the
+    attacks were evaluated in a limited set of scenarios [[30](https://arxiv.org/html/2409.11276v1#bib.bib30)].'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Happe 等人（2023）提出了一种结构化的渗透测试方法，通过将任务分为高层次和低层次两类：高层次任务侧重于规划和协调，而低层次任务则涉及执行具体的攻击工具。然而，他们研究成果的实际应用仍然受到限制，因为这些攻击仅在有限的场景中进行评估
+    [[30](https://arxiv.org/html/2409.11276v1#bib.bib30)]。
+- en: Moskal et al. (2023) further explore the capabilities of LLMs by creating a
+    controlled environment with a single target and employing a heuristic planner
+    to assess LLMs’ performance in basic penetration testing tasks [[31](https://arxiv.org/html/2409.11276v1#bib.bib31)].
+    Their work provides an initial framework for evaluating how LLMs might handle
+    specific tasks in a simplified setting.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Moskal 等人（2023）通过创建一个具有单一目标的受控环境，并使用启发式规划器评估 LLMs 在基本渗透测试任务中的表现，进一步探索了 LLMs
+    的能力 [[31](https://arxiv.org/html/2409.11276v1#bib.bib31)]。他们的工作为评估 LLMs 在简化环境中处理特定任务的方式提供了初步框架。
+- en: More recently, the PentestGPT framework[[32](https://arxiv.org/html/2409.11276v1#bib.bib32)]
+    seeks to automate penetration testing more comprehensively, with evaluations conducted
+    across various machines on platforms like HacktheBox. This approach indicates
+    a more practical application of language models in varied environments. However,
+    it is also focused more on the low-level tasks.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近，PentestGPT 框架 [[32](https://arxiv.org/html/2409.11276v1#bib.bib32)] 旨在更加全面地自动化渗透测试，评估在
+    HacktheBox 等平台上的各种机器上进行的测试。此方法表明了语言模型在多种环境中的更实际应用。然而，它也更多集中于低级任务。
+- en: Raman et al. (2024) investigate the performance of commercial LLMs in the context
+    of Certified Ethical Hacking (CEH) certification questions[[33](https://arxiv.org/html/2409.11276v1#bib.bib33)].
+    Similarly, Tann et al. (2023) analyze the application of LLMs in Cisco Networking
+    certifications and Capture The Flag (CTF) challenges [[34](https://arxiv.org/html/2409.11276v1#bib.bib34)].
+    While important, these evaluations do not necessarily translate to practical automation
+    capabilities in realistic penetration testing situations; however, they provide
+    insight into the models’ understanding of security and networking concepts.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Raman 等人（2024）研究了商业 LLMs 在认证道德黑客（CEH）认证问题中的表现 [[33](https://arxiv.org/html/2409.11276v1#bib.bib33)]。同样，Tann
+    等人（2023）分析了 LLMs 在 Cisco 网络认证和夺旗赛（CTF）挑战中的应用 [[34](https://arxiv.org/html/2409.11276v1#bib.bib34)]。虽然这些评估很重要，但它们不一定能转化为在现实渗透测试场景中的实际自动化能力；然而，它们为模型理解安全性和网络概念提供了见解。
+- en: Overall, while findings related to certification exams and controlled environments
+    contribute valuable insights into LLMs’ knowledge regarding security concepts,
+    they do not fully address the complexities of automating penetration testing in
+    dynamic and diverse setups. Thus, continued exploration in realistic scenarios
+    remains imperative for realizing the full potential of LLMs in cybersecurity.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，尽管与认证考试和受控环境相关的研究成果为 LLMs 在安全概念方面的知识提供了有价值的见解，但它们并未完全解决在动态和多样化设置中自动化渗透测试的复杂性。因此，继续在现实场景中进行探索，对于实现
+    LLMs 在网络安全领域的全部潜力至关重要。
+- en: 4 The NetSecGame Environment
+  id: totrans-57
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 4 NetSecGame 环境
+- en: NetSecGame is a network security simulation environment that follows a reinforcement
+    learning (RL) architecture [[10](https://arxiv.org/html/2409.11276v1#bib.bib10),
+    [35](https://arxiv.org/html/2409.11276v1#bib.bib35)]. The NetSecGame is designed
+    to allow agents to play in a network by submitting high-level actions and providing
+    back an observation of the current state of the environment for that agent. This
+    allows RL agents to play, but it is not limited to agents. Humans can also play
+    using an interactive interface with or without collaboration with an LLM-based
+    assistant. Allowing humans to play is critical for evaluating attacking and defending
+    strategies.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: NetSecGame 是一个网络安全模拟环境，采用强化学习（RL）架构 [[10](https://arxiv.org/html/2409.11276v1#bib.bib10),
+    [35](https://arxiv.org/html/2409.11276v1#bib.bib35)]。NetSecGame 旨在通过提交高层次的操作并返回该代理当前环境状态的观察结果，允许代理在网络中进行游戏。这使得
+    RL 代理可以参与游戏，但不仅限于代理。人类也可以通过互动界面进行游戏，无论是否与基于 LLM 的助手合作。允许人类参与对评估攻击和防御策略至关重要。
+- en: Network Configuration
+  id: totrans-59
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 网络配置
+- en: It is possible to configure NetSecGame in different scenarios. Each scenario
+    has any number of host computers, services on each host, data on each host, routers,
+    and how they are connected. It is also possible to define a host on the internet.
+    Each scenario also has a specific goal (can be fixed or random), starting position
+    of the attacker agent (can be random), probabilities of detection of each action,
+    and probabilities of success of each action.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以在不同的场景中配置 NetSecGame。每个场景包含任意数量的主机计算机、每台主机上的服务、每台主机上的数据、路由器及其连接方式。还可以定义互联网上的主机。每个场景还具有特定的目标（可以是固定或随机的）、攻击者代理的起始位置（可以是随机的）、每个动作的检测概率以及每个动作的成功概率。
+- en: Game State
+  id: totrans-61
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 游戏状态
+- en: 'The objects defined in the environment are Networks, IPs, Services, and Data.
+    The state is defined as a list of: known networks, known hosts, controlled hosts,
+    known services, and known data. Known networks are the networks the agent knows
+    about, the known hosts are the hosts known to the agent because it scanned for
+    them, the controlled hosts are the hosts that the agent exploited successfully,
+    and now controls, the known services are the services (ports) known for the agent
+    after scanning them, and the known data are the data known to the agent because
+    it scans for it inside the host.'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 环境中定义的对象包括网络、IP、服务和数据。状态定义为以下列表：已知网络、已知主机、受控主机、已知服务和已知数据。已知网络是代理已知的网络，已知主机是代理通过扫描已知的主机，受控主机是代理成功利用并控制的主机，已知服务是代理扫描后已知的服务（端口），已知数据是代理通过扫描主机内部获得的已知数据。
+- en: 'An example of the state representation as given to the agents:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个给定给代理的状态表示示例：
+- en: <svg class="ltx_picture" height="123.03" id="S4.SS0.SSS0.Px2.p3.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,123.03) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="95.48" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE0]</foreignobject></g></g></svg>
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="123.03" id="S4.SS0.SSS0.Px2.p3.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,123.03) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="95.48" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE0]</foreignobject></g></g></svg>
+- en: Goals
+  id: totrans-65
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 目标
+- en: The goal of each scenario is flexible and can be defined as a specific state,
+    e.g., the presence of data in a specific host or a specific host that needs to
+    be controlled by the agent. Randomization of the goal per episode is also an option.
+    For example, the data that needs to be present in a specific host can change in
+    each episode. Such approach can be used to evaluate generalization capabilities
+    of the agents.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个场景的目标是灵活的，可以定义为一个特定的状态，例如，特定主机中存在某些数据，或特定主机需要被代理控制。每个回合目标的随机化也是一种选择。例如，特定主机中需要存在的数据可以在每个回合中变化。这种方法可以用来评估代理的泛化能力。
+- en: Actions
+  id: totrans-67
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 动作
+- en: 'The action space has five action types, each of which can receive parameters.
+    The action types are: ScanNetwork, FindServices, FindData, ExploitService, and
+    ExfiltrateData. ScanNetwork receives as parameters the destination network; FindServices
+    requires the destination host; FindData requires the destination host; ExploitService
+    receives destination service and host; ExfiltrateData receives the source host,
+    target host to exfiltrate, and target data to exfiltrate. Due to the action parameterization,
+    the size of the action space depends on the number of objects defined in a specific
+    scenario. The success probability for all actions was set to $1.0$ in all scenarios
+    selected for this work.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动作空间有五种动作类型，每种动作类型都可以接收参数。这些动作类型包括：ScanNetwork、FindServices、FindData、ExploitService
+    和 ExfiltrateData。ScanNetwork 接收目标网络作为参数；FindServices 需要目标主机；FindData 需要目标主机；ExploitService
+    接收目标服务和主机；ExfiltrateData 接收源主机、目标主机以及需要转移的目标数据。由于动作的参数化，动作空间的大小取决于特定场景中定义的对象数量。所有在本研究中选择的场景中，所有动作的成功概率都设置为
+    $1.0$。
+- en: Rewards
+  id: totrans-69
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 奖励
+- en: The rewards of each action are sparse. Each action that does not lead to the
+    goal state or detection is rewarded with $-1$; if the goal state is reached, the
+    agent gets an additional reward of $100$. A detection by the defender agent terminates
+    the episode and has a reward of $-50$. However, these rewards sent by the environment
+    can be ignored by the agents, who can define their internal reward functions if
+    needed.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个动作的奖励是稀疏的。每个没有导致目标状态或被检测的动作都会获得 $-1$ 奖励；如果达到目标状态，代理会获得额外的 $100$ 奖励。如果防御者代理检测到，回合将结束，并且奖励为
+    $-50$。然而，这些由环境发送的奖励可以被代理忽略，代理可以根据需要定义自己的内部奖励函数。
+- en: Stochastic Defender
+  id: totrans-71
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 随机防御者
+- en: 'In this version of NetSecEnv, the agent plays the role of an attacker. However,
+    the environment allows for an omnipresent stochastic defender. The defender is
+    aware of all actions and blocks the attacker agent if certain conditions are met:
+    Firstly, the defender uses a fixed-size time window to detect repeated actions.
+    A threshold of maximum repeats is defined for each action type and upon reaching
+    the threshold, the detection is triggered. Detection thresholds can be defined
+    in the scenario configuration.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个版本的NetSecEnv中，代理扮演着攻击者的角色。然而，环境允许存在一个无处不在的随机防御者。防御者能够感知所有的行动，并在满足某些条件时阻止攻击者代理：首先，防御者使用一个固定大小的时间窗口来检测重复的行动。每个行动类型定义了最大重复阈值，一旦达到该阈值，检测将被触发。检测阈值可以在场景配置中定义。
+- en: Secondly, for Action types FindData, ExploitService, and ExfiltrateData, there
+    is an additional threshold for repeated actions in the complete episode. The episodic
+    repeat detection mechanism uses both the action type and parameters for checking,
+    which means the detection is triggered only if the same action is used multiple
+    times by the agent.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其次，对于行动类型FindData、ExploitService和ExfiltrateData，在整个回合中存在额外的重复行动阈值。该回合的重复检测机制使用了行动类型和参数进行检查，这意味着只有当代理多次使用相同的行动时，检测才会触发。
+- en: Lastly, for action types ScanNetwok and FindServices, there is a check for consecutive
+    actions. Inspired by port scanning detectors, this detection mechanism evaluates
+    how many actions of type ScanNetwok or FindServices were played in a sequence
+    and if the threshold is reached, the episode is terminated.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，对于行动类型ScanNetwork和FindServices，会检查连续行动。受到端口扫描检测器的启发，这一检测机制评估了ScanNetwork或FindServices类型的行动在序列中的出现次数，如果达到阈值，回合将被终止。
+- en: Each action has a different probability of detection, and all the parameters
+    on the stochastic defender are configurable.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个行动的检测概率不同，随机防御者上的所有参数都是可配置的。
+- en: 5 LLM Agent Design
+  id: totrans-76
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 5 LLM代理设计
+- en: '![Refer to caption](img/05f7dd185ca208fb35d0ecd57cfa80e1.png)'
+  id: totrans-77
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/05f7dd185ca208fb35d0ecd57cfa80e1.png)'
+- en: 'Figure 1: LLM Agent Components'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：LLM代理组件
+- en: The LLM agent used for all the experiments was introduced in [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)].
+    As part of this work, we re-used the prompts and structure of the agent to directly
+    compare the fine-tuned LLMs introduced in this work with the results of the commercial
+    pre-trained models introduced in  [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)].
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于所有实验的LLM代理在[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]中进行了介绍。作为本项工作的一个部分，我们重新使用了该代理的提示和结构，直接将本工作中介绍的微调LLM与[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]中介绍的商业预训练模型的结果进行了对比。
+- en: 'Following the taxonomy proposed by [[8](https://arxiv.org/html/2409.11276v1#bib.bib8)],
+    the LLM agent architecture comprises the following components: Profile, Memory,
+    Planning, and Action (Figure [1](https://arxiv.org/html/2409.11276v1#S5.F1 "Figure
+    1 ‣ 5 LLM Agent Design ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")).'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据[[8](https://arxiv.org/html/2409.11276v1#bib.bib8)]提出的分类法，LLM代理架构包括以下组件：配置文件、记忆、规划和行动（图[1](https://arxiv.org/html/2409.11276v1#S5.F1
+    "图 1 ‣ 5 LLM代理设计 ‣ Hackphyr：一种用于网络安全环境的本地微调LLM代理")）。
+- en: Profile
+  id: totrans-81
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 配置文件
+- en: This component contains all the information provided to the models as personality
+    information. In our case, the personality of a penetration tester was handcrafted
+    in the prompt.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该组件包含了提供给模型的所有个性信息。在我们的案例中，渗透测试者的个性是通过提示手工制作的。
+- en: Memory
+  id: totrans-83
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 记忆
+- en: 'The memory component is a list of the previous actions that were taken by the
+    agent and the current state of the environment: $\mathcal{M}=\{a_{t-k},...,a_{t-1},s_{t}\}$.
+    All the memory elements are presented as part of the prompt (unified memory).
+    The list of actions has a fixed size and contains the last $k$ actions the agent
+    took. The agent is also provided with the current state of the environment, which
+    is considered part of the agent’s short-term memory. The agent does not use long-term
+    memory between the episodes; therefore, each episode starts with an initial state
+    and no action memory.'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记忆组件是代理之前采取的行动列表和环境当前状态的集合：$\mathcal{M}=\{a_{t-k},...,a_{t-1},s_{t}\}$。所有记忆元素作为提示的一部分呈现（统一记忆）。行动列表具有固定大小，包含代理采取的最后$k$个行动。代理还提供了环境的当前状态，这被视为代理的短期记忆的一部分。代理在回合之间不使用长期记忆；因此，每个回合从初始状态开始，且没有行动记忆。
+- en: Planning
+  id: totrans-85
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 规划
+- en: The agent uses the ReAct framework for planning and selecting the next actions.
+    ReAct involves reasoning as the first step of the process and acting as the second
+    step. Based on the current state of the environment $s_{t}$ the agent asks the
+    LLM to analyze the objects in the state (IPs, Networks, Services, Data) and reason
+    about the actions that can be taken for each object. In the second step, the agent
+    uses the LLM response and the memory elements to decide and propose an appropriate
+    action $a_{t}$. To produce a valid action, the agent is also provided with examples
+    of actions (In-Context Learning). The memory incorporates feedback as an intrinsic
+    reward. The agent evaluates each action as ”helpful” or ”not helpful” based on
+    whether or not the state $s_{t+1}$ is different than $s_{t}$. Since the environment
+    is deterministic and no action can remove objects from the state, an action is
+    considered ”helpful” if it allows the agent to discover more objects and reach
+    a new state.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该代理使用 ReAct 框架进行规划和选择下一步动作。ReAct 框架将推理作为过程的第一步，行动作为第二步。基于当前环境状态 $s_{t}$，代理请求
+    LLM 分析状态中的对象（IP、网络、服务、数据），并推理可以对每个对象采取的行动。在第二步，代理使用 LLM 的响应和记忆元素来决定并提出一个合适的行动
+    $a_{t}$。为了生成有效的行动，代理还会提供行动示例（上下文学习）。记忆机制将反馈纳入内在奖励。代理根据状态 $s_{t+1}$ 是否与 $s_{t}$
+    不同来评估每个行动是“有帮助”还是“没有帮助”。由于环境是确定性的，且没有任何行动能将对象从状态中移除，如果某个行动能帮助代理发现更多对象并达到新状态，则该行动被认为是“有帮助”的。
+- en: 6 Supervised Fine-tuning Methodology
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 6 监督微调方法论
+- en: '![Refer to caption](img/9f888d882025ab9a0e8945a4dc4c2b72.png)'
+  id: totrans-88
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/9f888d882025ab9a0e8945a4dc4c2b72.png)'
+- en: 'Figure 2: Supervised Fine-tuning Methodology'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 2：监督微调方法论
+- en: 'This study was conducted through several steps (Figure [2](https://arxiv.org/html/2409.11276v1#S6.F2
+    "Figure 2 ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments")). The first step of the process
+    was to identify the weaknesses of the base models and create a dataset for supervised
+    fine-tuning. The details of the dataset creation are presented in Section [6.1](https://arxiv.org/html/2409.11276v1#S6.SS1
+    "6.1 Dataset Creation ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr: A Local
+    Fine-Tuned LLM Agent for Network Security Environments"). The base model used
+    was Zephyr-7b-$\beta$ [[15](https://arxiv.org/html/2409.11276v1#bib.bib15)] which
+    is an instruction-tuned model based on Mistral-7B-v0.1 [[36](https://arxiv.org/html/2409.11276v1#bib.bib36)].
+    The reasons the Zephyr model was selected were multiple: firstly, an already instruction-tuned
+    model did not require time and effort to perform the instruction tuning. Secondly,
+    the model had a good ability to produce valid JSON strings, and thirdly, in our
+    initial experiments it showed that it has enough background knowledge of networking
+    and security. Finally, we decided to select an open-source model with seven billion
+    parameters so that it would be possible to fine-tune it using one GPU, which allows
+    reproducibility of our results with minimal cost. The methodology followed in
+    this paper is general enough and can be applied to other models of similar strength.'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本研究通过几个步骤进行（图 [2](https://arxiv.org/html/2409.11276v1#S6.F2 "Figure 2 ‣ 6 Supervised
+    Fine-tuning Methodology ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")）。该过程的第一步是识别基础模型的弱点并创建用于监督微调的数据集。数据集创建的详细信息在第 [6.1](https://arxiv.org/html/2409.11276v1#S6.SS1
+    "6.1 Dataset Creation ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr: A Local
+    Fine-Tuned LLM Agent for Network Security Environments") 节中展示。使用的基础模型是 Zephyr-7b-$\beta$
+    [[15](https://arxiv.org/html/2409.11276v1#bib.bib15)]，这是一个基于 Mistral-7B-v0.1 [[36](https://arxiv.org/html/2409.11276v1#bib.bib36)]
+    的指令调优模型。选择 Zephyr 模型的原因有多个：首先，已经经过指令调优的模型不需要再花费时间和精力进行指令调优。其次，该模型具有较好的生成有效 JSON
+    字符串的能力，第三，在我们的初步实验中，它显示出具备足够的网络和安全背景知识。最后，我们决定选择一个具有七十亿个参数的开源模型，以便可以使用一张 GPU 进行微调，从而以最低的成本复现我们的结果。本文遵循的方法论足够通用，可以应用于其他类似强度的模型。'
+- en: 'Supervised fine-tuning is a training process that involves many hyperparameters.
+    The method followed in this work is based on the Quantized LoRA (QLoRa) [[37](https://arxiv.org/html/2409.11276v1#bib.bib37)].
+    QLoRA allows a quantized version of the base model to be used during training
+    requiring less memory in the GPU card. The rank of the adapters $r$ and the weight
+    $\alpha$ are the two main hyperparameters used in LoRA, and the details about
+    their selection are presented in Section [6.2](https://arxiv.org/html/2409.11276v1#S6.SS2
+    "6.2 Hyper-parameter Tuning ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr:
+    A Local Fine-Tuned LLM Agent for Network Security Environments"). For the fine-tuning
+    process, we used the HuggingFace alignment-handbook library and scripts [[38](https://arxiv.org/html/2409.11276v1#bib.bib38)].'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '监督微调是一个涉及多个超参数的训练过程。本研究中采用的方法基于量化LoRA（QLoRa）[[37](https://arxiv.org/html/2409.11276v1#bib.bib37)]。QLoRA允许在训练过程中使用基模型的量化版本，从而减少对GPU显存的需求。LoRA使用的两个主要超参数是适配器的秩$r$和权重$\alpha$，关于它们的选择的详细信息在第[6.2节](https://arxiv.org/html/2409.11276v1#S6.SS2
+    "6.2 Hyper-parameter Tuning ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr:
+    A Local Fine-Tuned LLM Agent for Network Security Environments")中有介绍。对于微调过程，我们使用了HuggingFace
+    alignment-handbook库和脚本[[38](https://arxiv.org/html/2409.11276v1#bib.bib38)]。'
+- en: 'After the hyperparameter tuning, we executed a series of experiments to evaluate
+    the performance of our fine-tuned model. These experiments compared Hackphyr against
+    established baselines across three distinct scenarios (Section [7.1](https://arxiv.org/html/2409.11276v1#S7.SS1
+    "7.1 Scenario Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments")). All the supervised fine-tuning
+    and the scenario experiments were executed in a single V100 Nvidia GPU card with
+    32GB of NVRAM.'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在超参数调优后，我们进行了系列实验，以评估微调模型的表现。这些实验将Hackphyr与在三个不同场景下的基准进行了比较（第[7.1节](https://arxiv.org/html/2409.11276v1#S7.SS1
+    "7.1 Scenario Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments")）。所有的监督微调和场景实验都在一张32GB NVRAM的V100
+    Nvidia GPU卡上执行。'
+- en: 6.1 Dataset Creation
+  id: totrans-93
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.1 数据集创建
+- en: Supervised fine-tuning requires high-quality data that help the language model
+    perform well in a narrow task. The strategy for creating the dataset addressed
+    issues we observed using the smaller models in the NetSecGame environment. The
+    process was automated initially by asking stronger LLMs to play the role of a
+    teacher who generates questions and answers to teach their students about the
+    NetSecGame environment. After the automated generation of the questions and answers,
+    we performed a human evaluation to ensure that the answers were of good quality,
+    edited the incorrect ones, and discarded duplicates.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 监督微调需要高质量的数据，帮助语言模型在特定任务中表现良好。创建数据集的策略解决了我们在NetSecGame环境中使用较小模型时观察到的一些问题。最初，通过让更强大的LLM扮演教师角色，自动化生成问题和答案，帮助学生学习NetSecGame环境。在自动生成问题和答案后，我们进行了人工评估，以确保答案质量良好，编辑了错误的答案，并丢弃了重复的内容。
+- en: 'The dataset comprises 1641 questions and answers generated as three separate
+    parts (Figure [2](https://arxiv.org/html/2409.11276v1#S6.F2 "Figure 2 ‣ 6 Supervised
+    Fine-tuning Methodology ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments")). Each part has a different focus and aims to address a specific
+    problem observed while we were testing various open-source LLMs. The complete
+    dataset was published on HuggingFace and is accessible for further research and
+    experimentation [[39](https://arxiv.org/html/2409.11276v1#bib.bib39)].'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '数据集包含1641个问答对，这些问答对分为三个部分生成（图[2](https://arxiv.org/html/2409.11276v1#S6.F2
+    "Figure 2 ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments")）。每个部分有不同的重点，旨在解决我们在测试各种开源LLM时观察到的特定问题。完整的数据集已发布在HuggingFace上，并可供进一步研究和实验[[39](https://arxiv.org/html/2409.11276v1#bib.bib39)]。'
+- en: 6.1.1 Part I - Environment Understanding
+  id: totrans-96
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 6.1.1 第I部分 - 环境理解
+- en: 'The first part of the dataset contains questions and answers that test the
+    model’s ability to understand the current status of the environment and the provided
+    rules. The dataset was generated automatically using three different LLMs: GPT-4,
+    GPT-3.5-turbo from OpenAI, and Claude from Anthropic. The total number of questions
+    and answers generated was $1080$.'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据集的第一部分包含测试模型理解当前环境状态和提供的规则的能力的问答对。该数据集是通过三种不同的LLM自动生成的：OpenAI的GPT-4、GPT-3.5-turbo，以及Anthropic的Claude。生成的问答总数为$1080$。
+- en: 'Given a set of 18 states collected by previous game runs, the models were asked
+    to generate 20 questions that test a student’s ability to comprehend the game
+    environment and the rules:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定由先前游戏运行收集的18个状态，模型被要求生成20个问题，以测试学生理解游戏环境和规则的能力：
+- en: <svg class="ltx_picture" height="52.81" id="S6.SS1.SSS1.p3.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,52.81) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="25.25" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE1]</foreignobject></g></g></svg>
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="52.81" id="S6.SS1.SSS1.p3.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,52.81) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="25.25" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE1]</foreignobject></g></g></svg>
+- en: 'An example of a generated question and answer can be found in Appendix [A.1](https://arxiv.org/html/2409.11276v1#A1.SS1
+    "A.1 Part I ‣ Appendix A Dataset examples ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments").'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '一个生成的问题和答案示例可以在附录[A.1](https://arxiv.org/html/2409.11276v1#A1.SS1 "A.1 第一部分
+    ‣ 附录A 数据集示例 ‣ Hackphyr: 一种本地微调的LLM代理用于网络安全环境")中找到。'
+- en: 6.1.2 Part II - Generating Valid Actions
+  id: totrans-101
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 6.1.2 第二部分 - 生成有效动作
+- en: 'The second part of the dataset contains questions that test the model’s ability
+    to generate valid actions, both in terms of syntax (JSON format) and in terms
+    of semantics (validity in the specific state). The final number of questions and
+    answers in the second part of the dataset is $450$. The following prompt generated
+    this part of the dataset from 18 distinct states:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据集的第二部分包含测试模型生成有效动作能力的问题，这些问题在语法（JSON格式）和语义（在特定状态下的有效性）方面进行了考察。第二部分数据集中的问题和答案最终数量为$450$。以下提示从18个不同的状态生成了这部分数据集：
+- en: <svg class="ltx_picture" height="52.81" id="S6.SS1.SSS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,52.81) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="25.25" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[PRE2]</foreignobject></g></g></svg>
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="52.81" id="S6.SS1.SSS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,52.81) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="25.25" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[PRE2]</foreignobject></g></g></svg>
+- en: 'An example of a generated question and answer can be found in Appendix [A.2](https://arxiv.org/html/2409.11276v1#A1.SS2
+    "A.2 Part II ‣ Appendix A Dataset examples ‣ Hackphyr: A Local Fine-Tuned LLM
+    Agent for Network Security Environments").'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '一个生成的问题和答案示例可以在附录[A.2](https://arxiv.org/html/2409.11276v1#A1.SS2 "A.2 第二部分
+    ‣ 附录A 数据集示例 ‣ Hackphyr: 一种本地微调的LLM代理用于网络安全环境")中找到。'
+- en: 6.1.3 Part III - Generating Good Actions
+  id: totrans-105
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 6.1.3 第三部分 - 生成有效动作
+- en: This dataset part aims to teach the fine-tuned models how to make correct decisions
+    given a specific environment state. It comprises 113 questions and answers generated
+    from previous game runs using GPT-4 in the small scenario [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)].
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一数据集部分的目的是教导微调后的模型在给定特定环境状态时如何做出正确决策。它包含了从先前游戏运行中生成的113个问题和答案，这些运行使用了GPT-4，并在小型场景[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]中进行。
+- en: The state-action pairs were selected in a way where only actions that led to
+    a new state of the environment were used. This choice is because actions that
+    do not lead to a new state, i.e., the discovery of a new element, are either repetitions
+    or not useful.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 状态-动作对的选择方式是，只使用那些能够导致环境新状态的动作。这是因为不导致新状态的动作，即未发现新元素的动作，要么是重复的，要么是无用的。
+- en: 'An example of a generated question and answer can be found in Appendix [A.3](https://arxiv.org/html/2409.11276v1#A1.SS3
+    "A.3 Part III ‣ Appendix A Dataset examples ‣ Hackphyr: A Local Fine-Tuned LLM
+    Agent for Network Security Environments").'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '一个生成的问题和答案示例可以在附录[A.3](https://arxiv.org/html/2409.11276v1#A1.SS3 "A.3 第三部分
+    ‣ 附录A 数据集示例 ‣ Hackphyr: 一种本地微调的LLM代理用于网络安全环境")中找到。'
+- en: 6.2 Hyper-parameter Tuning
+  id: totrans-109
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 6.2 超参数调整
+- en: 'Instead of the common machine learning evaluation approach of splitting between
+    train and test sets, the complete dataset was used for training following the
+    SFT methodology described in section [2](https://arxiv.org/html/2409.11276v1#S2
+    "2 Background ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments").
+    Since random IPs and random data exfiltration goals were set for each episode,
+    the agent is evaluated under different conditions than the ones in the training
+    dataset.'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '与常见的机器学习评估方法（将数据集分为训练集和测试集）不同，使用了完整的数据集进行训练，遵循了第[2](https://arxiv.org/html/2409.11276v1#S2
+    "2 背景 ‣ Hackphyr: 一种本地微调的LLM代理用于网络安全环境")节中描述的SFT方法论。由于每回合设定了随机的IP和随机的数据外泄目标，因此该代理在与训练数据集不同的条件下进行评估。'
+- en: 'Then, the resulting model was tested on the small scenario [7.1](https://arxiv.org/html/2409.11276v1#S7.SS1
+    "7.1 Scenario Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments") for 150 episodes using the LLM-based
+    agent as described in section [5](https://arxiv.org/html/2409.11276v1#S5 "5 LLM
+    Agent Design ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")
+    with a memory of the last ten actions.'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '然后，结果模型在小型场景[7.1](https://arxiv.org/html/2409.11276v1#S7.SS1 "7.1 场景描述 ‣ 7
+    实验设计 ‣ Hackphyr: 一种本地微调的LLM代理用于网络安全环境")中进行了150回合的测试，使用了第[5](https://arxiv.org/html/2409.11276v1#S5
+    "5 LLM代理设计 ‣ Hackphyr: 一种本地微调的LLM代理用于网络安全环境")节中描述的基于LLM的代理，并记录了最后十个动作的记忆。'
+- en: 'A hyperparameter grid search was conducted for selecting the LoRA $r$ and $\alpha$
+    hyperparameters. The following parameter values were used during the grid search:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对LoRA $r$和$\alpha$超参数进行了超参数网格搜索。网格搜索期间使用了以下参数值：
+- en: '1.'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: 'LoRA r: 4, 8, 16, and 32'
+  id: totrans-114
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LoRA r：4、8、16 和 32
+- en: '2.'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: 'LoRA $\alpha$: 4, 8 16 and 32'
+  id: totrans-116
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: LoRA $\alpha$：4、8、16 和 32
+- en: The rest of the hyper-parameters were set to default values according to the
+    HuggingFace alignment handbook [[38](https://arxiv.org/html/2409.11276v1#bib.bib38)].
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其余的超参数根据HuggingFace对齐手册设置为默认值[[38](https://arxiv.org/html/2409.11276v1#bib.bib38)]。
+- en: '![Refer to caption](img/0717fad0c9095e8000dff3b67a39d446.png)'
+  id: totrans-118
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/0717fad0c9095e8000dff3b67a39d446.png)'
+- en: 'Figure 3: Win rate(%) confidence intervals by model. The blue area indicates
+    the desired effect size.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图3：按模型显示的胜率（%）置信区间。蓝色区域表示期望的效应大小。
+- en: 'The performance of each agent in terms of the win rate, along with the confidence
+    intervals (CI) over the 150 episodes, is shown in Figure [3](https://arxiv.org/html/2409.11276v1#S6.F3
+    "Figure 3 ‣ 6.2 Hyper-parameter Tuning ‣ 6 Supervised Fine-tuning Methodology
+    ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments").
+    The number of 150 episodes was chosen based on a power analysis, with significance
+    level $\alpha=0.05$ and power $1-\beta=0.8$ aiming for an effect size between
+    85% and 95%. The purpose of using confidence intervals is to focus on those models
+    whose intervals do not overlap.'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '每个代理的表现，基于胜率及150轮对局的置信区间（CI），如图[3](https://arxiv.org/html/2409.11276v1#S6.F3
+    "图3 ‣ 6.2 超参数调优 ‣ 6 监督微调方法 ‣ Hackphyr: 面向网络安全环境的本地微调LLM代理")所示。150轮的对局数是基于效能分析选定的，显著性水平为$\alpha=0.05$，效能为$1-\beta=0.8$，目标效应大小介于85%和95%之间。使用置信区间的目的是关注那些区间不重叠的模型。'
+- en: 'From figure [3](https://arxiv.org/html/2409.11276v1#S6.F3 "Figure 3 ‣ 6.2 Hyper-parameter
+    Tuning ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr: A Local Fine-Tuned LLM
+    Agent for Network Security Environments"), we can observe that only the last five
+    hyperparameter combinations showed significant differences between the analyzed
+    effect sizes. The remaining hyperparameters do not provide strong enough evidence
+    to conclude a significant difference between the win rate values at the given
+    confidence level. However, the considerable overlap of the CIs suggests that the
+    sample data do not provide strong enough evidence to conclude a significant difference
+    between the win rates at the given confidence level. Therefore, we selected the
+    agent that used a model with LoRa parameters set to $r4\_a32$, as this configuration
+    consistently demonstrated the highest average win rate.'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '从图[3](https://arxiv.org/html/2409.11276v1#S6.F3 "图3 ‣ 6.2 超参数调优 ‣ 6 监督微调方法
+    ‣ Hackphyr: 面向网络安全环境的本地微调LLM代理")中，我们可以观察到，只有最后五组超参数组合在分析的效应大小之间表现出显著差异。其余超参数未能提供足够强的证据来得出在给定置信水平下，胜率值之间存在显著差异的结论。然而，CI的显著重叠表明样本数据未能提供足够强的证据，得出在给定置信水平下，胜率之间存在显著差异的结论。因此，我们选择了使用将LoRa参数设置为$r4\_a32$的模型的代理，因为该配置始终表现出最高的平均胜率。'
+- en: 'The final values of the most important hyper-parameters are provided in Table [1](https://arxiv.org/html/2409.11276v1#S6.T1
+    "Table 1 ‣ 6.2 Hyper-parameter Tuning ‣ 6 Supervised Fine-tuning Methodology ‣
+    Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments").'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '最重要的超参数的最终值见表[1](https://arxiv.org/html/2409.11276v1#S6.T1 "表1 ‣ 6.2 超参数调优
+    ‣ 6 监督微调方法 ‣ Hackphyr: 面向网络安全环境的本地微调LLM代理")。'
+- en: 'Table 1: Final hyper-parameter values'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表1：最终超参数值
+- en: '| Parameter | Value |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| 参数 | 值 |'
+- en: '| --- | --- |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| LoRA r | 4 |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| LoRA r | 4 |'
+- en: '| LoRA $\alpha$ | 32 |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| LoRA $\alpha$ | 32 |'
+- en: '| training epochs | 2 |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| 训练轮数 | 2 |'
+- en: '| gradient accumulation steps | 2 |'
+  id: totrans-129
+  prefs: []
+  type: TYPE_TB
+  zh: '| 梯度累积步数 | 2 |'
+- en: '| learning_rate | 2.0e-04 |'
+  id: totrans-130
+  prefs: []
+  type: TYPE_TB
+  zh: '| 学习率 | 2.0e-04 |'
+- en: '| lr scheduler type | cosine |'
+  id: totrans-131
+  prefs: []
+  type: TYPE_TB
+  zh: '| 学习率调度器类型 | 余弦 |'
+- en: '| max seq length | 2048 |'
+  id: totrans-132
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最大序列长度 | 2048 |'
+- en: '| number of GPUs | 1 |'
+  id: totrans-133
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPU数量 | 1 |'
+- en: '| training batch size | 1 |'
+  id: totrans-134
+  prefs: []
+  type: TYPE_TB
+  zh: '| 训练批次大小 | 1 |'
+- en: 7 Experiment Design
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 7 实验设计
+- en: 'For evaluating the agents, we have selected three scenarios on top of the NetSecGame
+    environment described in Section [4](https://arxiv.org/html/2409.11276v1#S4 "4
+    The NetSecGame Environment ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network
+    Security Environments"). The goal in all the scenarios was to exfiltrate specific
+    data to the C&C server. Agents must perform a sequence of actions to discover
+    data on a computer in the network and then exfiltrate it.'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '为了评估代理，我们在第[4](https://arxiv.org/html/2409.11276v1#S4 "4 The NetSecGame Environment
+    ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")节描述的NetSecGame环境基础上选择了三个场景。在所有这些场景中，目标都是将特定数据外泄到C&C服务器。代理必须执行一系列操作来发现网络中计算机上的数据，然后将其外泄。'
+- en: 7.1 Scenario Descriptions
+  id: totrans-137
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.1 场景描述
+- en: 'The first two data exfiltration scenarios (denoted as small and full scenarios)
+    are depicted in Figure [4](https://arxiv.org/html/2409.11276v1#S7.F4 "Figure 4
+    ‣ 7.1 Scenario Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments"). These two scenarios share the same
+    network topology: two subnets, one with clients and one with servers, connected
+    by a router. The small scenario differs from the full scenario only in that there
+    is a single client on the client subnet.'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '前两个数据外泄场景（分别称为小型场景和完整版场景）如图[4](https://arxiv.org/html/2409.11276v1#S7.F4 "Figure
+    4 ‣ 7.1 Scenario Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments")所示。这两个场景共享相同的网络拓扑：两个子网，一个包含客户端，另一个包含服务器，它们通过路由器连接。小型场景与完整版场景的区别仅在于客户端子网中只有一个客户端。'
+- en: '![Refer to caption](img/32bff79cc30dc6d868ec445d0694eb8a.png)'
+  id: totrans-139
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/32bff79cc30dc6d868ec445d0694eb8a.png)'
+- en: 'Figure 4: Small and Full network scenarios [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)].
+    The small scenario has only one client in the client subnet, while the full scenario
+    has all five clients.'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图4：小型和完整版网络场景[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]。小型场景只有一个客户端在客户端子网中，而完整版场景则有五个客户端。
+- en: The attacker starts the scenario in one of the client machines, playing the
+    role of an attacker who has gained a foothold in a network. The attacker also
+    controls a machine on the internet, where the command and control (C&C) server
+    is hosted.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 攻击者从客户端机器中的一个节点开始，扮演一个已在网络中获得立足点的攻击者。攻击者还控制着一台互联网上的机器，命令与控制（C&C）服务器便托管在该机器上。
+- en: Both scenarios require a minimum of five steps to exfiltrate the data. Still,
+    the solution is far from trivial, given that the IP addresses and goals change
+    in every episode, and the latter presents a challenge to both LLM and traditional
+    RL agents. A more detailed description of both scenarios is presented in [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)].
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两种场景都需要至少五个步骤才能将数据外泄。然而，考虑到每个场景中的IP地址和目标都在变化，解决方案远非简单，这也对大语言模型（LLM）和传统的强化学习（RL）代理提出了挑战。两种场景的更详细描述请参见[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]。
+- en: 'The third scenario (denoted as the three-networks scenario) consists of three
+    different subnetworks inside a fictional small-medium enterprise (Figure [5](https://arxiv.org/html/2409.11276v1#S7.F5
+    "Figure 5 ‣ 7.1 Scenario Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local
+    Fine-Tuned LLM Agent for Network Security Environments")). The client subnet contains
+    the client hosts (PCs, etc.). The first server subnet (subnet A) contains some
+    servers that are immediately accessible by the clients, and the second server
+    subnet (subnet B) contains two servers that are only accessible by subnet A. Firewall
+    rules prevent the clients from accessing the servers in subnet B directly. The
+    attacker aims to exfiltrate the data from one of the servers in the subnet B to
+    the C&C server on the internet. The attacker begins with a foothold in the client
+    subnet and must first gain control of one of the servers in subnet A. Then they
+    have to perform a network scan of network B to discover and exploit the servers
+    and gain control. Once the correct server is controlled and the data are discovered,
+    they can be exfiltrated to the C&C server.'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三个情境（称为三网情境）由虚构的小型中型企业内部的三个不同子网组成（见图[5](https://arxiv.org/html/2409.11276v1#S7.F5
+    "图 5 ‣ 7.1 情境描述 ‣ 7 实验设计 ‣ Hackphyr：一种针对网络安全环境的本地微调大语言模型代理")）。客户端子网包含客户端主机（如个人电脑等）。第一个服务器子网（子网
+    A）包含一些客户端可以立即访问的服务器，第二个服务器子网（子网 B）包含两台仅能由子网 A 访问的服务器。防火墙规则防止客户端直接访问子网 B 中的服务器。攻击者的目标是将子网
+    B 中一台服务器的数据泄露到互联网的 C&C 服务器。攻击者首先在客户端子网中建立立足点，并必须先控制子网 A 中的一台服务器。然后，他们需要对 B 网络进行扫描，发现并利用服务器，获取控制权。一旦控制了正确的服务器并发现数据，就可以将数据泄露到
+    C&C 服务器。
+- en: '![Refer to caption](img/a5c30792bb1f5931b92ebc1dc4c29ef1.png)'
+  id: totrans-144
+  prefs: []
+  type: TYPE_IMG
+  zh: '![请参见说明](img/a5c30792bb1f5931b92ebc1dc4c29ef1.png)'
+- en: 'Figure 5: Three Subnets Scenario Topology. The clients can only access subnet
+    A directly. The goal is to exfiltrate data from subnet B by first gaining a foothold
+    to subnet A.'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 5：三子网情境拓扑。客户端仅能直接访问子网 A。目标是通过首先获取子网 A 的立足点，泄露子网 B 的数据。
+- en: The three-networks scenario requires at least three more steps to solve than
+    the previous two. This scenario is more demanding, and it is used to test the
+    limits of the LLMs. As in the previous two scenarios, the IP addresses were randomized
+    in each episode, and the scenarios were tested with and without the stochastic
+    defender with thresholds; however, in this scenario, the goal is not randomized.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 三网情境比前两个情境需要多出至少三步才能解决。这个情境要求更高，主要用于测试大语言模型的极限。如同前两个情境一样，每次实验中的 IP 地址都会随机化，情境会在有和没有阈值的随机防御者下进行测试；然而，在此情境中，目标是固定的。
+- en: 'A summary of the main differences between the three scenarios is presented
+    in Table [2](https://arxiv.org/html/2409.11276v1#S7.T2 "Table 2 ‣ 7.1 Scenario
+    Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local Fine-Tuned LLM Agent for
+    Network Security Environments")'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 三种情境之间的主要差异总结见表[2](https://arxiv.org/html/2409.11276v1#S7.T2 "表 2 ‣ 7.1 情境描述
+    ‣ 7 实验设计 ‣ Hackphyr：一种针对网络安全环境的本地微调大语言模型代理")
+- en: '| Scenario | Small | Full | Three-Networks |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| 情境 | 小型 | 完整 | 三网 |'
+- en: '| Network Topology | One client and one server subnet, router | One client
+    and one server subnet, router | One client and two server subnets (A & B), client
+    have direct access only to subnet A, router |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| 网络拓扑 | 一个客户端和一个服务器子网，路由器 | 一个客户端和一个服务器子网，路由器 | 一个客户端和两个服务器子网（A 和 B），客户端仅能直接访问子网
+    A，路由器 |'
+- en: '| Config | Single client and multiple servers | Multiple clients and multiple
+    servers | Multiple clients and multiple servers |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| 配置 | 单个客户端和多个服务器 | 多个客户端和多个服务器 | 多个客户端和多个服务器 |'
+- en: '| Episode Setup | Randomized IPs and goal | Randomized IPs and goal | Randomized
+    IPs, fixed goal on subnet B |'
+  id: totrans-151
+  prefs: []
+  type: TYPE_TB
+  zh: '| 情境设置 | 随机化 IP 和目标 | 随机化 IP 和目标 | 随机化 IP，子网 B 上固定目标 |'
+- en: '| Steps | Five | Five | Eight |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| 步骤 | 五步 | 五步 | 八步 |'
+- en: '| Purpose | Fine-tuning and hyper-parameter tuning | Test performance under
+    more complex conditions | Test adaptability to different network configurations
+    |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| 目的 | 微调和超参数调优 | 在更复杂的条件下测试性能 | 测试对不同网络配置的适应性 |'
+- en: 'Table 2: Comparison of Data Exfiltration Scenarios'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2：数据泄露情境比较
+- en: 7.2 Evaluation Procedure
+  id: totrans-155
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 7.2 评估程序
+- en: 'Each scenario was designed with a specific purpose in mind for facilitating
+    the evaluation of the agents’ performance across different level of complexity
+    levels and conditions (See Table [2](https://arxiv.org/html/2409.11276v1#S7.T2
+    "Table 2 ‣ 7.1 Scenario Descriptions ‣ 7 Experiment Design ‣ Hackphyr: A Local
+    Fine-Tuned LLM Agent for Network Security Environments")).'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '每个场景都具有特定的目的，以便在不同的复杂程度和条件下评估代理的性能（见表[2](https://arxiv.org/html/2409.11276v1#S7.T2
+    "表2 ‣ 7.1 场景描述 ‣ 7 实验设计 ‣ Hackphyr: 本地微调的LLM代理用于网络安全环境")）。'
+- en: In particular, the small scenario was mainly used for fine-tuning and hyper-parameter
+    selection, as similar examples were used during the model’s training. We tested
+    this scenario with and without a defender to establish a performance baseline.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 特别是，小场景主要用于微调和超参数选择，因为在模型训练时使用了类似的示例。我们在有防守者和没有防守者的情况下测试了这个场景，以建立性能基准。
+- en: The full scenario is more complex and involves more clients that can be scanned
+    for services and finding the data to exfiltrate. Since the full scenario has more
+    clients and was not seen during training, we used it to analyze the model’s performance
+    degradation under slightly more complex conditions.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完整的场景更为复杂，涉及更多客户端，这些客户端可以扫描服务并寻找需要外泄的数据。由于完整场景有更多客户端，并且在训练过程中没有遇到过，因此我们用它来分析模型在稍微复杂条件下的性能退化。
+- en: Finally, the three networks scenario is significantly more complex, involving
+    additional networks and more steps required for data exfiltration. This scenario
+    introduced a different network topology not encountered during training, and it
+    helped analyze the model for potential overfitting. This ensures that the fine-tuned
+    models can adapt to diverse and demanding network configurations without retraining.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，三网络场景显著更为复杂，涉及额外的网络和更多的数据外泄步骤。这个场景引入了在训练过程中没有遇到过的不同网络拓扑，有助于分析模型是否存在过拟合。这确保了微调后的模型能够适应多样化且要求苛刻的网络配置，而无需重新训练。
+- en: 'The language models used for testing the scenarios were GPT-4, GPT-3.5-turbo,
+    and Zephyr-7b-$\beta$, along with Hackphyr. Similar to Section [6.2](https://arxiv.org/html/2409.11276v1#S6.SS2
+    "6.2 Hyper-parameter Tuning ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr:
+    A Local Fine-Tuned LLM Agent for Network Security Environments"), we evaluated
+    the performance of each model over 150 episodes with 100 maximum steps per episode.
+    Each episode was run independently and IPs and goals were generated with a different
+    seed.'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '用于测试场景的语言模型有GPT-4、GPT-3.5-turbo和Zephyr-7b-$\beta$，以及Hackphyr。与[6.2](https://arxiv.org/html/2409.11276v1#S6.SS2
+    "6.2 超参数调优 ‣ 6 监督微调方法 ‣ Hackphyr: 本地微调的LLM代理用于网络安全环境")部分类似，我们对每个模型进行了150局测试，每局最大步数为100步。每局都是独立运行，IP和目标是使用不同的种子生成的。'
+- en: In addition, we conducted some baseline comparisons using a random agent and
+    a tabular Q-learning agent [[40](https://arxiv.org/html/2409.11276v1#bib.bib40)]
+    similar to [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]. For the Q-learning
+    agent, it was not possible to randomize the IP per episode because the Q-table
+    was fixed. However, the goal was randomized in each episode. The Q-agent was trained
+    for 50,000 episodes, and the evaluation was performed on the trained agent. The
+    random agent was run for 2,000 episodes.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们还进行了一些基准比较，使用了一个随机代理和一个基于表格的Q学习代理[[40](https://arxiv.org/html/2409.11276v1#bib.bib40)]，类似于[[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]。对于Q学习代理，由于Q表是固定的，因此无法在每局中随机化IP。然而，每局中的目标是随机化的。Q代理经过50,000局训练，评估是在训练后的代理上进行的。随机代理则运行了2,000局。
+- en: For all agents, we measured the percentage of wins (win_rate), the average steps,
+    and the average returns. A win is any episode where the agent reaches the goal
+    state within the 100 maximum steps.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对所有代理，我们测量了胜率（win_rate）、平均步骤数和平均回报。胜利指的是代理在100步之内到达目标状态的任何一局。
+- en: 8 Results
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 8 结果
+- en: 'The results of the experiments without and with the stochastic defender are
+    presented in Tables [3](https://arxiv.org/html/2409.11276v1#S8.T3 "Table 3 ‣ 8.1
+    Scenarios Without Defender ‣ 8 Results ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments") and [4](https://arxiv.org/html/2409.11276v1#S8.T4
+    "Table 4 ‣ 8.2 Scenarios With Defender ‣ 8 Results ‣ Hackphyr: A Local Fine-Tuned
+    LLM Agent for Network Security Environments"), respectively. The tables present
+    the win rates and returns for the small, full, and three subnets scenarios.'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有防守者和有随机防守者的实验结果分别展示在表 [3](https://arxiv.org/html/2409.11276v1#S8.T3 "表 3 ‣
+    8.1 没有防守者的场景 ‣ 8 结果 ‣ Hackphyr：一种用于网络安全环境的本地微调 LLM 代理") 和表 [4](https://arxiv.org/html/2409.11276v1#S8.T4
+    "表 4 ‣ 8.2 有防守者的场景 ‣ 8 结果 ‣ Hackphyr：一种用于网络安全环境的本地微调 LLM 代理") 中。这些表格展示了小型、完整和三子网场景的胜率和回报。
+- en: For the small and full scenarios, the results were taken from [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)].
+    For the three subnets scenario, all the LLM-based agents were run using exactly
+    the same setup, including prompts, temperatures, and other relevant parameters.
+    This also applied to the Q-learning agent, with settings such as the learning
+    rate, epsilon, and the number of episodes being consistent across the experiments.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于小型和完整场景，结果来自于 [[10](https://arxiv.org/html/2409.11276v1#bib.bib10)]。对于三子网场景，所有基于
+    LLM 的代理均使用完全相同的设置进行运行，包括提示、温度和其他相关参数。这同样适用于 Q-learning 代理，其设置如学习率、epsilon 和回合数在所有实验中保持一致。
+- en: 8.1 Scenarios Without Defender
+  id: totrans-166
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 8.1 没有防守者的场景
+- en: 'Table 3: Average returns and win rates of all agents across different scenarios
+    without defender with 100 maximum steps per episode.'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3：所有代理在不同没有防守者的场景下，100 最大步骤每回合的平均回报和胜率。
+- en: '|  | Small | Full | 3 Subnets |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 小型 | 完整 | 3 子网 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Agent | Win% | Return | Win% | Return | Win% | Return |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| 代理 | 胜率% | 回报 | 胜率% | 回报 | 胜率% | 回报 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-171
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Random | 40.99 | -43.43 | 31.16 | -57.49 | 4.86 | -93.28 |'
+  id: totrans-172
+  prefs: []
+  type: TYPE_TB
+  zh: '| 随机 | 40.99 | -43.43 | 31.16 | -57.49 | 4.86 | -93.28 |'
+- en: '| Q-learning | 67.41 | 47.55 | 58.74 | 48.00 | 0.00 | -100.00 |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| Q-learning | 67.41 | 47.55 | 58.74 | 48.00 | 0.00 | -100.00 |'
+- en: '| GPT-3.5-turbo | 50.00 | -16.13 | 30.00 | -51.67 | 10.00 | -87.50 |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-turbo | 50.00 | -16.13 | 30.00 | -51.67 | 10.00 | -87.50 |'
+- en: '| GPT-4 | 100.00 | 83.10 | 100.00 | 77.13 | 82.35 | 18.78 |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4 | 100.00 | 83.10 | 100.00 | 77.13 | 82.35 | 18.78 |'
+- en: '| Zephyr-7b-$\beta$ (base) | 30.46 | -51.80 | 23.65 | -51.77 | 1.75 | -98.80
+    |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| Zephyr-7b-$\beta$ (基础) | 30.46 | -51.80 | 23.65 | -51.77 | 1.75 | -98.80
+    |'
+- en: '| Hackphyr (ours) | 94.00 | 72.83 | 89.10 | 61.03 | 50.34 | -14.26 |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| Hackphyr (我们的) | 94.00 | 72.83 | 89.10 | 61.03 | 50.34 | -14.26 |'
+- en: Regarding win rate and average reward return, GPT-4 agents consistently outperform
+    all the LLM agents in all the scenarios without defenders(Small, Full, and Three
+    Subnets). On the other hand, the Hackphyr agents demonstrate strong performance,
+    always ranking second to GPT-4 and significantly better when compared with the
+    base Zephyr agent.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于胜率和平均回报，GPT-4 代理在所有没有防守者的场景（小型、完整、三子网）中始终表现优于所有其他 LLM 代理。另一方面，Hackphyr 代理表现出强劲的性能，总是排名第二，仅次于
+    GPT-4，并且与基础的 Zephyr 代理相比有显著提升。
+- en: In the small scenario, the performance of Hackphyr agents is close to GPT-4
+    (94% win rate. 72.8 average return). These are expected results since the dataset
+    used for fine-tuning Zephyr contained examples from actions taken by GPT-4-based
+    agents on the small scenario.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在小型场景中，Hackphyr 代理的表现接近 GPT-4（94% 胜率，72.8 平均回报）。这是预期中的结果，因为用于微调 Zephyr 的数据集包含了
+    GPT-4 基于代理在小型场景中采取的行动示例。
+- en: 'The performance in the full scenario is more valuable in terms of win rate
+    and average return. This scenario was completely unseen for the Hackphyr agent
+    during the fine-tuning process described in section [6](https://arxiv.org/html/2409.11276v1#S6
+    "6 Supervised Fine-tuning Methodology ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments"). Despite the decrease compared to the small
+    scenario, the Hackphyr agent showed a win rate of 89% with an average return of
+    61\. These values were exceptionally better than the Zephyr-based agent and outperformed
+    GPT-3.5-turbo, a larger and more powerful model.'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在完整场景中的表现对于胜率和平均回报更加有价值。这个场景在 Hackphyr 代理的微调过程中完全未曾出现，微调过程描述在第 [6](https://arxiv.org/html/2409.11276v1#S6
+    "6 监督微调方法 ‣ Hackphyr：一种用于网络安全环境的本地微调 LLM 代理") 节中。尽管与小型场景相比有所下降，Hackphyr 代理仍展现出了
+    89% 的胜率和 61 的平均回报。这些数值远优于基于 Zephyr 的代理，并且超越了一个更大、更强大的模型 GPT-3.5-turbo。
+- en: Finally, the complexity of the three subnets scenario caused a decrease in the
+    win rate performance of all language models. The Hackphyr dropped to a 50% win
+    rate and a -14.25 average return. The GPT-4-based agents observed a decrease in
+    win rate of 20% and a drop in average return of 18.78\. The fact that a powerful
+    model such as GPT-4 had a performance degradation shows that this is a harder
+    scenario and that an improved agent design may be required.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，三子网场景的复杂性导致所有语言模型的胜率表现下降。Hackphyr 的胜率降至 50%，平均回报为 -14.25。基于 GPT-4 的代理则观察到胜率下降了
+    20%，平均回报下降了 18.78。像 GPT-4 这样强大的模型出现性能下降，表明这是一个更具挑战性的场景，可能需要改进的代理设计。
+- en: The performance of the two baseline agents, Random and Q-learning, highlights
+    the limitations of simpler strategies in the given scenarios. The Random agent
+    consistently underperforms across all scenarios, with win rates of 40.99%, 31.16%,
+    and 4.86% in the Small, Full, and Three Subnets scenarios, respectively, and corresponding
+    negative returns, indicating poor decision-making that fails to generate positive
+    outcomes. The Q-learning agent shows a notable improvement over the Random agent,
+    particularly in the Small and Full scenarios, achieving win rates of 67.41% and
+    58.74%, respectively, with positive returns in both cases (47.55 and 48.00). However,
+    in the more complex Three Subnets scenario, the Q-learning agent struggles significantly,
+    with a 0% win rate and a return of -100.00, reflecting the limitations of the
+    tabular RL methods. The results underscore the limited effectiveness of these
+    baseline methods, particularly in more challenging environments, compared to more
+    advanced models like GPT-4 and Hackphyr.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两个基准代理——随机和 Q-learning 的表现，突出了在给定场景中简单策略的局限性。随机代理在所有场景中的表现始终较差，在小型、完整和三子网场景中的胜率分别为
+    40.99%、31.16% 和 4.86%，且相应的回报为负，表明决策不当，未能产生积极的结果。Q-learning 代理比随机代理有了显著改善，特别是在小型和完整场景中，胜率分别为
+    67.41% 和 58.74%，两者的回报均为正（分别为 47.55 和 48.00）。然而，在更复杂的三子网场景中，Q-learning 代理遇到很大困难，胜率为
+    0%，回报为 -100.00，反映出表格型强化学习方法的局限性。这些结果凸显了这些基准方法的有效性有限，尤其是在更具挑战性的环境中，相较于像 GPT-4 和
+    Hackphyr 这样的高级模型。
+- en: In summary, the Hackphyr agents demonstrated remarkable performance, particularly
+    considering their fine-tuning process and the complexity of the scenarios they
+    faced. While GPT-4 consistently outperforms all other agents, Hackphyr stands
+    out as a robust and adaptable model, achieving results that often come close to
+    those of GPT-4, significantly better than the other LLM-based agents such as GPT-3.5-turbo.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结来说，Hackphyr 代理表现出色，特别是在考虑到其微调过程和所面对的复杂场景时。尽管 GPT-4 一直优于所有其他代理，但 Hackphyr 作为一个强大且适应性强的模型脱颖而出，其结果通常接近
+    GPT-4，明显优于其他基于 LLM 的代理，如 GPT-3.5-turbo。
+- en: 8.2 Scenarios With Defender
+  id: totrans-184
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 8.2 防御者场景
+- en: 'Table 4: Average returns and win rates of all agents across different scenarios
+    with defender with 100 maximum steps per episode.'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 4：所有代理在不同场景下的平均回报和胜率，防御者每个回合最多 100 步。
+- en: '|  | Small | Full | 3 Subnets |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 小型 | 完整 | 三子网 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| Agent | Win% | Return | Win% | Return | Win% | Return |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| 代理 | 胜率 | 回报 | 胜率 | 回报 | 胜率 | 回报 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Random | 3.76 | -65.57 | 2.72 | -66.56 | 0.13 | -70.73 |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| Random | 3.76 | -65.57 | 2.72 | -66.56 | 0.13 | -70.73 |'
+- en: '| Q-learning | 77.96 | 54.91 | 71.00 | 45.38 | 0.00 | -70.45 |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| Q-learning | 77.96 | 54.91 | 71.00 | 45.38 | 0.00 | -70.45 |'
+- en: '| GPT-3.5-turbo | 20.00 | -34.27 | 16.67 | -58.00 | 6.67 | -63.63 |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-3.5-turbo | 20.00 | -34.27 | 16.67 | -58.00 | 6.67 | -63.63 |'
+- en: '| GPT-4 | 83.33 | 58.83 | 53.33 | 8.80 | 36.36 | -21.69 |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| GPT-4 | 83.33 | 58.83 | 53.33 | 8.80 | 36.36 | -21.69 |'
+- en: '| Zephyr-7b-$\beta$ (base) | 3.00 | -66.40 | 3.33 | -66.68 | 0.62 | -70.42
+    |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| Zephyr-7b-$\beta$（基础） | 3.00 | -66.40 | 3.33 | -66.68 | 0.62 | -70.42 |'
+- en: '| Hackphyr (ours) | 59.77 | 33.00 | 44.00 | 3.56 | 23.33 | -37.67 |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| Hackphyr（我们的） | 59.77 | 33.00 | 44.00 | 3.56 | 23.33 | -37.67 |'
+- en: 'Table  [4](https://arxiv.org/html/2409.11276v1#S8.T4 "Table 4 ‣ 8.2 Scenarios
+    With Defender ‣ 8 Results ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network
+    Security Environments") shows the results with the stochastic defender. In all
+    the cases, similar to the scenarios with a defender, the Hackphyr agents outperformed
+    the agent based on Zephyr without fine-tuning.'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 [4](https://arxiv.org/html/2409.11276v1#S8.T4 "Table 4 ‣ 8.2 Scenarios With
+    Defender ‣ 8 Results ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments") 显示了随机防御者的结果。在所有情况下，类似于有防御者的场景，Hackphyr 代理的表现优于没有微调的 Zephyr 基础代理。'
+- en: For the small scenario, the Hackphyr agent showed a win rate of 59.77% with
+    a return value of 33\. The GPT-4-based agent won 83 episodes with an average return
+    value of 58\. The agent using GPT-3.5-turbo was capable of winning in just 20%
+    of the episodes.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在小型场景中，Hackphyr智能体的胜率为59.77%，回报值为33。基于GPT-4的智能体在83回合中获胜，平均回报值为58。使用GPT-3.5-turbo的智能体只能在20%的回合中获胜。
+- en: Similarly to the scenario without the stochastic defender, the performance decreased
+    in the full and the three subnets scenarios. In the full scenario, the Hackphyr
+    agent showed a win rate value of 44% with an average return of 3.5\. GPT-4-based
+    agents performed slightly better, with a win rate of 53% and an average return
+    value of 8.8.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于没有随机防守者的场景，在完整场景和三个子网场景中表现有所下降。在完整场景中，Hackphyr智能体的胜率为44%，平均回报为3.5。基于GPT-4的智能体表现略好，胜率为53%，平均回报为8.8。
+- en: The three subnets scenario was difficult for all the agents. Despite the difficulties,
+    the FT-Zephyr agent won in 23% of the episodes, far beyond the results of a larger
+    model such as GPT-3.5-turbo with only a 6% win rate. GPT-4 only was able to win
+    36% of the time. In all the cases, the average return was negative.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 三个子网的场景对所有智能体来说都很困难。尽管存在这些困难，FT-Zephyr智能体在23%的回合中获胜，远超像GPT-3.5-turbo这样的大型模型，仅有6%的胜率。GPT-4的胜率为36%。在所有情况下，平均回报为负值。
+- en: When the stochastic defender was present, all the LLM-based agents’ performance
+    decreased. However, the Hackphyr agent performed relatively well, outperforming
+    other LLM-based agents. Moreover, in the three subnets scenario, the Hackphyr
+    agent outperformed all LLM-based agents (except for GPT-4) by a significant margin.
+    This performance demonstrates that the model can succeed in a completely different
+    scenario, indicating that it did not simply memorize data from the small scenario
+    used for fine-tuning. This suggests a versatile and adaptable capability.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当随机防守者存在时，所有基于LLM的智能体表现都下降。然而，Hackphyr智能体表现相对较好，超越了其他基于LLM的智能体。此外，在三个子网的场景中，Hackphyr智能体在除GPT-4外的所有基于LLM的智能体中表现最为突出，差距显著。这一表现证明了该模型可以在完全不同的场景中取得成功，表明它并非仅仅记忆了用于微调的小型场景中的数据。这表明它具备了多功能和适应能力。
+- en: Regarding the baseline agents, it is worth mentioning that Q-learning displayed
+    considerable effectiveness in scenarios with defenders, sometimes even exceeding
+    the performance of both GPT-4 and Hackphyr. Specifically, it achieved a win rate
+    of 77.96% with an average return of 54.91 in the small scenario and a win rate
+    of 71.00% with an average return of 45.38.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于基线智能体，值得一提的是，Q学习在有防守者的场景中表现出了相当大的有效性，有时甚至超越了GPT-4和Hackphyr的表现。具体来说，它在小型场景中的胜率为77.96%，平均回报为54.91，在三个子网场景中的胜率为71.00%，平均回报为45.38。
+- en: These results could be attributed to the defender’s presence, which helped the
+    agent learn a policy that avoided repetitions penalized due to the detection.
+    The resulting policy made the agent perform even better than in scenarios without
+    a defender. However, it faced significant challenges in the Three Subnets Scenario,
+    highlighting potential limitations in more complex environments.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些结果可以归因于防守者的存在，这帮助智能体学习了一种避免因检测而受到惩罚的重复策略。由此产生的策略使得智能体在有防守者的场景中表现得更好，而不是在没有防守者的场景中。然而，在三个子网场景中，它面临了重大挑战，突显出在更复杂环境中的潜在局限性。
+- en: Finally, it must be noted that none of the LLM prompts had instructions to avoid
+    the defender. Agents like the GPT-4-based sometimes followed a breadth-first approach,
+    scanning hosts for services sequentially, which can trigger the stochastic defender.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后需要指出的是，所有LLM提示中都没有包含避免防守者的指令。像基于GPT-4的智能体有时会采用广度优先策略，按顺序扫描主机的服务，这可能会触发随机防守者的反应。
+- en: 9 Behavioral Analysis
+  id: totrans-204
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 9 行为分析
+- en: 'We define a trajectory as an agent’s sequence of actions during one episode.
+    Formally, a trajectory $\tau$ can be expressed as:'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将轨迹定义为智能体在一个回合中的一系列动作。形式上，轨迹$\tau$可以表示为：
+- en: '|  | $\tau=\{a_{i}\}_{i=1}^{T}$ |  |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\tau=\{a_{i}\}_{i=1}^{T}$ |  |'
+- en: 'where $a_{i}$ denotes the action taken by the agent at time step $i$, and $T$
+    is the total number of time steps in the episode. Let $\mathcal{T}$ represent
+    a set of trajectories expressed as:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，$a_{i}$表示智能体在时间步$i$时采取的行动，$T$是回合中的总时间步数。令$\mathcal{T}$表示一组轨迹，表示为：
+- en: '|  | $\mathcal{T}=\{\tau_{j}\}_{j=1}^{N}$ |  |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | $\mathcal{T}=\{\tau_{j}\}_{j=1}^{N}$ |  |'
+- en: where $\tau_{j}$ denotes the $j$-th trajectory in the set, and $N$ is the total
+    number of trajectories.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中$\tau_{j}$表示集合中的第$j$条轨迹，$N$是轨迹的总数。
+- en: In this context, the goal was to analyze the set of trajectories $\mathcal{T}$
+    to understand the rationality and correctness of the agent’s behavior throughout
+    the episodes. We performed a graph analysis to understand the transitions between
+    actions taken by an agent that helped detect invalid or incorrect action transition
+    patterns.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种背景下，目标是分析轨迹集$\mathcal{T}$，以理解智能体在整个情节中的理性与行为的正确性。我们进行了图形分析，以了解智能体采取的行动之间的转变，从而帮助检测无效或不正确的行动转移模式。
+- en: '![Refer to caption](img/fa370429ba780372d3e157ab68e1df0d.png)'
+  id: totrans-211
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/fa370429ba780372d3e157ab68e1df0d.png)'
+- en: (a) Transition Matrix
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 转移矩阵
+- en: '![Refer to caption](img/035ba4261cb20cd99b2a3303d5aff2fe.png)'
+  id: totrans-213
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/035ba4261cb20cd99b2a3303d5aff2fe.png)'
+- en: (b) Key Action Transitions
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 关键行动转移
+- en: 'Figure 6: GPT-4 action transitions'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：GPT-4的行动转移
+- en: 'We considered GPT-4 the reference agent since it showed the best results in
+    all the scenarios. Figure [6](https://arxiv.org/html/2409.11276v1#S9.F6 "Figure
+    6 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network
+    Security Environments") illustrates the transition pathways the GPT-4 agent takes.
+    The heatmap in Figure [6(a)](https://arxiv.org/html/2409.11276v1#S9.F6.sf1 "In
+    Figure 6 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for
+    Network Security Environments") shows the probabilities of transitioning from
+    one action to another, with higher probabilities highlighted in warmer colors.
+    In Figure [6(b)](https://arxiv.org/html/2409.11276v1#S9.F6.sf2 "In Figure 6 ‣
+    9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments"), the key action transition graph visually represents the most relevant
+    transitions (with probabilities greater or equal to 0.20) among the possible actions
+    for GPT-4\. Actions such as Start and Invalid are distinctly marked in green and
+    red, respectively, to highlight that they are not actions an agent can choose
+    from. In particular, an invalid action can be caused by semantic or syntactic
+    errors. A semantic error occurs when the action taken is not allowed given the
+    current environment state. On the other hand, a syntactic error is caused when
+    the agent generates an invalid string representation of the action.'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们认为GPT-4是参考智能体，因为它在所有场景中表现最好。图[6](https://arxiv.org/html/2409.11276v1#S9.F6
+    "Figure 6 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for
+    Network Security Environments")展示了GPT-4智能体所采取的转移路径。图[6(a)](https://arxiv.org/html/2409.11276v1#S9.F6.sf1
+    "In Figure 6 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")中的热图显示了从一个行动转移到另一个行动的概率，较高的概率用更暖的颜色突出显示。在图[6(b)](https://arxiv.org/html/2409.11276v1#S9.F6.sf2
+    "In Figure 6 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")中，关键行动转移图形直观地表示了GPT-4可能行动中最相关的转移（概率大于或等于0.20）。例如，Start和Invalid行动分别用绿色和红色标记，以突出它们不是智能体可以选择的行动。特别地，无效行动可能是由语义或语法错误引起的。语义错误发生在当前环境状态下不允许采取该行动时。另一方面，语法错误是由于智能体生成了无效的行动字符串表示所致。'
+- en: 'The transition matrix from Figure [6(a)](https://arxiv.org/html/2409.11276v1#S9.F6.sf1
+    "In Figure 6 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments") shows that the GPT-4-based agent is, in general,
+    very confident when taking the next action. Most of the actions transition to
+    the next with high probability. The only actions showing more evenly distributed
+    transitions are the FindData and FindServices.'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图[6(a)](https://arxiv.org/html/2409.11276v1#S9.F6.sf1 "In Figure 6 ‣ 9 Behavioral
+    Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")中的转移矩阵显示，基于GPT-4的智能体在采取下一个行动时通常非常自信。大多数行动都以高概率过渡到下一个行动。唯一表现出更均匀分布转移的行动是FindData和FindServices。'
+- en: 'When analyzing the key action transitions from the GPT-4-based agent (Figure [6(b)](https://arxiv.org/html/2409.11276v1#S9.F6.sf2
+    "In Figure 6 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")), the agent starts scanning the network with
+    a probability of $1.0$. This action seems logical for potential targets or vulnerabilities.
+    Then, transitioning from ScanNetwork to FindServices with a high probability of
+    $0.93$ is expected, as identifying available services is a key step after scanning
+    a network and identifying new hosts.'
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在分析基于 GPT-4 的代理的关键动作转移时（见图 [6(b)](https://arxiv.org/html/2409.11276v1#S9.F6.sf2
+    "在图 6 ‣ 9 行为分析 ‣ Hackphyr：用于网络安全环境的本地微调 LLM 代理")），代理以 $1.0$ 的概率开始扫描网络。这个动作对潜在目标或漏洞来说似乎是合乎逻辑的。接着，从
+    ScanNetwork 转移到 FindServices 的高概率为 $0.93$ 是可以预期的，因为在扫描网络并识别新主机后，识别可用服务是关键步骤。
+- en: The agent’s transition from FindServices to ExploitService with probabilities
+    of $0.5$ makes sense, as exploiting vulnerabilities in identified services is
+    a typical next step after discovering those services. The self-loop in the FindServices
+    can be explained by the additional FindServices actions involving different IP
+    addresses found during the ScanNetwork action.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代理从 FindServices 转移到 ExploitService 的概率为 $0.5$，这一转移也是合理的，因为在发现服务后，利用这些服务中的漏洞是典型的下一步。FindServices
+    中的自环可以通过 ScanNetwork 动作过程中发现的不同 IP 地址所涉及的额外 FindServices 动作来解释。
+- en: The high probability ($0.99$) transition from ExploitService to FindData suggests
+    that after exploiting a service, the primary goal is to find valuable data, which
+    is logical in network intrusion scenarios.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 ExploitService 转移到 FindData 的高概率 ($0.99$) 表明，在利用服务后，主要目标是寻找有价值的数据，这在网络入侵场景中是合理的。
+- en: Transitioning from FindData to ExfiltrateData with probabilities $0.28$ is logical,
+    as extracting valuable data follows finding it. If the agent does not find any
+    data, then a logical action is to start scanning again, and the GPT-4 agent goes
+    to ScanNetwork with $0.39$ probability. The self-loop in the FindData mostly indicates
+    that the action did not discover any data, and GPT-4 decided to search again.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 FindData 转移到 ExfiltrateData 的概率为 $0.28$ 是合乎逻辑的，因为提取有价值的数据是在发现数据之后的步骤。如果代理没有找到任何数据，那么一个合理的动作就是重新开始扫描，此时
+    GPT-4 代理以 $0.39$ 的概率转向 ScanNetwork。FindData 中的自环通常表示该操作没有发现任何数据，因此 GPT-4 决定重新搜索。
+- en: The absence of outgoing transitions to Invalid actions suggests that the GPT-4-based
+    agent has a low probability of generating Invalid actions from any other action.
+    However, when an invalid action does occur, it is always associated with the ExfiltrateData
+    action. This pattern could be due to the fact that ExfiltrateData is the most
+    complex action, having the most parameters. Additionally, whenever an invalid
+    action is generated, the agent’s next action is consistently to ExfiltrateData,
+    suggesting a strong correlation between the two.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缺乏向无效动作的外向转移表明，基于 GPT-4 的代理从任何其他动作生成无效动作的概率较低。然而，当无效动作发生时，它总是与 ExfiltrateData
+    动作相关联。这种模式可能是由于 ExfiltrateData 是最复杂的动作，具有最多的参数。此外，每当生成无效动作时，代理的下一个动作始终是 ExfiltrateData，这表明两者之间有很强的相关性。
+- en: The GPT-4-based agent shows a behavior pattern of systematic reconnaissance,
+    service discovery, exploitation, data finding, and exfiltration that matches well-known
+    attacker tactics and techniques like the ones in the MITRE ATT&CK framework¹¹1https://attack.mitre.org/matrices/enterprise/.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于 GPT-4 的代理展示了一个系统化的侦察、服务发现、利用、数据查找和数据外泄的行为模式，与 MITRE ATT&CK 框架中类似的攻击者战术和技术高度匹配¹¹1https://attack.mitre.org/matrices/enterprise/。
+- en: '![Refer to caption](img/aa80a0d7968449c8f19d605fc57b727a.png)'
+  id: totrans-224
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/aa80a0d7968449c8f19d605fc57b727a.png)'
+- en: (a) Transition Matrix
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 转移矩阵
+- en: '![Refer to caption](img/287844a719465a465e33c18b6c2c1707.png)'
+  id: totrans-226
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考标题](img/287844a719465a465e33c18b6c2c1707.png)'
+- en: (b) Key Action Transitions
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 关键动作转移
+- en: 'Figure 7: Hackphyr action transitions'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 7：Hackphyr 动作转移
+- en: 'When comparing the behavior of the Hackphyr-based agent with the agent using
+    GPT-4 (Figure [7](https://arxiv.org/html/2409.11276v1#S9.F7 "Figure 7 ‣ 9 Behavioral
+    Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")),
+    the transition matrix shows the agent is not as confident about taking the next
+    actions. The next action transition distribution is more evenly distributed in
+    all cases except the ExploitService and the ScanNetwork. However, when considering
+    the key action transaction graph [7(b)](https://arxiv.org/html/2409.11276v1#S9.F7.sf2
+    "In Figure 7 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments"), we can observe the agent also follows a similar
+    behavior pattern of systematic reconnaissance, service discovery, exploitation,
+    data finding, and exfiltration. However, the Hackphyr agent seems to follow a
+    slightly different strategy when scanning networks. In most episodes, the agent
+    tried to scan all the networks before continuing to search for services. This
+    situation is represented by the self-loop transition in the ScanNetwork node.'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在将基于Hackphyr的智能体与使用GPT-4的智能体进行比较时（图[7](https://arxiv.org/html/2409.11276v1#S9.F7
+    "Figure 7 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for
+    Network Security Environments")），过渡矩阵显示智能体在采取下一步行动时不如GPT-4智能体那样自信。下一步行动的过渡分布在所有情况下都更加均匀，除了ExploitService和ScanNetwork。然而，当考虑关键行动交易图[7(b)](https://arxiv.org/html/2409.11276v1#S9.F7.sf2
+    "In Figure 7 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")时，我们可以观察到智能体也遵循了类似的行为模式，包括系统性侦察、服务发现、利用、数据发现和外泄。然而，Hackphyr智能体在扫描网络时似乎遵循了略有不同的策略。在大多数情节中，智能体试图在继续搜索服务之前扫描所有网络。这种情况在ScanNetwork节点中的自环过渡中得到了体现。'
+- en: Another observable difference with the GPT-4-based agent is the transition to
+    invalid actions from the Start. Once the agent has generated an invalid action,
+    the most probable transition is to another invalid action (with a probability
+    of 0.55). The initial environment state information could be harder for the Hackphyr
+    agent to understand. In addition, the lack of short-term memory information during
+    the start could also cause the transition to invalid actions.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个可以观察到的与基于GPT-4的智能体的不同之处是从开始阶段到无效动作的过渡。一旦智能体生成了一个无效动作，最可能的过渡是到另一个无效动作（概率为0.55）。初始环境状态信息对于Hackphyr智能体来说可能更难以理解。此外，启动阶段缺乏短期记忆信息也可能导致过渡到无效动作。
+- en: 'Finally, Figure [8](https://arxiv.org/html/2409.11276v1#S9.F8 "Figure 8 ‣ 9
+    Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security
+    Environments") shows the agent’s behavior when using the base Zephyr-7b-$beta$
+    model. The transition matrix (Figure [8(a)](https://arxiv.org/html/2409.11276v1#S9.F8.sf1
+    "In Figure 8 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")) shows a clear difference in the distribution
+    of the action transition from GPT-4 and Hackphyr. The main difference is the high
+    transition probability from any other possible action to an Invalid action. In
+    addition, it seems the agent is biased to transition to the FindServices action,
+    no matter the previous action.'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '最后，图[8](https://arxiv.org/html/2409.11276v1#S9.F8 "Figure 8 ‣ 9 Behavioral
+    Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")展示了使用基础Zephyr-7b-$\beta$模型时智能体的行为。过渡矩阵（图[8(a)](https://arxiv.org/html/2409.11276v1#S9.F8.sf1
+    "In Figure 8 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")）显示了GPT-4与Hackphyr之间在动作过渡分布上的明显差异。主要差异在于，从任何其他可能的动作到无效动作的过渡概率较高。此外，似乎智能体倾向于过渡到FindServices动作，无论之前的动作是什么。'
+- en: '![Refer to caption](img/9e9cf1e240cd622aa73acdcffc2527e1.png)'
+  id: totrans-232
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/9e9cf1e240cd622aa73acdcffc2527e1.png)'
+- en: (a) Transition Matrix
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 过渡矩阵
+- en: '![Refer to caption](img/af33731301729781a063f19c40211472.png)'
+  id: totrans-234
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/af33731301729781a063f19c40211472.png)'
+- en: (b) Key Action Transitions
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 关键动作过渡
+- en: 'Figure 8: Zephyr-7b-$\beta$ action transitions'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图8：Zephyr-7b-$\beta$ 动作过渡
+- en: 'The key actions transition graph in Figure [8(b)](https://arxiv.org/html/2409.11276v1#S9.F8.sf2
+    "In Figure 8 ‣ 9 Behavioral Analysis ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments") shows the lack of a clear behavior pattern
+    for conducting the penetration testing techniques. At the Start, follows a logical
+    ScanNetwork action, and the transition to FindServices. However, the required
+    transitions from FindeServices to ExploitService and FindData are not shown in
+    the graph since they have a very low probability. Similar is the case of the transition
+    from FindData to ExfiltrateData. Therefore, beyond scanning the network and finding
+    services, the agent cannot follow the proper action sequence for exfiltrating
+    the data.'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图8(b)中的关键动作转换图显示了进行渗透测试技术时缺乏明确的行为模式。在开始时，遵循一个合乎逻辑的ScanNetwork动作，然后转到FindServices。然而，图表中没有显示从FindServices到ExploitService和FindData的转换，因为它们的概率非常低。FindData到ExfiltrateData的转换也是如此。因此，除了扫描网络和查找服务外，代理无法遵循正确的动作序列来提取数据。
+- en: In addition, the graph also shows the central role of the Invalid action node.
+    All possible actions transition to an Invalid one, with a considerable probability
+    (between 0.25 and 0.48).
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，图表还显示了无效动作节点的核心作用。所有可能的动作都会以相当大的概率（介于0.25和0.48之间）转换为无效动作。
+- en: 10 Dataset Ablation Study
+  id: totrans-239
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 10 数据集消融研究
+- en: This ablation study aimed to determine which part of the dataset contributes
+    more to the performance of the Hackphyr model during the SFT process.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本次消融研究旨在确定在SFT过程中过哪一部分数据集对Hackphyr模型的性能贡献更大。
+- en: 'Since the dataset consists of three parts (see Section [6.1](https://arxiv.org/html/2409.11276v1#S6.SS1
+    "6.1 Dataset Creation ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr: A Local
+    Fine-Tuned LLM Agent for Network Security Environments")), we constructed three
+    different datasets where each one has one of the dataset parts removed:'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于数据集由三部分组成（见第[6.1](https://arxiv.org/html/2409.11276v1#S6.SS1 "6.1 数据集创建 ‣
+    6 监督式微调方法 ‣ Hackphyr：用于网络安全环境的本地微调LLM代理")节），我们构建了三个不同的数据集，每个数据集去除了其中的一部分。
+- en: '1.'
+  id: totrans-242
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '1.'
+- en: Dataset UV contains parts I+II, with a focus on Understanding and Valid actions
+    and 1526 samples
+  id: totrans-243
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数据集UV包含第一部分和第二部分，重点关注理解和有效动作，共有1526个样本。
+- en: '2.'
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '2.'
+- en: Dataset UG, contains parts I+III, with a focus on Understanding and Good actions
+    and 1189 samples
+  id: totrans-245
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数据集UG包含第一部分和第三部分，重点关注理解和良好动作，共有1189个样本。
+- en: '3.'
+  id: totrans-246
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '3.'
+- en: Dataset VG contains parts II+III, with a focus on Valid and Good actions) and
+    563 samples
+  id: totrans-247
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 数据集VG包含第二部分和第三部分，重点关注有效和良好动作，共有563个样本。
+- en: 'Each dataset was used to fine-tune a new model with the exact hyper-parameter
+    settings described in Section [6.2](https://arxiv.org/html/2409.11276v1#S6.SS2
+    "6.2 Hyper-parameter Tuning ‣ 6 Supervised Fine-tuning Methodology ‣ Hackphyr:
+    A Local Fine-Tuned LLM Agent for Network Security Environments"). We used the
+    ”full” scenario with and without the stochastic defender to compare their performance.'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个数据集都用来微调一个新模型，使用与第[6.2](https://arxiv.org/html/2409.11276v1#S6.SS2 "6.2 超参数调优
+    ‣ 6 监督式微调方法 ‣ Hackphyr：用于网络安全环境的本地微调LLM代理")节中描述的完全相同的超参数设置。我们在有无随机防御者的情境下进行比较，以对比其性能。
+- en: 'First, we analyze the effectiveness of the actions taken by the agents when
+    using different dataset parts. The actions are categorized as good, valid, or
+    invalid: a good action is performed by the agent that increases the current state;
+    a valid action is appropriate and permissible in the current state, maintaining
+    system integrity or preparing for future beneficial actions, but does not modify
+    the state immediately; and an invalid action is not permissible in the current
+    state and should be minimized by the agent to prevent errors and inefficiencies.'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们分析了在使用不同数据集部分时代理所采取动作的有效性。动作被分为良好、有效和无效三类：良好动作是代理执行的动作，会增加当前状态；有效动作是指在当前状态下适当且可接受的动作，有助于维持系统完整性或为将来的有利动作做好准备，但不会立即改变状态；而无效动作是在当前状态下不允许的，代理应该尽量避免，以防止错误和低效。
+- en: 'Figure [9](https://arxiv.org/html/2409.11276v1#S10.F9 "Figure 9 ‣ 10 Dataset
+    Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")
+    exhibits the percentage of each type of action each agent takes on the full scenario
+    (with and without a defender) after 150 episodes. In addition, we provide the
+    results for the agent using the base Zephyr-7b-$\beta$ without any fine-tuning
+    process.'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图 [9](https://arxiv.org/html/2409.11276v1#S10.F9 "Figure 9 ‣ 10 Dataset Ablation
+    Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")
+    展示了每个智能体在完整场景中（有无防守者）经过 150 回合后所采取的每种行动的百分比。此外，我们还提供了使用基础 Zephyr-7b-$\beta$ 模型（未经过任何微调过程）的智能体的结果。'
+- en: '![Refer to caption](img/4aad488b78c8522ffc51e60f66a888dc.png)'
+  id: totrans-251
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/4aad488b78c8522ffc51e60f66a888dc.png)'
+- en: 'Figure 9: Percentage of good, valid, and invalid actions taken by agents trained
+    with different dataset parts.'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 9：通过使用不同数据集部分进行训练的智能体所采取的良好、有效和无效行动的百分比。
+- en: In the scenarios without the stochastic defender, Dataset UV does not show an
+    observable increment in the number of good actions (7%); however, the number of
+    invalid actions is considerably reduced from 44% to 18%. Dataset UG shows a considerable
+    increase in the number of good actions (40%), and invalid actions are reduced
+    to 10%. Finally, in Dataset VG, good actions are slightly below those in Dataset
+    UV (35%), but the number of invalid actions is reduced to 4%.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在没有随机防守者的场景中，数据集 UV 并未显示出良好行动的明显增加（7%）；然而，无效行动的数量从 44% 大幅减少至 18%。数据集 UG 显示良好行动数量有显著增加（40%），无效行动减少至
+    10%。最后，在数据集 VG 中，良好行动略低于数据集 UV（35%），但无效行动数量减少至 4%。
+- en: Similarly, in the case of the stochastic defender, all agents show improvements
+    compared to the base Zephyr agent. Training with Dataset UV has an increase in
+    the good action rate of 23% (up from Zephyr’s 18%), with invalid actions reduced
+    to 16% (down from 50%) and valid actions increased to 61% (up from 33%). Both
+    agents trained with Dataset UG and Dataset VG demonstrate significant improvements,
+    behaving almost the same with good action rates of 55% and 57%, respectively,
+    a drastic reduction in invalid actions to 6% and 5%, and an increase in valid
+    actions to 38%.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样，在随机防守者的情况下，所有智能体相较于基础 Zephyr 智能体都有所改进。使用数据集 UV 训练的智能体良好行动率提高了 23%（从 Zephyr
+    的 18% 提高），无效行动减少至 16%（从 50% 降低），有效行动增加至 61%（从 33% 提高）。使用数据集 UG 和数据集 VG 训练的智能体显示出显著的改进，两者的良好行动率分别为
+    55% 和 57%，无效行动显著减少至 6% 和 5%，有效行动增加至 38%。
+- en: In both scenarios (with and without the stochastic defender), the benefits provided
+    by the different parts of the dataset are clear. In particular, the best results
+    are observed on agents trained with UG and VG datasets, with a considerable increase
+    in the number of good actions. In the case of dataset UV, despite reducing the
+    number of invalid actions, the number of good actions remains low.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在两种场景（有随机防守者和没有随机防守者）中，数据集不同部分所提供的好处是显而易见的。特别是，使用 UG 和 VG 数据集训练的智能体表现最佳，良好行动数量大幅增加。在数据集
+    UV 的情况下，尽管无效行动数量减少，但良好行动数量依然较低。
+- en: 'Being capable of taking valid actions is a necessary condition for an agent
+    to be able to interact with the environment. However, that could not be enough
+    to solve it. To illustrate the agents’ performance, Figure [10](https://arxiv.org/html/2409.11276v1#S10.F10
+    "Figure 10 ‣ 10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments") presents the agents’ results in terms of average
+    return and average steps per episode when using the models across different datasets,
+    along with the win rate over the 150 episodes. The model with the best performance
+    in each metric is highlighted in blue. Note that higher values are better for
+    return and win rate, whereas lower values are preferable for steps.'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '能够采取有效行动是智能体能够与环境交互的必要条件。然而，这可能还不足以解决问题。为了说明智能体的表现，图 [10](https://arxiv.org/html/2409.11276v1#S10.F10
+    "Figure 10 ‣ 10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments") 展示了使用不同数据集的模型在每回合平均回报和平均步骤数方面的结果，以及在 150 回合中的胜率。每个指标中表现最佳的模型以蓝色突出显示。请注意，回报和胜率的较高值较好，而步骤数的较低值较佳。'
+- en: '![Refer to caption](img/4a1336cb5ef3c33cf8af7aa9c9b2423e.png)'
+  id: totrans-257
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/4a1336cb5ef3c33cf8af7aa9c9b2423e.png)'
+- en: (a) Without Stochastic Defender
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (a) 无随机防守者
+- en: '![Refer to caption](img/d506059ec8f4d3d990b66e55f593d4bd.png)'
+  id: totrans-259
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/d506059ec8f4d3d990b66e55f593d4bd.png)'
+- en: (b) With Stochastic Defender
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (b) 有随机防守者
+- en: 'Figure 10: Comparison of ablated agents in the large scenario with and without
+    the stochastic defender.'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图10：在大规模场景中，比较有无随机防御者的去除代理。
+- en: 'When the stochastic defender is not present (see Figure [10](https://arxiv.org/html/2409.11276v1#S10.F10
+    "Figure 10 ‣ 10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")(a)), the performance of the agent fine-tuned
+    with dataset UV is worse in every metric. The agent has not been able to win in
+    any of the 150 episodes (0% Win Rate). Consequently, the average return was -100,
+    which means that the agent has exhausted the maximum number of steps allowed in
+    the environment. So, despite the increase in the number of valid actions, the
+    agent cannot generate enough good actions to explore and solve the environment.
+    On the other hand, the fine-tuned version of agents using datasets UG and VG can
+    solve the environment. In particular, the agent fine-tuned in dataset UG has shown
+    an 85% win rate over the 150 episodes with an average return of around 50.'
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '当随机防御者不存在时（见图[10](https://arxiv.org/html/2409.11276v1#S10.F10 "Figure 10 ‣
+    10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network
+    Security Environments")(a)），使用数据集UV微调的代理在每个指标上的表现都较差。该代理在150个回合中未能获胜（胜率0%）。因此，平均回报为-100，这意味着代理已经用尽了环境中允许的最大步数。因此，尽管有效行动的数量增加了，代理仍然无法生成足够好的行动来探索和解决环境。另一方面，使用数据集UG和VG微调的代理能够解决环境。特别是，使用数据集UG微调的代理在150个回合中的胜率为85%，平均回报约为50。'
+- en: 'Similarly, in the scenario with the stochastic defender (see subfigure [10(b)](https://arxiv.org/html/2409.11276v1#S10.F10.sf2
+    "In Figure 10 ‣ 10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")), the agent fine-tuned with dataset UV has
+    not been able to win in any of the 150 episodes (0% win rate). The fine-tuned
+    version of agents with the other two datasets can solve the environment. In particular,
+    agents using dataset UG have shown a 50% win rate over the 150 episodes with an
+    average return of around 5.'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '类似地，在有随机防御者的场景中（见子图[10(b)](https://arxiv.org/html/2409.11276v1#S10.F10.sf2
+    "In Figure 10 ‣ 10 Dataset Ablation Study ‣ Hackphyr: A Local Fine-Tuned LLM Agent
+    for Network Security Environments")），使用数据集UV微调的代理在150个回合中未能获胜（胜率0%）。使用其他两个数据集微调的代理能够解决环境。特别是，使用数据集UG的代理在150个回合中的胜率为50%，平均回报约为5。'
+- en: 'When the agent uses only Zephyr pre-trained data, there are many invalid actions
+    (see Section [8](https://arxiv.org/html/2409.11276v1#S8 "8 Results ‣ Hackphyr:
+    A Local Fine-Tuned LLM Agent for Network Security Environments") for the results
+    of the base Zephyr-7b-$\beta$ agent). This can be a cause for a low win rate in
+    all scenarios.'
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '当代理仅使用Zephyr预训练数据时，会有许多无效行动（见[8](https://arxiv.org/html/2409.11276v1#S8 "8
+    Results ‣ Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments")部分关于基础Zephyr-7b-$\beta$代理的结果）。这可能是所有场景中胜率较低的原因。'
+- en: To improve the agents’ performance, Part III is essential. Datasets using part
+    III have shown a higher number of good actions. In addition, the combination of
+    Part I and Part III shows the best results regarding win rate and average return.
+    Meanwhile, the combination of Part II and Part III also performs well, though
+    slightly less effectively. The differences in performance between these datasets
+    might be attributed to the varying sizes of the datasets.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了提高代理的表现，第三部分是至关重要的。使用第三部分的数据集显示出更多有效行动的数量。此外，第一部分和第三部分的结合在胜率和平均回报方面显示出了最佳结果。与此同时，第二部分和第三部分的结合也表现良好，尽管效果略微差一些。这些数据集之间表现的差异可能归因于数据集的大小不同。
+- en: Finally, a high number of good actions does not necessarily imply the best agent.
+    For instance, in the case of the scenario with the defender, the agent with Dataset
+    VG shows the highest number of good actions, but in terms of win rate, the results
+    are not as good as the agent using Dataset UG. Good actions are useful for exploring
+    the environment, but sometimes it is not enough to win within the allowed maximum
+    steps.
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，较高的有效行动数量并不一定意味着最好的代理。例如，在防御者场景中，使用数据集VG的代理显示出最高的有效行动数量，但在胜率方面，其结果不如使用数据集UG的代理。有效行动有助于探索环境，但有时仅凭这些行动不足以在允许的最大步数内获胜。
+- en: 11 Discussion
+  id: totrans-267
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 11 讨论
+- en: Our fine-tuned model performed comparatively close to the capabilities of GPT-4,
+    which has at least two orders of magnitude more parameters. While larger models
+    like an 80 billion parameter model are available and may have potentially superior
+    performance, they would require significant computational resources to train and
+    deploy. This could limit their practical application on commercial hardware for
+    specialized tasks.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们经过微调的模型在性能上与GPT-4相当，尽管GPT-4的参数量至少大了两个数量级。虽然像80亿参数模型这样更大的模型已经出现，并且可能具有更优越的性能，但它们训练和部署时需要大量的计算资源。这可能会限制它们在商业硬件上用于专门任务的实际应用。
+- en: Moreover, even a 7 billion parameter model, such as Hackphyr, requires a strong
+    GPU to run inference. Quantization techniques hold promise as a potential solution
+    by reducing the memory requirements of the model. However, quantization often
+    comes at the cost of performance degradation. Further investigation is needed
+    into alternative methods that balance computational efficiency with maintainable
+    performance.
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，即便是像Hackphyr这样的70亿参数模型，也需要强大的GPU来运行推理。量化技术作为一种潜在的解决方案，通过减少模型的内存需求具有一定的前景。然而，量化通常会以性能下降为代价。需要进一步研究平衡计算效率和可维持性能的替代方法。
+- en: In this work, we used the same prompt across all models and agents to compare
+    our agents fairly. However, different language models may respond better to tailored
+    prompts. Future work will focus on optimizing our prompts using techniques such
+    as DSPy [[41](https://arxiv.org/html/2409.11276v1#bib.bib41)] to adapt them to
+    the specific strengths of each model.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这项工作中，我们在所有模型和代理中使用了相同的提示，以公平地比较我们的代理。然而，不同的语言模型可能对定制的提示响应更好。未来的工作将专注于使用如DSPy [[41](https://arxiv.org/html/2409.11276v1#bib.bib41)]等技术优化我们的提示，以使其更好地适应每个模型的特长。
+- en: Finally, we focused primarily on attacking agents within the NetSecGame environment,
+    mainly as a means of comparison to prior work. However, the principles are highly
+    transferable to designing and implementing attacking and defending agents within
+    varied reinforcement learning environments. Using specialized agents collaborating
+    in multi-agent deployments, either with or without human involvement, is an exciting
+    area for future work. We anticipate this line of work will contribute valuable
+    insights regarding defense strategies against malicious agents and hope to extend
+    it further in the future.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们主要集中于在NetSecGame环境中攻击代理，主要是为了与先前的工作进行比较。然而，这些原理在设计和实现不同强化学习环境中的攻防代理时具有高度的可转移性。使用专门的代理在多代理部署中进行合作，无论是否有人类参与，都是未来研究的一个令人兴奋的方向。我们预计这项工作将为应对恶意代理的防御策略提供有价值的见解，并希望在未来进一步拓展这一领域。
+- en: 12 Conclusions
+  id: totrans-272
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 12 结论
+- en: While powerful commercial language models can handle many tasks, there are often
+    reasons that prohibit their use. In the security domain, companies are hesitant
+    to share the data of their internal networks, for example. A variety of smaller
+    models have been released under permissive licenses. These models require much
+    less hardware to run, and they can be used on-premises. However, they are not
+    as capable as the much larger commercial models. In this work, we fine-tuned a
+    7 billion parameter model to function as an attacking agent within a network security
+    environment. The resulting model, Hackphyr, had a performance comparable to that
+    of the most powerful commercial model (GPT-4) and outperformed other language
+    models (GPT-3.5-turbo, Zephyr-7b-$beta$) and baselines (Q-learning agent) even
+    in the most complex previously unseen scenario.
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管强大的商业语言模型能够处理许多任务，但通常存在一些原因限制其使用。例如，在安全领域，企业往往不愿分享其内部网络的数据。一些较小的模型已经在宽松许可下发布，这些模型运行所需的硬件远少于大型模型，并且可以在本地使用。然而，它们的能力不如那些更大的商业模型。在这项工作中，我们对一个70亿参数的模型进行了微调，使其能够在网络安全环境中作为攻击代理使用。最终的模型Hackphyr在性能上与最强大的商业模型（GPT-4）相当，并且在最复杂的、先前未见过的场景中超越了其他语言模型（GPT-3.5-turbo，Zephyr-7b-$beta$）和基准模型（Q-learning代理）。
+- en: To fine-tune the base model, we generated a new dataset that aimed to address
+    the weaknesses of the base model with regard to environment understanding and
+    the generation of valid and useful actions at a given state. Finally, we performed
+    an extensive analysis of each agent’s actions that gave us insight into their
+    behavior and shortcomings. This type of analysis can be used as a first step to
+    explain the LLM agents’ behavior and can be a useful tool in the future for all
+    types of agents in similar environments.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了微调基础模型，我们生成了一个新的数据集，旨在解决基础模型在环境理解和生成有效、合理动作方面的不足。最后，我们对每个代理的行为进行了广泛分析，从中获得了对其行为和不足的洞察。这种分析方法可以作为解释LLM代理行为的第一步，并且在未来可以成为所有类型代理在类似环境中的有用工具。
+- en: 13 Acknowledgements
+  id: totrans-275
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 13 致谢
+- en: 'The authors acknowledge support by the Strategic Support for the Development
+    of Security Research in the Czech Republic 2019–2025 (IMPAKT 1) program, by the
+    Ministry of the Interior of the Czech Republic under No. VJ02010020 – AI-Dojo:
+    Multi-agent testbed for the research and testing of AI-driven cyber security technologies.'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作者感谢捷克共和国2019–2025年安全研究发展战略支持计划（IMPAKT 1）的资助，感谢捷克共和国内政部通过VJ02010020号项目——AI-Dojo：面向AI驱动的网络安全技术研究与测试的多代理测试平台的支持。
+- en: Appendix A Dataset examples
+  id: totrans-277
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 附录 A 数据集示例
+- en: A.1 Part I
+  id: totrans-278
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.1 第一部分
+- en: 'Question:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题：
+- en: <svg class="ltx_picture" height="110.58" id="A1.SS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,110.58) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="83.02" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[PRE3]</foreignobject></g></g></svg>
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="110.58" id="A1.SS1.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,110.58) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="83.02" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[PRE3]</foreignobject></g></g></svg>
+- en: 'Answer:'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案：
+- en: <svg class="ltx_picture" height="38.63" id="A1.SS1.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,38.63) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="11.07" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE4]</foreignobject></g></g></svg>
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="38.63" id="A1.SS1.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,38.63) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="11.07" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE4]</foreignobject></g></g></svg>
+- en: A.2 Part II
+  id: totrans-283
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.2 第二部分
+- en: 'Question:'
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题：
+- en: <svg class="ltx_picture" height="169.04" id="A1.SS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,169.04) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="141.48" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE5]</foreignobject></g></g></svg>
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="169.04" id="A1.SS2.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,169.04) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="141.48" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE5]</foreignobject></g></g></svg>
+- en: 'Answer:'
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案：
+- en: <svg class="ltx_picture" height="106.43" id="A1.SS2.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,106.43) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="78.87" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[PRE6]</foreignobject></g></g></svg>
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="106.43" id="A1.SS2.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,106.43) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject color="#000000" height="78.87" overflow="visible"
+    transform="matrix(1 0 0 -1 0 16.6)" width="556.69">[PRE6]</foreignobject></g></g></svg>
+- en: A.3 Part III
+  id: totrans-288
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: A.3 第三部分
+- en: 'Question:'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题：
+- en: <svg class="ltx_picture" height="235.46" id="A1.SS3.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,235.46) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="207.9" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE7]</foreignobject></g></g></svg>
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="235.46" id="A1.SS3.p2.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,235.46) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="207.9" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE7]</foreignobject></g></g></svg>
+- en: 'Answer:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案：
+- en: <svg class="ltx_picture" height="40.01" id="A1.SS3.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,40.01) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="12.45" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE8]</foreignobject></g></g></svg>
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <svg class="ltx_picture" height="40.01" id="A1.SS3.p4.pic1" overflow="visible"
+    version="1.1" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt"
+    transform="translate(0,40.01) matrix(1 0 0 -1 0 0)"><g fill-opacity="1.0" transform="matrix(1.0
+    0.0 0.0 1.0 21.65 13.78)"><foreignobject class="ltx_minipage" color="#000000"
+    height="12.45" overflow="visible" transform="matrix(1 0 0 -1 0 16.6)" width="402.3pt">[PRE8]</foreignobject></g></g></svg>
+- en: References
+  id: totrans-293
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] A. Kott, Autonomous Intelligent Cyber-defense Agent: Introduction and Overview,
+    in: Autonomous Intelligent Cyber Defense Agent (AICA), Vol. 87, Springer International
+    Publishing, Cham, 2023, pp. 1–15. [doi:10.1007/978-3-031-29269-9_1](https://doi.org/10.1007/978-3-031-29269-9_1).'
+  id: totrans-294
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] A. Kott, 自主智能网络防御代理：简介与概述，载于：《自主智能网络防御代理（AICA）》第87卷，Springer国际出版，Cham，2023，第1–15页。
+    [doi:10.1007/978-3-031-29269-9_1](https://doi.org/10.1007/978-3-031-29269-9_1)。'
+- en: '[2] V. Mnih, K. Kavukcuoglu, D. Silver, A. A. Rusu, J. Veness, M. G. Bellemare,
+    A. Graves, M. Riedmiller, A. K. Fidjeland, G. Ostrovski, et al., Human-level control
+    through deep reinforcement learning, Nature 518 (7540) (2015) 529–533. [doi:10.1038/nature14236](https://doi.org/10.1038/nature14236).'
+  id: totrans-295
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] V. Mnih, K. Kavukcuoglu, D. Silver, A. A. Rusu, J. Veness, M. G. Bellemare,
+    A. Graves, M. Riedmiller, A. K. Fidjeland, G. Ostrovski 等人, 通过深度强化学习实现人类水平的控制，《自然》518
+    (7540) (2015) 529–533. [doi:10.1038/nature14236](https://doi.org/10.1038/nature14236)。'
+- en: '[3] M. C. Ghanem, T. M. Chen, E. G. Nepomuceno, Hierarchical reinforcement
+    learning for efficient and effective automated penetration testing of large networks,
+    Journal of Intelligent Information Systems 60 (2) (2023) 281–303. [doi:10.1007/s10844-022-00738-0](https://doi.org/10.1007/s10844-022-00738-0).'
+  id: totrans-296
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] M. C. Ghanem, T. M. Chen, E. G. Nepomuceno, 层次化强化学习用于大规模网络的高效和有效自动化渗透测试，《智能信息系统杂志》60
+    (2) (2023) 281–303. [doi:10.1007/s10844-022-00738-0](https://doi.org/10.1007/s10844-022-00738-0)。'
+- en: '[4] J. S. Park, J. O’Brien, C. J. Cai, M. R. Morris, P. Liang, M. S. Bernstein,
+    Generative Agents: Interactive Simulacra of Human Behavior, in: Proceedings of
+    the 36th Annual ACM Symposium on User Interface Software and Technology, UIST
+    ’23, Association for Computing Machinery, New York, NY, USA, 2023, pp. 1–22. [doi:10.1145/3586183.3606763](https://doi.org/10.1145/3586183.3606763).'
+  id: totrans-297
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] J. S. Park, J. O’Brien, C. J. Cai, M. R. Morris, P. Liang, M. S. Bernstein,
+    生成代理：人类行为的互动模拟，《第36届ACM用户界面软件与技术年会论文集》，UIST ’23，美国纽约计算机协会，2023年，第1–22页。 [doi:10.1145/3586183.3606763](https://doi.org/10.1145/3586183.3606763)。'
+- en: '[5] Z. Xi, W. Chen, X. Guo, W. He, Y. Ding, B. Hong, M. Zhang, J. Wang, S. Jin,
+    E. Zhou, et al., The rise and potential of large language model based agents:
+    A survey, arXiv preprint arXiv:2309.07864 (2023).'
+  id: totrans-298
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Z. Xi, W. Chen, X. Guo, W. He, Y. Ding, B. Hong, M. Zhang, J. Wang, S.
+    Jin, E. Zhou 等人, 基于大语言模型代理的崛起与潜力：一项调查，arXiv预印本arXiv:2309.07864 (2023)。'
+- en: '[6] Y. Du, O. Watkins, Z. Wang, C. Colas, T. Darrell, P. Abbeel, A. Gupta,
+    J. Andreas, Guiding Pretraining in Reinforcement Learning with Large Language
+    Models, in: Proceedings of the 40th International Conference on Machine Learning,
+    Honolulu, USA, 2023.'
+  id: totrans-299
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] Y. Du, O. Watkins, Z. Wang, C. Colas, T. Darrell, P. Abbeel, A. Gupta,
+    J. Andreas, 基于大语言模型的强化学习预训练引导，载于：第40届国际机器学习大会论文集，2023年，檀香山，美国。'
+- en: '[7] G. Wang, Y. Xie, Y. Jiang, A. Mandlekar, C. Xiao, Y. Zhu, L. Fan, A. Anandkumar,
+    Voyager: An open-ended embodied agent with large language models, Transactions
+    on Machine Learning Research (2024).'
+  id: totrans-300
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] G. Wang, Y. Xie, Y. Jiang, A. Mandlekar, C. Xiao, Y. Zhu, L. Fan, A. Anandkumar,
+    Voyager：一个开放式的具身代理与大语言模型，机器学习研究交易（2024）。'
+- en: '[8] L. Wang, C. Ma, X. Feng, Z. Zhang, H. Yang, J. Zhang, Z. Chen, J. Tang,
+    X. Chen, Y. Lin, et al., A survey on large language model based autonomous agents,
+    Frontiers of Computer Science 18 (6) (2024) 186345.'
+  id: totrans-301
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] L. Wang, C. Ma, X. Feng, Z. Zhang, H. Yang, J. Zhang, Z. Chen, J. Tang,
+    X. Chen, Y. Lin, 等人，基于大型语言模型的自主智能体调查，《计算机科学前沿》18（6）（2024年）186345。'
+- en: '[9] L. C. Magister, J. Mallinson, J. Adamek, E. Malmi, A. Severyn, Teaching
+    Small Language Models to Reason, arXiv:2212.08410 [cs] (2023).'
+  id: totrans-302
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] L. C. Magister, J. Mallinson, J. Adamek, E. Malmi, A. Severyn, 教小型语言模型推理能力，arXiv:2212.08410
+    [cs]（2023年）。'
+- en: '[10] M. Rigaki., O. Lukáš., C. Catania., S. Garcia., Out of the cage: How stochastic
+    parrots win in cyber security environments, in: Proceedings of the 16th International
+    Conference on Agents and Artificial Intelligence - Volume 3: ICAART, INSTICC,
+    SciTePress, Roma, Italy, 2024, pp. 774–781. [doi:10.5220/0012391800003636](https://doi.org/10.5220/0012391800003636).'
+  id: totrans-303
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] M. Rigaki., O. Lukáš., C. Catania., S. Garcia., 摆脱限制：随机鹦鹉如何在网络安全环境中获胜，载于：第16届国际代理与人工智能会议论文集
+    - 第3卷：ICAART，INSTICC，SciTePress，意大利罗马，2024年，页码774–781。[doi:10.5220/0012391800003636](https://doi.org/10.5220/0012391800003636)。'
+- en: '[11] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez,
+    L. u. Kaiser, I. Polosukhin, Attention is all you need, in: Advances in Neural
+    Information Processing Systems, Vol. 30, Curran Associates, Inc., 2017.'
+  id: totrans-304
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez,
+    L. u. Kaiser, I. Polosukhin, 注意力机制就是你所需要的，载于：《神经信息处理系统进展》，第30卷，Curran Associates,
+    Inc.，2017年。'
+- en: '[12] H. W. Chung, L. Hou, S. Longpre, B. Zoph, Y. Tay, W. Fedus, Y. Li, X. Wang,
+    M. Dehghani, S. Brahma, A. Webson, S. S. Gu, Z. Dai, M. Suzgun, X. Chen, A. Chowdhery,
+    A. Castro-Ros, M. Pellat, K. Robinson, D. Valter, S. Narang, G. Mishra, A. Yu,
+    V. Zhao, Y. Huang, A. Dai, H. Yu, S. Petrov, E. H. Chi, J. Dean, J. Devlin, A. Roberts,
+    D. Zhou, Q. V. Le, J. Wei, Scaling instruction-finetuned language models, Journal
+    of Machine Learning Research 25 (70) (2024) 1–53.'
+  id: totrans-305
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] H. W. Chung, L. Hou, S. Longpre, B. Zoph, Y. Tay, W. Fedus, Y. Li, X.
+    Wang, M. Dehghani, S. Brahma, A. Webson, S. S. Gu, Z. Dai, M. Suzgun, X. Chen,
+    A. Chowdhery, A. Castro-Ros, M. Pellat, K. Robinson, D. Valter, S. Narang, G.
+    Mishra, A. Yu, V. Zhao, Y. Huang, A. Dai, H. Yu, S. Petrov, E. H. Chi, J. Dean,
+    J. Devlin, A. Roberts, D. Zhou, Q. V. Le, J. Wei, 扩展指令微调语言模型，《机器学习研究期刊》25（70）（2024年）1–53。'
+- en: '[13] J. Wei, M. Bosma, V. Zhao, K. Guu, A. W. Yu, B. Lester, N. Du, A. M. Dai,
+    Q. V. Le, Finetuned language models are zero-shot learners, in: International
+    Conference on Learning Representations, 2022.'
+  id: totrans-306
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] J. Wei, M. Bosma, V. Zhao, K. Guu, A. W. Yu, B. Lester, N. Du, A. M. Dai,
+    Q. V. Le, 微调语言模型是零样本学习者，载于：国际学习表征会议，2022年。'
+- en: '[14] R. Taori, I. Gulrajani, T. Zhang, Y. Dubois, X. Li, C. Guestrin, P. Liang,
+    T. B. Hashimoto, Alpaca: a strong, replicable instruction-following model; 2023,
+    URL https://crfm. stanford. edu/2023/03/13/alpaca. html (2023).'
+  id: totrans-307
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] R. Taori, I. Gulrajani, T. Zhang, Y. Dubois, X. Li, C. Guestrin, P. Liang,
+    T. B. Hashimoto, Alpaca：一个强大且可复现的指令跟随模型；2023年，网址 [https://crfm.stanford.edu/2023/03/13/alpaca.html](https://crfm.stanford.edu/2023/03/13/alpaca.html)（2023年）。'
+- en: '[15] L. Tunstall, E. Beeching, N. Lambert, N. Rajani, K. Rasul, Y. Belkada,
+    S. Huang, L. von Werra, C. Fourrier, N. Habib, N. Sarrazin, O. Sanseviero, A. M.
+    Rush, T. Wolf, Zephyr: Direct Distillation of LM Alignment, arXiv:2310.16944 [cs]
+    (Oct. 2023).'
+  id: totrans-308
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] L. Tunstall, E. Beeching, N. Lambert, N. Rajani, K. Rasul, Y. Belkada,
+    S. Huang, L. von Werra, C. Fourrier, N. Habib, N. Sarrazin, O. Sanseviero, A.
+    M. Rush, T. Wolf, Zephyr：语言模型对齐的直接蒸馏，arXiv:2310.16944 [cs]（2023年10月）。'
+- en: '[16] L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C. Zhang,
+    S. Agarwal, K. Slama, A. Ray, J. Schulman, J. Hilton, F. Kelton, L. Miller, M. Simens,
+    A. Askell, P. Welinder, P. F. Christiano, J. Leike, R. Lowe, Training language
+    models to follow instructions with human feedback, in: Advances in Neural Information
+    Processing Systems, Vol. 35, Curran Associates, Inc., 2022, pp. 27730–27744.'
+  id: totrans-309
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C.
+    Zhang, S. Agarwal, K. Slama, A. Ray, J. Schulman, J. Hilton, F. Kelton, L. Miller,
+    M. Simens, A. Askell, P. Welinder, P. F. Christiano, J. Leike, R. Lowe, 使用人类反馈训练语言模型以遵循指令，载于：《神经信息处理系统进展》，第35卷，Curran
+    Associates, Inc.，2022年，页码27730–27744。'
+- en: '[17] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, W. Chen,
+    LoRA: Low-rank adaptation of large language models, in: International Conference
+    on Learning Representations, 2022.'
+  id: totrans-310
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, W.
+    Chen, LoRA：大型语言模型的低秩适应，载于：国际学习表征会议，2022年。'
+- en: '[18] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A. Neelakantan,
+    P. Shyam, G. Sastry, A. Askell, S. Agarwal, A. Herbert-Voss, G. Krueger, T. Henighan,
+    R. Child, A. Ramesh, D. Ziegler, J. Wu, C. Winter, C. Hesse, M. Chen, E. Sigler,
+    M. Litwin, S. Gray, B. Chess, J. Clark, C. Berner, S. McCandlish, A. Radford,
+    I. Sutskever, D. Amodei, Language Models are Few-Shot Learners, in: Advances in
+    Neural Information Processing Systems, Vol. 33, Curran Associates, Inc., 2020,
+    pp. 1877–1901.'
+  id: totrans-311
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A.
+    Neelakantan, P. Shyam, G. Sastry, A. Askell, S. Agarwal, A. Herbert-Voss, G. Krueger,
+    T. Henighan, R. Child, A. Ramesh, D. Ziegler, J. Wu, C. Winter, C. Hesse, M. Chen,
+    E. Sigler, M. Litwin, S. Gray, B. Chess, J. Clark, C. Berner, S. McCandlish, A.
+    Radford, I. Sutskever, D. Amodei, 语言模型是少样本学习者，载于：神经信息处理系统进展，第33卷，Curran Associates,
+    Inc.，2020年，第1877–1901页。'
+- en: '[19] J. Wei, X. Wang, D. Schuurmans, M. Bosma, B. Ichter, F. Xia, E. Chi, Q. V.
+    Le, D. Zhou, Chain-of-Thought Prompting Elicits Reasoning in Large Language Models,
+    Advances in Neural Information Processing Systems 35 (2022) 24824–24837.'
+  id: totrans-312
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[19] J. Wei, X. Wang, D. Schuurmans, M. Bosma, B. Ichter, F. Xia, E. Chi, Q.
+    V. Le, D. Zhou, Chain-of-Thought 提示引发大型语言模型中的推理，神经信息处理系统进展第35卷（2022年），第24824–24837页。'
+- en: '[20] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. R. Narasimhan, Y. Cao, React:
+    Synergizing reasoning and acting in language models, in: The Eleventh International
+    Conference on Learning Representations, 2023.'
+  id: totrans-313
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[20] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. R. Narasimhan, Y. Cao, React:
+    在语言模型中协同推理与行动，载于：第十一届国际学习表征会议，2023年。'
+- en: '[21] N. Shinn, F. Cassano, A. Gopinath, K. Narasimhan, S. Yao, Reflexion: language
+    agents with verbal reinforcement learning, in: Advances in Neural Information
+    Processing Systems, Vol. 36, Curran Associates, Inc., 2023, pp. 8634–8652.'
+  id: totrans-314
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[21] N. Shinn, F. Cassano, A. Gopinath, K. Narasimhan, S. Yao, Reflexion: 语言代理与言语强化学习，载于：神经信息处理系统进展，第36卷，Curran
+    Associates, Inc.，2023年，第8634–8652页。'
+- en: '[22] Z. Wang, S. Cai, G. Chen, A. Liu, X. Ma, Y. Liang, T. CraftJarvis, Describe,
+    explain, plan and select: interactive planning with large language models enables
+    open-world multi-task agents, in: Proceedings of the 37th International Conference
+    on Neural Information Processing Systems, NIPS ’23, Curran Associates Inc., Red
+    Hook, NY, USA, 2024.'
+  id: totrans-315
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[22] Z. Wang, S. Cai, G. Chen, A. Liu, X. Ma, Y. Liang, T. CraftJarvis, 描述、解释、规划和选择：与大型语言模型进行互动规划，启用开放世界多任务代理，载于：第37届神经信息处理系统国际会议论文集，NIPS
+    ’23，Curran Associates Inc.，Red Hook, NY, USA，2024年。'
+- en: '[23] S. Hao, Y. Gu, H. Ma, J. Hong, Z. Wang, D. Z. Wang, Z. Hu, Reasoning with
+    language model is planning with world model, in: NeurIPS 2023 Workshop on Generalization
+    in Planning, 2023.'
+  id: totrans-316
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[23] S. Hao, Y. Gu, H. Ma, J. Hong, Z. Wang, D. Z. Wang, Z. Hu, 使用语言模型推理就是使用世界模型进行规划，载于：NeurIPS
+    2023规划中的泛化研讨会，2023年。'
+- en: '[24] D. Hafner, Benchmarking the spectrum of agent capabilities, in: International
+    Conference on Learning Representations, 2022.'
+  id: totrans-317
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[24] D. Hafner, 评估代理能力谱，载于：国际学习表征会议，2022年。'
+- en: '[25] Y. Kant, A. Ramachandran, S. Yenamandra, I. Gilitschenski, D. Batra, A. Szot,
+    H. Agrawal, Housekeep: Tidying Virtual Households Using Commonsense Reasoning,
+    in: Computer Vision – ECCV 2022, Lecture Notes in Computer Science, Springer Nature
+    Switzerland, Cham, 2022, pp. 355–373. [doi:10.1007/978-3-031-19842-7_21](https://doi.org/10.1007/978-3-031-19842-7_21).'
+  id: totrans-318
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[25] Y. Kant, A. Ramachandran, S. Yenamandra, I. Gilitschenski, D. Batra, A.
+    Szot, H. Agrawal, Housekeep: 使用常识推理整理虚拟家庭，载于：计算机视觉 – ECCV 2022，计算机科学讲义笔记，Springer
+    Nature Switzerland, Cham，2022年，第355–373页。 [doi:10.1007/978-3-031-19842-7_21](https://doi.org/10.1007/978-3-031-19842-7_21)。'
+- en: '[26] Y. Wu, S. Y. Min, S. Prabhumoye, Y. Bisk, R. R. Salakhutdinov, A. Azaria,
+    T. M. Mitchell, Y. Li, Spring: Studying papers and reasoning to play games, in:
+    Advances in Neural Information Processing Systems, Vol. 36, Curran Associates,
+    Inc., 2023, pp. 22383–22687.'
+  id: totrans-319
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[26] Y. Wu, S. Y. Min, S. Prabhumoye, Y. Bisk, R. R. Salakhutdinov, A. Azaria,
+    T. M. Mitchell, Y. Li, Spring: 学习论文并通过推理玩游戏，载于：神经信息处理系统进展，第36卷，Curran Associates,
+    Inc.，2023年，第22383–22687页。'
+- en: '[27] K. Valmeekam, A. Olmo, S. Sreedharan, S. Kambhampati, Large language models
+    still can’t plan (a benchmark for LLMs on planning and reasoning about change),
+    in: NeurIPS 2022 Foundation Models for Decision Making Workshop, 2022.'
+  id: totrans-320
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[27] K. Valmeekam, A. Olmo, S. Sreedharan, S. Kambhampati, 大型语言模型仍然无法进行规划（针对LLM的规划和推理变化基准），载于：NeurIPS
+    2022决策制定基础模型研讨会，2022年。'
+- en: '[28] T. Silver, V. Hariprasad, R. S. Shuttleworth, N. Kumar, T. Lozano-Pérez,
+    L. P. Kaelbling, PDDL planning with pretrained large language models, in: NeurIPS
+    2022 Foundation Models for Decision Making Workshop, 2022.'
+  id: totrans-321
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[28] T. Silver, V. Hariprasad, R. S. Shuttleworth, N. Kumar, T. Lozano-Pérez,
+    L. P. Kaelbling, 使用预训练的大型语言模型进行PDDL规划，载于：NeurIPS 2022决策制定基础模型研讨会，2022年。'
+- en: '[29] T. Silver, S. Dan, K. Srinivas, J. B. Tenenbaum, L. Kaelbling, M. Katz,
+    Generalized planning in pddl domains with pretrained large language models, Proceedings
+    of the AAAI Conference on Artificial Intelligence 38 (18) (2024) 20256–20264.
+    [doi:10.1609/aaai.v38i18.30006](https://doi.org/10.1609/aaai.v38i18.30006).'
+  id: totrans-322
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[29] T. Silver, S. Dan, K. Srinivas, J. B. Tenenbaum, L. Kaelbling, M. Katz，在预训练的大型语言模型下，PDDL
+    领域中的泛化规划，《人工智能 AAAI 会议论文集》38 (18) (2024) 20256–20264。[doi:10.1609/aaai.v38i18.30006](https://doi.org/10.1609/aaai.v38i18.30006)。'
+- en: '[30] A. Happe, J. Cito, Getting pwn’d by ai: Penetration testing with large
+    language models, in: Proceedings of the 31st ACM Joint European Software Engineering
+    Conference and Symposium on the Foundations of Software Engineering, ESEC/FSE
+    2023, Association for Computing Machinery, New York, NY, USA, 2023, p. 2082–2086.
+    [doi:10.1145/3611643.3613083](https://doi.org/10.1145/3611643.3613083).'
+  id: totrans-323
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[30] A. Happe, J. Cito，AI 被破解：使用大型语言模型进行渗透测试，在《第31届 ACM 欧洲软件工程联合会议及软件工程基础研讨会
+    ESEC/FSE 2023》论文集，计算机协会，纽约，纽约，美国，2023，2082–2086页。[doi:10.1145/3611643.3613083](https://doi.org/10.1145/3611643.3613083)。'
+- en: '[31] S. Moskal, S. Laney, E. Hemberg, U.-M. O’Reilly, Llms killed the script
+    kiddie: How agents supported by large language models change the landscape of
+    network threat testing, arXiv preprint arXiv:2310.06936 (2023).'
+  id: totrans-324
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[31] S. Moskal, S. Laney, E. Hemberg, U.-M. O’Reilly，LLMs 杀死了脚本小子：如何由大型语言模型支持的代理改变网络威胁测试的格局，arXiv
+    预印本 arXiv:2310.06936 (2023)。'
+- en: '[32] G. Deng, Y. Liu, V. Mayoral-Vilches, P. Liu, Y. Li, Y. Xu, T. Zhang, Y. Liu,
+    M. Pinzger, S. Rass, Pentestgpt: An llm-empowered automatic penetration testing
+    tool, arXiv preprint arXiv:2308.06782 (2023).'
+  id: totrans-325
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[32] G. Deng, Y. Liu, V. Mayoral-Vilches, P. Liu, Y. Li, Y. Xu, T. Zhang, Y.
+    Liu, M. Pinzger, S. Rass，Pentestgpt：一种基于大型语言模型的自动渗透测试工具，arXiv 预印本 arXiv:2308.06782
+    (2023)。'
+- en: '[33] R. Raman, P. Calyam, K. Achuthan, Chatgpt or bard: Who is a better certified
+    ethical hacker?, Computers & Security 140 (2024) 103804. [doi:https://doi.org/10.1016/j.cose.2024.103804](https://doi.org/https://doi.org/10.1016/j.cose.2024.103804).'
+  id: totrans-326
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[33] R. Raman, P. Calyam, K. Achuthan, Chatgpt 或 Bard：谁是更好的认证道德黑客？，《计算机与安全》140
+    (2024) 103804. [doi:https://doi.org/10.1016/j.cose.2024.103804](https://doi.org/https://doi.org/10.1016/j.cose.2024.103804)。'
+- en: '[34] W. Tann, Y. Liu, J. H. Sim, C. M. Seah, E.-C. Chang, Using large language
+    models for cybersecurity capture-the-flag challenges and certification questions,
+    arXiv preprint arXiv:2308.10443 (2023).'
+  id: totrans-327
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[34] W. Tann, Y. Liu, J. H. Sim, C. M. Seah, E.-C. Chang，使用大型语言模型进行网络安全的 Capture-the-Flag
+    挑战和认证问题，arXiv 预印本 arXiv:2308.10443 (2023)。'
+- en: '[35] S. Garcia, O. Lukas, M. Rigaki, C. Catania, [NetSecGame, a RL env for
+    training and evaluating AI agents in network security tasks.](https://github.com/stratosphereips/NetSecGame)
+    (2023).'
+  id: totrans-328
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[35] S. Garcia, O. Lukas, M. Rigaki, C. Catania，[NetSecGame，一个用于训练和评估 AI 代理在网络安全任务中的强化学习环境。](https://github.com/stratosphereips/NetSecGame)
+    (2023)。'
+- en: URL [https://github.com/stratosphereips/NetSecGame](https://github.com/stratosphereips/NetSecGame)
+  id: totrans-329
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: URL [https://github.com/stratosphereips/NetSecGame](https://github.com/stratosphereips/NetSecGame)
+- en: '[36] A. Q. Jiang, A. Sablayrolles, A. Mensch, C. Bamford, D. S. Chaplot, D. d. l.
+    Casas, F. Bressand, G. Lengyel, G. Lample, L. Saulnier, et al., Mistral 7b, arXiv
+    preprint arXiv:2310.06825 (2023).'
+  id: totrans-330
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[36] A. Q. Jiang, A. Sablayrolles, A. Mensch, C. Bamford, D. S. Chaplot, D.
+    d. l. Casas, F. Bressand, G. Lengyel, G. Lample, L. Saulnier 等，Mistral 7b，arXiv
+    预印本 arXiv:2310.06825 (2023)。'
+- en: '[37] T. Dettmers, A. Pagnoni, A. Holtzman, L. Zettlemoyer, Qlora: Efficient
+    finetuning of quantized llms, in: Advances in Neural Information Processing Systems,
+    Vol. 36, Curran Associates, Inc., 2023, pp. 10088–10115.'
+  id: totrans-331
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[37] T. Dettmers, A. Pagnoni, A. Holtzman, L. Zettlemoyer，Qlora：量化 LLM 的高效微调，在《神经信息处理系统进展》卷
+    36，Curran Associates, Inc.，2023，第10088–10115页。'
+- en: '[38] L. Tunstall, E. Beeching, N. Lambert, N. Rajani, S. Huang, K. Rasul, A. M.
+    Rush, T. Wolf, The alignment handbook, [https://github.com/huggingface/alignment-handbook](https://github.com/huggingface/alignment-handbook)
+    (2023).'
+  id: totrans-332
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[38] L. Tunstall, E. Beeching, N. Lambert, N. Rajani, S. Huang, K. Rasul, A.
+    M. Rush, T. Wolf，《对齐手册》，[https://github.com/huggingface/alignment-handbook](https://github.com/huggingface/alignment-handbook)
+    (2023)。'
+- en: '[39] Stratosphere Research Laboratory, AIC, FEL, CTU, [Netsecdata (revision
+    913b966)](https://huggingface.co/datasets/stratosphere/NetSecData) (2024). [doi:10.57967/hf/3057](https://doi.org/10.57967/hf/3057).'
+  id: totrans-333
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[39] Stratosphere Research Laboratory, AIC, FEL, CTU，[Netsecdata (修订版 913b966)](https://huggingface.co/datasets/stratosphere/NetSecData)
+    (2024)。 [doi:10.57967/hf/3057](https://doi.org/10.57967/hf/3057)。'
+- en: URL [https://huggingface.co/datasets/stratosphere/NetSecData](https://huggingface.co/datasets/stratosphere/NetSecData)
+  id: totrans-334
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: URL [https://huggingface.co/datasets/stratosphere/NetSecData](https://huggingface.co/datasets/stratosphere/NetSecData)
+- en: '[40] C. J. C. H. Watkins, P. Dayan, Q-learning, Machine Learning 8 (3) (1992)
+    279–292. [doi:10.1007/BF00992698](https://doi.org/10.1007/BF00992698).'
+  id: totrans-335
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[40] C. J. C. H. Watkins, P. Dayan, Q-learning, Machine Learning 8 (3) (1992)
+    279–292. [doi:10.1007/BF00992698](https://doi.org/10.1007/BF00992698).'
+- en: '[41] O. Khattab, A. Singhvi, P. Maheshwari, Z. Zhang, K. Santhanam, S. Vardhamanan,
+    S. Haq, A. Sharma, T. T. Joshi, H. Moazam, H. Miller, M. Zaharia, C. Potts, Dspy:
+    Compiling declarative language model calls into self-improving pipelines, arXiv
+    preprint arXiv:2310.03714 (2023).'
+  id: totrans-336
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[41] O. Khattab, A. Singhvi, P. Maheshwari, Z. Zhang, K. Santhanam, S. Vardhamanan,
+    S. Haq, A. Sharma, T. T. Joshi, H. Moazam, H. Miller, M. Zaharia, C. Potts, Dspy:
+    将声明式语言模型调用编译成自我改进的管道，arXiv预印本 arXiv:2310.03714 (2023)。'

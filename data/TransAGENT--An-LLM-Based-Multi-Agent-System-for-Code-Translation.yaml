@@ -1,0 +1,2838 @@
+- en: <!--yml
+  id: totrans-0
+  prefs: []
+  type: TYPE_NORMAL
+  zh: <!--yml
+- en: 'category: 未分类'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'category: 未分类'
+- en: 'date: 2025-01-11 12:12:46'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日期：2025-01-11 12:12:46
+- en: -->
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: -->
+- en: 'TransAGENT: An LLM-Based Multi-Agent System for Code Translation'
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: TransAGENT：基于大语言模型的代码翻译多智能体系统
+- en: 来源：[https://arxiv.org/html/2409.19894/](https://arxiv.org/html/2409.19894/)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 来源：[https://arxiv.org/html/2409.19894/](https://arxiv.org/html/2409.19894/)
+- en: Zhiqiang Yuan, Weitong Chen, Hanlin Wang, Kai Yu, Xin Peng, Yiling Lou Department
+    of Computer Science, Fudan University, China {zhiqiangyuan23, wtchen21, 23210240303,
+    23262010042}@m.fudan.edu.cn {pengxin, yilinglou}@fudan.edu.cn
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 袁智强，陈伟彤，王汉林，余凯，彭鑫，娄伊玲 计算机科学系，复旦大学，中国 {zhiqiangyuan23, wtchen21, 23210240303,
+    23262010042}@m.fudan.edu.cn {pengxin, yilinglou}@fudan.edu.cn
+- en: Abstract
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: Code translation converts code from one programming language to another while
+    maintaining its original functionality, which is crucial for software migration,
+    system refactoring, and cross-platform development. Traditional rule-based methods
+    rely on manually-written rules, which can be time-consuming and often result in
+    less readable code. To overcome this, learning-based methods have been developed,
+    leveraging parallel data to train models for automated code translation. More
+    recently, the advance of Large Language Models (LLMs) further boosts learning-based
+    code translation. Although promising, LLM-translated program still suffers from
+    diverse quality issues (e.g., syntax errors and semantic errors). In particular,
+    it can be challenging for LLMs to self-debug these errors when simply provided
+    with the corresponding error messages.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码翻译是将代码从一种编程语言转换为另一种语言，同时保持其原有功能，这对于软件迁移、系统重构和跨平台开发至关重要。传统的基于规则的方法依赖于手动编写的规则，这往往费时且生成的代码可读性差。为了解决这一问题，基于学习的方法应运而生，利用并行数据训练模型进行自动化的代码翻译。最近，大型语言模型（LLMs）的进展进一步推动了基于学习的代码翻译方法。尽管前景广阔，LLM翻译的程序仍然面临着各种质量问题（例如语法错误和语义错误）。特别是，仅提供相应的错误信息时，LLM很难自我调试这些错误。
+- en: In this work, we propose a novel LLM-based multi-agent system TransAGENT, which
+    enhances LLM-based code translation by fixing the syntax errors and semantic errors
+    with the synergy between four LLM-based agents, including Initial Code Translator,
+    Syntax Error Fixer, Code Aligner, and Semantic Error Fixer. The main insight of
+    TransAGENT is to first localize the error code block in the target program based
+    on the execution alignment between the target and source program, which can narrow
+    down the fixing space and thus lower down the fixing difficulties. To evaluate
+    TransAGENT, we first construct a new benchmark from recent programming tasks to
+    mitigate the potential data leakage issue. On our benchmark, TransAGENT outperforms
+    the latest LLM-based code translation technique UniTrans in both translation effectiveness
+    and efficiency; additionally, our evaluation on different LLMs show the generalization
+    of TransAGENT and our ablation study shows the contribution of each agent.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本文提出了一种新颖的基于大语言模型的多智能体系统TransAGENT，该系统通过四个基于LLM的智能体之间的协同作用来修复语法错误和语义错误，从而增强LLM-based代码翻译的效果，这四个智能体包括初始代码翻译器、语法错误修复器、代码对齐器和语义错误修复器。TransAGENT的主要思想是首先基于目标程序与源程序之间的执行对齐，定位目标程序中有错误的代码块，从而缩小修复的范围并降低修复的难度。为了评估TransAGENT，我们首先构建了一个来自近期编程任务的新基准，以缓解潜在的数据泄露问题。在我们的基准上，TransAGENT在翻译效果和效率上均优于最新的基于LLM的代码翻译技术UniTrans；此外，我们对不同LLM的评估显示了TransAGENT的泛化能力，我们的消融实验也表明了每个智能体的贡献。
+- en: I Introduction
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: I 引言
+- en: Code translation transforms program from one programming language to another
+    while maintaining its original functionality. It is valuable for cross-language
+    migration, enabling organizations to shift their code bases to newer languages
+    for better performance [[1](https://arxiv.org/html/2409.19894v2#bib.bib1), [2](https://arxiv.org/html/2409.19894v2#bib.bib2),
+    [3](https://arxiv.org/html/2409.19894v2#bib.bib3)]. It also helps modernize legacy
+    systems by rewriting them in languages that improve maintainability and scalability
+    during system refactoring [[4](https://arxiv.org/html/2409.19894v2#bib.bib4),
+    [1](https://arxiv.org/html/2409.19894v2#bib.bib1), [5](https://arxiv.org/html/2409.19894v2#bib.bib5)].
+    Additionally, in large companies using multiple languages, code translation enhances
+    interoperability and boosts programmer efficiency. Therefore, automated code translation
+    techniques are essential for accelerating migration, reducing costs, and improving
+    development efficiency.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码翻译是指将程序从一种编程语言转换为另一种语言，同时保持其原有功能。这对于跨语言迁移具有重要价值，使组织能够将其代码库迁移到更新的语言，从而提高性能[[1](https://arxiv.org/html/2409.19894v2#bib.bib1),
+    [2](https://arxiv.org/html/2409.19894v2#bib.bib2), [3](https://arxiv.org/html/2409.19894v2#bib.bib3)]。它还通过将遗留系统重写为能够在系统重构过程中提高可维护性和可扩展性的语言，帮助现代化这些系统[[4](https://arxiv.org/html/2409.19894v2#bib.bib4),
+    [1](https://arxiv.org/html/2409.19894v2#bib.bib1), [5](https://arxiv.org/html/2409.19894v2#bib.bib5)]。此外，在使用多种语言的大型公司中，代码翻译增强了互操作性，并提高了程序员的效率。因此，自动化的代码翻译技术对于加速迁移、降低成本和提高开发效率至关重要。
+- en: Traditional rule-based code translation involves manually-written rules, which
+    convert the source program into the program in the target language (i.e., target
+    program). However, such approaches require human experts to invest significant
+    time and manual efforts in crafting rules, and the translated target program often
+    suffers from poor readability and usability [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)].
+    To address these issues, a series of learning-based code translation methods have
+    been proposed to improve translation effectiveness [[6](https://arxiv.org/html/2409.19894v2#bib.bib6),
+    [7](https://arxiv.org/html/2409.19894v2#bib.bib7), [8](https://arxiv.org/html/2409.19894v2#bib.bib8)].
+    These methods train models on large amounts of parallel data (i.e., the pair of
+    source and target program), allowing models to learn the translation patterns
+    and mappings between different languages during training. However, high-quality
+    parallel data for training is often scarce in practice [[7](https://arxiv.org/html/2409.19894v2#bib.bib7),
+    [9](https://arxiv.org/html/2409.19894v2#bib.bib9), [10](https://arxiv.org/html/2409.19894v2#bib.bib10)],
+    and the process of model training is also very time-consuming. For example, training
+    the TransCoder model requires 32 V100 GPUs over 12 days [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)].
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统的基于规则的代码翻译方法涉及手动编写规则，将源程序转换为目标语言中的程序（即目标程序）。然而，这种方法需要人类专家投入大量的时间和精力来编写规则，且翻译后的目标程序通常存在可读性和可用性差的问题[[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]。为了解决这些问题，提出了一系列基于学习的代码翻译方法，以提高翻译效果[[6](https://arxiv.org/html/2409.19894v2#bib.bib6),
+    [7](https://arxiv.org/html/2409.19894v2#bib.bib7), [8](https://arxiv.org/html/2409.19894v2#bib.bib8)]。这些方法通过使用大量的平行数据（即源程序和目标程序的配对数据）来训练模型，允许模型在训练过程中学习不同语言之间的翻译模式和映射。然而，实际中高质量的平行数据往往稀缺[[7](https://arxiv.org/html/2409.19894v2#bib.bib7),
+    [9](https://arxiv.org/html/2409.19894v2#bib.bib9), [10](https://arxiv.org/html/2409.19894v2#bib.bib10)]，而且模型训练过程也非常耗时。例如，训练TransCoder模型需要32个V100
+    GPU，持续12天[[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]。
+- en: The recent advance in Large Language Models (LLMs) have further boosts learning-based
+    code translation.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近在大规模语言模型（LLMs）方面的进展进一步推动了基于学习的代码翻译技术的发展。
+- en: However, Pan et al. [[11](https://arxiv.org/html/2409.19894v2#bib.bib11)] show
+    that the target program generated by LLMs still suffers from various quality issues,
+    such as compilation errors or functional discrepancies. To address these challenges,
+    Yang et al. [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)] propose UniTrans
+    to enhance LLM-based code translation with an iterative fixing procedure. In particular,
+    UniTrans leverages LLMs to fix the translated program based on the test inputs
+    and outputs or compilation error messages. Although showing promise, UniTrans
+    still fails to fix the translated program for a significant portion of cases,
+    especially when built upon small LLMs (e.g., with less than 10 billion parameters).
+    For example, UniTrans with LLaMA-7B can only improve the translation accuracy
+    from 31.25% to 31.90% (i.e., only 0.65% improvement) for Java-to-Python translation.
+    Therefore, improving the correctness of LLM-translated program still remains as
+    a key challenge in this domain.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，潘等人[[11](https://arxiv.org/html/2409.19894v2#bib.bib11)]指出，由大语言模型（LLMs）生成的目标程序仍然存在各种质量问题，例如编译错误或功能性不一致。为了解决这些问题，杨等人[[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]提出了UniTrans，通过迭代修复过程增强基于LLM的代码翻译。特别地，UniTrans利用LLMs根据测试输入输出或编译错误信息修复翻译后的程序。尽管展示出了一定的潜力，UniTrans在许多案例中仍未能修复翻译后的程序，尤其是当其基于较小的LLMs（例如，参数少于100亿的模型）时。例如，使用LLaMA-7B的UniTrans仅能将Java到Python的翻译准确率从31.25%提升到31.90%（即仅提高了0.65%）。因此，提高LLM翻译程序的正确性仍然是该领域的一个关键挑战。
+- en: Typically, the errors in translated program can be divided into syntax errors
+    and semantic errors. Syntax errors refer to the compilation errors or interpreting
+    errors in the target program before its execution, while semantic errors occur
+    when the target program exhibit different runtime behaviors (i.e., different outputs)
+    from the source program during execution. Syntax errors typically result from
+    violating the target language grammars, which can be easily pinpointed by the
+    syntax checkers or compilers. In contrast, semantic errors arise from functional
+    discrepancies between the target program and the source program, which can be
+    more challenging to fix, as they require LLMs to reason and to understand the
+    execution of both source and target program. However, existing LLMs exhibit limited
+    capabilities of reasoning the runtime behaviors during program execution [[13](https://arxiv.org/html/2409.19894v2#bib.bib13)],
+    which explains why UniTrans has limited effectiveness in fixing errors with only
+    test inputs/outputs provided.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，翻译后的程序错误可以分为语法错误和语义错误。语法错误指的是目标程序在执行前出现的编译错误或解释错误，而语义错误发生在目标程序与源程序在执行时展现出不同的运行时行为（即不同的输出）。语法错误通常是由于违反目标语言的语法规则所导致，这些错误可以通过语法检查器或编译器轻松定位。相比之下，语义错误则是由于目标程序和源程序之间存在功能性不一致所导致，这类错误更难修复，因为它们需要LLMs推理并理解源程序和目标程序的执行过程。然而，现有的LLMs在推理程序执行期间的运行时行为方面能力有限[[13](https://arxiv.org/html/2409.19894v2#bib.bib13)]，这也解释了为什么UniTrans在仅提供测试输入/输出的情况下修复错误的效果有限。
+- en: This work. To enhance LLMs in code translation, we propose TransAGENT, an LLM-based
+    multi-agent system that fixes both syntax errors and semantic errors in LLM-based
+    code translation. The main insight of TransAGENT is to first localize the error
+    code block in the target program based on execution alignment, which can narrow
+    down the fixing space and thus lower down the fixing difficulties. TransAGENT
+    includes four different LLM-based agents which can collaborate with each other,
+    including Initial Code Translator, Syntax Error Fixer, Code Aligner, and Semantic
+    Error Fixer. First, Initial Code Translator generates a set of tests based on
+    the given source program, and then it generates an initial version of the target
+    program via the basic code translation capability of the backbone LLM for the
+    given source program and generated tests; Second, Syntax Error Fixer iteratively
+    addresses the syntax errors in the target program based on compilation or interpreting
+    error messages by first drafting a fixing plan and then generating the concrete
+    patches; Third, Code Aligner divides the source program into blocks based on the
+    control flow graph, and then leverages LLMs to map each block of the source program
+    to that of the target program; Lastly, based on the mapped blocks between the
+    source and target program, Semantic Error Fixer first localizes the error block
+    in the target program which exhibits different runtime behaviors from its aligned
+    block in the source program, and then it leverages LLMs to specifically fix the
+    error block with the observed runtime difference. We design TransAGENT in such
+    a multi-agent system framework, as it can extend the standalone LLMs with the
+    capabilities of acting to dynamic environments as well as the collaboration between
+    different specialized agents. As summarized in the recent survey on LLM-based
+    agents for software engineering [[14](https://arxiv.org/html/2409.19894v2#bib.bib14)],
+    multi-agent systems have demonstrated promise in various software engineering
+    tasks.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本工作旨在增强LLM在代码翻译中的表现，我们提出了TransAGENT，一个基于LLM的多代理系统，能够修复LLM代码翻译中的语法错误和语义错误。TransAGENT的主要思想是首先基于执行对齐定位目标程序中的错误代码块，这可以缩小修复范围，从而降低修复难度。TransAGENT包括四个不同的基于LLM的代理，它们可以相互协作，包括初始代码翻译器、语法错误修复器、代码对齐器和语义错误修复器。首先，初始代码翻译器基于给定的源程序生成一组测试用例，然后通过骨干LLM的基本代码翻译能力为给定的源程序和生成的测试用例生成目标程序的初始版本；其次，语法错误修复器通过编译或解释错误信息，迭代地修复目标程序中的语法错误，首先草拟修复计划，然后生成具体的修复补丁；第三，代码对齐器基于控制流图将源程序分割为若干块，然后利用LLM将源程序的每个块映射到目标程序的相应块；最后，基于源程序和目标程序之间的映射块，语义错误修复器首先定位目标程序中与源程序对齐块的运行时行为不同的错误块，然后利用LLM特别修复这些运行时差异导致的错误块。我们将TransAGENT设计为这种多代理系统框架，因为它能够扩展独立的LLM，使其具备在动态环境中进行操作的能力，并支持不同专业代理之间的协作。如在近期关于LLM基础的软件工程代理的综述中总结的那样[[14](https://arxiv.org/html/2409.19894v2#bib.bib14)]，多代理系统在各种软件工程任务中展现出了前景。
+- en: To evaluate TransAGENT, we first construct a new benchmark from recent programming
+    tasks to mitigate the potential data leakage issue. On our benchmark, we first
+    assess the overall translation effectiveness of TransAGENT, and the results show
+    that it outperforms both the state-of-the-art LLM-based technique UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]
+    and the learning-based technique TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)].
+    We then conduct an ablation study to analyze the contribution of each agent in
+    TransAGENT, as well as comparing them with those fixing strategies in UniTrans.
+    The results show that both Syntax Error Fixer and Semantic Error Fixer in TransAGENT
+    substantially enhance translation performance and both of them are more effective
+    than the corresponding strategies in UniTrans. Additionally, to evaluate the mapping
+    accuracy of TransAGENT, we conduct a user study to compare Code Aligner in TransAGENT
+    with the existing code mapping approach TransMap [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]
+    for code translation. The results show that our mapping agent Code Aligner (which
+    is designed upon the synergy of both control-flow analysis and LLMs), substantially
+    outperforms the existing mapping strategy TransMap (which is purely relied on
+    LLMs) by a 39.6% improvement in mapping accuracy. Lastly, we evaluate the costs
+    and generalization capabilities of TransAGENT. The results show that TransAGENT
+    is more cost-effective than baselines, and can be generalized to different LLMs
+    with consistent effectiveness.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了评估TransAGENT，我们首先构建了一个新的基准，来源于近期的编程任务，以减轻潜在的数据泄漏问题。在我们的基准上，我们首先评估了TransAGENT的整体翻译效果，结果表明，它优于当前最先进的基于LLM的技术UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]和基于学习的技术TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]。然后，我们进行消融研究，分析TransAGENT中每个代理的贡献，并将其与UniTrans中的修复策略进行比较。结果表明，TransAGENT中的语法错误修复器和语义错误修复器显著提升了翻译性能，两者的效果都优于UniTrans中的相应策略。此外，为了评估TransAGENT的映射准确性，我们进行了一项用户研究，将TransAGENT中的代码对齐器与现有的代码映射方法TransMap [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]进行比较。结果表明，我们的映射代理Code
+    Aligner（基于控制流分析与LLM的协同设计）在映射准确性上比完全依赖LLM的现有映射策略TransMap提高了39.6%。最后，我们评估了TransAGENT的成本和泛化能力。结果表明，TransAGENT比基准方法更具成本效益，并且能够在不同的LLM上保持一致的效果。
+- en: 'In summary, this paper makes the following contributions:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结而言，本文做出了以下贡献：
+- en: •
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A Novel LLM-based Code Translation Technique. We propose TransAGENT, an LLM-based
+    multi-agent system for fixing the syntax and semantic errors in LLM-based code
+    translation.
+  id: totrans-20
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一种基于LLM的代码翻译新技术。我们提出了TransAGENT，一个基于LLM的多代理系统，用于修复LLM代码翻译中的语法和语义错误。
+- en: •
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A Novel Code Mapping Strategy. We design a code mapping strategy (i.e., Code
+    Aligner) upon the synergy between control-flow analysis and LLMs.
+  id: totrans-22
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一种新型的代码映射策略。我们设计了一种基于控制流分析和LLM协同作用的代码映射策略（即Code Aligner）。
+- en: •
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: A New Code Translation Benchmark. We build a new code translation benchmark,
+    which are constructed from the recent programming tasks, so as to mitigate the
+    data leakage issue when evaluating LLM-based code translation techniques.
+  id: totrans-24
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 一种新的代码翻译基准。我们构建了一个新的代码翻译基准，来源于近期的编程任务，以减轻在评估基于LLM的代码翻译技术时的数据泄漏问题。
+- en: •
+  id: totrans-25
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Comprehensive Evaluation. We systematically evaluate TransAGENT across various
+    perspectives, including the overall translation effectiveness, costs, generalization,
+    and the ablation study of each agent.
+  id: totrans-26
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 综合评估。我们从多个角度系统地评估了TransAGENT，包括整体翻译效果、成本、泛化能力，以及对每个代理的消融研究。
+- en: II Motivating Example
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: II 激励示例
+- en: In this section, we illustrate the error-fixing challenges in the latest LLM-based
+    code translation technique, UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]
+    via two examples. Here, we use the version of UniTrans built upon the backbone
+    LLM Deepseek-coder-6.7b-instruct [[16](https://arxiv.org/html/2409.19894v2#bib.bib16)].
+    The first example is a failed case that UniTrans cannot successfully fix the syntax
+    error, while the second example is a failed case that UniTrans cannot successfully
+    fix the semantic error.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们通过两个例子说明了最新的基于LLM的代码翻译技术UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]中的错误修复挑战。这里，我们使用了基于LLM
+    Deepseek-coder-6.7b-instruct [[16](https://arxiv.org/html/2409.19894v2#bib.bib16)]构建的UniTrans版本。第一个例子是一个失败的案例，UniTrans未能成功修复语法错误；第二个例子是一个失败的案例，UniTrans未能成功修复语义错误。
+- en: '![Refer to caption](img/f4beed56ac36e7cb50ef14e2875eacb8.png)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/f4beed56ac36e7cb50ef14e2875eacb8.png)'
+- en: 'Figure 1: Example of Fixing Semantic Errors in Target Java Program'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图1：修复目标Java程序中语义错误的示例
+- en: '![Refer to caption](img/9066d8f00d66b3491d1bb22063db1401.png)'
+  id: totrans-31
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/9066d8f00d66b3491d1bb22063db1401.png)'
+- en: 'Figure 2: Example of Fixing Syntax Errors in Target Java Program'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图2：修复目标Java程序中语法错误的示例
+- en: 'Challenges in fixing syntax errors sorely with the error messages thrown by
+    the compiler/interpreter. When fix the the syntax errors, UniTrans uses the error
+    messages provided by the compiler to fix the translation errors. However, these
+    messages are often vague or lack specific repair guidance, making it difficult
+    for the model to effectively resolve syntax errors. For example, Figure [2](https://arxiv.org/html/2409.19894v2#S2.F2
+    "Figure 2 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") shows a translated target Java program minimumArrayLength [[17](https://arxiv.org/html/2409.19894v2#bib.bib17)]
+    from the source Python program, which encounters a compilation error: no suitable
+    method found for min(List<int[]>). The error message does not clarify why the
+    method call fails or what needs to be changed, providing limited hints for the
+    LLMs to generate correct patches. To enhance the ability of model to correct syntax
+    errors, it is helpful to convert compiler error messages into clearer, more specific
+    fix suggestions. For instance, in Figure [2](https://arxiv.org/html/2409.19894v2#S2.F2
+    "Figure 2 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation"), the error message can be rephrased to explain that Collections.min()
+    cannot accept primitive types and requires a List of objects instead, which can
+    potentially provide detailed guidance for LLMs in understanding and fixing the
+    syntax error in the target program.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '解决语法错误的挑战与编译器/解释器抛出的错误信息密切相关。在修复语法错误时，UniTrans利用编译器提供的错误信息来修正翻译错误。然而，这些信息通常含糊不清，或者缺乏具体的修复指导，使得模型难以有效地解决语法错误。例如，图[2](https://arxiv.org/html/2409.19894v2#S2.F2
+    "Figure 2 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation")展示了从源Python程序翻译过来的目标Java程序minimumArrayLength[[17](https://arxiv.org/html/2409.19894v2#bib.bib17)]，该程序遇到了一个编译错误：没有找到适合的min(List<int[]>)方法。错误信息没有明确说明方法调用失败的原因，也没有说明需要更改的内容，因此对LLM生成正确补丁的提示有限。为了增强模型修复语法错误的能力，将编译器错误信息转化为更清晰、更具体的修复建议会有所帮助。例如，在图[2](https://arxiv.org/html/2409.19894v2#S2.F2
+    "Figure 2 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation")中，错误信息可以重新措辞，解释Collections.min()无法接受基本类型，而是需要一个对象列表，这可以为LLM提供更详细的指导，帮助其理解和修复目标程序中的语法错误。'
+- en: 'Challenges in fixing semantic errors sorely with whole program input and output.
+    When fixing the semantic errors, UniTrans relies on the test inputs and outputs
+    of the entire program to fix the target program. However, the inputs and outputs
+    of the entire program can be too difficult for LLMs to utilize, as they require
+    LLMs to reason along the execution paths of the entire program. As shown by recent
+    study [[13](https://arxiv.org/html/2409.19894v2#bib.bib13)], LLMs exhibit limit
+    capabilities in reasoning program execution, especially when there are multiple
+    logical branches. Figure [1](https://arxiv.org/html/2409.19894v2#S2.F1 "Figure
+    1 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System for Code
+    Translation") illustrates the Java program called minOperations [[18](https://arxiv.org/html/2409.19894v2#bib.bib18)],
+    which is translated from the Python program with UniTrans. The LLM fails to catch
+    a key operation in the Line 3 of the source Python program (which actually deduplicates
+    elements in nums). As a result, the target Java program does not perform this
+    deduplication, thus returning an incorrect output of 0 instead of 4. When UniTrans
+    attempts to fix the semantic error with the test inputs and outputs, it is unsuccessful
+    due to the subtle logical difference and the program complexity. To improve the
+    model capabilities in fixing semantic error, it can be helpful to first decompose
+    the problem by first localizing the fine-grained error location (e.g., the error
+    statement or block) and then fixing the error part only with runtime values related
+    to it. For example, by comparing the runtime value of the variable between the
+    source Python and target Java program, the error can be pinpointed to Line 3 of
+    the Java program. Such a fine-grained error location, along with its relevant
+    intermediate runtime values, can provide more detailed hints for LLMs to fix semantic
+    errors.'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在修复语义错误时面临的挑战：整个程序输入和输出的修复难题。修复语义错误时，UniTrans 依赖于整个程序的测试输入和输出来修复目标程序。然而，整个程序的输入和输出对于
+    LLM 来说可能太复杂，因其需要 LLM 在整个程序的执行路径上进行推理。正如最近的研究[[13](https://arxiv.org/html/2409.19894v2#bib.bib13)]所示，LLM
+    在推理程序执行时的能力有限，尤其是在存在多个逻辑分支时。图[1](https://arxiv.org/html/2409.19894v2#S2.F1 "Figure
+    1 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System for Code
+    Translation")展示了名为 minOperations 的 Java 程序[[18](https://arxiv.org/html/2409.19894v2#bib.bib18)]，该程序通过
+    UniTrans 从 Python 程序翻译而来。LLM 未能捕捉到源 Python 程序第 3 行中的一个关键操作（该操作实际上是去重 nums 中的元素）。因此，目标
+    Java 程序未能进行去重操作，导致返回错误的输出 0，而不是 4。当 UniTrans 尝试通过整个程序的测试输入和输出来修复语义错误时，由于细微的逻辑差异和程序的复杂性，它未能成功。为了提高模型修复语义错误的能力，首先通过定位细粒度的错误位置（例如，错误语句或代码块）来分解问题，然后仅使用与该部分相关的运行时值来修复错误，这可能会有所帮助。例如，通过比较源
+    Python 程序和目标 Java 程序中变量的运行时值，可以将错误定位到 Java 程序的第 3 行。这种细粒度的错误定位以及相关的中间运行时值，可以为
+    LLM 提供更多详细的提示，以修复语义错误。'
+- en: '![Refer to caption](img/7f7f5461f0b5ca704cfea90bada9744c.png)'
+  id: totrans-35
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图注](img/7f7f5461f0b5ca704cfea90bada9744c.png)'
+- en: 'Figure 3: Workflow of TransAGENT'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 3：TransAGENT 工作流
+- en: III Approach
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: III 方法
+- en: 'Figure [3](https://arxiv.org/html/2409.19894v2#S2.F3 "Figure 3 ‣ II Motivating
+    Example ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation") illustrates
+    the workflow of TransAGENT. In particular, to effectively fix both syntax and
+    semantic errors in LLM-based code translation, the main novelty of TransAGENT
+    is to first localize the error code block of the LLM-based translated target program
+    by comparing the runtime behaviors between source program and target program,
+    which can reduce the fixing space and thus lower down the fixing difficulties.
+    To this end, TransAGENT is designed as a multi-agent system with four different
+    LLM-based agents which can collaborate with each other, including Initial Code
+    Translator, Syntax Error Fixer, Code Aligner, and Semantic Error Fixer.'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '图[3](https://arxiv.org/html/2409.19894v2#S2.F3 "Figure 3 ‣ II Motivating Example
+    ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation")展示了 TransAGENT
+    的工作流。特别地，为了有效地修复基于 LLM 的代码翻译中的语法和语义错误，TransAGENT 的主要创新是通过比较源程序和目标程序的运行时行为，首先定位基于
+    LLM 翻译的目标程序中的错误代码块，从而减少修复空间，降低修复难度。为此，TransAGENT 被设计为一个多代理系统，包含四个不同的基于 LLM 的代理，这些代理可以相互协作，包括初始代码翻译器、语法错误修复器、代码对齐器和语义错误修复器。'
+- en: •
+  id: totrans-39
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Initial Code Translator first generates a set of tests based on the given source
+    program; and then given the generated tests and the source program, it generates
+    an initial version of the target program with the basic code translation capability
+    of the backbone LLM. Note that Initial Code Translator is a basic component commonly
+    used in previous work (e.g., UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]),
+    which is not a contribution of TransAGENT.
+  id: totrans-40
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 初始代码翻译器首先根据给定的源程序生成一组测试用例；然后，结合生成的测试用例和源程序，它通过骨干 LLM 的基本代码翻译能力生成目标程序的初始版本。请注意，初始代码翻译器是以前的工作中（例如
+    UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]）中常用的基本组件，并非 TransAGENT
+    的贡献。
+- en: •
+  id: totrans-41
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Syntax Error Fixer aims at iteratively addressing the syntax errors in the target
+    program based on compilation or interpreting error messages with the self-debugging
+    capabilities of LLMs. Different from how previous LLM-based code translation techniques [[11](https://arxiv.org/html/2409.19894v2#bib.bib11),
+    [12](https://arxiv.org/html/2409.19894v2#bib.bib12)] fixing syntax errors, the
+    main novelty of Syntax Error Fixer in TransAGENT is the planning of fix strategy.
+    In particular, based on error messages, Syntax Error Fixer first queries LLMs
+    to generate a plan of the fixing strategy, based on which the concrete patches
+    are further generated with LLMs.
+  id: totrans-42
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 语法错误修复器旨在基于编译或解释错误消息，通过 LLM 的自我调试能力，迭代地解决目标程序中的语法错误。与以往基于 LLM 的代码翻译技术 [[11](https://arxiv.org/html/2409.19894v2#bib.bib11),
+    [12](https://arxiv.org/html/2409.19894v2#bib.bib12)] 修复语法错误的方式不同，语法错误修复器在 TransAGENT
+    中的主要创新是修复策略的规划。具体来说，语法错误修复器首先根据错误消息查询 LLM 生成修复策略的计划，接着基于该计划进一步利用 LLM 生成具体的修复补丁。
+- en: •
+  id: totrans-43
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Code Aligner first divides the source program into blocks based on the control
+    flow, and then leverages LLM to map each block of the source program to that of
+    the target program. The mapping aims at facilitating a fine-grained comparison
+    of runtime behaviors (e.g., runtime value of specific variables) between source
+    program and target program in the following Semantic Error Fixer Component. Different
+    from previous code mapping strategies [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]
+    which purely rely on LLMs to perform statement-level alignment, Code Aligner is
+    novel in incorporating the synergy of both program analysis and LLMs at block
+    level.
+  id: totrans-44
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 代码对齐器首先根据控制流将源程序划分为若干代码块，然后利用 LLM 将源程序中的每个代码块映射到目标程序中的相应代码块。该映射旨在便于在后续的语义错误修复组件中，对源程序和目标程序之间的运行时行为（例如，特定变量的运行时值）进行细粒度的比较。与以往纯粹依赖
+    LLM 执行语句级对齐的代码映射策略 [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)] 不同，代码对齐器的创新之处在于它将程序分析和
+    LLM 的协同作用融入到了块级映射中。
+- en: •
+  id: totrans-45
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Semantic Error Fixer first localizes the suspicious block in the target program
+    which exhibits different runtime behaviors from its aligned block in the source
+    program; and then it leverages LLMs to specifically fix the error block with the
+    observed runtime difference. Semantic Error Fixer is novel in fixing the semantic
+    errors during code translation in such a fine-grained way.
+  id: totrans-46
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 语义错误修复器首先在目标程序中定位出可疑的代码块，该代码块的运行时行为与源程序中的对齐代码块表现出不同的运行时差异；然后，语义错误修复器利用大型语言模型（LLMs）来专门修复具有运行时差异的错误块。语义错误修复器在以如此细粒度的方式修复代码翻译中的语义错误方面具有创新性。
+- en: 'In particular, whenever the target program passing all the generated tests,
+    the workflow terminates and the target program would be returned as the final
+    target program; otherwise, the workflow proceeds to fix the syntax or semantic
+    errors of the target program. In the following parts of this section, we use a
+    Python-to-Java translation example minOrAfterOperations [[19](https://arxiv.org/html/2409.19894v2#bib.bib19)]
+    (as shown in Figure [4](https://arxiv.org/html/2409.19894v2#S3.F4 "Figure 4 ‣
+    III Approach ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation"))
+    to illustrate the workflow of TransAGENT.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 特别是，每当目标程序通过所有生成的测试时，工作流程就会终止，目标程序将作为最终目标程序返回；否则，工作流程将继续修复目标程序的语法或语义错误。在本节的以下部分，我们使用
+    Python 到 Java 的翻译示例 minOrAfterOperations [[19](https://arxiv.org/html/2409.19894v2#bib.bib19)]（如图
+    [4](https://arxiv.org/html/2409.19894v2#S3.F4 "图 4 ‣ III 方法 ‣ TransAGENT：基于 LLM
+    的多代理系统进行代码翻译") 所示）来说明 TransAGENT 的工作流程。
+- en: '![Refer to caption](img/75a933e74c5eb06cd1bb02fdb9cf1507.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见图例](img/75a933e74c5eb06cd1bb02fdb9cf1507.png)'
+- en: 'Figure 4: Source Python and Ground-truth Java Program of minOrAfterOperations [[19](https://arxiv.org/html/2409.19894v2#bib.bib19)]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 4：源 Python 程序和真实的 Java 程序 minOrAfterOperations [[19](https://arxiv.org/html/2409.19894v2#bib.bib19)]
+- en: III-A Initial Code Translator
+  id: totrans-50
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-A 初始代码翻译器
+- en: Following the previous code translation work UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)],
+    Initial Code Translator mainly includes two parts, i.e., test generation and direct
+    code translation.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 跟随之前的代码翻译工作UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]，初始代码翻译器主要包括两个部分，即测试生成和直接代码翻译。
+- en: Test Generation. As revealed by UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)],
+    including test inputs and outputs in the prompt can boost LLM-based code translation.
+    Specifically, we first leverage LLMs to generate test inputs for the given source
+    program with the prompt “Please generate five inputs for the given source program”;
+    and the outputs of executing source program with the generated inputs would be
+    regarded as the test outputs.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试生成。如UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]所示，将测试输入和输出包含在提示中可以增强基于LLM的代码翻译。具体来说，我们首先利用LLM生成给定源程序的测试输入，提示为“请为给定的源程序生成五个输入”；然后，执行源程序并使用生成的输入进行测试，得到的输出将视为测试输出。
+- en: Direct Code Translation. We leverage LLMs to directly generate the target program
+    (i.e., the initial target program) for the given source program with the generated
+    test inputs and outputs.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接代码翻译。我们利用LLM直接生成给定源程序的目标程序（即初始目标程序），并使用生成的测试输入和输出。
+- en: In particular, as a basic component of LLM-based code translation, Initial Code
+    Translator is not a contribution of TransAGENT and we mainly follow the prompt
+    and settings from UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)].
+    The detailed prompt can be found in our replication package [[20](https://arxiv.org/html/2409.19894v2#bib.bib20)].
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 特别地，作为LLM-based代码翻译的基本组件，初始代码翻译器并不是TransAGENT的贡献，我们主要遵循UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]中的提示和设置。详细提示可以在我们的复制包中找到[[20](https://arxiv.org/html/2409.19894v2#bib.bib20)]。
+- en: '![Refer to caption](img/2473e22943640d9f609ec2ddc987f353.png)'
+  id: totrans-55
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见标题说明](img/2473e22943640d9f609ec2ddc987f353.png)'
+- en: 'Figure 5: Prompts in Syntax Error Fixer'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图5：语法错误修复器中的提示
+- en: III-B Syntax Error Fixer
+  id: totrans-57
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-B 语法错误修复器
+- en: Syntax Error Fixer iteratively leverages LLM to fix the syntax errors in the
+    target program. In particular, it iteratively goes through three steps, i.e.,
+    (i) syntax validation, (ii) fixing strategy planning, and (iii) syntax patch generation.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语法错误修复器通过迭代方式利用LLM修复目标程序中的语法错误。特别地，它经过三个步骤：（i）语法验证，（ii）修复策略规划，和（iii）语法补丁生成。
+- en: Syntax Validation. In this step, Syntax Error Fixer invokes external tools (e.g.,
+    compilers for Java/C++ or interpreter for Python) to check the syntactic correctness
+    of the target program. If no syntax errors are reported in this step, the target
+    program would be passed to the next two agents (i.e., Code Aligner and Semantic
+    Error Fixer); otherwise, Syntax Error Fixer proceeds to the following steps of
+    fixing strategy planning and patch generation.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语法验证。在此步骤中，语法错误修复器调用外部工具（例如，Java/C++的编译器或Python的解释器）检查目标程序的语法正确性。如果在此步骤中没有报告语法错误，目标程序将被传递给下两个代理（即代码对齐器和语义错误修复器）；否则，语法错误修复器将继续进行修复策略规划和补丁生成的步骤。
+- en: 'Fixing Strategy Planning. As mentioned in previous research [[14](https://arxiv.org/html/2409.19894v2#bib.bib14)],
+    planning can further boost LLM-based agents for better effectiveness. Therefore,
+    instead of directly leveraging LLMs to generate patches, Syntax Error Fixer first
+    leverages LLMs to generate a plan of fixing strategies. As shown in Figure [5](https://arxiv.org/html/2409.19894v2#S3.F5
+    "Figure 5 ‣ III-A Initial Code Translator ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation"), LLMs are prompted to briefly describe
+    the fixing strategy in natural language. The buggy location is determined by parsing
+    the error message generated in the step of syntax validation.'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '修复策略规划。如先前的研究[[14](https://arxiv.org/html/2409.19894v2#bib.bib14)]所述，规划可以进一步提升基于LLM的代理的有效性。因此，语法错误修复器并不直接利用LLM生成补丁，而是首先利用LLM生成修复策略的计划。如图[5](https://arxiv.org/html/2409.19894v2#S3.F5
+    "图 5 ‣ III-A 初始代码翻译器 ‣ III 方法 ‣ TransAGENT: 基于LLM的多代理系统进行代码翻译")所示，LLM被提示用自然语言简要描述修复策略。通过解析在语法验证步骤中生成的错误信息来确定错误位置。'
+- en: Syntax Patch Generation. Based on the generated plan of fixing strategies, this
+    step further prompts LLMs to generate concrete patches to fix the syntax error
+    in the target program.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语法补丁生成。根据修复策略生成的计划，进一步提示LLM生成具体的补丁，以修复目标程序中的语法错误。
+- en: The patched target program would further go to syntax validation of the next
+    iteration. The iterative process terminates when (i) there are no syntax errors
+    or (ii) there are the same syntax errors occurring at the same buggy location
+    as the previous iteration (to avoid being stuck in an endless loop). Otherwise,
+    if there are syntax errors different from the previous iteration, TransAGENT continues
+    the iterative fixing process.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修补后的目标程序将进一步进入下一轮迭代的语法验证。迭代过程将在以下情况终止：（i）没有语法错误，或者（ii）在相同的错误位置发生与前一轮相同的语法错误（以避免陷入死循环）。否则，如果存在与前一轮不同的语法错误，TransAGENT将继续进行迭代修复过程。
+- en: '![Refer to caption](img/ccfb3e60b9e715aea7ad7f139cc8f108.png)'
+  id: totrans-63
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参考说明](img/ccfb3e60b9e715aea7ad7f139cc8f108.png)'
+- en: 'Figure 6: Prompts in Coder Aligner'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图6：代码对齐器中的提示
+- en: III-C Code Aligner
+  id: totrans-65
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-C 代码对齐器
+- en: 'As shown by the motivating example in Section [II](https://arxiv.org/html/2409.19894v2#S2
+    "II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System for Code
+    Translation"), directly fixing semantic errors with test inputs and outputs can
+    be challenging for LLMs. Mapping the semantically-equivalent code elements (i.e.,
+    statements or blocks) between source program and target program can help localize
+    the error code element, thus narrowing down the fixing space of semantic errors.
+    Therefore, before running Semantic Error Fixer, TransAGENT first includes the
+    LLM-based agent (i.e., Code Aligner) to map semantically-equivalent code elements
+    between source program and target program. The previous code mapping technique
+    TransMap [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)] purely relies on
+    LLMs to perform statement-level mapping, however statement-level mapping can be
+    too fine-grained to be practical, as it is common for (i) one statement aligns
+    (in the source program) with multiple statements (in the target program) or (ii)
+    the order of statements can be very different between the source program and target
+    program. As a result, LLMs exhibit limited mapping accuracy as revealed in the
+    evaluation of TransMap [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)].
+    Therefore, to address these limitations, Code Aligner proposes a block-level mapping
+    techniques, which aligns code elements in a coarse-grained granularity (i.e.,
+    block-level) with the synergy of both program analysis and LLMs. In particular,
+    Code Aligner includes two steps, i.e., (i) block extraction which divides the
+    source program into blocks via control-flow analysis, and (ii) block alignment
+    which maps each block in source program to target program via LLMs. For better
+    illustration, we denote the source program as $P_{S}$ and the target program as
+    $P_{T}$.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如[第 II 节](https://arxiv.org/html/2409.19894v2#S2 "II Motivating Example ‣ TransAGENT:
+    An LLM-Based Multi-Agent System for Code Translation")中的动机示例所示，直接通过测试输入和输出修复语义错误对于LLMs来说可能是具有挑战性的。在源程序和目标程序之间映射语义等效的代码元素（即语句或代码块）有助于定位错误代码元素，从而缩小修复语义错误的范围。因此，在运行语义错误修复器之前，TransAGENT首先包含基于LLM的代理（即代码对齐器），以映射源程序和目标程序之间语义等效的代码元素。之前的代码映射技术TransMap[[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]完全依赖LLMs执行语句级映射，但语句级映射可能过于精细，实际应用时并不理想，因为通常情况下（i）一个语句（在源程序中）与多个语句（在目标程序中）对齐，或（ii）源程序和目标程序之间语句的顺序可能大不相同。因此，在TransMap[[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]的评估中，LLMs的映射准确度有限。因此，为了解决这些限制，代码对齐器提出了一种块级映射技术，采用粗粒度（即块级）对齐代码元素，并结合程序分析和LLMs的协同作用。具体来说，代码对齐器包括两个步骤，即：（i）块提取，通过控制流分析将源程序划分为块，和（ii）块对齐，利用LLMs将源程序中的每个块映射到目标程序中。为了更好地说明，我们将源程序表示为$P_{S}$，目标程序表示为$P_{T}$。'
+- en: Block Extraction. We first construct the control flow graph of the source program
+    and then divide the source program into blocks based on the control flow with
+    the following division criteria.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 块提取。我们首先构建源程序的控制流图，然后根据控制流将源程序划分为块，具体的划分标准如下。
+- en: •
+  id: totrans-68
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'A continuous sequence of statements that have no jumps in or out of the middle
+    of a block would be regarded as a block. For example in Figure [6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").a, Line 4 - 6 is a block (i.e., marked
+    as BLOCK3).'
+  id: totrans-69
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '一连续的语句序列，如果其中没有跳转进出块的中间部分，则视为一个块。例如，在图[6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").a中，第4行至第6行是一个块（即标记为BLOCK3）。'
+- en: •
+  id: totrans-70
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'Any control flow statement (i.e., the statement that can result in different
+    execution paths such as while, for, try, or if) would be regarded as a block.
+    For example in Figure [6](https://arxiv.org/html/2409.19894v2#S3.F6 "Figure 6
+    ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based Multi-Agent
+    System for Code Translation").a, Line 3 is a block (i.e., BLOCK2) with a for statement;
+    Line 9 is a block (i.e., BLOCK6) with an if statement.'
+  id: totrans-71
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: '任何控制流语句（即能够导致不同执行路径的语句，如while、for、try或if语句）都将被视为一个块。例如，在图[6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").a中，第3行是一个块（即BLOCK2），包含一个for语句；第9行是一个块（即BLOCK6），包含一个if语句。'
+- en: 'In fact, the block here is similar to the concept of basic blocks [[21](https://arxiv.org/html/2409.19894v2#bib.bib21)]
+    in control flow graph. However, the basic block is often on the granularity of
+    three-address instruction, which can be too fine-grained for the code translation
+    scenario. Therefore, we adjust the scope of the basic block in this work based
+    on the two criteria above. We alternatively call the blocks in source program
+    as source block and call the blocks in target program as target blocks. In this
+    way, after the block extraction step, the source program is divided into a sequence
+    of numbered blocks, i.e., $P_{S}=<B_{S1},B_{S2},...B_{Sn}>$ where $B_{Si}$ denotes
+    the source block in the source program (as shown in Figure [6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").a).'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '事实上，这里的块类似于控制流图中的基本块[[21](https://arxiv.org/html/2409.19894v2#bib.bib21)]概念。然而，基本块通常是在三地址指令的粒度上，而这种粒度对于代码翻译场景来说可能过于细化。因此，我们在本研究中基于上述两个标准调整了基本块的范围。我们将源程序中的块称为源块，将目标程序中的块称为目标块。通过这种方式，在块提取步骤之后，源程序被划分为一个编号的块序列，即$P_{S}=<B_{S1},B_{S2},...B_{Sn}>$，其中$B_{Si}$表示源程序中的源块（如图[6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").a所示）。'
+- en: 'Block Alignment. After dividing the source program into blocks, Code Aligner
+    further leverages LLMs to map each block to the target program. As shown in Figure [6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").a, LLMs are prompted to map the numbered
+    source blocks to the corresponding target block; the top part of Figure [6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").b shows the mapping outputs generated
+    by LLMs, which are further post-processed into structured representation (as shown
+    in the bottom part of Figure [6](https://arxiv.org/html/2409.19894v2#S3.F6 "Figure
+    6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based Multi-Agent
+    System for Code Translation").b). After the block alignment, the target program
+    is then divided into target blocks, i.e., $P_{T}=<B_{T1},B_{T2},...B_{Tn}>$, with
+    the mapping function $f_{map}(B_{Si})=B_{Tj}$.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '块对齐。将源程序划分为块之后，代码对齐器进一步利用LLM将每个块映射到目标程序。如图[6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").a所示，LLM被提示将编号的源块映射到相应的目标块；图[6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").b的上部分显示了LLM生成的映射输出，这些输出随后经过后处理转化为结构化表示（如图[6](https://arxiv.org/html/2409.19894v2#S3.F6
+    "Figure 6 ‣ III-B Syntax Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation").b的下部分所示）。经过块对齐后，目标程序被划分为目标块，即$P_{T}=<B_{T1},B_{T2},...B_{Tn}>$，并且映射函数为$f_{map}(B_{Si})=B_{Tj}$。'
+- en: III-D Semantic Error Fixer
+  id: totrans-74
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: III-D 语义错误修复器
+- en: Based on the block-level mapping between source and target program, TransAGENT
+    then performs a fine-grained fixing process by (i) first localizing the error
+    target blocks by comparing the dynamic behaviors of each mapped pair of source
+    blocks and target blocks (i.e., Error Block Localization) and (ii) then specifically
+    fixing the error target block with relevant error information (i.e., Semantic
+    Patch Generation). Different from previous LLM-based code translation work [[12](https://arxiv.org/html/2409.19894v2#bib.bib12),
+    [11](https://arxiv.org/html/2409.19894v2#bib.bib11)] that directly leverages LLMs
+    to fix semantic errors without pinpointing the suspicious location, Semantic Error
+    Fixer can (i) not only narrow down the fixing space by pinpointing the error target
+    block (ii) but also provide detailed error information about the runtime values
+    within the block rather than only providing the test inputs/outputs of the entire
+    program. We then explain each step in detail.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于源程序和目标程序之间的块级映射，TransAGENT 通过以下步骤执行精细化修复过程：(i) 首先通过比较每对源块和目标块的动态行为来定位错误目标块（即错误块定位），(ii)
+    然后使用相关的错误信息专门修复错误目标块（即语义修补生成）。与之前基于大语言模型（LLM）的代码翻译工作[[12](https://arxiv.org/html/2409.19894v2#bib.bib12)，[11](https://arxiv.org/html/2409.19894v2#bib.bib11)]直接利用LLMs修复语义错误而不明确指出可疑位置不同，语义错误修复器不仅能通过定位错误目标块来缩小修复范围，还能提供关于块内运行时值的详细错误信息，而不仅仅是提供整个程序的测试输入/输出。接下来我们将详细解释每个步骤。
+- en: 'Input: $P_{S}=<B_{S1},B_{S2},...B_{Sn}>$, $P_{T}=<B_{T1},B_{T2},...B_{Tn}>$,
+    $\mathbb{V}_{S}=\{V_{S}^{t_{k}}\}$, $\mathbb{V}_{T}=\{V_{T}^{t_{k}}\}$, $T=\{t_{1},t_{2},...,t_{K}\}$,
+    $f_{map}$, $f_{id}$Output: Error block in target program $B_{Te}$12for *$t_{k}$
+    in $T$* do3       $l\leftarrow 0$;4       while *$l<len(V_{T}^{t_{k}})$* do5            
+    $V_{S}\leftarrow V_{{S}}^{t_{k}}[l]$; $V_{T}\leftarrow V_{{T}}^{t_{k}}[l]$;6            
+    $B_{Si}\leftarrow f_{id}(V_{S})$; $B_{Tj}\leftarrow f_{id}(V_{T})$;7            
+    if *$V_{T}==NULL$* then8                   return $f_{map}(B_{Si})$ ;9                  10            11            if *$B_{Tj}\neq
+    f_{map}(B_{Si})$* then12                   if *$B_{Tj}$ is a control flow statement* then13                        
+    return $B_{Tj}$ ;14                        15                  else16                        
+    return $f_{map}(B_{Si})$ ;17                        18                  19            else20                  
+    if *$Equal(V_{S},V_{T})$* then21                         continue;22                        23                  else24                        
+    return $B_{Tj}$ ;25                        26                  27            $l\leftarrow
+    l+1$;28            29'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输入：$P_{S}=<B_{S1},B_{S2},...B_{Sn}>$, $P_{T}=<B_{T1},B_{T2},...B_{Tn}>$, $\mathbb{V}_{S}=\{V_{S}^{t_{k}}\}$,
+    $\mathbb{V}_{T}=\{V_{T}^{t_{k}}\}$, $T=\{t_{1},t_{2},...,t_{K}\}$, $f_{map}$,
+    $f_{id}$ 输出：目标程序中的错误块 $B_{Te}$12对于 *$t_{k}$ in $T$* 执行3       $l\leftarrow 0$；4      
+    当 *$l<len(V_{T}^{t_{k}})$* 时，执行5             $V_{S}\leftarrow V_{{S}}^{t_{k}}[l]$；$V_{T}\leftarrow
+    V_{{T}}^{t_{k}}[l]$；6             $B_{Si}\leftarrow f_{id}(V_{S})$；$B_{Tj}\leftarrow
+    f_{id}(V_{T})$；7             如果 *$V_{T}==NULL$* 则8                   返回 $f_{map}(B_{Si})$；9                  10            11            如果
+    *$B_{Tj}\neq f_{map}(B_{Si})$* 则12                   如果 *$B_{Tj}$ 是控制流语句* 则13                        
+    返回 $B_{Tj}$；14                        15                  否则16                        
+    返回 $f_{map}(B_{Si})$；17                        18                  19            否则20                  
+    如果 *$Equal(V_{S},V_{T})$* 则21                         继续；22                        23                  否则24                        
+    返回 $B_{Tj}$；25                        26                  27            $l\leftarrow
+    l+1$；28            29
+- en: Algorithm 1 Error Block Localization Algorithm
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 算法 1 错误块定位算法
+- en: III-D1 Error Block Localization
+  id: totrans-78
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-D1 错误块定位
+- en: For error block localization, TransAGENT first collects the runtime values of
+    blocks in both source and target program (i.e., Runtime value collection) and
+    then detects the target block with different values from its mapped source block
+    (i.e., Runtime value comparison).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于错误块定位，TransAGENT 首先收集源程序和目标程序中块的运行时值（即运行时值收集），然后检测与映射源块值不同的目标块（即运行时值比较）。
+- en: 'Runtime value collection. TransAGENT first collects the runtime values of all
+    the variables within each block for both source and target program. In particular,
+    TransAGENT first instruments both source and target program by adding logging
+    statements at the entry or exit of each block (more details are in Section [IV-E](https://arxiv.org/html/2409.19894v2#S4.SS5
+    "IV-E Implementation ‣ IV Experimental Setting ‣ TransAGENT: An LLM-Based Multi-Agent
+    System for Code Translation")); then TransAGENT executes the instrumented source
+    and target program with each test input and collects the runtime values of all
+    the variables within each block for both source and target program. Specifically,
+    the execution trace of the instrumented source program $P_{S}$ with test case
+    $t_{k}$ can be denoted as a list $V_{S}^{t_{k}}=<V_{S1}^{t_{k}},V_{S2}^{t_{k}},...,V_{SL}^{t_{k}}>$,
+    where $V_{Sl}^{t_{k}}$ contains the runtime values within the $l^{th}$ execution
+    instance of the source block $S_{Bi}$, i.e., $S_{Bi}=f_{id}(V_{Sl}^{t_{k}})$,
+    and the function $f_{id}$ returns the block of the execution block instance. Additionally,
+    the runtime values of source program $P_{S}$ with the entire test suite $T$ can
+    be denoted as $\mathbb{V}_{S}=\{V_{S}^{t_{k}}\}$. Similarly, the runtime values
+    of target program $P_{T}$ with the entire test suite $T$ can be denoted as $\mathbb{V}_{T}=\{V_{T}^{t_{k}}\}$,
+    where $V_{T}^{t_{k}}=<V_{T1}^{t_{k}},V_{T2}^{t_{k}},...,V_{TL^{\prime}}^{t_{k}}>$.'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '运行时值收集。TransAGENT首先收集源程序和目标程序中每个代码块的所有变量的运行时值。具体来说，TransAGENT首先通过在每个代码块的入口或出口处添加日志语句来对源程序和目标程序进行插桩（更多细节请参见第[IV-E节](https://arxiv.org/html/2409.19894v2#S4.SS5
+    "IV-E Implementation ‣ IV Experimental Setting ‣ TransAGENT: An LLM-Based Multi-Agent
+    System for Code Translation")）；然后，TransAGENT使用每个测试输入执行插桩后的源程序和目标程序，并收集源程序和目标程序中每个代码块的所有变量的运行时值。具体来说，使用测试用例$t_{k}$执行插桩后的源程序$P_{S}$的执行轨迹可以表示为一个列表$V_{S}^{t_{k}}=<V_{S1}^{t_{k}},V_{S2}^{t_{k}},...,V_{SL}^{t_{k}}>$，其中$V_{Sl}^{t_{k}}$包含源代码块$S_{Bi}$的第$l$个执行实例中的运行时值，即$S_{Bi}=f_{id}(V_{Sl}^{t_{k}})$，函数$f_{id}$返回执行块实例的代码块。此外，源程序$P_{S}$在整个测试集$T$上的运行时值可以表示为$\mathbb{V}_{S}=\{V_{S}^{t_{k}}\}$。同样，目标程序$P_{T}$在整个测试集$T$上的运行时值可以表示为$\mathbb{V}_{T}=\{V_{T}^{t_{k}}\}$，其中$V_{T}^{t_{k}}=<V_{T1}^{t_{k}},V_{T2}^{t_{k}},...,V_{TL^{\prime}}^{t_{k}}>$。'
+- en: 'Runtime value comparison. As illustrated in Algorithm [1](https://arxiv.org/html/2409.19894v2#alg1
+    "In III-D Semantic Error Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based Multi-Agent
+    System for Code Translation"), TransAGENT then localizes the error target block
+    by comparing the collected values of each pair of mapped blocks. The algorithm
+    iterates the comparison over each test case $t_{k}$ (Line 1). In particular, along
+    the execution trace of the target program (Line 3), the algorithm compares each
+    block execution instance iteratively. First, when the runtime values of the current
+    target block do not exist (i.e., indicating there is some runtime error when the
+    target program executes the block), the algorithm returns the target block that
+    is mapped with the current source block as the error block (Line 6 - 7). Second,
+    if the current source block and the current target block are not mapped (Line
+    8), which indicates there is some mismatching introduced into the control flow,
+    the algorithm returns the control flow statement as the error block. Third, if
+    the current source block and the current target block are mapped and their runtime
+    values are equal (Line 14), which indicates these two blocks are semantically
+    equivalent, the algorithm proceeds to the next iteration; otherwise, the current
+    target block is returned as the error block when the runtime values are not equal
+    between the mapped pair of the source block and the target block.'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '运行时值比较。如算法[1](https://arxiv.org/html/2409.19894v2#alg1 "In III-D Semantic Error
+    Fixer ‣ III Approach ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation")所示，TransAGENT通过比较每对映射块的收集值来定位错误目标块。该算法对每个测试用例$t_{k}$进行迭代比较（第1行）。具体来说，沿着目标程序的执行轨迹（第3行），算法逐一比较每个代码块的执行实例。首先，当当前目标块的运行时值不存在时（即，表示目标程序在执行该代码块时发生了运行时错误），算法返回与当前源代码块映射的目标块作为错误块（第6
+    - 7行）。其次，如果当前源代码块和当前目标代码块没有映射（第8行），则表明在控制流中引入了某种不匹配，算法返回控制流语句作为错误块。第三，如果当前源代码块和当前目标代码块已映射且它们的运行时值相等（第14行），则表示这两个代码块在语义上是等价的，算法进入下一次迭代；否则，当映射的源代码块和目标代码块之间的运行时值不相等时，当前目标块将作为错误块返回。'
+- en: III-D2 Semantic Patch Generation
+  id: totrans-82
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: III-D2 语义修补生成
+- en: After identifying the error block in target program, TransAGENT leverages LLMs
+    to generate patches for the error target block. In particular, we include both
+    the vanilla fixing strategy and the value-aware fixing strategy as follows.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在识别目标程序中的错误块之后，TransAGENT利用LLMs为错误目标块生成修补程序。特别地，我们包括了vanilla修复策略和value-aware修复策略，具体如下。
+- en: •
+  id: totrans-84
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Vanilla fixing strategy prompts LLMs to fix the error target block based on
+    static information (i.e., the code of the error target block and its mapped source
+    block);
+  id: totrans-85
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Vanilla修复策略提示LLMs根据静态信息（即错误目标块的代码及其映射的源块）来修复错误目标块；
+- en: •
+  id: totrans-86
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Value-aware fixing strategy prompts LLMs to fix the error target block by further
+    providing the collected runtime values of the error target block and its mapped
+    source block.
+  id: totrans-87
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Value-aware修复策略提示LLMs通过进一步提供错误目标块及其映射源块的收集到的运行时值来修复错误目标块。
+- en: 'These two fixing strategies are complementary, as existing LLMs exhibit imperfect
+    capabilities of reasoning the runtime behaviors of program [[13](https://arxiv.org/html/2409.19894v2#bib.bib13)].
+    As a result, runtime values can sometimes be helpful for LLMs to understand bug
+    causes, especially for the cases with extreme values like data overflow (which
+    are the cases value-aware fixing strategies can be helpful for); but sometimes
+    runtime values can be too obscure and overwhelming to negatively limit LLMs in
+    understanding bugs (which are the cases vanilla fixing strategies can be helpful
+    for). Our ablation study results in Section [V-B](https://arxiv.org/html/2409.19894v2#S5.SS2
+    "V-B RQ2: Ablation Evaluation ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation") further confirm the complementarity
+    between these two fixing strategies.'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这两种修复策略是互补的，因为现有的LLMs在推理程序的运行时行为方面的能力并不完美[[13](https://arxiv.org/html/2409.19894v2#bib.bib13)]。因此，运行时值有时可以帮助LLMs理解错误原因，特别是对于像数据溢出这样的极端值情况（这些是value-aware修复策略能够发挥作用的情况）；但有时运行时值可能过于晦涩且信息量过大，反而限制了LLMs理解错误的能力（这些是vanilla修复策略能够发挥作用的情况）。我们在[Section
+    V-B](https://arxiv.org/html/2409.19894v2#S5.SS2 "V-B RQ2: Ablation Evaluation
+    ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System for Code
+    Translation")的消融研究结果进一步验证了这两种修复策略的互补性。'
+- en: 'For example, Figure [7](https://arxiv.org/html/2409.19894v2#S3.F7 "Figure 7
+    ‣ III-D2 Semantic Patch Generation ‣ III-D Semantic Error Fixer ‣ III Approach
+    ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation").a and Figure [7](https://arxiv.org/html/2409.19894v2#S3.F7
+    "Figure 7 ‣ III-D2 Semantic Patch Generation ‣ III-D Semantic Error Fixer ‣ III
+    Approach ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation").b
+    show the prompts used in the vanilla and value-aware fixing strategies, respectively.
+    For both cases, the error block identified in the previous localization step is
+    the code segment between the markers “–1–” and “–2–”. In particular, we adopt
+    a cloze-style fixing prompt by querying LLMs to directly re-generate the correct
+    code (i.e., “Fill in the Correct Code Here”), which is commonly used in LLM-based
+    program repair[[22](https://arxiv.org/html/2409.19894v2#bib.bib22), [23](https://arxiv.org/html/2409.19894v2#bib.bib23),
+    [24](https://arxiv.org/html/2409.19894v2#bib.bib24), [25](https://arxiv.org/html/2409.19894v2#bib.bib25)];
+    in addition, both fixing strategies follow Chain-of-Thought reasoning prompts
+    with two steps, which have been shown as effective in previous research [[26](https://arxiv.org/html/2409.19894v2#bib.bib26),
+    [27](https://arxiv.org/html/2409.19894v2#bib.bib27), [26](https://arxiv.org/html/2409.19894v2#bib.bib26),
+    [28](https://arxiv.org/html/2409.19894v2#bib.bib28)].'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '例如，图 [7](https://arxiv.org/html/2409.19894v2#S3.F7 "Figure 7 ‣ III-D2 Semantic
+    Patch Generation ‣ III-D Semantic Error Fixer ‣ III Approach ‣ TransAGENT: An
+    LLM-Based Multi-Agent System for Code Translation").a 和图 [7](https://arxiv.org/html/2409.19894v2#S3.F7
+    "Figure 7 ‣ III-D2 Semantic Patch Generation ‣ III-D Semantic Error Fixer ‣ III
+    Approach ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation").b
+    分别展示了在vanilla和value-aware修复策略中使用的提示。在这两种情况下，之前定位步骤中识别出的错误块是“–1–”和“–2–”之间的代码段。特别地，我们通过查询LLMs直接重新生成正确代码（即“Fill
+    in the Correct Code Here”）来采用填空式修复提示，这种方法在基于LLM的程序修复中被广泛使用[[22](https://arxiv.org/html/2409.19894v2#bib.bib22),
+    [23](https://arxiv.org/html/2409.19894v2#bib.bib23), [24](https://arxiv.org/html/2409.19894v2#bib.bib24),
+    [25](https://arxiv.org/html/2409.19894v2#bib.bib25)]；此外，这两种修复策略都遵循两步的Chain-of-Thought推理提示，这在之前的研究中已被证明是有效的[[26](https://arxiv.org/html/2409.19894v2#bib.bib26),
+    [27](https://arxiv.org/html/2409.19894v2#bib.bib27), [26](https://arxiv.org/html/2409.19894v2#bib.bib26),
+    [28](https://arxiv.org/html/2409.19894v2#bib.bib28)]。'
+- en: 'Example illustration. Figure [7](https://arxiv.org/html/2409.19894v2#S3.F7
+    "Figure 7 ‣ III-D2 Semantic Patch Generation ‣ III-D Semantic Error Fixer ‣ III
+    Approach ‣ TransAGENT: An LLM-Based Multi-Agent System for Code Translation").a
+    illustrates the vanilla fixing strategy, which prompts LLMs to generate the correct
+    code for the error target block based on the mapped source block and surrounding
+    contexts. Figure [7](https://arxiv.org/html/2409.19894v2#S3.F7 "Figure 7 ‣ III-D2
+    Semantic Patch Generation ‣ III-D Semantic Error Fixer ‣ III Approach ‣ TransAGENT:
+    An LLM-Based Multi-Agent System for Code Translation").b illustrates the value-aware
+    fixing strategy. After translated from Python to Java, the target program encounters
+    a data overflow issue where the spend variable exceeds the range for its type.
+    The expected output is “2,299,999,917” within the mapped source block, but the
+    actual output within the target block is “-1,994,967,379” due to the data overflow.
+    By including such extreme runtime values into the prompt, the value-aware fixing
+    strategy can remind LLMs of the potential type errors for leading such extreme
+    runtime values. As a result, the value-aware fixing strategy can fix the error
+    target block by re-declaring spend as the Long type.'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例说明。图[7](https://arxiv.org/html/2409.19894v2#S3.F7 "图7 ‣ III-D2 语义补丁生成 ‣ III-D
+    语义错误修复器 ‣ III 方法 ‣ TransAGENT：一种基于LLM的多代理系统用于代码翻译").a展示了基础修复策略，它提示LLM根据映射的源块和周围上下文生成正确的错误目标块代码。图[7](https://arxiv.org/html/2409.19894v2#S3.F7
+    "图7 ‣ III-D2 语义补丁生成 ‣ III-D 语义错误修复器 ‣ III 方法 ‣ TransAGENT：一种基于LLM的多代理系统用于代码翻译").b展示了基于值的修复策略。在从Python翻译到Java后，目标程序遇到了数据溢出问题，其中`spend`变量超出了其类型的范围。映射的源块中的预期输出是“2,299,999,917”，但由于数据溢出，目标块中的实际输出为“-1,994,967,379”。通过将这些极端的运行时值包含在提示中，基于值的修复策略可以提醒LLM可能会出现类型错误，从而导致如此极端的运行时值。因此，基于值的修复策略可以通过重新声明`spend`为Long类型来修复错误目标块。
+- en: Fixing workflow. During the semantic patch generation, TransAGENT iteratively
+    applies both fixing strategies. In each iteration, each generated patch would
+    be executed to validate whether the error block of the new target program exhibits
+    no difference in the runtime values compared to the source program. If the runtime
+    value difference of the current error block has been eliminated, TransAGENT proceeds
+    to fix the next error block (if has any); otherwise, the fixing process terminates
+    by concluding as a failed attempt.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复工作流程。在语义补丁生成过程中，TransAGENT迭代地应用两种修复策略。在每次迭代中，每个生成的补丁都会被执行，以验证新目标程序的错误块与源程序的运行时值是否没有差异。如果当前错误块的运行时值差异已被消除，TransAGENT将继续修复下一个错误块（如果有的话）；否则，修复过程将终止并被视为失败尝试。
+- en: '![Refer to caption](img/5d455e2e5ec1722b513486ae6662eab2.png)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明](img/5d455e2e5ec1722b513486ae6662eab2.png)'
+- en: 'Figure 7: Prompts in Semantic Patch Generation'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图7：语义补丁生成中的提示
+- en: IV Experimental Setting
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: IV 实验设置
+- en: We evaluate TransAGENT by answering the following research questions.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过回答以下研究问题来评估TransAGENT。
+- en: •
+  id: totrans-96
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ1 (Overall Effectiveness): How does TransAGENT compare to state-of-the-art
+    transpilers?'
+  id: totrans-97
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ1（整体有效性）：TransAGENT与最先进的转译器相比如何？
+- en: •
+  id: totrans-98
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ2 (Ablation Evaluation): How does each agent in TransAGENT boost code translation?'
+  id: totrans-99
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ2（消融评估）：TransAGENT中的每个代理如何促进代码翻译？
+- en: •
+  id: totrans-100
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ3 (Mapping Accuracy): How accurate is Code Aligner of TransAGENT in code
+    mapping?'
+  id: totrans-101
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ3（映射精度）：TransAGENT的代码对齐器在代码映射中的精度如何？
+- en: •
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ4 (Cost): How efficient is TransAGENT during code translation process?'
+  id: totrans-103
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ4（成本）：TransAGENT在代码翻译过程中的效率如何？
+- en: •
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: 'RQ5 (Generalization): How does TransAGENT perform with different backbone LLMs?'
+  id: totrans-105
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: RQ5（泛化能力）：TransAGENT在不同骨干LLM上表现如何？
+- en: IV-A Benchmark
+  id: totrans-106
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-A 基准
+- en: Limitations of Existing Benchmarks. Although there are many existing code translation
+    benchmarks [[6](https://arxiv.org/html/2409.19894v2#bib.bib6), [7](https://arxiv.org/html/2409.19894v2#bib.bib7),
+    [29](https://arxiv.org/html/2409.19894v2#bib.bib29), [9](https://arxiv.org/html/2409.19894v2#bib.bib9),
+    [10](https://arxiv.org/html/2409.19894v2#bib.bib10)], they have the following
+    limitations. First, all existing benchmarks suffer from potential data leakage
+    issues, as their translation tasks are constructed from public programming competition
+    by the training data timestamp of most recent LLMs (e.g., the most widely-used
+    evaluation dataset TransCoder-ST [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]
+    is created in 2020). Second, some benchmarks involve the translation between only
+    two languages [[30](https://arxiv.org/html/2409.19894v2#bib.bib30), [31](https://arxiv.org/html/2409.19894v2#bib.bib31),
+    [32](https://arxiv.org/html/2409.19894v2#bib.bib32), [33](https://arxiv.org/html/2409.19894v2#bib.bib33)],
+    such as the Java-C# benchmark CodeTrans [[30](https://arxiv.org/html/2409.19894v2#bib.bib30)]
+    or the Java-Python benchmark AVATAR [[31](https://arxiv.org/html/2409.19894v2#bib.bib31)],
+    which limits the generalization of evaluation. Third, some benchmarks (e.g., CodeNet [[34](https://arxiv.org/html/2409.19894v2#bib.bib34)])
+    suffer from quality issues, and half of its tasks are manually identified as incorrect
+    code by experts  [[35](https://arxiv.org/html/2409.19894v2#bib.bib35)], thus can
+    harm the soundness of the evaluation.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现有基准的局限性。尽管已经有许多现有的代码翻译基准[[6](https://arxiv.org/html/2409.19894v2#bib.bib6),
+    [7](https://arxiv.org/html/2409.19894v2#bib.bib7), [29](https://arxiv.org/html/2409.19894v2#bib.bib29),
+    [9](https://arxiv.org/html/2409.19894v2#bib.bib9), [10](https://arxiv.org/html/2409.19894v2#bib.bib10)]，但它们存在以下局限性。首先，所有现有的基准都存在潜在的数据泄露问题，因为它们的翻译任务是通过最近的大型语言模型（LLMs）训练数据的时间戳（例如，最广泛使用的评估数据集TransCoder-ST
+    [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]是在2020年创建的）构建的。第二，一些基准只涉及两种语言之间的翻译[[30](https://arxiv.org/html/2409.19894v2#bib.bib30),
+    [31](https://arxiv.org/html/2409.19894v2#bib.bib31), [32](https://arxiv.org/html/2409.19894v2#bib.bib32),
+    [33](https://arxiv.org/html/2409.19894v2#bib.bib33)]，例如Java-C#基准CodeTrans [[30](https://arxiv.org/html/2409.19894v2#bib.bib30)]或Java-Python基准AVATAR
+    [[31](https://arxiv.org/html/2409.19894v2#bib.bib31)]，这限制了评估的泛化性。第三，一些基准（例如CodeNet
+    [[34](https://arxiv.org/html/2409.19894v2#bib.bib34)]）存在质量问题，其一半任务被专家人工判定为错误代码[[35](https://arxiv.org/html/2409.19894v2#bib.bib35)]，因此可能会影响评估的有效性。
+- en: New Benchmark Construction. To address the limitations above (especially the
+    data leakage issue), we first create a new benchmark for code translation, which
+    is constructed on the recent programming tasks which are released after the training
+    data timestamp of recent LLMs. In particular, from the programming competition
+    websites (e.g., LeetCode [[36](https://arxiv.org/html/2409.19894v2#bib.bib36)]
+    and GeeksforGeeks [[37](https://arxiv.org/html/2409.19894v2#bib.bib37)]), we collect
+    the solutions of programming tasks in different programming languages, which are
+    released after August 2023. Specifically, we focus on three popular programming
+    languages, i.e., Java, Python, and C++. As the solutions in these websites typically
+    come with only two or three test cases, which can be insufficient for guaranteeing
+    the semantic correctness of code [[38](https://arxiv.org/html/2409.19894v2#bib.bib38)],
+    we further leverage gpt-4o-mini [[39](https://arxiv.org/html/2409.19894v2#bib.bib39)]
+    to generate 10 additional test cases per solution, to ensure the sufficiency of
+    tests for each translation task. We execute the collected code solutions with
+    test cases and discard the tasks whose solutions exhibit inconsistent behaviors
+    between different languages. Lastly, two authors of this work further manually
+    check each translation task to ensure the benchmark quality.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 新基准的构建。为了解决上述局限性（特别是数据泄露问题），我们首先创建了一个新的代码翻译基准，该基准构建于最近发布的编程任务，这些任务的发布在最近LLMs训练数据的时间戳之后。具体来说，我们从编程竞赛网站（如LeetCode
+    [[36](https://arxiv.org/html/2409.19894v2#bib.bib36)]和GeeksforGeeks [[37](https://arxiv.org/html/2409.19894v2#bib.bib37)]）收集了2023年8月之后发布的不同编程语言的编程任务解决方案。我们特别关注三种流行的编程语言，即Java、Python和C++。由于这些网站上的解决方案通常仅附带两个或三个测试用例，这可能不足以确保代码的语义正确性[[38](https://arxiv.org/html/2409.19894v2#bib.bib38)]，我们进一步利用gpt-4o-mini
+    [[39](https://arxiv.org/html/2409.19894v2#bib.bib39)]为每个解决方案生成10个额外的测试用例，以确保每个翻译任务的测试充分性。我们执行收集的代码解决方案及其测试用例，并丢弃那些在不同语言之间表现出不一致行为的任务。最后，本文的两位作者进一步手动检查每个翻译任务，以确保基准的质量。
+- en: 'Benchmark Statistics. In this way, we obtain 210 pairs of Python-Java translation
+    tasks, 200 pairs of Python-C++ translation tasks, and 204 pairs of Java-C++ translation
+    tasks. Table [I](https://arxiv.org/html/2409.19894v2#S4.T1 "TABLE I ‣ IV-A Benchmark
+    ‣ IV Experimental Setting ‣ TransAGENT: An LLM-Based Multi-Agent System for Code
+    Translation") presents the line distribution of our benchmark; the average line
+    coverage of each program with test cases achieve 98.4% for Python, 98.7% for Java,
+    and 98.4% for C++, indicating the test sufficiency for each translation task.'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '基准统计数据。通过这种方式，我们获得了210对Python-Java翻译任务、200对Python-C++翻译任务以及204对Java-C++翻译任务。表[I](https://arxiv.org/html/2409.19894v2#S4.T1
+    "TABLE I ‣ IV-A Benchmark ‣ IV Experimental Setting ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation")展示了我们的基准线分布；每个程序的平均行覆盖率为Python 98.4%、Java
+    98.7%和C++ 98.4%，这表明每个翻译任务的测试充分性。'
+- en: 'TABLE I: Line Distribution of Our Benchmark'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表I：我们基准的行分布
+- en: Line Distribution Python (%) Java (%) C++ (%) [0,5) 11.0 2.7 3.2 [5,10) 24.6
+    13.1 13.6 [10,15) 35.5 24.9 31.2 [15, 20) 16.2 26.7 20.8 [20,60] 12.7 32.6 31.2
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 行分布 Python (%) Java (%) C++ (%) [0,5) 11.0 2.7 3.2 [5,10) 24.6 13.1 13.6 [10,15)
+    35.5 24.9 31.2 [15, 20) 16.2 26.7 20.8 [20,60] 12.7 32.6 31.2
+- en: IV-B Baselines
+  id: totrans-112
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-B 基准
+- en: Code Translation Baselines. We include the following state-of-the-art LLM-based
+    and learning-based transpilers as baselines.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码翻译基准。我们包括以下几种基于LLM和基于学习的转译器作为基准。
+- en: •
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)] is the latest
+    LLM-based code translator which iteratively fixes translated program with LLMs.
+    It is notable that another LLM-based technique proposed by Pan et al. [[11](https://arxiv.org/html/2409.19894v2#bib.bib11)]
+    also shares the similar fixing approach as UniTrans, thus we do not include it
+    as a separate baseline.
+  id: totrans-115
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)] 是最新的基于LLM的代码翻译器，采用迭代修复翻译程序的方式。值得注意的是，Pan等人提出的另一种基于LLM的技术[[11](https://arxiv.org/html/2409.19894v2#bib.bib11)]也采用了与UniTrans类似的修复方法，因此我们没有将其作为独立的基准纳入评估。
+- en: •
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)] is a representative
+    learning-based code translation technique, which has been evaluated by almost
+    all the previous code translation research [[12](https://arxiv.org/html/2409.19894v2#bib.bib12),
+    [7](https://arxiv.org/html/2409.19894v2#bib.bib7), [8](https://arxiv.org/html/2409.19894v2#bib.bib8),
+    [9](https://arxiv.org/html/2409.19894v2#bib.bib9), [29](https://arxiv.org/html/2409.19894v2#bib.bib29),
+    [10](https://arxiv.org/html/2409.19894v2#bib.bib10)].
+  id: totrans-117
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)] 是一种具有代表性的基于学习的代码翻译技术，几乎所有先前的代码翻译研究都对其进行了评估
+    [[12](https://arxiv.org/html/2409.19894v2#bib.bib12), [7](https://arxiv.org/html/2409.19894v2#bib.bib7),
+    [8](https://arxiv.org/html/2409.19894v2#bib.bib8), [9](https://arxiv.org/html/2409.19894v2#bib.bib9),
+    [29](https://arxiv.org/html/2409.19894v2#bib.bib29), [10](https://arxiv.org/html/2409.19894v2#bib.bib10)]。
+- en: Code Mapping Baselines. In RQ3 of mapping accuracy evaluation, we compare Code
+    Aligner in TransAGENT with  [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)],
+    which is the latest LLM-based code mapping strategy for code translation.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码映射基准。在RQ3中，我们评估了TransAGENT中代码对齐器的映射准确性，并将其与[[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]进行比较，后者是最新的基于LLM的代码映射策略。
+- en: IV-C Studied Models
+  id: totrans-119
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-C 研究的模型
+- en: In RQ5, we evaluate TransAGENT with the following LLMs to study the generalization
+    of TransAGENT. In particular, we focus on models with fewer than 10 billion parameters
+    given the resource constraints, and we only include the models whose training
+    data cutoff is before our benchmark, to avoid data leakage issue.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在RQ5中，我们通过以下LLM评估TransAGENT，研究其泛化能力。特别地，考虑到资源限制，我们重点关注参数少于100亿的模型，并且只包括训练数据截止时间在我们基准之前的模型，以避免数据泄漏问题。
+- en: •
+  id: totrans-121
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Deepseek-coder-6.7b-instruct [[16](https://arxiv.org/html/2409.19894v2#bib.bib16)]
+    with 6.7 billion parameters, which is initialized from deepseek-coder-6.7b-base
+    and fine-tuned on 2 billion tokens of instruction data with a knowledge cutoff
+    of February 2023.
+  id: totrans-122
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Deepseek-coder-6.7b-instruct [[16](https://arxiv.org/html/2409.19894v2#bib.bib16)]，拥有67亿个参数，从deepseek-coder-6.7b-base初始化，并在20亿个指令数据令牌上进行了微调，知识截至日期为2023年2月。
+- en: •
+  id: totrans-123
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Llama-3-8B-Instruct [[40](https://arxiv.org/html/2409.19894v2#bib.bib40)] with
+    8 billion parameters, which is an instruction-tuned model from the Llama-3 family,
+    optimized for dialogue usage with a knowledge cutoff of March 2023.
+  id: totrans-124
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: Llama-3-8B-Instruct [[40](https://arxiv.org/html/2409.19894v2#bib.bib40)]，拥有80亿个参数，属于Llama-3系列的指令调优模型，针对对话用途进行了优化，知识截至日期为2023年3月。
+- en: •
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: ChatGLM2-6b [[41](https://arxiv.org/html/2409.19894v2#bib.bib41)] with 6 billion
+    parameters, which is the second version of ChatGLM-6B [[42](https://arxiv.org/html/2409.19894v2#bib.bib42)]
+    released in June 2023 and fine-tuned for general-purpose tasks.
+  id: totrans-126
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: ChatGLM2-6b [[41](https://arxiv.org/html/2409.19894v2#bib.bib41)] 拥有60亿个参数，是2023年6月发布的ChatGLM-6B [[42](https://arxiv.org/html/2409.19894v2#bib.bib42)]的第二个版本，并且进行了针对通用任务的微调。
+- en: IV-D Evaluation Metrics
+  id: totrans-127
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-D 评估指标
+- en: Code Translation Metrics. Following previous work [[7](https://arxiv.org/html/2409.19894v2#bib.bib7),
+    [9](https://arxiv.org/html/2409.19894v2#bib.bib9), [6](https://arxiv.org/html/2409.19894v2#bib.bib6)],
+    we use the following metrics to evaluate the effectiveness of code translation
+    techniques.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码翻译指标。根据之前的研究 [[7](https://arxiv.org/html/2409.19894v2#bib.bib7), [9](https://arxiv.org/html/2409.19894v2#bib.bib9),
+    [6](https://arxiv.org/html/2409.19894v2#bib.bib6)]，我们使用以下指标来评估代码翻译技术的有效性。
+- en: •
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: Computational Accuracy (CA) [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)],
+    the most important metric in code translation, which measures translation accuracy
+    based on functional correctness. CA assesses whether the target program passes
+    all test cases, i.e., whether the target and source program produce same outputs
+    with the same test inputs.
+  id: totrans-130
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 计算准确度（CA）[[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]，是代码翻译中最重要的指标，用来衡量基于功能正确性的翻译准确性。CA评估目标程序是否通过所有测试用例，即目标程序和源程序是否在相同的测试输入下产生相同的输出。
+- en: •
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: •
+- en: CodeBLEU [[43](https://arxiv.org/html/2409.19894v2#bib.bib43)], a metric for
+    the similarity between target and source program.
+  id: totrans-132
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: CodeBLEU [[43](https://arxiv.org/html/2409.19894v2#bib.bib43)]，衡量目标程序和源程序之间相似度的指标。
+- en: Code Mapping Metrics. For RQ3, we calculate the mapping accuracy as $Accuracy=\#Correct\_Map\\
+    /\#Total\_Map$, where $\#Correct\_Map$ denotes the number of correct mappings
+    between the source program and target program and $\#Total\_Map$ denotes the number
+    of total mappings. In particular, a mapping is regarded as correct if all mapped
+    target blocks and source blocks are semantically equivalent.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码映射指标。对于RQ3，我们计算映射准确度，公式为 $Accuracy=\#Correct\_Map\\ /\#Total\_Map$，其中 $\#Correct\_Map$
+    表示源程序与目标程序之间正确映射的数量，$\#Total\_Map$ 表示总映射数量。特别地，当所有映射的目标块和源块在语义上等价时，认为一个映射是正确的。
+- en: IV-E Implementation
+  id: totrans-134
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-E 实现
+- en: Baseline Implementation. For UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)],
+    we obtain its implementation from its replication package and make the following
+    adjustment for comparison with TransAGENT. First, we replace the backbone LLM
+    in UniTrans with the same LLM used in TransAGENT. In addition, we modify its fixing
+    phase by splitting it into syntax error fixer and semantic error fixer, so as
+    to compare with relevant components of TransAGENT. Furthermore, we change its
+    fixed iteration strategy (i.e., only iterating within a fixed threshold of iterations)
+    into the same dynamic strategy as TransAGENT, for fair comparison. For TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]
+    implementation, we directly replicate it with the released implementation with
+    its optimal model weights. We fix the beam_size parameter at 10 and select the
+    first output to re-evaluate it on our benchmark. For TransMap [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)],
+    we directly use its released implementation.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基准实现。对于UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]，我们从其复制包中获取实现，并做出以下调整，以便与TransAGENT进行比较。首先，我们将UniTrans中的主干LLM替换为TransAGENT中使用的相同LLM。此外，我们将其修复阶段修改为分为语法错误修复器和语义错误修复器，以便与TransAGENT的相关组件进行比较。进一步地，我们将其固定迭代策略（即仅在固定的迭代阈值内迭代）改为与TransAGENT相同的动态策略，以确保公平比较。对于TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]实现，我们直接用其发布的实现并加载最优模型权重进行复制。我们将beam_size参数固定为10，并选择第一个输出，重新在我们的基准上评估。对于TransMap [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]，我们直接使用其发布的实现。
+- en: TransAGENT Implementation. For each agent in TransAGENT, (i) Initial Code Translator
+    adopts the same setting as UniTrans; (ii) Syntax Error Fixer adopts javac for
+    Java, GCC for C++, and the Python interpreter for Python, for syntax validation;
+    (iii) Code Aligner adopts Joern [[44](https://arxiv.org/html/2409.19894v2#bib.bib44)],
+    a static code analysis tool to generate control flow graphs, which supports multiple
+    languages; (iv) in Semantic Error Fixer, for Error Block Localization, we insert
+    log statements at either the entry or exit points of each block to capture the
+    runtime values of all variables within the block. If the code block contains a
+    return statement, a log statement is inserted at the entry to capture the return
+    value; otherwise, it is located at the exit. For Runtime Value Comparison, we
+    convert the recorded variable values into “JSON” format for standardized comparison.
+    Data types such as “List,” “Array,” and “Deque” are mapped to “JSON” arrays, and
+    “int,” “float,” and other numeric types are converted to “JSON” numbers. Such
+    an conversion helps standardize comparison across different programming languages,
+    which might have varying data types and structures. In particular, we include
+    the one-shot example in all prompts to guide LLMs to generate the required output
+    format.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TransAGENT 实现。对于 TransAGENT 中的每个代理，（i）初始代码翻译器采用与 UniTrans 相同的设置；（ii）语法错误修复器采用
+    javac 处理 Java，GCC 处理 C++，以及 Python 解释器处理 Python，用于语法验证；（iii）代码对齐器采用 Joern [[44](https://arxiv.org/html/2409.19894v2#bib.bib44)]，一个静态代码分析工具，用于生成控制流图，支持多种语言；（iv）在语义错误修复器中，对于错误块定位，我们在每个块的入口或出口插入日志语句，以捕捉该块内所有变量的运行时值。如果代码块包含返回语句，则在入口插入日志语句以捕获返回值；否则，日志语句位于出口。对于运行时值比较，我们将记录的变量值转换为“JSON”格式进行标准化比较。数据类型如“List”，“Array”和“Deque”映射为“JSON”数组，而“int”，“float”和其他数值类型则转换为“JSON”数字。这样的转换有助于在不同编程语言间进行标准化比较，因为它们可能具有不同的数据类型和结构。特别地，我们在所有提示中包括一次性示例，以指导
+    LLM 生成所需的输出格式。
+- en: LLM Settings. For each studied open-source LLM, we use their released model
+    and weights from HuggingFace [[45](https://arxiv.org/html/2409.19894v2#bib.bib45)].
+    To control randomness in our experiments, we set the parameters to “temperature=0”
+    and “do_sample=False”.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLM 设置。对于每个研究的开源 LLM，我们使用它们在 HuggingFace 上发布的模型和权重 [[45](https://arxiv.org/html/2409.19894v2#bib.bib45)]。为了控制实验中的随机性，我们将参数设置为“temperature=0”和“do_sample=False”。
+- en: IV-F Experimental Procedure
+  id: totrans-138
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: IV-F 实验过程
+- en: In this section, we introduce the corresponding evaluation methodology for each
+    research question.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一部分，我们介绍每个研究问题对应的评估方法。
+- en: RQ1 (Translation Effectiveness Evaluation). RQ1 compares the overall code translation
+    effectiveness of TransAGENT with two baselines (i.e., UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]
+    and TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]) in terms of
+    CA and CodeBLEU metrics.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ1（翻译效果评估）。RQ1 比较了 TransAGENT 在 CA 和 CodeBLEU 指标方面与两个基准（即 UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]
+    和 TransCoder [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]) 的整体代码翻译效果。
+- en: 'RQ2 (Ablation Evaluation). RQ2 evaluates the contribution of each agent in
+    TransAGENT (except Initial Code Translator as it is a basic component widely used
+    in previous code translation work [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]
+    but not the contribution of our approach). For better illustration, we adopt the
+    following abbreviations: ICT for Initial Code Translator, SynEF for Syntax Error
+    Fixer, and SemEF for Semantic Error Fixer. In particular, we investigate the following
+    variants of TransAGENT for ablation study. (i) ICT: including only Initial Code
+    Translator for code translation; (ii) ICT + SynEF: including both ICL and SynEF
+    agents; (iii) ICT + SynEF + SemEF: including ICL, SynEF, and SemEF agents. Additionally,
+    we further evaluate the complementarity between two fixing strategies for semantic
+    errors (i.e., vanilla and value-aware fixing strategies) with the following variants:
+    (iv) ICT+SynEF+Val, which applies the value-aware fixing strategy to the ICT +
+    SynEF variant, and (v) ICT+SynEF+Val+Van, which further applies vanilla fixing
+    strategy to the ICT+SynEF+Val variant.'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ2（消融评估）。RQ2 评估了 TransAGENT 中每个代理的贡献（不包括 Initial Code Translator，因为它是之前代码翻译工作中广泛使用的基础组件[[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]，但不是我们方法的贡献）。为了更好地说明，我们采用以下缩写：ICT
+    表示 Initial Code Translator，SynEF 表示语法错误修复器，SemEF 表示语义错误修复器。特别地，我们调查了以下 TransAGENT
+    的变体进行消融研究。（i）ICT：仅包含 Initial Code Translator 用于代码翻译；（ii）ICT + SynEF：同时包含 ICT 和
+    SynEF 代理；（iii）ICT + SynEF + SemEF：同时包含 ICT、SynEF 和 SemEF 代理。此外，我们进一步评估了两种语义错误修复策略（即传统修复策略和基于值的修复策略）之间的互补性，变体包括：（iv）ICT+SynEF+Val，将基于值的修复策略应用于
+    ICT + SynEF 变体，以及（v）ICT+SynEF+Val+Van，将传统修复策略进一步应用于 ICT+SynEF+Val 变体。
+- en: 'RQ3 (Mapping Effectiveness). RQ3 compares the mapping accuracy of Code Aligner
+    of TransAGENT with TransMap. We use both Code Aligner and TransMap to obtain mappings
+    between target and source program. In particular, we then conduct a user study
+    to manually inspect the mapping accuracy given the difficulties in automatically
+    obtaining the mapping ground-truth. Given manual costs, we sample 290 pairs at
+    a 95% confidence level with a 0.05 margin of error [[46](https://arxiv.org/html/2409.19894v2#bib.bib46),
+    [47](https://arxiv.org/html/2409.19894v2#bib.bib47)]. Given the mutual translation
+    among three languages, we select 48 data pairs from each pairwise translation.
+    We invite two graduate students, who are not involved in our work but have rich
+    experience in Python, Java, and C++, to independently annotate the mapping accuracy
+    of TransAGENT and TransMap. Each student annotates the results of both TransAGENT
+    and TransMap with the following annotation criteria: if all mapped code in the
+    target and source program is semantically equivalent, the mapping is labeled as
+    correct; otherwise, it is labeled as incorrect. A third student will provide an
+    additional label to resolve disagreement with the majority voting strategy. In
+    particular, we calculate the Cohen’s kappa coefficient [[48](https://arxiv.org/html/2409.19894v2#bib.bib48)]
+    for the label agreement. Lastly, we calculate the average accuracy of their annotations
+    for each task, which serves as the final mapping accuracy for TransAGENT and TransMap.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ3（映射效果）。RQ3 比较了 TransAGENT 的 Code Aligner 和 TransMap 的映射准确性。我们使用 Code Aligner
+    和 TransMap 获取目标程序和源程序之间的映射。特别地，考虑到自动获取映射真值的困难，我们进行了一项用户研究，通过人工检查映射准确性。鉴于人工成本，我们在
+    95% 的置信水平下，采用了 0.05 的误差范围，抽取了 290 对数据对[[46](https://arxiv.org/html/2409.19894v2#bib.bib46),
+    [47](https://arxiv.org/html/2409.19894v2#bib.bib47)]。鉴于三种语言之间的相互翻译，我们从每一对翻译中选择了
+    48 对数据对。我们邀请了两名研究生，他们并未参与我们的工作，但拥有丰富的 Python、Java 和 C++ 经验，来独立标注 TransAGENT 和
+    TransMap 的映射准确性。每个学生根据以下标注标准，对 TransAGENT 和 TransMap 的结果进行标注：如果目标程序和源程序中的所有映射代码在语义上等价，则该映射标记为正确；否则，标记为错误。一名第三位学生将提供额外的标签，采用多数投票策略解决分歧。特别地，我们计算了标签一致性的
+    Cohen’s kappa 系数[[48](https://arxiv.org/html/2409.19894v2#bib.bib48)]。最后，我们计算了他们每项任务的标注平均准确率，作为
+    TransAGENT 和 TransMap 的最终映射准确性。
+- en: RQ4 (Cost Evaluation). RQ4 collects the number of iterations and average time
+    costs of TransAGENT. In particular, we also collect the translation accuracy improvement
+    (CA) along each iteration.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ4（成本评估）。RQ4 收集了 TransAGENT 的迭代次数和平均时间成本。特别地，我们还收集了每次迭代的翻译准确性提升（CA）。
+- en: RQ5 (Generalization Evaluation). RQ5 replace the default backbone LLM (i.e.,
+    Deepseek-coder-6.7b-instruct) in TransAGENT with other two different LLMs (i.e.,
+    Llama-3-8B-Instruct and ChatGLM2-6B).
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RQ5（泛化评估）。RQ5将TransAGENT中的默认骨干LLM（即Deepseek-coder-6.7b-instruct）替换为另外两个不同的LLM（即Llama-3-8B-Instruct和ChatGLM2-6B）。
+- en: 'TABLE II: Translation Effectiveness of Different Transpilers'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 II：不同转译器的翻译效果
+- en: Transpilers Java to Python Java to C++ C++ to Java C++ to Python Python to C++
+    Python to Java CA(%) CodeBLEU CA(%) CodeBLEU CA(%) CodeBLEU CA(%) CodeBLEU CA(%)
+    CodeBLEU CA(%) CodeBLEU TransCoder 12.1 29.3 13.4 43.3 41.5 47.0 24.5 31.1 10.5
+    36.0 2.4 40.1 UniTrans 85.0 45.3 93.0 69.1 65.5 77.3 86.0 46.5 81.8 59.7 56.2
+    65.8 TransAGENT 93.2 46.0 94.0 69.2 91.0 80.5 94.5 47.1 87.4 59.9 89.5 69.8
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Java到Python、Java到C++、C++到Java、C++到Python、Python到C++、Python到Java的转译器 CA(%) CodeBLEU
+    CA(%) CodeBLEU CA(%) CodeBLEU CA(%) CodeBLEU CA(%) CodeBLEU CA(%) CodeBLEU TransCoder
+    12.1 29.3 13.4 43.3 41.5 47.0 24.5 31.1 10.5 36.0 2.4 40.1 UniTrans 85.0 45.3
+    93.0 69.1 65.5 77.3 86.0 46.5 81.8 59.7 56.2 65.8 TransAGENT 93.2 46.0 94.0 69.2
+    91.0 80.5 94.5 47.1 87.4 59.9 89.5 69.8
+- en: V EXPERIMENTAL RESULTS
+  id: totrans-147
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: V 实验结果
+- en: 'V-A RQ1: Overall Effectiveness'
+  id: totrans-148
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: V-A RQ1：整体有效性
+- en: 'Table [II](https://arxiv.org/html/2409.19894v2#S4.T2 "TABLE II ‣ IV-F Experimental
+    Procedure ‣ IV Experimental Setting ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") shows the performance of TransAGENT and baselines. Overall,
+    TransAGENT achieves the best performance across all six translation scenarios,
+    especially in translations between dynamic and static languages. For example,
+    in Python-to-Java translation task, TransAGENT outperforms TransCoder in CA by
+    87.1% (= 89.5% - 2.4%) and UniTrans by 33.3% (= 89.5% - 56.2%). In summary, TransAGENT
+    is effective by surpassing both learning-based and LLM-based baselines.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表格 [II](https://arxiv.org/html/2409.19894v2#S4.T2 "TABLE II ‣ IV-F Experimental
+    Procedure ‣ IV Experimental Setting ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation")展示了TransAGENT和基线的表现。总体而言，TransAGENT在所有六种翻译场景中表现最佳，尤其是在动态语言与静态语言之间的翻译任务中。例如，在Python到Java的翻译任务中，TransAGENT在CA上超过TransCoder
+    87.1%（= 89.5% - 2.4%），超过UniTrans 33.3%（= 89.5% - 56.2%）。总的来说，TransAGENT通过超越基于学习的和基于LLM的基线，证明了其有效性。'
+- en: 'TransCoder performs the worst among studied transpilers in the six translation
+    scenarios. Analysis of its output reveals that, while TransCoder generates complete
+    target code, it contains numerous syntax and semantic errors. This issue arises
+    because TransCoder, as a machine learning-based method, suffers from limited training
+    data, leading to poor generalization when handling new data. In contrast, LLMs
+    demonstrate stronger generalization due to their training on vast and diverse
+    datasets. When comparing UniTrans and TransAGENT, their performance on CodeBLEU
+    is quite similar, suggesting that the structures of the code they generate are
+    comparable. However, TransAGENT outperforms UniTrans in CA, with an average performance
+    improvement of 13.7%. This is because TransAGENT uses a more fine-grained approach
+    to fix the errors in the target code. For instance, Figure [1](https://arxiv.org/html/2409.19894v2#S2.F1
+    "Figure 1 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") shows a case that UniTrans fails to correct an error, but
+    TransAGENT succeeds by executing the target code, analyzing intermediate execution
+    states, and pinpointing the exact location of the error, leading to more accurate
+    code correction.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'TransCoder在研究的六种翻译场景中表现最差。对其输出的分析表明，虽然TransCoder生成了完整的目标代码，但其中包含大量的语法和语义错误。这个问题的根源在于，作为一种基于机器学习的方法，TransCoder受限于训练数据量，导致在处理新数据时泛化能力较差。相比之下，LLM由于在庞大而多样化的数据集上进行训练，展现出更强的泛化能力。在比较UniTrans和TransAGENT时，它们在CodeBLEU上的表现相似，表明它们生成的代码结构相当。然而，TransAGENT在CA上超过UniTrans，平均表现提高了13.7%。这是因为TransAGENT采用了更加细致的方式来修复目标代码中的错误。例如，图 [1](https://arxiv.org/html/2409.19894v2#S2.F1
+    "Figure 1 ‣ II Motivating Example ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation")展示了一个案例，UniTrans未能纠正的错误，TransAGENT通过执行目标代码、分析中间执行状态并精确定位错误的位置，从而成功纠正了错误，达到了更准确的代码修复效果。'
+- en: '{mdframed}'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{mdframed}'
+- en: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    Translation Effectiveness Evaluation Summary: TransAGENT is an effective approach
+    for code translation tasks, consistently outperforming existing state-of-the-art
+    transpilers.'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    翻译效果评估总结：TransAGENT是一个有效的代码翻译方法，始终优于现有的最先进转译器。'
+- en: 'V-B RQ2: Ablation Evaluation'
+  id: totrans-153
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: V-B RQ2：消融评估
+- en: 'Table [III](https://arxiv.org/html/2409.19894v2#S5.T3 "TABLE III ‣ V-B RQ2:
+    Ablation Evaluation ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent
+    System for Code Translation") illustrates the contribution of each agent in UniTrans
+    and TransAGENT to the overall translation performance. Overall, Syntax Error Fixer
+    and Semantic Error Fixer in TransAGENT play a positive role in enhancing the performance
+    of translations. For example, in the C++-to-Java task, these agents increase CA
+    by 31.0% compared to Initial Code Translator, while in the Python-to-Java scenario,
+    they achieve a 40.0% improvement. In summary, the error fixing agents employed
+    in TransAGENT are effective in identifying and resolving errors in the target
+    program, thereby enhancing the overall performance of code translation.'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 [III](https://arxiv.org/html/2409.19894v2#S5.T3 "TABLE III ‣ V-B RQ2: Ablation
+    Evaluation ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") 展示了 UniTrans 和 TransAGENT 中每个代理对整体翻译性能的贡献。总体而言，TransAGENT
+    中的语法错误修复器和语义错误修复器在提升翻译性能方面起到了积极作用。例如，在 C++ 到 Java 的任务中，这些代理比初始代码翻译器提高了 31.0% 的
+    CA，而在 Python 到 Java 的场景中，它们提高了 40.0%。总之，TransAGENT 中使用的错误修复代理在识别和解决目标程序中的错误方面是有效的，从而增强了代码翻译的整体性能。'
+- en: Both Syntax Error Fixer and Semantic Error Fixer in TransAGENT enhance performance
+    in code translation tasks. For example, in the Python-to-Java translation scenario,
+    Syntax Error Fixer improves the CA by 32.9%, while Semantic Error Fixer adds an
+    additional 7.1%. Moreover, compared to Syntax Error Fixer and Semantic Error Fixer
+    in UniTrans, these agents in TransAGENT are more effective in improving overall
+    translation performance, especially when Initial Code Translator yields sub-optimal
+    results. For instance, in the Python-to-Java scenario, Initial Code Translator
+    achieves a CA of only 49.5%, with Syntax Error Fixer in UniTrans improving performance
+    by just 5.7%, while Syntax Error Fixer in TransAGENT improves it by 32.9%. Similarly,
+    Semantic Error Fixer in UniTrans increases CA by only 1.0%, whereas Semantic Error
+    Fixer in TransAGENT boosts it by 7.1%. These results show that Syntax Error Fixer
+    and Semantic Error Fixer in TransAGENT correct errors more effectively, outperforming
+    the error correction strategies in UniTrans.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TransAGENT 中的语法错误修复器（Syntax Error Fixer）和语义错误修复器（Semantic Error Fixer）都能提升代码翻译任务中的表现。例如，在
+    Python 到 Java 的翻译场景中，语法错误修复器提高了 32.9% 的 CA，而语义错误修复器则增加了 7.1%。此外，与 UniTrans 中的语法错误修复器和语义错误修复器相比，TransAGENT
+    中的这些修复器在提升整体翻译表现方面更为有效，特别是在初始代码翻译器（Initial Code Translator）表现不佳的情况下。例如，在 Python
+    到 Java 的翻译场景中，初始代码翻译器的 CA 仅为 49.5%，UniTrans 中的语法错误修复器仅提高了 5.7% 的性能，而 TransAGENT
+    中的语法错误修复器则提高了 32.9%。类似地，UniTrans 中的语义错误修复器只将 CA 提高了 1.0%，而 TransAGENT 中的语义错误修复器则提高了
+    7.1%。这些结果表明，TransAGENT 中的语法错误修复器和语义错误修复器在错误修复上更加有效，超越了 UniTrans 中的错误修复策略。
+- en: 'TABLE III: Performance Comparison of UniTrans (UT) and TransAGENT (TA) Agents'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 III：UniTrans（UT）和 TransAGENT（TA）代理的性能比较
+- en: CA (%) Java to Python Java to C++ C++ to Java C++ to Python Python to C++ Python
+    to Java UT TA UT TA UT TA UT TA UT TA UT TA ICT 84.5 89.1 60.0 83.0 76.8 49.5
+    ICT+SynEF 85.0 85.0 91.0 91.0 64.8 87.9 86.0 87.5 79.0 81.3 55.2 82.4 $\Delta\%$
+    0.5 0.5 1.9 1.9 4.8 27.9 3.0 4.5 2.2 4.5 5.7 32.9 ICT+SynEF+SemEF 85.0 93.2 93.0
+    94.0 65.8 91.0 86.0 94.5 81.0 87.4 56.2 89.5 $\Delta\%$ 0.0 8.2 2.0 3.0 1.0 3.1
+    0.0 7.0 2.0 6.1 1.0 7.1 $\Delta_{\text{ICT+SynEF/Val}}$% - 6.3 - 2.5 - 2.1 - 6.5
+    - 4.6 - 4.3 $\Delta_{\text{ICT+SynEF+Val/Van}}$% - 1.9 - 0.5 - 1.0 - 0.5 - 1.5
+    - 2.8
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CA (%) Java 到 Python Java 到 C++ C++ 到 Java C++ 到 Python Python 到 C++ Python
+    到 Java UT TA UT TA UT TA UT TA UT TA UT TA ICT 84.5 89.1 60.0 83.0 76.8 49.5 ICT+SynEF
+    85.0 85.0 91.0 91.0 64.8 87.9 86.0 87.5 79.0 81.3 55.2 82.4 $\Delta\%$ 0.5 0.5
+    1.9 1.9 4.8 27.9 3.0 4.5 2.2 4.5 5.7 32.9 ICT+SynEF+SemEF 85.0 93.2 93.0 94.0
+    65.8 91.0 86.0 94.5 81.0 87.4 56.2 89.5 $\Delta\%$ 0.0 8.2 2.0 3.0 1.0 3.1 0.0
+    7.0 2.0 6.1 1.0 7.1 $\Delta_{\text{ICT+SynEF/Val}}$% - 6.3 - 2.5 - 2.1 - 6.5 -
+    4.6 - 4.3 $\Delta_{\text{ICT+SynEF+Val/Van}}$% - 1.9 - 0.5 - 1.0 - 0.5 - 1.5 -
+    2.8
+- en: Both Value-aware and Vanilla fixing strategies in Semantic Error Fixer can improve
+    the overall performance of TransAGENT in code translation tasks. For instance,
+    in the Java-to-Python translation scenario, the Value-aware strategy increases
+    CA by 6.3% over ICT+SynEF, while the Vanilla strategy provides an additional 1.9%
+    improvement. This shows that the two fixing strategies are complementary, enhancing
+    the ability of TransAGENT to correct errors and improve translation performance.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在语义错误修复器（Semantic Error Fixer）中，**Value-aware** 和 **Vanilla** 修复策略都可以提高 TransAGENT
+    在代码翻译任务中的整体表现。例如，在 Java 到 Python 的翻译场景中，**Value-aware** 策略比 ICT+SynEF 提高了 6.3%
+    的 CA，而 **Vanilla** 策略则提供了额外的 1.9% 提升。这表明这两种修复策略是互补的，增强了 TransAGENT 修复错误并提升翻译性能的能力。
+- en: '{mdframed}'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{mdframed}'
+- en: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    Ablation Evaluation Summary: Syntax Error Fixer and Semantic Error Fixer agents
+    in TransAGENT effectively enhance translation performance, and their repair strategies
+    are more effective than those used in UniTrans.'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    消融评估总结：TransAGENT中的语法错误修复器和语义错误修复器有效提升了翻译性能，其修复策略比UniTrans使用的更为有效。'
+- en: 'V-C RQ3: Mapping Accuracy'
+  id: totrans-161
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'V-C RQ3: 映射准确性'
+- en: 'Table [IV](https://arxiv.org/html/2409.19894v2#S5.T4 "TABLE IV ‣ V-C RQ3: Mapping
+    Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") shows the performance of TransMap and Code Aligner in code
+    mapping. The Cohen’s Kappa value for the two annotators’ labels is 0.811 for TransMap
+    and 0.845 for Code Aligner, indicating a high level of agreement between the annotators.
+    Overall, Code Aligner outperforms TransMap in mapping accuracy, with the most
+    significant improvement in the C++-to-Python mapping task, showing a 39.6% increase.
+    In the Python-to-C++ mapping task, the improvement is relatively lower but still
+    reaches 6.2%. This indicates that the block-level mapping approach in Code Aligner
+    achieves better alignment between source program and target program compared to
+    the purely LLM-based mapping approach used in TransMap.'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表[IV](https://arxiv.org/html/2409.19894v2#S5.T4 "TABLE IV ‣ V-C RQ3: Mapping
+    Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation")展示了TransMap和Code Aligner在代码映射中的表现。两个标注者标签的Cohen’s Kappa值为TransMap的0.811和Code
+    Aligner的0.845，表明标注者之间的一致性较高。总体而言，Code Aligner在映射准确性上优于TransMap，特别是在C++到Python的映射任务中，改进幅度达到39.6%。在Python到C++的映射任务中，改进较小，但仍达到了6.2%。这表明，Code
+    Aligner的块级映射方法相较于TransMap中纯基于LLM的映射方法，更能实现源程序与目标程序的精准对齐。'
+- en: 'Error analysis reveals that purely LLM-based mapping of TransMap struggles
+    when lines shift during translation, making accurate mapping difficult for smaller
+    LLMs. For example, in Figure [8](https://arxiv.org/html/2409.19894v2#S5.F8 "Figure
+    8 ‣ V-C RQ3: Mapping Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based
+    Multi-Agent System for Code Translation"), when translating C++ code to Java,
+    the second line of C++ is translated into Java lines 2, 4, and 5, and the third
+    line is translated into lines 4, 6, and 7\. However, TransMap aligns lines sequentially,
+    leading to mapping errors. In contrast, Code Aligner divides the source program
+    into blocks based on the control flow before LLM-based mapping. For example, in
+    Figure [8](https://arxiv.org/html/2409.19894v2#S5.F8 "Figure 8 ‣ V-C RQ3: Mapping
+    Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation"), lines 2, 3, and 4 of the C++ code are grouped as a block,
+    which Code Aligner then maps directly to lines 2 through 8 of the Java code, resulting
+    in correct mapping. This demonstrates that block-level mapping with the hybrid
+    of control flow and LLMs is more robust for aligning source program with target
+    program.'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '错误分析揭示，当翻译过程中行发生偏移时，纯基于LLM的TransMap映射会遇到困难，导致较小的LLM难以进行准确的映射。例如，在图[8](https://arxiv.org/html/2409.19894v2#S5.F8
+    "Figure 8 ‣ V-C RQ3: Mapping Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An
+    LLM-Based Multi-Agent System for Code Translation")中，当将C++代码翻译为Java时，C++的第二行被翻译为Java的第2、4和5行，第三行被翻译为第4、6和7行。然而，TransMap按顺序对行进行对齐，导致映射错误。相比之下，Code
+    Aligner在基于LLM的映射之前，根据控制流将源程序划分为块。例如，在图[8](https://arxiv.org/html/2409.19894v2#S5.F8
+    "Figure 8 ‣ V-C RQ3: Mapping Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An
+    LLM-Based Multi-Agent System for Code Translation")中，C++代码的第2、3和4行被归为一个块，Code
+    Aligner随后将其直接映射到Java代码的第2至第8行，成功实现了正确的映射。这表明，采用控制流和LLM的混合方法进行块级映射，在将源程序与目标程序对齐时更为稳健。'
+- en: '![Refer to caption](img/9e652d33d942d3629d5544cb9c0d5025.png)'
+  id: totrans-164
+  prefs: []
+  type: TYPE_IMG
+  zh: '![参见说明文字](img/9e652d33d942d3629d5544cb9c0d5025.png)'
+- en: 'Figure 8: Example of Mapping Results of TransMap and TransAGENT'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图8：TransMap和TransAGENT映射结果示例
+- en: '{mdframed}'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{mdframed}'
+- en: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    Mapping Accuracy Evaluation Summary: the hybrid mapping approach with both control
+    flow analysis and LLMs in TransAGENT substantially outperforms existing purely
+    LLM-based code mapping method TransMap.'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    映射精度评估总结：TransAGENT采用的混合映射方法，结合了控制流分析和LLM，显著优于现有的纯LLM基础的代码映射方法TransMap。'
+- en: 'TABLE IV: Mapping Performance Comparison of TransMap and Code Aligner in TransAGENT'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表IV：TransMap与TransAGENT中的Code Aligner的映射性能比较
+- en: Accuracy (%) Java to Python Java to C++ C++ to Python C++ to Java Python to
+    C++ Python to Java TransMap 64.6 79.2 80.2 58.3 93.8 67.7 Code Aligner 95.8 97.9
+    99.0 97.9 100.0 96.9
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 精度（%） Java到Python Java到C++ C++到Python C++到Java Python到C++ Python到Java TransMap
+    64.6 79.2 80.2 58.3 93.8 67.7 Code Aligner 95.8 97.9 99.0 97.9 100.0 96.9
+- en: 'TABLE V: Percentage Improvement per Iteration for TransAGENT in CA'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表V：TransAGENT在CA中的每次迭代的改进百分比
+- en: '#Iteration Java to Python Java to C++ C++ to Java C++ to Python Python to C++
+    Python to Java 0 84.5% 89.6% 62.5% 84.0% 79.3% 50.0% 1 +5.3% +4.0% +26.5% +10.0%
+    +6.1% +36.2% 2 +3.4% +0.5% +1.0% +0.5% +2.0% +1.4% 3+ +0.0% +0.0% +0.5% +0.0%
+    0.0% +2.0%'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '#迭代 Java到Python Java到C++ C++到Java C++到Python Python到C++ Python到Java 0 84.5%
+    89.6% 62.5% 84.0% 79.3% 50.0% 1 +5.3% +4.0% +26.5% +10.0% +6.1% +36.2% 2 +3.4%
+    +0.5% +1.0% +0.5% +2.0% +1.4% 3+ +0.0% +0.0% +0.5% +0.0% 0.0% +2.0%'
+- en: 'V-D RQ4: Cost Evaluation'
+  id: totrans-172
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'V-D RQ4: 成本评估'
+- en: 'Table [V](https://arxiv.org/html/2409.19894v2#S5.T5 "TABLE V ‣ V-C RQ3: Mapping
+    Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") shows the relationship between the number of iterations
+    in TransAGENT and its performance in translation tasks. TransAGENT uses a dynamic
+    iteration strategy, deciding whether to continue based on the outcomes of previous
+    corrections rather than a fixed number of iterations. From the table [V](https://arxiv.org/html/2409.19894v2#S5.T5
+    "TABLE V ‣ V-C RQ3: Mapping Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An
+    LLM-Based Multi-Agent System for Code Translation"), we could observe that most
+    iterations in TransAGENT are completed within two rounds or less. For instance,
+    in the Java-to-Python translation, TransAGENT achieves a CA of 84.5% without iterations.
+    After one and two iterations, the CA increases by 5.3% and 3.4%, with no further
+    improvement beyond the second iteration. This indicates that the strong translation
+    performance of TransAGENT is not due to an excessive number of iterations.'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表[V](https://arxiv.org/html/2409.19894v2#S5.T5 "TABLE V ‣ V-C RQ3: Mapping
+    Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation")展示了TransAGENT中的迭代次数与翻译任务表现之间的关系。TransAGENT使用动态迭代策略，根据先前修正的结果决定是否继续，而不是固定的迭代次数。从表[V](https://arxiv.org/html/2409.19894v2#S5.T5
+    "TABLE V ‣ V-C RQ3: Mapping Accuracy ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An
+    LLM-Based Multi-Agent System for Code Translation")中，我们可以观察到，TransAGENT的大多数迭代都在两轮以内完成。例如，在Java到Python的翻译中，TransAGENT在没有迭代的情况下就达到了84.5%的CA。在进行一次和两次迭代后，CA分别提高了5.3%和3.4%，而在第二次迭代之后没有进一步的提升。这表明，TransAGENT的强大翻译性能并非由于过多的迭代次数。'
+- en: Additionally, we conduct a time consumption analysis for TransAGENT and UniTrans
+    in translation tasks. The results show that TransAGENT takes an average of 19
+    seconds per example, while UniTrans takes 24 seconds, indicating the better efficiency
+    of TransAGENT over UniTrans.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们还对TransAGENT和UniTrans在翻译任务中的时间消耗进行了分析。结果表明，TransAGENT每个示例的平均耗时为19秒，而UniTrans为24秒，表明TransAGENT在效率上优于UniTrans。
+- en: '{mdframed}'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{mdframed}'
+- en: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    Cost Evaluation Evaluation Summary: TransAGENT is more efficient than the baseline
+    UniTrans in generating translated program of higher quality.'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    成本评估总结：TransAGENT在生成更高质量的翻译程序方面，比基准的UniTrans更高效。'
+- en: 'TABLE VI: Generalization of TransAGENT'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表VI：TransAGENT的泛化能力
+- en: CA (%) Java to Python Java to C++ C++ to Java C++ to Python Python to C++ Python
+    to Java Llma3 ChatGLM Llma3 ChatGLM Llma3 ChatGLM Llma3 ChatGLM Llma3 ChatGLM
+    Llma3 ChatGLM ICT 72.9 18.4 75.1 7.5 53.5 6.0 79.5 16.5 66.5 4.5 29.7 5.4 ICT+SynEF
+    78.7 19.3 81.1 14.4 70.5 7.0 83.5 17.0 75.5 6.0 55.0 7.2 $\Delta\%$ 5.8 0.9 6.0
+    6.9 17.0 1.0 4.0 0.5 9.0 1.5 25.3 1.8 IC+SynEF+SemEF 87.9 48.8 86.6 20.4 77.0
+    11.5 90.5 55.0 78.5 13.5 61.2 14.9 $\Delta\%$ 9.2 29.5 5.5 6.0 6.5 4.5 7.0 38.0
+    3.0 7.5 6.2 7.7
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CA (%) Java 到 Python Java 到 C++ C++ 到 Java C++ 到 Python Python 到 C++ Python
+    到 Java Llma3 ChatGLM Llma3 ChatGLM Llma3 ChatGLM Llma3 ChatGLM Llma3 ChatGLM Llma3
+    ChatGLM ICT 72.9 18.4 75.1 7.5 53.5 6.0 79.5 16.5 66.5 4.5 29.7 5.4 ICT+SynEF
+    78.7 19.3 81.1 14.4 70.5 7.0 83.5 17.0 75.5 6.0 55.0 7.2 $\Delta\%$ 5.8 0.9 6.0
+    6.9 17.0 1.0 4.0 0.5 9.0 1.5 25.3 1.8 IC+SynEF+SemEF 87.9 48.8 86.6 20.4 77.0
+    11.5 90.5 55.0 78.5 13.5 61.2 14.9 $\Delta\%$ 9.2 29.5 5.5 6.0 6.5 4.5 7.0 38.0
+    3.0 7.5 6.2 7.7
+- en: 'V-E RQ5: Generalization Evaluation'
+  id: totrans-179
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 'V-E RQ5: 泛化评估'
+- en: 'Table [VI](https://arxiv.org/html/2409.19894v2#S5.T6 "TABLE VI ‣ V-D RQ4: Cost
+    Evaluation ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") presents the translation performance of each component
+    in TransAGENT across different LLMs. Overall, TransAGENT demonstrates the ability
+    to adapt to various LLMs, enhancing their performance in code translation tasks.
+    For example, TransAGENT improves performance by 31.5% ( = 61.2%-29.7%) in the
+    Python-to-Java task with Llama3 and by 38.5% (= 55.0%-16.5%) in the C++-to-Python
+    task with ChatGLM. This demonstrates that the error correction strategies in TransAGENT
+    generalize well across different LLMs.'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '表 [VI](https://arxiv.org/html/2409.19894v2#S5.T6 "TABLE VI ‣ V-D RQ4: Cost
+    Evaluation ‣ V EXPERIMENTAL RESULTS ‣ TransAGENT: An LLM-Based Multi-Agent System
+    for Code Translation") 展示了 TransAGENT 中各个组件在不同 LLM 中的翻译性能。总体而言，TransAGENT 展示了适应各种
+    LLM 的能力，提升了它们在代码翻译任务中的表现。例如，TransAGENT 在 Llama3 的 Python 到 Java 任务中提升了 31.5%（=
+    61.2%-29.7%），在 ChatGLM 的 C++ 到 Python 任务中提升了 38.5%（= 55.0%-16.5%）。这证明了 TransAGENT
+    中的错误修复策略能够良好地跨不同 LLM 进行泛化。'
+- en: Both Syntax Error Fixer and Semantic Error Fixer show strong adaptability across
+    LLMs, contributing to a stable improvement in translation performance. Syntax
+    Error Fixer achieves the highest improvement of 25.3% with Llama3 in Python-to-Java
+    and 6.9% with ChatGLM in Java-to-C++.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语法错误修复器和语义错误修复器都表现出强大的适应性，跨 LLMs 的稳定改进翻译性能。语法错误修复器在 Python 到 Java 任务中，Llama3
+    取得了最高 25.3% 的提升，在 Java 到 C++ 任务中，ChatGLM 取得了 6.9% 的提升。
+- en: Similarly, Semantic Error Fixer shows the highest improvement of 9.2% in Llama3
+    for Java-to-Python and 38.0% in ChatGLM for C++-to-Python. This indicates that
+    each component within TransAGENT is capable of generalizing across different models,
+    thereby enhancing the translation performance of TransAGENT.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，语义错误修复器在 Llama3 中的 Java 到 Python 翻译任务中展现了最高 9.2% 的提升，在 ChatGLM 中的 C++ 到
+    Python 翻译任务中提升了 38.0%。这表明 TransAGENT 中的每个组件都能够跨不同模型进行泛化，从而提升 TransAGENT 的翻译性能。
+- en: '{mdframed}'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '{mdframed}'
+- en: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    Generalization Evaluation Summary: TransAGENT can be applied to different models
+    to enhance their performance in code translation tasks.'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[linecolor=gray,roundcorner=12pt,backgroundcolor=gray!15,linewidth=3pt,innerleftmargin=2pt,
+    leftmargin=0cm,rightmargin=0cm,topline=false,bottomline=false,rightline = false]
+    泛化评估总结：TransAGENT 可以应用于不同模型，以增强它们在代码翻译任务中的性能。'
+- en: VI Threats to Validity
+  id: totrans-185
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VI 有效性威胁
+- en: (i) One threat to validity is potential bugs in the code implementation of TransAGENT,
+    which could lead to translation failures. To mitigate this, we use instances of
+    translation failures to debug and improve the implementation. (ii) Another threat
+    is potential data leakage due to overlap between the evaluation dataset and the
+    training data of LLM. To address this, we manually construct a new dataset from
+    a time frame after the knowledge cutoff date of LLM, specifically after August
+    2023. We also design comprehensive test cases and calculat line coverage to ensure
+    the equivalence of the constructed source and target code. (iii) A further threat
+    arises from the subjective judgments of annotators when evaluating code mapping
+    performance. To resolve this, we invite two annotators independently to label
+    the results and used Cohen’s Kappa coefficient to assess the consistency of their
+    labeled results. (iv) Another threat involves the reproduction of baseline and
+    the calculation of metrics. To minimize these threats, we strictly follow the
+    reproduction documentation and use the source code provided for the baseline.
+    All baselines are evaluated consistently on our collected dataset, and we reuse
+    the code provided in [[9](https://arxiv.org/html/2409.19894v2#bib.bib9)] for implementing
+    evaluation metrics like CodeBLEU.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: (i) 一个有效性威胁是TransAGENT代码实现中可能存在的BUG，这可能导致翻译失败。为了解决这个问题，我们利用翻译失败的实例来调试和改进实现。
+    (ii) 另一个威胁是由于评估数据集与LLM的训练数据之间的重叠可能导致数据泄露。为此，我们手动构建了一个新的数据集，该数据集来自LLM知识截止日期之后的时间段，具体来说是2023年8月之后。我们还设计了全面的测试用例并计算了行覆盖率，以确保构建的源代码和目标代码的等效性。
+    (iii) 进一步的威胁来自于注释人员在评估代码映射性能时的主观判断。为了解决这个问题，我们邀请了两名注释人员独立标注结果，并使用Cohen的Kappa系数来评估他们标注结果的一致性。
+    (iv) 另一个威胁涉及基准的再现性和度量的计算。为了尽量减少这些威胁，我们严格按照再现文档操作，并使用提供的源代码进行基准测试。所有基准都在我们收集的数据集上进行了一致评估，并且我们重复使用了在[[9](https://arxiv.org/html/2409.19894v2#bib.bib9)]中提供的代码来实现像CodeBLEU这样的评估指标。
+- en: VII Related Work
+  id: totrans-187
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VII 相关工作
+- en: VII-A Code Translation
+  id: totrans-188
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: VII-A 代码翻译
+- en: 'Early research on code translation proposes various approaches based on program
+    analysis techniques. These methods apply manually formulated rules to carry out
+    translations, such as C2Rust[[49](https://arxiv.org/html/2409.19894v2#bib.bib49)]
+    and C2Go[[50](https://arxiv.org/html/2409.19894v2#bib.bib50)], which translate
+    C program into Rust and Go, respectively, and Sharpen[[51](https://arxiv.org/html/2409.19894v2#bib.bib51)]
+    and JavaSharp[[52](https://arxiv.org/html/2409.19894v2#bib.bib52)], which convert
+    Java code into C#. However, rule creation is accomplished manually, which is time-consuming
+    and limits the readability and accuracy of the target program [[6](https://arxiv.org/html/2409.19894v2#bib.bib6)].
+    To address the aforementioned issues, several learning-based code translation
+    methods have emerged in recent years [[32](https://arxiv.org/html/2409.19894v2#bib.bib32),
+    [53](https://arxiv.org/html/2409.19894v2#bib.bib53), [54](https://arxiv.org/html/2409.19894v2#bib.bib54),
+    [55](https://arxiv.org/html/2409.19894v2#bib.bib55)]. Learning-based code translation
+    methods have advanced significantly compared to rule-based approaches, but they
+    still face a key challenge: the scarcity of parallel data for model training.
+    To address this, researchers also propose various data augmentation techniques.
+    For example, TransCoder-IR [[8](https://arxiv.org/html/2409.19894v2#bib.bib8)]
+    uses compiler representations to link source and target program, MuST-PT [[35](https://arxiv.org/html/2409.19894v2#bib.bib35)]
+    splits code into smaller equivalent chunks, and CMTrans [[10](https://arxiv.org/html/2409.19894v2#bib.bib10)]
+    retrieves functionally similar code to expand datasets. Despite these efforts,
+    data scarcity remains an issue, and the model training process is time-consuming.'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 早期关于代码翻译的研究提出了多种基于程序分析技术的方法。这些方法应用手动制定的规则进行翻译，例如C2Rust[[49](https://arxiv.org/html/2409.19894v2#bib.bib49)]和C2Go[[50](https://arxiv.org/html/2409.19894v2#bib.bib50)]，分别将C程序翻译成Rust和Go，以及Sharpen[[51](https://arxiv.org/html/2409.19894v2#bib.bib51)]和JavaSharp[[52](https://arxiv.org/html/2409.19894v2#bib.bib52)]，将Java代码转换为C#。然而，规则的创建是手动完成的，这既耗时，又限制了目标程序的可读性和准确性[[6](https://arxiv.org/html/2409.19894v2#bib.bib6)]。为了应对上述问题，近年来出现了几种基于学习的代码翻译方法[[32](https://arxiv.org/html/2409.19894v2#bib.bib32),
+    [53](https://arxiv.org/html/2409.19894v2#bib.bib53), [54](https://arxiv.org/html/2409.19894v2#bib.bib54),
+    [55](https://arxiv.org/html/2409.19894v2#bib.bib55)]。与基于规则的方法相比，基于学习的代码翻译方法取得了显著进展，但它们仍然面临一个关键挑战：用于模型训练的平行数据稀缺。为了解决这个问题，研究人员还提出了各种数据增强技术。例如，TransCoder-IR[[8](https://arxiv.org/html/2409.19894v2#bib.bib8)]使用编译器表示法将源程序与目标程序关联，MuST-PT[[35](https://arxiv.org/html/2409.19894v2#bib.bib35)]将代码拆分成更小的等效块，CMTrans[[10](https://arxiv.org/html/2409.19894v2#bib.bib10)]检索功能上相似的代码来扩展数据集。尽管有这些努力，数据稀缺仍然是一个问题，而且模型训练过程仍然耗时。
+- en: LLMs have shown great potential in software engineering tasks like code generation [[56](https://arxiv.org/html/2409.19894v2#bib.bib56),
+    [57](https://arxiv.org/html/2409.19894v2#bib.bib57), [58](https://arxiv.org/html/2409.19894v2#bib.bib58)],
+    program repair [[59](https://arxiv.org/html/2409.19894v2#bib.bib59), [60](https://arxiv.org/html/2409.19894v2#bib.bib60)],
+    and code summarization [[61](https://arxiv.org/html/2409.19894v2#bib.bib61), [62](https://arxiv.org/html/2409.19894v2#bib.bib62)].
+    Pan et al. [[11](https://arxiv.org/html/2409.19894v2#bib.bib11)] studied the performance
+    of five LLMs (e.g., Llama 2) on code translation and found challenges with syntax
+    and semantic errors in their translations. Recently, Yang et al. introduced UniTrans [[12](https://arxiv.org/html/2409.19894v2#bib.bib12)],
+    which uses test cases to improve LLM translation performance. However, UniTrans
+    shows limited success in fixing translation errors, especially in models with
+    fewer than 10 billion parameters, where improvements are minimal. To address this
+    issue, we propose TransAGENT, a multi-agent translation system that leverages
+    multiple agents to provide more detailed error correction information to enhance
+    the code translation performance of LLMs.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLMs 在软件工程任务中展示了巨大的潜力，如代码生成[[56](https://arxiv.org/html/2409.19894v2#bib.bib56)、[57](https://arxiv.org/html/2409.19894v2#bib.bib57)、[58](https://arxiv.org/html/2409.19894v2#bib.bib58)]、程序修复[[59](https://arxiv.org/html/2409.19894v2#bib.bib59)、[60](https://arxiv.org/html/2409.19894v2#bib.bib60)]和代码摘要[[61](https://arxiv.org/html/2409.19894v2#bib.bib61)、[62](https://arxiv.org/html/2409.19894v2#bib.bib62)]。Pan
+    等人[[11](https://arxiv.org/html/2409.19894v2#bib.bib11)]研究了五种 LLM（例如 Llama 2）在代码翻译中的表现，并发现它们在翻译中存在语法和语义错误的挑战。最近，Yang
+    等人提出了 UniTrans[[12](https://arxiv.org/html/2409.19894v2#bib.bib12)]，该方法通过使用测试用例来提升
+    LLM 的翻译性能。然而，UniTrans 在修复翻译错误方面的效果有限，尤其是在参数少于 100 亿的模型中，改进非常有限。为了解决这一问题，我们提出了
+    TransAGENT，一个多代理翻译系统，利用多个代理提供更详细的错误修正信息，以增强 LLM 的代码翻译性能。
+- en: VII-B Fault Location & Program Repair
+  id: totrans-191
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: VII-B 故障定位与程序修复
+- en: Fault localization is crucial for automatic debugging and program repair. Existing
+    fault localization techniques primarily include statistical analysis [[63](https://arxiv.org/html/2409.19894v2#bib.bib63)],
+    coverage analysis [[64](https://arxiv.org/html/2409.19894v2#bib.bib64), [65](https://arxiv.org/html/2409.19894v2#bib.bib65)],
+    machine learning [[66](https://arxiv.org/html/2409.19894v2#bib.bib66), [67](https://arxiv.org/html/2409.19894v2#bib.bib67),
+    [68](https://arxiv.org/html/2409.19894v2#bib.bib68)], and LLM-based [[69](https://arxiv.org/html/2409.19894v2#bib.bib69)].
+    However, unlike existing fault localization methods designed for a single programming
+    language, TransAGENT needs to identify errors by comparing code written in two
+    different languages. In addition, existing fault localization techniques (such
+    as spectrum-based fault localization) cannot be adapted to the code translation
+    scenario, as most translated program exhibits very high coverage (e.g.,more than
+    98% line coverage) and it is almost infeasible for failed tests to distinguish
+    the error block with coverage distribution. The closest method to TransAGENT is
+    TransMap [[15](https://arxiv.org/html/2409.19894v2#bib.bib15)], which uses statement-level
+    mapping to align source and target program. However, TransMap’s reliance on line
+    positions leads to errors when line order shifts during translation. To address
+    this, TransAGENT introduces block-based mapping, using control flow analysis to
+    map code blocks as the smallest unit. This approach is more robust, capturing
+    logical and functional relationships better than line-based mapping, and significantly
+    improving mapping accuracy. Additionally, TransAGENT can aid existing fault localization
+    techniques. For example, providing better training data for learning-based methods [[68](https://arxiv.org/html/2409.19894v2#bib.bib68)],
+    more precise reasoning for mutation-based techniques [[70](https://arxiv.org/html/2409.19894v2#bib.bib70)],
+    and improved error tracking for tracing-based approaches [[71](https://arxiv.org/html/2409.19894v2#bib.bib71)].
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 故障定位对于自动调试和程序修复至关重要。现有的故障定位技术主要包括统计分析[[63](https://arxiv.org/html/2409.19894v2#bib.bib63)]、覆盖分析[[64](https://arxiv.org/html/2409.19894v2#bib.bib64)、[65](https://arxiv.org/html/2409.19894v2#bib.bib65)]、机器学习[[66](https://arxiv.org/html/2409.19894v2#bib.bib66)、[67](https://arxiv.org/html/2409.19894v2#bib.bib67)、[68](https://arxiv.org/html/2409.19894v2#bib.bib68)]，以及基于LLM的方法[[69](https://arxiv.org/html/2409.19894v2#bib.bib69)]。然而，与现有为单一编程语言设计的故障定位方法不同，TransAGENT需要通过比较用两种不同语言编写的代码来识别错误。此外，现有的故障定位技术（如基于谱的故障定位）无法适应代码翻译场景，因为大多数翻译后的程序展示出非常高的覆盖率（例如，超过98%的行覆盖率），而且在失败的测试中几乎无法通过覆盖率分布区分错误块。与TransAGENT最接近的方法是TransMap[[15](https://arxiv.org/html/2409.19894v2#bib.bib15)]，该方法使用语句级映射来对齐源程序和目标程序。然而，TransMap依赖行位置，当翻译过程中行顺序发生变化时会导致错误。为了解决这个问题，TransAGENT引入了基于块的映射，利用控制流分析将代码块映射为最小单位。这种方法比基于行的映射更为稳健，能够更好地捕捉逻辑和功能关系，并显著提高映射的准确性。此外，TransAGENT还可以辅助现有的故障定位技术。例如，提供更好的训练数据以支持基于学习的方法[[68](https://arxiv.org/html/2409.19894v2#bib.bib68)]，为基于变异的技术提供更精确的推理[[70](https://arxiv.org/html/2409.19894v2#bib.bib70)]，以及为基于跟踪的方法提供改进的错误追踪[[71](https://arxiv.org/html/2409.19894v2#bib.bib71)]。
+- en: For the program repair, early program repair efforts primarily relied on heuristic
+    methods[[72](https://arxiv.org/html/2409.19894v2#bib.bib72), [73](https://arxiv.org/html/2409.19894v2#bib.bib73),
+    [74](https://arxiv.org/html/2409.19894v2#bib.bib74)], constraint-based approaches[[75](https://arxiv.org/html/2409.19894v2#bib.bib75),
+    [76](https://arxiv.org/html/2409.19894v2#bib.bib76), [77](https://arxiv.org/html/2409.19894v2#bib.bib77)],
+    and pattern-based techniques[[78](https://arxiv.org/html/2409.19894v2#bib.bib78),
+    [79](https://arxiv.org/html/2409.19894v2#bib.bib79), [80](https://arxiv.org/html/2409.19894v2#bib.bib80)].
+    However, these methods are heavily dependent on manually designed approaches or
+    templates, leading to poor generalization capabilities in code repair. To address
+    this issue, learning-based methods like SequenceR [[81](https://arxiv.org/html/2409.19894v2#bib.bib81)],
+    CoCoNut [[82](https://arxiv.org/html/2409.19894v2#bib.bib82)], and Tare [[83](https://arxiv.org/html/2409.19894v2#bib.bib83)]
+    have been proposed, achieving significant improvements by learning bug-fixing
+    patterns from large code databases [[84](https://arxiv.org/html/2409.19894v2#bib.bib84)].
+    Recently, researchers have increasingly used LLMs for program repair, inspired
+    by their success in various code-related tasks, and have seen better performance [[60](https://arxiv.org/html/2409.19894v2#bib.bib60),
+    [22](https://arxiv.org/html/2409.19894v2#bib.bib22), [85](https://arxiv.org/html/2409.19894v2#bib.bib85)].
+    TransAGENT differs from existing LLM-based repair techniques [[86](https://arxiv.org/html/2409.19894v2#bib.bib86)]
+    and RING [[87](https://arxiv.org/html/2409.19894v2#bib.bib87), [22](https://arxiv.org/html/2409.19894v2#bib.bib22),
+    [23](https://arxiv.org/html/2409.19894v2#bib.bib23), [24](https://arxiv.org/html/2409.19894v2#bib.bib24),
+    [25](https://arxiv.org/html/2409.19894v2#bib.bib25)] by proposing a novel fine-grained
+    fixing paradigm, which further localizes the error block with aligned execution
+    values.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在程序修复方面，早期的程序修复工作主要依赖于启发式方法[[72](https://arxiv.org/html/2409.19894v2#bib.bib72),
+    [73](https://arxiv.org/html/2409.19894v2#bib.bib73), [74](https://arxiv.org/html/2409.19894v2#bib.bib74)]、基于约束的方法[[75](https://arxiv.org/html/2409.19894v2#bib.bib75),
+    [76](https://arxiv.org/html/2409.19894v2#bib.bib76), [77](https://arxiv.org/html/2409.19894v2#bib.bib77)]，以及基于模式的技术[[78](https://arxiv.org/html/2409.19894v2#bib.bib78),
+    [79](https://arxiv.org/html/2409.19894v2#bib.bib79), [80](https://arxiv.org/html/2409.19894v2#bib.bib80)]。然而，这些方法严重依赖于手工设计的方法或模板，导致代码修复的泛化能力较差。为了解决这个问题，提出了基于学习的方法，如SequenceR[[81](https://arxiv.org/html/2409.19894v2#bib.bib81)]、CoCoNut[[82](https://arxiv.org/html/2409.19894v2#bib.bib82)]和Tare[[83](https://arxiv.org/html/2409.19894v2#bib.bib83)]，通过从大规模代码库中学习修复模式，取得了显著的改进[[84](https://arxiv.org/html/2409.19894v2#bib.bib84)]。最近，研究人员越来越多地使用LLM进行程序修复，受到其在各种与代码相关任务中的成功启发，并且取得了更好的性能[[60](https://arxiv.org/html/2409.19894v2#bib.bib60),
+    [22](https://arxiv.org/html/2409.19894v2#bib.bib22), [85](https://arxiv.org/html/2409.19894v2#bib.bib85)]。TransAGENT与现有的基于LLM的修复技术[[86](https://arxiv.org/html/2409.19894v2#bib.bib86)]和RING[[87](https://arxiv.org/html/2409.19894v2#bib.bib87),
+    [22](https://arxiv.org/html/2409.19894v2#bib.bib22), [23](https://arxiv.org/html/2409.19894v2#bib.bib23),
+    [24](https://arxiv.org/html/2409.19894v2#bib.bib24), [25](https://arxiv.org/html/2409.19894v2#bib.bib25)]的不同之处在于提出了一种新颖的精细化修复范式，进一步通过对齐的执行值来定位错误块。
+- en: VIII Conclusion
+  id: totrans-194
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 第八章 结论
+- en: In this paper, we introduce TransAGENT, a novel multi-agent system to improve
+    LLM-based code translation with fine-grained execution alignment. On our benchmark,
+    TransAGENT outperforms the latest LLM-based code translation technique UniTrans
+    in both translation effectiveness and efficiency; additionally, our evaluation
+    on different LLMs show the generalization of TransAGENT and our ablation study
+    shows the contribution of each agent; lastly, we further perform a user study
+    to find that the code mapping accuracy is substantially higher than the existing
+    LLM-based code mapping strategy TransMap.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本文中，我们介绍了TransAGENT，一个新型的多智能体系统，通过精细化的执行对齐来改进基于大语言模型（LLM）的代码翻译。在我们的基准测试中，TransAGENT在翻译效果和效率方面都优于最新的基于LLM的代码翻译技术UniTrans；此外，我们对不同LLM的评估显示了TransAGENT的泛化能力，而我们的消融研究则展示了每个智能体的贡献；最后，我们进一步进行了一项用户研究，发现代码映射的准确度明显高于现有的基于LLM的代码映射策略TransMap。
+- en: References
+  id: totrans-196
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参考文献
+- en: '[1] Sindre Grønstøl Haugeland, Phu Hong Nguyen, Hui Song, and Franck Chauvel.
+    Migrating monoliths to microservices-based customizable multi-tenant cloud-native
+    apps. In 47th Euromicro Conference on Software Engineering and Advanced Applications,
+    SEAA 2021, Palermo, Italy, September 1-3, 2021, pages 170–177\. IEEE, 2021.'
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[1] Sindre Grønstøl Haugeland, Phu Hong Nguyen, Hui Song, 和 Franck Chauvel.
+    将单体应用迁移到基于微服务的可定制多租户云原生应用. 见于第47届欧罗微软件工程与高级应用会议，SEAA 2021，意大利巴勒莫，2021年9月1-3日，第170-177页。IEEE，2021。'
+- en: '[2] Transforming monolithic applications to microservices with mono2micro.
+    In 2021 36th IEEE/ACM International Conference on Automated Software Engineering
+    (ASE), pages 3–3, 2021.'
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[2] 使用mono2micro将单体应用程序转化为微服务。2021年IEEE/ACM自动化软件工程国际会议（ASE）第36届会议，页面3–3，2021年。'
+- en: '[3] Roberto Rodriguez Echeverria, Fernando Macias, Victor Manuel Pavon, Jose Maria
+    Conejero, and Fernando Sanchez Figueroa. Legacy web application modernization
+    by generating a rest service layer. IEEE Latin America Transactions, 13(7):2379–2383,
+    2015.'
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[3] Roberto Rodriguez Echeverria, Fernando Macias, Victor Manuel Pavon, Jose
+    Maria Conejero, 和 Fernando Sanchez Figueroa. 通过生成REST服务层实现遗留Web应用程序的现代化。IEEE拉丁美洲期刊，13(7):2379–2383,
+    2015年。'
+- en: '[4] Mahdi Fahmideh, Farhad Daneshgar, Ghassan Beydoun, and Fethi A. Rabhi.
+    Challenges in migrating legacy software systems to the cloud an empirical study.
+    CoRR, abs/2004.10724, 2020.'
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[4] Mahdi Fahmideh, Farhad Daneshgar, Ghassan Beydoun, 和 Fethi A. Rabhi. 将传统软件系统迁移到云端的挑战：一项实证研究。CoRR,
+    abs/2004.10724, 2020。'
+- en: '[5] Vikram Nitin, Shubhi Asthana, Baishakhi Ray, and Rahul Krishna. CARGO:
+    ai-guided dependency analysis for migrating monolithic applications to microservices
+    architecture. In 37th IEEE/ACM International Conference on Automated Software
+    Engineering, ASE 2022, Rochester, MI, USA, October 10-14, 2022, pages 20:1–20:12\.
+    ACM, 2022.'
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[5] Vikram Nitin, Shubhi Asthana, Baishakhi Ray, 和 Rahul Krishna. CARGO：用于将单体应用程序迁移到微服务架构的AI引导依赖分析。第37届IEEE/ACM自动化软件工程国际会议（ASE
+    2022），美国罗切斯特，2022年10月10-14日，页面20:1–20:12。ACM，2022年。'
+- en: '[6] Baptiste Rozière, Marie-Anne Lachaux, Lowik Chanussot, and Guillaume Lample.
+    Unsupervised translation of programming languages. In Advances in Neural Information
+    Processing Systems 33: Annual Conference on Neural Information Processing Systems
+    2020, NeurIPS 2020, December 6-12, 2020, virtual, 2020.'
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[6] Baptiste Rozière, Marie-Anne Lachaux, Lowik Chanussot, 和 Guillaume Lample.
+    编程语言的无监督翻译。在神经信息处理系统进展：2020年神经信息处理系统年会（NeurIPS 2020），2020年12月6-12日，虚拟会议，2020年。'
+- en: '[7] Baptiste Rozière, Jie Zhang, François Charton, Mark Harman, Gabriel Synnaeve,
+    and Guillaume Lample. Leveraging automated unit tests for unsupervised code translation.
+    In The Tenth International Conference on Learning Representations, ICLR 2022,
+    Virtual Event, April 25-29, 2022. OpenReview.net.'
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[7] Baptiste Rozière, Jie Zhang, François Charton, Mark Harman, Gabriel Synnaeve,
+    和 Guillaume Lample. 利用自动化单元测试进行无监督代码翻译。在第十届国际学习表征会议（ICLR 2022），虚拟会议，2022年4月25-29日。OpenReview.net。'
+- en: '[8] Marc Szafraniec, Baptiste Rozière, Hugh Leather, Patrick Labatut, François
+    Charton, and Gabriel Synnaeve. Code translation with compiler representations.
+    In The Eleventh International Conference on Learning Representations, ICLR 2023,
+    Kigali, Rwanda, May 1-5, 2023. OpenReview.net, 2023.'
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[8] Marc Szafraniec, Baptiste Rozière, Hugh Leather, Patrick Labatut, François
+    Charton, 和 Gabriel Synnaeve. 使用编译器表示进行代码翻译。在第十一届国际学习表征会议（ICLR 2023），卢旺达基加利，2023年5月1-5日。OpenReview.net，2023年。'
+- en: '[9] Wasi Uddin Ahmad, Saikat Chakraborty, Baishakhi Ray, and Kai-Wei Chang.
+    Summarize and generate to back-translate: Unsupervised translation of programming
+    languages. In Proceedings of the 17th Conference of the European Chapter of the
+    Association for Computational Linguistics, EACL 2023, Dubrovnik, Croatia, May
+    2-6, 2023, pages 1520–1534\. Association for Computational Linguistics, 2023.'
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[9] Wasi Uddin Ahmad, Saikat Chakraborty, Baishakhi Ray, 和 Kai-Wei Chang. 总结并生成以反向翻译：编程语言的无监督翻译。在第17届欧洲计算语言学协会会议（EACL
+    2023）论文集中，克罗地亚杜布罗夫尼克，2023年5月2-6日，页面1520–1534。计算语言学协会，2023年。'
+- en: '[10] Yiqing Xie, Atharva Naik, Daniel Fried, and Carolyn P. Rosé. Data augmentation
+    for code translation with comparable corpora and multiple references. In Findings
+    of the Association for Computational Linguistics: EMNLP 2023, Singapore, December
+    6-10, 2023, pages 13725–13739\. Association for Computational Linguistics, 2023.'
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[10] Yiqing Xie, Atharva Naik, Daniel Fried, 和 Carolyn P. Rosé. 使用可比语料库和多个参考文献进行代码翻译的数据增强。在计算语言学协会发现：EMNLP
+    2023会议，2023年12月6-10日，新加坡，页面13725–13739。计算语言学协会，2023年。'
+- en: '[11] Rangeet Pan, Ali Reza Ibrahimzada, Rahul Krishna, Divya Sankar, and et al.
+    Lost in translation: A study of bugs introduced by large language models while
+    translating code. In Proceedings of the 46th IEEE/ACM International Conference
+    on Software Engineering, ICSE 2024, Lisbon, Portugal, April 14-20, 2024, pages
+    82:1–82:13\. ACM, 2024.'
+  id: totrans-207
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[11] Rangeet Pan, Ali Reza Ibrahimzada, Rahul Krishna, Divya Sankar, 等人. 失误的翻译：大型语言模型在翻译代码时引入的BUG研究。在第46届IEEE/ACM软件工程国际会议（ICSE
+    2024）论文集中，葡萄牙里斯本，2024年4月14-20日，页面82:1–82:13。ACM，2024年。'
+- en: '[12] Zhen Yang, Fang Liu, Zhongxing Yu, Jacky Wai Keung, Jia Li, Shuo Liu,
+    Yifan Hong, Xiaoxue Ma, Zhi Jin, and Ge Li. Exploring and unleashing the power
+    of large language models in automated code translation. Proc. ACM Softw. Eng.,
+    1(FSE):1585–1608, 2024.'
+  id: totrans-208
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[12] Zhen Yang, Fang Liu, Zhongxing Yu, Jacky Wai Keung, Jia Li, Shuo Liu,
+    Yifan Hong, Xiaoxue Ma, Zhi Jin 和 Ge Li. 探索和释放大型语言模型在自动化代码翻译中的潜力. ACM软件工程会议论文集，1（FSE）：1585–1608，2024。'
+- en: '[13] Junkai Chen, Zhiyuan Pan, Xing Hu, Zhenhao Li, Ge Li, and Xin Xia. Reasoning
+    runtime behavior of a program with llm: How far are we? arXiv e-prints, 2024.'
+  id: totrans-209
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[13] Junkai Chen, Zhiyuan Pan, Xing Hu, Zhenhao Li, Ge Li 和 Xin Xia. 使用LLM推理程序的运行时行为：我们离这一目标还有多远？arXiv预印本，2024。'
+- en: '[14] Junwei Liu, Kaixin Wang, Yixuan Chen, Xin Peng, Zhenpeng Chen, Lingming
+    Zhang, and Yiling Lou. Large language model-based agents for software engineering:
+    A survey, 2024.'
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[14] Junwei Liu, Kaixin Wang, Yixuan Chen, Xin Peng, Zhenpeng Chen, Lingming
+    Zhang 和 Yiling Lou. 基于大型语言模型的软件工程代理：一项调查，2024。'
+- en: '[15] Bo Wang, Ruishi Li, Mingkai Li, and Prateek Saxena. Transmap: Pinpointing
+    mistakes in neural code translation. In Proceedings of the 31st ACM Joint European
+    Software Engineering Conference and Symposium on the Foundations of Software Engineering,
+    ESEC/FSE 2023, San Francisco, CA, USA, December 3-9, 2023, pages 999–1011\. ACM,
+    2023.'
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[15] Bo Wang, Ruishi Li, Mingkai Li 和 Prateek Saxena. Transmap：在神经代码翻译中精准定位错误.
+    载于第31届ACM联合欧洲软件工程会议暨软件工程基础研讨会（ESEC/FSE 2023），美国加利福尼亚州旧金山，2023年12月3-9日，页码999–1011。ACM，2023。'
+- en: '[16] deepseek-coder-6.7b instruct. 2023.'
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[16] deepseek-coder-6.7b instruct. 2023。'
+- en: '[17] minimumArrayLength. 2024.01.'
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[17] minimumArrayLength. 2024.01。'
+- en: '[18] minOperations. 2024.03.'
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[18] minOperations. 2024.03。'
+- en: '[19] minOrAfterOperations. 2024.01.'
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[19] minOrAfterOperations. 2024.01。'
+- en: '[20] TransAGENT. 2024.'
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[20] TransAGENT. 2024。'
+- en: '[21] T. Sherwood, E. Perelman, and B. Calder. Basic block distribution analysis
+    to find periodic behavior and simulation points in applications. In Proceedings
+    2001 International Conference on Parallel Architectures and Compilation Techniques,
+    pages 3–14, 2001.'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[21] T. Sherwood, E. Perelman 和 B. Calder. 基本块分布分析：发现应用程序中的周期性行为和仿真点. 载于2001年国际并行架构与编译技术会议论文集，页码3–14，2001。'
+- en: '[22] Quanjun Zhang, Chunrong Fang, Tongke Zhang, Bowen Yu, Weisong Sun, and
+    Zhenyu Chen. Gamma: Revisiting template-based automated program repair via mask
+    prediction. In 38th IEEE/ACM International Conference on Automated Software Engineering,
+    ASE 2023, Luxembourg, September 11-15, 2023, pages 535–547\. IEEE, 2023.'
+  id: totrans-218
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[22] Quanjun Zhang, Chunrong Fang, Tongke Zhang, Bowen Yu, Weisong Sun 和 Zhenyu
+    Chen. Gamma：通过掩码预测重新审视基于模板的自动程序修复. 载于第38届IEEE/ACM国际自动化软件工程会议（ASE 2023），卢森堡，2023年9月11-15日，页码535–547。IEEE，2023。'
+- en: '[23] Yuxiang Wei, Chunqiu Steven Xia, and Lingming Zhang. Copiloting the copilots:
+    Fusing large language models with completion engines for automated program repair.
+    In Proceedings of the 31st ACM Joint European Software Engineering Conference
+    and Symposium on the Foundations of Software Engineering, ESEC/FSE 2023, San Francisco,
+    CA, USA, December 3-9, 2023, pages 172–184\. ACM, 2023.'
+  id: totrans-219
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[23] Yuxiang Wei, Chunqiu Steven Xia 和 Lingming Zhang. 协同驾驶员：将大型语言模型与补全引擎融合以实现自动程序修复.
+    载于第31届ACM联合欧洲软件工程会议暨软件工程基础研讨会（ESEC/FSE 2023），美国加利福尼亚州旧金山，2023年12月3-9日，页码172–184。ACM，2023。'
+- en: '[24] Chunqiu Steven Xia, Yifeng Ding, and Lingming Zhang. The plastic surgery
+    hypothesis in the era of large language models. In 38th IEEE/ACM International
+    Conference on Automated Software Engineering, ASE 2023, Luxembourg, September
+    11-15, 2023, pages 522–534\. IEEE, 2023.'
+  id: totrans-220
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[24] Chunqiu Steven Xia, Yifeng Ding 和 Lingming Zhang. 大型语言模型时代的整形手术假设. 载于第38届IEEE/ACM国际自动化软件工程会议（ASE
+    2023），卢森堡，2023年9月11-15日，页码522–534。IEEE，2023。'
+- en: '[25] Chunqiu Steven Xia and Lingming Zhang. Less training, more repairing please:
+    revisiting automated program repair via zero-shot learning. In Proceedings of
+    the 30th ACM Joint European Software Engineering Conference and Symposium on the
+    Foundations of Software Engineering, ESEC/FSE 2022, Singapore, Singapore, November
+    14-18, 2022, pages 959–971\. ACM, 2022.'
+  id: totrans-221
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[25] Chunqiu Steven Xia 和 Lingming Zhang. 请少一点训练，多一点修复：通过零-shot学习重新审视自动程序修复.
+    载于第30届ACM联合欧洲软件工程会议暨软件工程基础研讨会（ESEC/FSE 2022），新加坡，2022年11月14-18日，页码959–971。ACM，2022。'
+- en: '[26] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter,
+    Fei Xia, Ed H. Chi, Quoc V. Le, and Denny Zhou. Chain-of-thought prompting elicits
+    reasoning in large language models. In Advances in Neural Information Processing
+    Systems 35: Annual Conference on Neural Information Processing Systems 2022, NeurIPS
+    2022, New Orleans, LA, USA, November 28 - December 9, 2022, 2022.'
+  id: totrans-222
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[26] Jason Wei、Xuezhi Wang、Dale Schuurmans、Maarten Bosma、Brian Ichter、Fei Xia、Ed
+    H. Chi、Quoc V. Le 和 Denny Zhou。链式思维提示激发大语言模型的推理能力。载于《神经信息处理系统进展 35：神经信息处理系统年会
+    2022》，NeurIPS 2022，美国路易斯安那州新奥尔良，2022年11月28日-12月9日，2022年。'
+- en: '[27] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc V. Le, Ed H. Chi, Sharan
+    Narang, Aakanksha Chowdhery, and Denny Zhou. Self-consistency improves chain of
+    thought reasoning in language models. In The Eleventh International Conference
+    on Learning Representations, ICLR 2023, Kigali, Rwanda, May 1-5, 2023. OpenReview.net,
+    2023.'
+  id: totrans-223
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[27] Xuezhi Wang、Jason Wei、Dale Schuurmans、Quoc V. Le、Ed H. Chi、Sharan Narang、Aakanksha
+    Chowdhery 和 Denny Zhou。自一致性提升语言模型中的链式思维推理能力。载于《第十一届国际学习表征会议》，ICLR 2023，卢旺达基加利，2023年5月1-5日。OpenReview.net，2023年。'
+- en: '[28] Zihan Yu, Liang He, Zhen Wu, Xinyu Dai, and Jiajun Chen. Towards better
+    chain-of-thought prompting strategies: A survey. CoRR, abs/2310.04959, 2023.'
+  id: totrans-224
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[28] Zihan Yu、Liang He、Zhen Wu、Xinyu Dai 和 Jiajun Chen。更好的链式思维提示策略：一项调查。CoRR，abs/2310.04959，2023年。'
+- en: '[29] Marie-Anne Lachaux, Baptiste Rozière, Marc Szafraniec, and Guillaume Lample.
+    DOBF: A deobfuscation pre-training objective for programming languages. In Advances
+    in Neural Information Processing Systems 34: Annual Conference on Neural Information
+    Processing Systems 2021, NeurIPS 2021, December 6-14, 2021, virtual, pages 14967–14979,
+    2021.'
+  id: totrans-225
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[29] Marie-Anne Lachaux、Baptiste Rozière、Marc Szafraniec 和 Guillaume Lample。DOBF：一种用于编程语言的去混淆预训练目标。载于《神经信息处理系统进展
+    34：神经信息处理系统年会 2021》，NeurIPS 2021，2021年12月6-14日，虚拟会议，页码14967–14979，2021年。'
+- en: '[30] Shuai Lu, Daya Guo, Shuo Ren, Junjie Huang, Alexey Svyatkovskiy, Ambrosio
+    Blanco, Colin B. Clement, Dawn Drain, and et al. Codexglue: A machine learning
+    benchmark dataset for code understanding and generation. In Proceedings of the
+    Neural Information Processing Systems Track on Datasets and Benchmarks 1, NeurIPS
+    Datasets and Benchmarks 2021, December 2021, virtual, 2021.'
+  id: totrans-226
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[30] Shuai Lu、Daya Guo、Shuo Ren、Junjie Huang、Alexey Svyatkovskiy、Ambrosio Blanco、Colin
+    B. Clement、Dawn Drain 等。Codexglue：一个用于代码理解与生成的机器学习基准数据集。载于《神经信息处理系统数据集和基准会议论文集
+    1》，NeurIPS 数据集和基准 2021，2021年12月，虚拟会议，2021年。'
+- en: '[31] Wasi Uddin Ahmad, Md Golam Rahman Tushar, Saikat Chakraborty, and Kai-Wei
+    Chang. AVATAR: A parallel corpus for java-python program translation. In Findings
+    of the Association for Computational Linguistics: ACL 2023, Toronto, Canada, July
+    9-14, 2023, pages 2268–2281\. Association for Computational Linguistics, 2023.'
+  id: totrans-227
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[31] Wasi Uddin Ahmad、Md Golam Rahman Tushar、Saikat Chakraborty 和 Kai-Wei Chang。AVATAR：一个用于
+    Java-Python 程序翻译的平行语料库。载于《计算语言学学会发现：ACL 2023》，加拿大多伦多，2023年7月9-14日，页码2268–2281。计算语言学学会，2023年。'
+- en: '[32] Anh Tuan Nguyen, Tung Thanh Nguyen, and Tien N. Nguyen. Lexical statistical
+    machine translation for language migration. In Joint Meeting of the European Software
+    Engineering Conference and the ACM SIGSOFT Symposium on the Foundations of Software
+    Engineering, ESEC/FSE’13, Saint Petersburg, Russian Federation, August 18-26,
+    2013, pages 651–654\. ACM, 2013.'
+  id: totrans-228
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[32] Anh Tuan Nguyen、Tung Thanh Nguyen 和 Tien N. Nguyen。用于语言迁移的词汇统计机器翻译。载于《欧洲软件工程会议与ACM
+    SIGSOFT软件工程基础研讨会联合会议》，ESEC/FSE’13，俄罗斯圣彼得堡，2013年8月18-26日，页码651–654。ACM，2013年。'
+- en: '[33] Xinyun Chen, Chang Liu, and Dawn Song. Tree-to-tree neural networks for
+    program translation. In 6th International Conference on Learning Representations,
+    ICLR 2018, Vancouver, BC, Canada, April 30 - May 3, 2018, Workshop Track Proceedings.
+    OpenReview.net, 2018.'
+  id: totrans-229
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[33] Xinyun Chen、Chang Liu 和 Dawn Song。树到树神经网络用于程序翻译。载于《第六届国际学习表征会议》，ICLR 2018，加拿大温哥华，2018年4月30日-5月3日，工作坊论文集。OpenReview.net，2018年。'
+- en: '[34] Ruchir Puri, David S. Kung, Geert Janssen, Wei Zhang, Giacomo Domeniconi,
+    Vladimir Zolotov, and et al. Project codenet: A large-scale AI for code dataset
+    for learning a diversity of coding tasks. CoRR, abs/2105.12655, 2021.'
+  id: totrans-230
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[34] Ruchir Puri、David S. Kung、Geert Janssen、Wei Zhang、Giacomo Domeniconi、Vladimir
+    Zolotov 等。Project codenet：一个用于学习多种编码任务的大规模AI代码数据集。CoRR，abs/2105.12655，2021年。'
+- en: '[35] Ming Zhu, Karthik Suresh, and Chandan K. Reddy. Multilingual code snippets
+    training for program translation. In Thirty-Sixth AAAI Conference on Artificial
+    Intelligence, AAAI 2022, Thirty-Fourth Conference on Innovative Applications of
+    Artificial Intelligence, IAAI 2022, The Twelveth Symposium on Educational Advances
+    in Artificial Intelligence, EAAI 2022 Virtual Event, February 22 - March 1, 2022,
+    pages 11783–11790\. AAAI Press, 2022.'
+  id: totrans-231
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[35] Ming Zhu, Karthik Suresh, 和 Chandan K. Reddy. 用于程序翻译的多语言代码片段训练. 收录于《第三十六届美国人工智能协会会议》（AAAI
+    2022）、《第三十四届人工智能创新应用会议》（IAAI 2022）、《第十二届人工智能教育进展研讨会》（EAAI 2022）虚拟会议，2022年2月22日至3月1日，第11783-11790页.
+    AAAI出版社, 2022.'
+- en: '[36] leetcode.'
+  id: totrans-232
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[36] leetcode.'
+- en: '[37] geeksforgeeks.'
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[37] geeksforgeeks.'
+- en: '[38] Jiawei Liu, Chunqiu Steven Xia, Yuyao Wang, and Lingming Zhang. Is your
+    code generated by chatgpt really correct? rigorous evaluation of large language
+    models for code generation. In Alice Oh, Tristan Naumann, Amir Globerson, Kate
+    Saenko, Moritz Hardt, and Sergey Levine, editors, Advances in Neural Information
+    Processing Systems 36: Annual Conference on Neural Information Processing Systems
+    2023, NeurIPS 2023, New Orleans, LA, USA, December 10 - 16, 2023, 2023.'
+  id: totrans-234
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[38] Jiawei Liu, Chunqiu Steven Xia, Yuyao Wang, 和 Lingming Zhang. 你的代码真的是由chatgpt生成的吗？对大型语言模型在代码生成中的严格评估.
+    收录于Alice Oh, Tristan Naumann, Amir Globerson, Kate Saenko, Moritz Hardt, 和 Sergey
+    Levine编《神经信息处理系统进展 36：神经信息处理系统年会2023》，NeurIPS 2023，美国路易斯安那州新奥尔良，2023年12月10日至16日，2023.'
+- en: '[39] gpt-4o mini. 2024.'
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[39] gpt-4o mini. 2024.'
+- en: '[40] Llama-3-8B-Instruct. 2023.'
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[40] Llama-3-8B-Instruct. 2023.'
+- en: '[41] ChatGLM2-6B. 2023.'
+  id: totrans-237
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[41] ChatGLM2-6B. 2023.'
+- en: '[42] ChatGLM-6B. 2023.'
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[42] ChatGLM-6B. 2023.'
+- en: '[43] Shuo Ren, Daya Guo, Shuai Lu, Long Zhou, Shujie Liu, Duyu Tang, Neel Sundaresan,
+    Ming Zhou, Ambrosio Blanco, and Shuai Ma. Codebleu: a method for automatic evaluation
+    of code synthesis. CoRR, abs/2009.10297, 2020.'
+  id: totrans-239
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[43] Shuo Ren, Daya Guo, Shuai Lu, Long Zhou, Shujie Liu, Duyu Tang, Neel Sundaresan,
+    Ming Zhou, Ambrosio Blanco, 和 Shuai Ma. Codebleu：一种自动评估代码合成的方法. CoRR, abs/2009.10297,
+    2020.'
+- en: '[44] joern.'
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[44] joern.'
+- en: '[45] huggingface.'
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[45] huggingface.'
+- en: '[46] Ravindra Singh and Naurang Singh Mangat. Elements of survey sampling,
+    volume 15. Springer Science & Business Media, 2013.'
+  id: totrans-242
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[46] Ravindra Singh 和 Naurang Singh Mangat. 《抽样调查元素》（第15卷）。Springer科学与商业媒体，2013.'
+- en: '[47] Dennis Wackerly, William Mendenhall, and Richard L Scheaffer. Mathematical
+    statistics with applications. Cengage Learning, 2014.'
+  id: totrans-243
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[47] Dennis Wackerly, William Mendenhall, 和 Richard L Scheaffer. 《应用数学统计学》.
+    Cengage Learning, 2014.'
+- en: '[48] J. Richard Landis and Gary G. Koch. An application of hierarchical kappa-type
+    statistics in the assessment of majority agreement among multiple observers. Biometrics,
+    33(2):363–374, 1977.'
+  id: totrans-244
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[48] J. Richard Landis 和 Gary G. Koch. 层次型kappa统计方法在多观察者一致性评估中的应用. 《生物统计学》，33(2)：363–374，1977.'
+- en: '[49] C2Rust. 2024.'
+  id: totrans-245
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[49] C2Rust. 2024.'
+- en: '[50] cxgo: C to Go transpiler. 2024.'
+  id: totrans-246
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[50] cxgo: C到Go的转译器. 2024.'
+- en: '[51] Sharpen. https://github.com/mono/sharpen, 2020.'
+  id: totrans-247
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[51] Sharpen. https://github.com/mono/sharpen, 2020.'
+- en: '[52] JavaToCSharp. https://github.com/paulirwin/JavaToCSharp, 2024.'
+  id: totrans-248
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[52] JavaToCSharp. https://github.com/paulirwin/JavaToCSharp, 2024.'
+- en: '[53] Anh Tuan Nguyen, Tung Thanh Nguyen, and Tien N. Nguyen. Migrating code
+    with statistical machine translation. In 36th International Conference on Software
+    Engineering, ICSE ’14, Companion Proceedings, Hyderabad, India, May 31 - June
+    07, 2014, pages 544–547\. ACM, 2014.'
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[53] Anh Tuan Nguyen, Tung Thanh Nguyen, 和 Tien N. Nguyen. 使用统计机器翻译迁移代码. 收录于《第36届国际软件工程会议》（ICSE
+    ’14），会议论文集，印度海得拉巴，2014年5月31日至6月7日，第544-547页. ACM, 2014.'
+- en: '[54] Svetoslav Karaivanov, Veselin Raychev, and Martin T. Vechev. Phrase-based
+    statistical translation of programming languages. In Onward! 2014, Proceedings
+    of the 2014 ACM International Symposium on New Ideas, New Paradigms, and Reflections
+    on Programming & Software, part of SPLASH ’14, Portland, OR, USA, October 20-24,
+    2014, pages 173–184\. ACM, 2014.'
+  id: totrans-250
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[54] Svetoslav Karaivanov, Veselin Raychev, 和 Martin T. Vechev. 基于短语的编程语言统计翻译.
+    收录于《Onward! 2014》，2014年ACM国际编程与软件新思想、新范式与反思研讨会，SPLASH ’14的一部分，美国俄勒冈州波特兰，2014年10月20日至24日，第173-184页.
+    ACM, 2014.'
+- en: '[55] Yusuke Oda, Hiroyuki Fudaba, Graham Neubig, Hideaki Hata, Sakriani Sakti,
+    Tomoki Toda, and Satoshi Nakamura. Learning to generate pseudo-code from source
+    code using statistical machine translation (T). In 30th IEEE/ACM International
+    Conference on Automated Software Engineering, ASE 2015, Lincoln, NE, USA, November
+    9-13, 2015, pages 574–584\. IEEE Computer Society, 2015.'
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[55] Yusuke Oda, Hiroyuki Fudaba, Graham Neubig, Hideaki Hata, Sakriani Sakti,
+    Tomoki Toda, 和 Satoshi Nakamura. 使用统计机器翻译(T)从源代码生成伪代码的学习. 收录于《第30届IEEE/ACM自动化软件工程国际会议》（ASE
+    2015），美国内布拉斯加州林肯市，2015年11月9日至13日，第574-584页. IEEE计算机学会，2015.'
+- en: '[56] Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Pondé de Oliveira Pinto,
+    Jared Kaplan, Harri Edwards, and et al. Evaluating large language models trained
+    on code. CoRR, abs/2107.03374, 2021.'
+  id: totrans-252
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[56] 陈马克、杰瑞·特沃雷克、金辉武、袁启明、亨里克·庞德·德·奥利维拉·平托、贾里德·卡普兰、哈里·爱德华兹等。评估在代码上训练的大型语言模型。CoRR，abs/2107.03374，2021。'
+- en: '[57] Yihong Dong, Xue Jiang, Zhi Jin, and Ge Li. Self-collaboration code generation
+    via chatgpt. CoRR, abs/2304.07590, 2023.'
+  id: totrans-253
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[57] 董一鸿、姜雪、金智、李格。通过ChatGPT进行自我协作代码生成。CoRR，abs/2304.07590，2023。'
+- en: '[58] Zhiqiang Yuan, Mingwei Liu, Shiji Ding, Kaixin Wang, Yixuan Chen, Xin
+    Peng, and Yiling Lou. Evaluating and improving chatgpt for unit test generation.
+    Proc. ACM Softw. Eng., 1(FSE):1703–1726, 2024.'
+  id: totrans-254
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[58] 袁志强、刘名威、丁世吉、王开鑫、陈奕轩、彭鑫、娄伊玲。评估和改进ChatGPT用于单元测试生成。ACM软件工程会议论文集，1(FSE):1703–1726，2024。'
+- en: '[59] Zhiyu Fan, Xiang Gao, Martin Mirchev, Abhik Roychoudhury, and Shin Hwei
+    Tan. Automated repair of programs from large language models. In 45th IEEE/ACM
+    International Conference on Software Engineering, ICSE 2023, Melbourne, Australia,
+    May 14-20, 2023, pages 1469–1481\. IEEE, 2023.'
+  id: totrans-255
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[59] 范志宇、高翔、马丁·米尔切夫、阿比克·罗伊乔杜里和陈心慧。基于大语言模型的程序自动修复。第45届IEEE/ACM软件工程国际会议，ICSE
+    2023，澳大利亚墨尔本，2023年5月14日至20日，第1469–1481页。IEEE，2023。'
+- en: '[60] Chunqiu Steven Xia, Yuxiang Wei, and Lingming Zhang. Automated program
+    repair in the era of large pre-trained language models. In 45th IEEE/ACM International
+    Conference on Software Engineering, ICSE 2023, Melbourne, Australia, May 14-20,
+    2023, pages 1482–1494\. IEEE, 2023.'
+  id: totrans-256
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[60] 夏春秋·史蒂文、魏宇翔和张凌明。大规模预训练语言模型时代的程序自动修复。在第45届IEEE/ACM软件工程国际会议，ICSE 2023，澳大利亚墨尔本，2023年5月14日至20日，第1482–1494页。IEEE，2023。'
+- en: '[61] Toufique Ahmed and Premkumar T. Devanbu. Few-shot training llms for project-specific
+    code-summarization. In 37th IEEE/ACM International Conference on Automated Software
+    Engineering, ASE 2022, Rochester, MI, USA, October 10-14, 2022, pages 177:1–177:5\.
+    ACM, 2022.'
+  id: totrans-257
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[61] 托菲克·艾哈迈德和普雷姆库马尔·T·德文布。为项目特定的代码总结进行少样本训练的LLM。在第37届IEEE/ACM自动化软件工程国际会议，ASE
+    2022，美国密歇根州罗切斯特，2022年10月10日至14日，第177:1–177:5页。ACM，2022。'
+- en: '[62] Mingyang Geng, Shangwen Wang, Dezun Dong, Haotian Wang, Ge Li, Zhi Jin,
+    Xiaoguang Mao, and Xiangke Liao. An empirical study on using large language models
+    for multi-intent comment generation. CoRR, abs/2304.11384, 2023.'
+  id: totrans-258
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[62] 耿名扬、王尚文、董德尊、王昊天、李格、金智、毛晓光和廖向克。使用大语言模型生成多意图注释的实证研究。CoRR，abs/2304.11384，2023。'
+- en: '[63] Jinhan Kim, Gabin An, Robert Feldt, and Shin Yoo. Ahead of time mutation
+    based fault localisation using statistical inference. In 32nd IEEE International
+    Symposium on Software Reliability Engineering, ISSRE 2021, Wuhan, China, October
+    25-28, 2021, pages 253–263\. IEEE, 2021.'
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[63] 金翰、安嘉宾、罗伯特·费尔德特和申裕。基于统计推断的提前变异故障定位。在第32届IEEE国际软件可靠性工程研讨会，ISSRE 2021，中国武汉，2021年10月25日至28日，第253–263页。IEEE，2021。'
+- en: '[64] Mike Papadakis and Yves Le Traon. Metallaxis-fl: mutation-based fault
+    localization. Softw. Test. Verification Reliab., 25(5-7):605–628, 2015.'
+  id: totrans-260
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[64] 迈克·帕帕达基斯和伊夫·勒特龙。Metallaxis-fl：基于变异的故障定位。软件测试、验证与可靠性，25(5-7):605–628，2015。'
+- en: '[65] Yonghao Wu, Zheng Li, Yong Liu, and Xiang Chen. FATOC: bug isolation based
+    multi-fault localization by using OPTICS clustering. J. Comput. Sci. Technol.,
+    35(5):979–998, 2020.'
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[65] 吴永豪、李正、刘勇和陈翔。FATOC：基于OPTICS聚类的多故障定位缺陷隔离。计算机科学与技术学报，35(5):979–998，2020。'
+- en: '[66] Amr Mansour Mohsen, Hesham A. Hassan, Khaled Wassif, Ramadan Moawad, and
+    Soha Makady. Enhancing bug localization using phase-based approach. IEEE Access,
+    11:35901–35913, 2023.'
+  id: totrans-262
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[66] 阿姆尔·曼苏尔·穆罕森、哈沙姆·A·哈桑、哈立德·瓦西夫、拉马丹·莫阿瓦德和索哈·马卡迪。使用基于阶段的方法增强缺陷定位。IEEE Access，11:35901–35913，2023。'
+- en: '[67] Agnieszka Ciborowska and Kostadin Damevski. Fast changeset-based bug localization
+    with BERT. In 44th IEEE/ACM 44th International Conference on Software Engineering,
+    ICSE 2022, Pittsburgh, PA, USA, May 25-27, 2022, pages 946–957\. ACM, 2022.'
+  id: totrans-263
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[67] 阿涅日卡·奇博罗夫斯卡和科斯塔丁·达梅夫斯基。基于变更集的快速缺陷定位与BERT。在第44届IEEE/ACM软件工程国际会议，ICSE 2022，美国宾夕法尼亚州匹兹堡，2022年5月25日至27日，第946–957页。ACM，2022。'
+- en: '[68] Ziye Zhu, Yu Wang, and Yun Li. Trobo: A novel deep transfer model for
+    enhancing cross-project bug localization. In Knowledge Science, Engineering and
+    Management - 14th International Conference, KSEM 2021, Tokyo, Japan, August 14-16,
+    2021, Proceedings, Part I, volume 12815 of Lecture Notes in Computer Science,
+    pages 529–541\. Springer, 2021.'
+  id: totrans-264
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[68] 朱子烨、王宇、李云。Trobo：一种增强跨项目缺陷定位的深度迁移模型。在《知识科学、工程与管理 - 第14届国际会议》，KSEM 2021，日本东京，2021年8月14日至16日，会议论文集，第12815卷计算机科学讲义系列，第529–541页。Springer，2021。'
+- en: '[69] Sungmin Kang, Gabin An, and Shin Yoo. A preliminary evaluation of llm-based
+    fault localization. CoRR, abs/2308.05487, 2023.'
+  id: totrans-265
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[69] Sungmin Kang, Gabin An, 和 Shin Yoo. 基于大语言模型的故障定位初步评估. CoRR, abs/2308.05487,
+    2023.'
+- en: '[70] Xiangyu Zhang, Neelam Gupta, and Rajiv Gupta. Pruning dynamic slices with
+    confidence. In Proceedings of the ACM SIGPLAN 2006 Conference on Programming Language
+    Design and Implementation, Ottawa, Ontario, Canada, June 11-14, 2006, pages 169–180\.
+    ACM, 2006.'
+  id: totrans-266
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[70] Xiangyu Zhang, Neelam Gupta, 和 Rajiv Gupta. 基于置信度的动态切片修剪. 发表在ACM SIGPLAN
+    2006编程语言设计与实现会议，2006年6月11-14日，加拿大渥太华，第169-180页. ACM, 2006.'
+- en: '[71] Weidong Cui, Xinyang Ge, Baris Kasikci, Ben Niu, Upamanyu Sharma, Ruoyu
+    Wang, and Insu Yun. REPT: reverse debugging of failures in deployed software.
+    In 13th USENIX Symposium on Operating Systems Design and Implementation, OSDI
+    2018, Carlsbad, CA, USA, October 8-10, 2018, pages 17–32\. USENIX Association,
+    2018.'
+  id: totrans-267
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[71] Weidong Cui, Xinyang Ge, Baris Kasikci, Ben Niu, Upamanyu Sharma, Ruoyu
+    Wang, 和 Insu Yun. REPT: 部署软件故障的反向调试. 发表在第13届USENIX操作系统设计与实现研讨会(OSDI 2018)，2018年10月8-10日，美国加利福尼亚州卡尔斯巴德，第17-32页.
+    USENIX协会, 2018.'
+- en: '[72] Jiajun Jiang, Yingfei Xiong, Hongyu Zhang, Qing Gao, and Xiangqun Chen.
+    Shaping program repair space with existing patches and similar code. In Proceedings
+    of the 27th ACM SIGSOFT International Symposium on Software Testing and Analysis,
+    ISSTA 2018, Amsterdam, The Netherlands, July 16-21, 2018, pages 298–309\. ACM,
+    2018.'
+  id: totrans-268
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[72] Jiajun Jiang, Yingfei Xiong, Hongyu Zhang, Qing Gao, 和 Xiangqun Chen.
+    通过现有补丁和相似代码塑造程序修复空间. 发表在第27届ACM SIGSOFT国际软件测试与分析研讨会(ISSTA 2018)，2018年7月16-21日，荷兰阿姆斯特丹，第298-309页.
+    ACM, 2018.'
+- en: '[73] Yuan Yuan and Wolfgang Banzhaf. ARJA: automated repair of java programs
+    via multi-objective genetic programming. IEEE Trans. Software Eng., 46(10):1040–1067,
+    2020.'
+  id: totrans-269
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[73] Yuan Yuan 和 Wolfgang Banzhaf. ARJA: 通过多目标遗传编程自动修复 Java 程序. IEEE软件工程学报,
+    46(10):1040–1067, 2020.'
+- en: '[74] Matias Martinez and Martin Monperrus. ASTOR: a program repair library
+    for java (demo). In Proceedings of the 25th International Symposium on Software
+    Testing and Analysis, ISSTA 2016, Saarbrücken, Germany, July 18-20, 2016, pages
+    441–444\. ACM, 2016.'
+  id: totrans-270
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[74] Matias Martinez 和 Martin Monperrus. ASTOR: Java 程序修复库（演示）。 发表在第25届国际软件测试与分析研讨会(ISSTA
+    2016)，2016年7月18-20日，德国萨尔布吕肯，第441-444页. ACM, 2016.'
+- en: '[75] Yingfei Xiong, Jie Wang, Runfa Yan, Jiachen Zhang, Shi Han, Gang Huang,
+    and Lu Zhang. Precise condition synthesis for program repair. In Proceedings of
+    the 39th International Conference on Software Engineering, ICSE 2017, Buenos Aires,
+    Argentina, May 20-28, 2017, pages 416–426\. IEEE / ACM, 2017.'
+  id: totrans-271
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[75] Yingfei Xiong, Jie Wang, Runfa Yan, Jiachen Zhang, Shi Han, Gang Huang,
+    和 Lu Zhang. 程序修复的精确条件合成. 发表在第39届国际软件工程大会(ICSE 2017)，2017年5月20-28日，阿根廷布宜诺斯艾利斯，第416-426页.
+    IEEE / ACM, 2017.'
+- en: '[76] Jifeng Xuan, Matias Martinez, Favio Demarco, Maxime Clément, and et al.
+    Nopol: Automatic repair of conditional statement bugs in java programs. CoRR,
+    abs/1811.04211, 2018.'
+  id: totrans-272
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[76] Jifeng Xuan, Matias Martinez, Favio Demarco, Maxime Clément, 等. Nopol:
+    自动修复 Java 程序中的条件语句错误. CoRR, abs/1811.04211, 2018.'
+- en: '[77] Matias Martinez and Martin Monperrus. Ultra-large repair search space
+    with automatically mined templates: The cardumen mode of astor. In Search-Based
+    Software Engineering - 10th International Symposium, SSBSE 2018, Montpellier,
+    France, September 8-9, 2018, Proceedings, volume 11036 of Lecture Notes in Computer
+    Science, pages 65–86\. Springer, 2018.'
+  id: totrans-273
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[77] Matias Martinez 和 Martin Monperrus. 使用自动挖掘模板的超大修复搜索空间：ASTOR的Cardumen模式.
+    发表在基于搜索的软件工程——第10届国际研讨会(SSBSE 2018)，2018年9月8-9日，法国蒙彼利埃，Lecture Notes in Computer
+    Science，第11036卷，第65-86页. Springer, 2018.'
+- en: '[78] Kui Liu, Anil Koyuncu, Dongsun Kim, and Tegawendé F. Bissyandé. Tbar:
+    revisiting template-based automated program repair. In Proceedings of the 28th
+    ACM SIGSOFT International Symposium on Software Testing and Analysis, ISSTA 2019,
+    Beijing, China, July 15-19, 2019, pages 31–42\. ACM, 2019.'
+  id: totrans-274
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[78] Kui Liu, Anil Koyuncu, Dongsun Kim, 和 Tegawendé F. Bissyandé. Tbar: 重新审视基于模板的自动化程序修复.
+    发表在第28届ACM SIGSOFT国际软件测试与分析研讨会(ISSTA 2019)，2019年7月15-19日，北京，中国，第31-42页. ACM, 2019.'
+- en: '[79] Anil Koyuncu, Kui Liu, Tegawendé F. Bissyandé, Dongsun Kim, Jacques Klein,
+    Martin Monperrus, and Yves Le Traon. Fixminer: Mining relevant fix patterns for
+    automated program repair. Empir. Softw. Eng., 25(3):1980–2024, 2020.'
+  id: totrans-275
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[79] Anil Koyuncu, Kui Liu, Tegawendé F. Bissyandé, Dongsun Kim, Jacques Klein,
+    Martin Monperrus, 和 Yves Le Traon. Fixminer: 挖掘与自动程序修复相关的修复模式. Empir. Softw. Eng.,
+    25(3):1980–2024, 2020.'
+- en: '[80] Kui Liu, Anil Koyuncu, Dongsun Kim, and Tegawendé F. Bissyandé. AVATAR:
+    fixing semantic bugs with fix patterns of static analysis violations. In 26th
+    IEEE International Conference on Software Analysis, Evolution and Reengineering,
+    SANER 2019, Hangzhou, China, February 24-27, 2019, pages 456–467\. IEEE, 2019.'
+  id: totrans-276
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[80] Kui Liu, Anil Koyuncu, Dongsun Kim, 和 Tegawendé F. Bissyandé. AVATAR:
+    使用静态分析违规的修复模式修复语义错误. 在第26届 IEEE 软件分析、演化与重构国际会议, SANER 2019, 中国杭州, 2019年2月24-27日,
+    页码 456–467\. IEEE, 2019.'
+- en: '[81] Zimin Chen, Steve Kommrusch, Michele Tufano, Louis-Noël Pouchet, Denys
+    Poshyvanyk, and Martin Monperrus. Sequencer: Sequence-to-sequence learning for
+    end-to-end program repair. IEEE Trans. Software Eng., 47(9):1943–1959, 2021.'
+  id: totrans-277
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[81] Zimin Chen, Steve Kommrusch, Michele Tufano, Louis-Noël Pouchet, Denys
+    Poshyvanyk, 和 Martin Monperrus. Sequencer: 基于序列到序列学习的端到端程序修复. IEEE 软件工程学报, 47(9):1943–1959,
+    2021.'
+- en: '[82] Thibaud Lutellier, Hung Viet Pham, Lawrence Pang, Yitong Li, Moshi Wei,
+    and Lin Tan. Coconut: combining context-aware neural translation models using
+    ensemble for program repair. In ISSTA ’20: 29th ACM SIGSOFT International Symposium
+    on Software Testing and Analysis, Virtual Event, USA, July 18-22, 2020, pages
+    101–114\. ACM, 2020.'
+  id: totrans-278
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[82] Thibaud Lutellier, Hung Viet Pham, Lawrence Pang, Yitong Li, Moshi Wei,
+    和 Lin Tan. Coconut: 结合上下文感知神经翻译模型并使用集成方法进行程序修复. 在 ISSTA ’20: 第29届 ACM SIGSOFT
+    国际软件测试与分析研讨会, 虚拟会议, 美国, 2020年7月18-22日, 页码 101–114\. ACM, 2020.'
+- en: '[83] Qihao Zhu, Zeyu Sun, Wenjie Zhang, Yingfei Xiong, and Lu Zhang. Tare:
+    Type-aware neural program repair. In 45th IEEE/ACM International Conference on
+    Software Engineering, ICSE 2023, Melbourne, Australia, May 14-20, 2023, pages
+    1443–1455\. IEEE, 2023.'
+  id: totrans-279
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[83] Qihao Zhu, Zeyu Sun, Wenjie Zhang, Yingfei Xiong, 和 Lu Zhang. Tare: 类型感知神经程序修复.
+    在第45届 IEEE/ACM 软件工程国际会议, ICSE 2023, 澳大利亚墨尔本, 2023年5月14-20日, 页码 1443–1455\. IEEE,
+    2023.'
+- en: '[84] Quanjun Zhang, Chunrong Fang, Yuxiang Ma, Weisong Sun, and Zhenyu Chen.
+    A survey of learning-based automated program repair. ACM Trans. Softw. Eng. Methodol.,
+    33(2):55:1–55:69, 2024.'
+  id: totrans-280
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[84] Quanjun Zhang, Chunrong Fang, Yuxiang Ma, Weisong Sun, 和 Zhenyu Chen.
+    基于学习的自动化程序修复综述. ACM 软件工程方法学学报, 33(2):55:1–55:69, 2024.'
+- en: '[85] Quanjun Zhang, Chunrong Fang, Bowen Yu, Weisong Sun, Tongke Zhang, and
+    Zhenyu Chen. Pre-trained model-based automated software vulnerability repair:
+    How far are we? IEEE Trans. Dependable Secur. Comput., 21(4):2507–2525, 2024.'
+  id: totrans-281
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[85] Quanjun Zhang, Chunrong Fang, Bowen Yu, Weisong Sun, Tongke Zhang, 和 Zhenyu
+    Chen. 基于预训练模型的自动化软件漏洞修复: 我们距离成功还有多远? IEEE 可依赖安全计算学报, 21(4):2507–2525, 2024.'
+- en: '[86] Pantazis Deligiannis, Akash Lal, Nikita Mehrotra, and Aseem Rastogi. Fixing
+    rust compilation errors using llms. CoRR, abs/2308.05177, 2023.'
+  id: totrans-282
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[86] Pantazis Deligiannis, Akash Lal, Nikita Mehrotra, 和 Aseem Rastogi. 使用LLMs修复Rust编译错误.
+    CoRR, abs/2308.05177, 2023.'
+- en: '[87] Harshit Joshi, José Pablo Cambronero Sánchez, Sumit Gulwani, Vu Le, Gust
+    Verbruggen, and Ivan Radicek. Repair is nearly generation: Multilingual program
+    repair with llms. In Thirty-Seventh AAAI Conference on Artificial Intelligence,
+    AAAI 2023, Thirty-Fifth Conference on Innovative Applications of Artificial Intelligence,
+    IAAI 2023, Thirteenth Symposium on Educational Advances in Artificial Intelligence,
+    EAAI 2023, Washington, DC, USA, February 7-14, 2023, pages 5131–5140\. AAAI Press,
+    2023.'
+  id: totrans-283
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[87] Harshit Joshi, José Pablo Cambronero Sánchez, Sumit Gulwani, Vu Le, Gust
+    Verbruggen, 和 Ivan Radicek. 修复几乎是生成：使用LLMs进行多语言程序修复. 在第37届 AAAI 人工智能会议, AAAI 2023,
+    第35届创新人工智能应用会议, IAAI 2023, 第13届人工智能教育进展研讨会, EAAI 2023, 美国华盛顿特区, 2023年2月7-14日,
+    页码 5131–5140\. AAAI出版社, 2023.'
